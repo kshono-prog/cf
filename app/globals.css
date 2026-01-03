@@ -1,26 +1,360 @@
+/* Tailwind v4 用の基本読み込み */
 @import "tailwindcss";
 
+/* ====== ベース（ライト／ダーク両対応） ====== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* OS 設定に追従 */
+  color-scheme: light dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
+  margin: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Light モードのデフォルト */
+  background-color: #f9fafb; /* gray-50 */
+  color: #111827; /* gray-900 */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* ダークモード時の全体背景と文字色 */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #020617; /* slate-950 */
+    color: #e5e7eb; /* gray-200 */
+  }
+}
+
+/* ====== 共通レイアウト ====== */
+.container-narrow {
+  padding-inline: 10px;
+  padding-block: 24px;
+  margin-inline: auto;
+  max-width: 800px;
+  width: 100%;
+}
+
+/* ====== コンポーネント風ユーティリティ ====== */
+
+/* カード（ライト／ダーク両対応） */
+.card {
+  background-color: #ffffff;
+  border-radius: 1rem; /* rounded-2xl */
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); /* shadow-sm */
+  border: 1px solid rgba(229, 231, 235, 0.6); /* gray-200/60 */
+}
+
+@media (prefers-color-scheme: dark) {
+  .card {
+    background-color: #0f172a; /* slate-900: 本文より少し明るめ */
+    border-color: #1f2937; /* gray-800 */
+    color: #e5e7eb; /* gray-200 */
+  }
+}
+
+/* メインボタン */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 0.75rem; /* rounded-xl */
+  padding: 0.5rem 1rem; /* py-2 px-4 */
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.25rem;
+  font-weight: 600; /* font-semibold */
+
+  background-color: #4f46e5; /* indigo-600 */
+  color: #ffffff;
+  cursor: pointer;
+
+  border: none;
+  outline: none;
+  transition: background-color 150ms ease, box-shadow 150ms ease,
+    transform 80ms ease;
+}
+
+.btn:hover {
+  background-color: #6366f1; /* indigo-500 */
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.6); /* indigo-400/60 */
+}
+
+/* セカンダリボタン */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 0.75rem;
+  padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+
+  background-color: rgb(229, 231, 235); /* gray-200 */
+  color: rgb(17, 24, 39); /* gray-900 */
+  cursor: pointer;
+
+  border: none;
+  outline: none;
+  transition: background-color 150ms ease, box-shadow 150ms ease,
+    transform 80ms ease;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(209, 213, 219, 0.8); /* gray-300/80 */
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-secondary {
+    background-color: #1f2937; /* gray-800 */
+    color: #e5e7eb; /* gray-200 */
+  }
+
+  .btn-secondary:hover {
+    background-color: #374151; /* gray-700 */
+  }
+}
+
+/* テキスト入力 */
+.input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(209, 213, 219); /* gray-300 */
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 0.5rem 0.75rem; /* py-2 px-3 */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: rgb(17, 24, 39); /* gray-900 */
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.input:focus {
+  border-color: rgb(129, 140, 248); /* indigo-400 */
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  .input {
+    border-color: #4b5563; /* gray-600 */
+    background-color: rgba(15, 23, 42, 0.9); /* slate-900 相当 */
+    color: #e5e7eb; /* gray-200 */
+  }
+
+  .input::placeholder {
+    color: #9ca3af; /* gray-400 */
+  }
+}
+
+/* 警告ボックス */
+.alert-warn {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(252, 211, 77, 0.6); /* amber-300/60 */
+  background-color: #fffbeb; /* amber-50 */
+  color: #78350f; /* amber-900 */
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .alert-warn {
+    background-color: rgba(120, 53, 15, 0.2); /* amber-900/20 */
+    color: #fde68a; /* amber-200 */
+  }
+}
+
+/* キーボード表現 */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  border: 1px solid rgb(209, 213, 219); /* gray-300 */
+  padding: 0.125rem 0.375rem; /* px-1.5 */
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 500;
+}
+
+@media (prefers-color-scheme: dark) {
+  .kbd {
+    border-color: #4b5563; /* gray-600 */
+    color: #e5e7eb; /* gray-200 */
+  }
+}
+
+/* ========== Tip Thanks Card（サンクスカード風バッジ） ========== */
+
+.tip-card {
+  width: 260px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.tip-card__label {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.tip-card__message-ja {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tip-card__message-en {
+  font-size: 11px;
+  color: #555;
+}
+
+/* ===== ティアごとのスタイル ===== */
+
+/* WHITE：100円以下 */
+.tier-white .tip-card__label {
+  background: #f4f4f4;
+  color: #555;
+  border: 1px solid #dedede;
+}
+
+/* BRONZE：500円以下 */
+.tier-bronze {
+  border-color: rgba(184, 115, 51, 0.35);
+}
+.tier-bronze .tip-card__label {
+  background: linear-gradient(135deg, #f0d4b0, #b87333);
+  color: #fff;
+}
+
+/* SILVER：1,000円以下 */
+.tier-silver {
+  border-color: rgba(180, 180, 190, 0.5);
+}
+.tier-silver .tip-card__label {
+  background: linear-gradient(135deg, #fdfdfd, #babec8);
+  color: #333;
+}
+
+/* GOLD：5,000円以下 */
+.tier-gold {
+  border-color: rgba(212, 160, 25, 0.5);
+}
+.tier-gold .tip-card__label {
+  background: linear-gradient(135deg, #fff3c4, #d4a019);
+  color: #4a3200;
+}
+
+/* PLATINUM：10,000円以下 */
+.tier-platinum {
+  border-color: rgba(200, 210, 230, 0.7);
+}
+.tier-platinum .tip-card__label {
+  background: linear-gradient(135deg, #ffffff, #cfd8e6);
+  color: #283044;
+}
+
+/* RAINBOW：50,000円超 */
+.tier-rainbow {
+  border-color: rgba(255, 153, 204, 0.7);
+}
+.tier-rainbow .tip-card__label {
+  background: conic-gradient(
+    from 0deg,
+    #ff8a80,
+    #ffd180,
+    #ffff8d,
+    #ccff90,
+    #80d8ff,
+    #ea80fc,
+    #ff8a80
+  );
+  color: #fff;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
+}
+
+/* 画面下の安全マージン（iPhoneノッチ対応） */
+.bottom-nav-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
+/* =========================================================
+   プロフィールなどを「常にライトモード風」にするためのクラス
+   ========================================================= */
+
+/* ライト固定のベース */
+.force-light-theme {
+  color-scheme: light;
+  background-color: #f9fafb; /* gray-50 */
+  color: #111827; /* gray-900 */
+}
+
+/* ダークモード時でも、.force-light-theme 内はライト用に上書き */
+@media (prefers-color-scheme: dark) {
+  .force-light-theme {
+    background-color: #f9fafb;
+    color: #111827;
+  }
+
+  .force-light-theme .card {
+    background-color: #ffffff;
+    border-color: rgba(229, 231, 235, 0.6);
+    color: #111827;
+  }
+
+  .force-light-theme .btn-secondary {
+    background-color: rgb(229, 231, 235); /* gray-200 */
+    color: rgb(17, 24, 39); /* gray-900 */
+  }
+
+  .force-light-theme .input {
+    border-color: rgb(209, 213, 219); /* gray-300 */
+    background-color: rgba(255, 255, 255, 0.9);
+    color: rgb(17, 24, 39); /* gray-900 */
+  }
+
+  .force-light-theme .input::placeholder {
+    color: #6b7280; /* gray-500 相当 */
+  }
+
+  .force-light-theme .alert-warn {
+    background-color: #fffbeb; /* amber-50 */
+    color: #78350f; /* amber-900 */
+  }
+
+  .force-light-theme .kbd {
+    border-color: rgb(209, 213, 219); /* gray-300 */
+    color: #111827; /* gray-900 */
+  }
+}
+
+/* スマホでの入力時ズーム対策：入力系は 16px 以上にする */
+@media (max-width: 640px) {
+  .input {
+    font-size: 16px; /* iOS Safari のズームを防ぐ閾値 */
+    line-height: 1.5; /* お好みで調整、既存と大きく変えなくてOK */
+  }
 }

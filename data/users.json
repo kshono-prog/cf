@@ -1,0 +1,56 @@
+{
+  "kazu": {
+    "address": "0xFFE29932fDE509020f551eF7ef4d1C2144160b79",
+    "displayName": "Kazu",
+    "profileText": "JPYC投げ銭ツールの開発者です8。",
+    "avatar": "/avatars/kazu.jpg",
+    "qrcode": "/qr/kazu.png",
+    "url": "https://note.com/crypto_ai_news/n/na5f38e144dea?app_launch=false",
+    "goalTitle": "例）投げ銭ツール開発",
+    "goalTargetJpyc": 10000,
+    "themeColor": "#005bbb",
+    "socials": {
+      "twitter": "https://x.com/guitarm89894120",
+      "youtube": "https://www.youtube.com/@kazu3078",
+      "website": "https://note.com/crypto_ai_news/n/na5f38e144dea?app_launch=false"
+    },
+    "youtubeVideos": [
+      {
+        "url": "https://www.youtube.com/watch?v=iCEzCZFFMoU",
+        "title": "Kazu — Guitar",
+        "description": "７弦ギターでCary Lewincampさんのギターをコピーしています。"
+      }
+    ]
+  },
+  "taeko": {
+    "address": "0xTAeKOWalletAddress",
+    "displayName": "Songbird TAeKO(深尾多恵子)",
+    "profileText": "２２年間ニューヨークでの演奏活動ののち、2021年より京都を拠点に国際的に活動するジャズシンガー。 日米にて邦人ボーカリストに稀に見る広範な公演歴を誇り、本場のジャズファンや専門家から「アメリカでも世界でもトップクラスのパフォーマー」と評されている 。アメリカにてダグ・カーン、ビクター・ジョーンズ、トミー・キャンベル、スタッフォード・ハンター等の率いるグループでもボーカルをつとめる。",
+    "avatar": "/avatars/taeko.png",
+    "qrcode": "/qr/taeko.png",
+    "url": "http://songbirdtaeko.com/biography-j.html",
+    "goalTitle": "Songbird TAeKOへの応援・投げ銭",
+    "goalTargetJpyc": 10000,
+    "themeColor": "#8A1C1C",
+    "socials": {
+      "twitter": "https://x.com/songbirdtaeko",
+      "instagram": "https://www.instagram.com/songbirdtaeko/",
+      "youtube": "https://www.youtube.com/user/flatninerecords",
+      "facebook": "https://www.facebook.com/JazzSingerTAeKO/",
+      "website": "http://songbirdtaeko.com/biography-j.html"
+    },
+    "youtubeVideos": [
+      {
+        "url": "https://www.youtube.com/watch?v=cfmAQyNIJnI",
+        "title": "The Rose - Songbird TAeKO",
+        "description": "Filmed at GALLON in Osaka, Japan on November 22, 2024"
+      }
+    ]
+  },
+  "bob": {
+    "address": "0xYourFriendWalletAddressHere",
+    "displayName": "ボブ",
+    "profileText": "ここにプロフィールを記載。",
+    "avatar": "/avatars/bob.png"
+  }
+}

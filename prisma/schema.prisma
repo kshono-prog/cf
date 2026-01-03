@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model CreatorProfile {
+  id              BigInt                @id @default(autoincrement())
+  username        String                @unique
+  displayName     String
+  profileText     String?
+  avatarUrl       String?
+  qrcodeUrl       String?
+  externalUrl     String?
+  goalTitle       String?
+  goalTargetJpyc  Int?
+  themeColor      String?
+  walletAddress   String?               @unique
+  email           String?               @unique
+  status          String                @default("PUBLISHED")
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  activeProjectId BigInt?
+  socialLinks     CreatorSocialLink[]
+  youtubeVideos   CreatorYoutubeVideo[]
+  events          Event[]
+  projects        Project[]
+  tips            Tip[]
+}
+
+model CreatorSocialLink {
+  id        BigInt         @id @default(autoincrement())
+  profileId BigInt
+  type      String
+  label     String?
+  url       String
+  createdAt DateTime       @default(now())
+  profile   CreatorProfile @relation(fields: [profileId], references: [id])
+
+  @@index([profileId])
+}
+
+model CreatorYoutubeVideo {
+  id          BigInt         @id @default(autoincrement())
+  profileId   BigInt
+  url         String
+  title       String?
+  description String?
+  createdAt   DateTime       @default(now())
+  profile     CreatorProfile @relation(fields: [profileId], references: [id])
+
+  @@index([profileId])
+}
+
+model Event {
+  id               BigInt         @id @default(autoincrement())
+  creatorProfileId BigInt
+  title            String
+  description      String?
+  date             DateTime?
+  goalAmount       Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  startAt          DateTime       @default(now()) @db.Timestamptz(6)
+  endAt            DateTime?      @db.Timestamptz(6)
+  placeName        String?
+  placeUrl         String?
+  ticketUrl        String?
+  goalAmountJpyc   Int?
+  isPublished      Boolean        @default(true)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id])
+
+  @@index([creatorProfileId])
+}
+
+model Tip {
+  id               String         @id @default(cuid())
+  creatorProfileId BigInt
+  amountJpyc       Int
+  txHash           String?
+  chainId          Int?
+  message          String?
+  createdAt        DateTime       @default(now())
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id])
+
+  @@index([creatorProfileId])
+}
+
+model FaucetConfig {
+  id              String   @id
+  chainId         Int      @unique
+  enabled         Boolean  @default(true)
+  minJpyc         Int      @default(100)
+  requirePolZero  Boolean  @default(true)
+  claimAmountPol  String   @default("0.02")
+  nonceTtlMinutes Int      @default(10)
+  createdAt       DateTime @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime @default(now()) @db.Timestamp(6)
+}
+
+model FaucetWallet {
+  id        String   @id
+  chainId   Int
+  address   String   @unique
+  label     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([chainId, active], map: "FaucetWallet_chain_active_idx")
+}
+
+model GasClaim {
+  id        String   @id @default(dbgenerated("gen_random_uuid()"))
+  chainId   Int
+  address   String   @unique
+  amountPol String
+  txHash    String?  @unique
+  status    String   @default("PENDING")
+  reason    String?
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @db.Timestamp(6)
+}
+
+model GasSupportNonce {
+  id        String   @id @default(dbgenerated("gen_random_uuid()"))
+  address   String   @unique
+  nonce     String
+  expiresAt DateTime @db.Timestamp(6)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @db.Timestamp(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Allocation {
+  id               BigInt   @id @default(autoincrement())
+  purposeId        BigInt
+  recipientType    String   @default("ADDRESS")
+  recipientAddress String
+  amountType       String   @default("FIXED")
+  amountJpyc       Int?
+  ratioBps         Int?
+  chainId          Int?
+  l1Key            String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @db.Timestamptz(6)
+  Purpose          Purpose  @relation(fields: [purposeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([chainId])
+  @@index([purposeId])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Contribution {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId     BigInt
+  purposeId     BigInt?
+  chainId       Int
+  currency      String
+  txHash        String    @unique(map: "Contribution_txHash_unique")
+  fromAddress   String
+  toAddress     String
+  amountRaw     Decimal   @db.Decimal(78, 0)
+  decimals      Int
+  amountDecimal Decimal?  @db.Decimal(38, 18)
+  status        String    @default("PENDING")
+  confirmedAt   DateTime? @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @db.Timestamptz(6)
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  purpose       Purpose?  @relation(fields: [purposeId], references: [id], onUpdate: NoAction)
+
+  @@index([chainId])
+  @@index([createdAt])
+  @@index([fromAddress], map: "Contribution_from_idx")
+  @@index([projectId])
+  @@index([purposeId])
+  @@index([status])
+  @@index([toAddress], map: "Contribution_to_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Goal {
+  id               BigInt      @id @default(autoincrement())
+  projectId        BigInt      @unique(map: "Goal_projectId_unique")
+  targetAmountJpyc Int
+  deadline         DateTime?   @db.Timestamptz(6)
+  achievedAt       DateTime?   @db.Timestamptz(6)
+  settlementPolicy Json        @default("{}")
+  createdAt        DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime    @default(now()) @db.Timestamptz(6)
+  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  settlement       Settlement?
+
+  @@index([projectId])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Project {
+  id                        BigInt            @id @default(autoincrement())
+  ownerAddress              String?
+  creatorProfileId          BigInt?
+  title                     String
+  description               String?
+  status                    String            @default("DRAFT")
+  purposeMode               String            @default("OPTIONAL")
+  createdAt                 DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime          @default(now()) @db.Timestamptz(6)
+  liquidityChainId          Int?
+  eventFundingChainId       Int?
+  eventFundingSourceAddress String?
+  eventVaultAddress         String?
+  liquidityRecipientAddress String?
+  bridgedAt                 DateTime?
+  eventBlockchainId         String?
+  icttTokenAddress          String?
+  icttTokenHome             String?
+  icttTokenRemote           String?
+  lastBridgeError           String?
+  lastBridgeTxHashIcm       String?
+  lastBridgeTxHashIctt      String?
+  liquidityBlockchainId     String?
+  teleporterMessenger       String?
+  distributionPlan          Json              @default("{}")
+  bridgeRuns                BridgeRun[]
+  budgetItems               BudgetItem[]
+  contributions             Contribution[]
+  distributionRuns          DistributionRun[]
+  goal                      Goal?
+  creatorProfile            CreatorProfile?   @relation(fields: [creatorProfileId], references: [id], onUpdate: NoAction)
+  purposes                  Purpose[]
+
+  @@index([creatorProfileId])
+  @@index([status])
+  @@index([eventBlockchainId])
+  @@index([liquidityBlockchainId])
+}
+
+model DistributionRun {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId BigInt
+  mode      String
+  chainId   Int
+  currency  String
+  planJson  Json     @default("{}")
+  txHashes  Json     @default("[]")
+  dryRun    Boolean  @default(false)
+  note      String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([projectId])
+  @@index([createdAt])
+  @@index([mode])
+}
+
+/// ✅ NEW: bridge execution log (Route B: LOG_ONLY)
+model BridgeRun {
+  id                            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId                     BigInt
+  mode                          String
+  currency                      String
+  eventFundingChainId           Int
+  liquidityChainId              Int
+  sourceAddress                 String
+  vaultAddress                  String
+  recipientAddress              String
+  tokenAddress                  String
+  dbConfirmedTotalAmountDecimal String?
+  vaultBalanceRaw               String?
+  vaultBalanceFormatted         String?
+  recipientBalanceRaw           String?
+  recipientBalanceFormatted     String?
+  deltaHintJson                 Json     @default("{}")
+  force                         Boolean  @default(false)
+  dryRun                        Boolean  @default(false)
+  note                          String?
+
+  /// ✅ NEW: user executed bridge tx (source chain)
+  bridgeTxHash                  String?
+  /// ✅ NEW: source receipt block number (string to avoid bigint serialization issues)
+  sourceReceiptBlockNumber      String?
+
+  /// ✅ NEW: destination verification succeeded
+  confirmedAt                   DateTime? @db.Timestamptz(6)
+  /// ✅ NEW: optional memo for last verify result
+  confirmReason                 String?
+
+  createdAt                     DateTime @default(now()) @db.Timestamptz(6)
+  project                       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([projectId])
+  @@index([createdAt])
+  @@index([mode])
+  @@index([bridgeTxHash])
+  @@index([confirmedAt])
+}
+
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Purpose {
+  id           BigInt         @id @default(autoincrement())
+  projectId    BigInt
+  code         String
+  label        String
+  description  String?
+  targetAmount Int?
+  orderIndex   Int            @default(0)
+  createdAt    DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime       @default(now()) @db.Timestamptz(6)
+  Allocation   Allocation[]
+  Contribution Contribution[]
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([projectId, code], map: "Purpose_project_code_unique")
+  @@index([projectId, orderIndex], map: "Purpose_order_idx")
+  @@index([projectId])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Settlement {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  goalId         BigInt    @unique(map: "Settlement_goalId_unique")
+  triggerTxHash  String?
+  executedByType String?
+  executedBy     String?
+  status         String    @default("READY")
+  executedAt     DateTime? @db.Timestamptz(6)
+  details        Json      @default("{}")
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @db.Timestamptz(6)
+  Goal           Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([executedAt])
+  @@index([status])
+}
+
+model BudgetItem {
+  id         BigInt  @id @default(autoincrement())
+  projectId  BigInt
+  label      String
+  amountJpyc Int
+  orderIndex Int     @default(0)
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([projectId, orderIndex])
+}
