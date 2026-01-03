@@ -19,8 +19,8 @@ export type TokenDefinition = Readonly<{
 /**
  * NOTE:
  * - ここは “設定レイヤ” なので、将来チェーンが増えたら byChainId に追記するだけ。
- * - address は `0x${string}` ではなく viem の Address を採用（安全）。
- * - env で上書きしたい場合は、build 時に address を差し込む方式が安全（型崩れを防ぐ）。
+ * - address は viem の Address を採用（安全）。
+ * - env で上書きする場合も、型の枠内（SupportedChainId）だけを持つ。
  */
 export const TOKENS: Readonly<Record<TokenKey, TokenDefinition>> = {
   JPYC: {
@@ -35,22 +35,8 @@ export const TOKENS: Readonly<Record<TokenKey, TokenDefinition>> = {
           ? ({ address: a as Address, decimals: 18 } as const)
           : undefined;
       })(),
-      80002: (() => {
-        const a =
-          process.env.NEXT_PUBLIC_JPYC_ADDRESS_AMOY ??
-          process.env.NEXT_PUBLIC_JPYC_ADDRESS;
-        return a
-          ? ({ address: a as Address, decimals: 18 } as const)
-          : undefined;
-      })(),
       43114: (() => {
         const a = process.env.NEXT_PUBLIC_JPYC_ADDRESS_AVAX;
-        return a
-          ? ({ address: a as Address, decimals: 18 } as const)
-          : undefined;
-      })(),
-      43113: (() => {
-        const a = process.env.NEXT_PUBLIC_JPYC_ADDRESS_FUJI;
         return a
           ? ({ address: a as Address, decimals: 18 } as const)
           : undefined;
@@ -61,19 +47,17 @@ export const TOKENS: Readonly<Record<TokenKey, TokenDefinition>> = {
           ? ({ address: a as Address, decimals: 18 } as const)
           : undefined;
       })(),
-      11155111: (() => {
-        const a = process.env.NEXT_PUBLIC_JPYC_ADDRESS_SEPOLIA;
-        return a
-          ? ({ address: a as Address, decimals: 18 } as const)
-          : undefined;
-      })(),
     },
   },
   USDC: {
     key: "USDC",
     displayName: "USDC",
     byChainId: {
-      // 必要になったら同様に環境変数で追加（未設定は登録しない）
+      // 必要になったら mainnet only の範囲で環境変数を追加
+      // 例:
+      // 1:   { address: process.env.NEXT_PUBLIC_USDC_ADDRESS_ETHEREUM as Address, decimals: 6 }
+      // 137: { address: process.env.NEXT_PUBLIC_USDC_ADDRESS_POLYGON as Address, decimals: 6 }
+      // 43114: { address: process.env.NEXT_PUBLIC_USDC_ADDRESS_AVAX as Address, decimals: 6 }
     },
   },
 } as const;

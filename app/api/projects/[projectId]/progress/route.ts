@@ -5,6 +5,13 @@ import { Prisma } from "@prisma/client";
 import { errJson, okJson } from "@/lib/api/responses";
 import { toBigIntOrThrow } from "@/lib/api/guards";
 
+import {
+  getSupportedViemChains,
+  isSupportedChainId,
+  type SupportedChainId,
+} from "@/lib/chainConfig";
+import { getTokenOnChain } from "@/lib/tokenRegistry";
+
 export const dynamic = "force-dynamic";
 
 type Currency = "JPYC" | "USDC";
@@ -29,6 +36,13 @@ function decimalToJpycIntFloor(amountDecimal: Prisma.Decimal | null): number {
   return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
 }
 
+/** JPYC が設定されている対応チェーンのみ（目標合算の対象） */
+function getSupportedJpycChainIds(): SupportedChainId[] {
+  const chains = getSupportedViemChains();
+  const ids = chains.map((c) => c.id).filter((id) => isSupportedChainId(id));
+  return ids.filter((id) => getTokenOnChain("JPYC", id) != null);
+}
+
 export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<Params> }
@@ -47,28 +61,72 @@ export async function GET(
 
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
 
-    // ---- 合計（CONFIRMEDのみ）----
-    const sumByCurrency = await prisma.contribution.groupBy({
+    const supportedJpycChainIds = getSupportedJpycChainIds();
+
+    // ---- totals（参考：全チェーンの CONFIRMED 合算）----
+    const sumByCurrencyAllChains = await prisma.contribution.groupBy({
       by: ["currency"],
       where: { projectId, status: "CONFIRMED" },
       _sum: { amountDecimal: true },
     });
 
-    const totalConfirmed: Record<Currency, Prisma.Decimal> = {
+    const totalsAllChains: Record<Currency, Prisma.Decimal> = {
       JPYC: new Prisma.Decimal(0),
       USDC: new Prisma.Decimal(0),
     };
 
-    for (const row of sumByCurrency) {
+    for (const row of sumByCurrencyAllChains) {
       const cur = row.currency as Currency;
       const s = row._sum.amountDecimal ?? new Prisma.Decimal(0);
-      if (cur === "JPYC" || cur === "USDC") totalConfirmed[cur] = s;
+      if (cur === "JPYC" || cur === "USDC") totalsAllChains[cur] = s;
     }
 
-    // ---- purpose別（CONFIRMEDのみ、JPYCのみ）----
+    // ---- goal 用：JPYC（対応チェーンのみ）CONFIRMED 合算 ----
+    const sumJpycSupported = await prisma.contribution.aggregate({
+      where: {
+        projectId,
+        status: "CONFIRMED",
+        currency: "JPYC",
+        chainId: { in: supportedJpycChainIds },
+      },
+      _sum: { amountDecimal: true },
+    });
+
+    const confirmedJpycSupportedInt = decimalToJpycIntFloor(
+      sumJpycSupported._sum.amountDecimal ?? null
+    );
+
+    // ---- チェーン別内訳（JPYC / 対応チェーン / CONFIRMED）----
+    const sumByChainJpyc = await prisma.contribution.groupBy({
+      by: ["chainId"],
+      where: {
+        projectId,
+        status: "CONFIRMED",
+        currency: "JPYC",
+        chainId: { in: supportedJpycChainIds },
+      },
+      _sum: { amountDecimal: true },
+    });
+
+    const byChain = sumByChainJpyc
+      .map((r) => ({
+        chainId: r.chainId,
+        confirmedAmountDecimal: decToString(r._sum.amountDecimal ?? null),
+        confirmedAmountJpyc: decimalToJpycIntFloor(
+          r._sum.amountDecimal ?? null
+        ),
+      }))
+      .sort((a, b) => b.confirmedAmountJpyc - a.confirmedAmountJpyc);
+
+    // ---- purpose別（JPYCのみ / 対応チェーンのみ / CONFIRMED）----
     const sumByPurpose = await prisma.contribution.groupBy({
       by: ["purposeId"],
-      where: { projectId, status: "CONFIRMED", currency: "JPYC" },
+      where: {
+        projectId,
+        status: "CONFIRMED",
+        currency: "JPYC",
+        chainId: { in: supportedJpycChainIds },
+      },
       _sum: { amountDecimal: true },
     });
 
@@ -103,12 +161,14 @@ export async function GET(
         };
       });
 
+    // ---- purposeId=null（JPYCのみ / 対応チェーンのみ / CONFIRMED）----
     const sumNoPurpose = await prisma.contribution.aggregate({
       where: {
         projectId,
         status: "CONFIRMED",
         currency: "JPYC",
         purposeId: null,
+        chainId: { in: supportedJpycChainIds },
       },
       _sum: { amountDecimal: true },
     });
@@ -117,11 +177,11 @@ export async function GET(
       sumNoPurpose._sum.amountDecimal ?? null
     );
 
-    // ---- goal進捗（JPYCベース）----
+    // ---- goal進捗（JPYC / 対応チェーン合算を正とする）----
     const goal = project.goal;
     const targetJpyc = goal?.targetAmountJpyc ?? null;
 
-    const confirmedJpycInt = decimalToJpycIntFloor(totalConfirmed.JPYC);
+    const confirmedJpycInt = confirmedJpycSupportedInt;
     const progressPct =
       targetJpyc && targetJpyc > 0
         ? Math.min(100, (confirmedJpycInt / targetJpyc) * 100)
@@ -155,10 +215,20 @@ export async function GET(
         confirmedJpyc: confirmedJpycInt,
         targetJpyc,
         progressPct,
-        totals: {
-          JPYC: decToString(totalConfirmed.JPYC),
-          USDC: decToString(totalConfirmed.USDC),
+
+        // 透明性（「どのチェーンを合算対象にしているか」）
+        supportedJpycChainIds,
+
+        // 合算 + 内訳（JPYC / 対応チェーン / CONFIRMED）
+        byChain,
+
+        // 参考情報：全チェーン合算（表示するなら「参考」と明記推奨）
+        totalsAllChains: {
+          JPYC: decToString(totalsAllChains.JPYC),
+          USDC: decToString(totalsAllChains.USDC),
         },
+
+        // purpose 集計（JPYC / 対応チェーン / CONFIRMED）
         perPurpose,
         noPurposeConfirmedJpyc: noPurposeJpyc,
       },

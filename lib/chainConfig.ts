@@ -1,22 +1,13 @@
 // src/lib/chainConfig.ts
 import {
   mainnet,
-  sepolia,
   polygon,
-  polygonAmoy,
   avalanche,
-  avalancheFuji,
   type Chain as ViemChain,
 } from "viem/chains";
 
-export const SUPPORTED_CHAINS = [
-  mainnet,
-  sepolia,
-  polygon,
-  polygonAmoy,
-  avalanche,
-  avalancheFuji,
-] as const;
+// ===== mainnet only =====
+export const SUPPORTED_CHAINS = [mainnet, polygon, avalanche] as const;
 
 export type SupportedViemChain = (typeof SUPPORTED_CHAINS)[number];
 export type SupportedChainId = SupportedViemChain["id"];
@@ -40,14 +31,6 @@ const CHAIN_CONFIGS: Readonly<Record<SupportedChainId, ChainConfig>> = {
     explorerBaseUrl: "https://etherscan.io",
     viemChain: mainnet,
   },
-  [sepolia.id]: {
-    id: sepolia.id,
-    name: "Ethereum Sepolia",
-    shortName: "Sepolia",
-    nativeSymbol: "ETH",
-    explorerBaseUrl: "https://sepolia.etherscan.io",
-    viemChain: sepolia,
-  },
   [polygon.id]: {
     id: polygon.id,
     name: "Polygon Mainnet",
@@ -56,14 +39,6 @@ const CHAIN_CONFIGS: Readonly<Record<SupportedChainId, ChainConfig>> = {
     explorerBaseUrl: "https://polygonscan.com",
     viemChain: polygon,
   },
-  [polygonAmoy.id]: {
-    id: polygonAmoy.id,
-    name: "Polygon Amoy",
-    shortName: "Amoy",
-    nativeSymbol: "POL",
-    explorerBaseUrl: "https://amoy.polygonscan.com",
-    viemChain: polygonAmoy,
-  },
   [avalanche.id]: {
     id: avalanche.id,
     name: "Avalanche C-Chain",
@@ -71,14 +46,6 @@ const CHAIN_CONFIGS: Readonly<Record<SupportedChainId, ChainConfig>> = {
     nativeSymbol: "AVAX",
     explorerBaseUrl: "https://snowtrace.io",
     viemChain: avalanche,
-  },
-  [avalancheFuji.id]: {
-    id: avalancheFuji.id,
-    name: "Avalanche Fuji",
-    shortName: "Fuji",
-    nativeSymbol: "AVAX",
-    explorerBaseUrl: "https://testnet.snowtrace.io",
-    viemChain: avalancheFuji,
   },
 } as const;
 
@@ -95,10 +62,18 @@ export function getChainConfig(chainId: number): ChainConfig | null {
   return CHAIN_CONFIGS[chainId];
 }
 
-/** 既定チェーン（env で切替、未設定なら Polygon Mainnet） */
 export function getDefaultChainId(): SupportedChainId {
-  const raw = Number(process.env.NEXT_PUBLIC_CHAIN_ID || String(polygon.id));
-  return isSupportedChainId(raw) ? raw : polygon.id;
+  // 優先順位：
+  // 1) NEXT_PUBLIC_CHAIN_ID_AVAX
+  // 2) NEXT_PUBLIC_CHAIN_ID
+  // 3) avalanche.id（最終デフォルト）
+  const raw =
+    Number(process.env.NEXT_PUBLIC_CHAIN_ID_AVAX) ||
+    Number(process.env.NEXT_PUBLIC_CHAIN_ID) ||
+    avalanche.id;
+
+  // mainnet-only なので、未知値は avalanche にフォールバック
+  return isSupportedChainId(raw) ? raw : avalanche.id;
 }
 
 /** AppKit/Wagmi に渡す “対応チェーン配列” */

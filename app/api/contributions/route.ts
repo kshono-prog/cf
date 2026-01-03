@@ -9,6 +9,7 @@ import {
   toBigIntOrThrow,
   toAddressOrNull,
 } from "@/lib/api/guards";
+import { getRpcUrl as getRpcUrlFromLib } from "../_lib/chain";
 import {
   createPublicClient,
   decodeEventLog,
@@ -20,7 +21,7 @@ import {
   parseUnits,
   type Address,
 } from "viem";
-import { polygon, polygonAmoy, avalanche, avalancheFuji } from "viem/chains";
+import { polygon, avalanche } from "viem/chains";
 import { isSupportedChainId, type SupportedChainId } from "@/lib/chainConfig";
 import { getTokenOnChain } from "@/lib/tokenRegistry";
 
@@ -63,19 +64,22 @@ function toChainId(v: unknown): number | null {
   return v;
 }
 
-function getRpcUrl(chainId: number): string | null {
-  if (chainId === 137) return process.env.POLYGON_RPC_URL ?? null;
-  if (chainId === 80002) return process.env.POLYGON_AMOY_RPC_URL ?? null;
-  if (chainId === 43114) return process.env.AVALANCHE_RPC_URL ?? null;
-  if (chainId === 43113) return process.env.AVALANCHE_FUJI_RPC_URL ?? null;
-  return null;
+/**
+ * 本番チェーンのみ許可（テストネットは完全に拒否）
+ * - Ethereum: 1
+ * - Polygon: 137
+ * - Avalanche: 43114
+ */
+const MAINNET_ONLY_CHAIN_IDS = new Set<number>([1, 137, 43114]);
+
+function isMainnetOnlyChainId(chainId: number): chainId is SupportedChainId {
+  return MAINNET_ONLY_CHAIN_IDS.has(chainId) && isSupportedChainId(chainId);
 }
 
 function getViemChain(chainId: number) {
+  // テストネットはここに存在させない
   if (chainId === 137) return polygon;
-  if (chainId === 80002) return polygonAmoy;
   if (chainId === 43114) return avalanche;
-  if (chainId === 43113) return avalancheFuji;
   return null;
 }
 
@@ -83,7 +87,7 @@ function resolveTokenAddress(params: {
   chainId: number;
   currency: Currency;
 }): Address | null {
-  if (!isSupportedChainId(params.chainId)) return null;
+  if (!isMainnetOnlyChainId(params.chainId)) return null;
 
   const token = getTokenOnChain(
     params.currency,
@@ -95,14 +99,12 @@ function resolveTokenAddress(params: {
 }
 
 function normalizeTo18(amountHuman: string): string {
-  // "1.2" -> "1.200...(18)" / "100" -> "100.000...(18)"
   const s = amountHuman.replace(/[^\d.]/g, "");
   if (!s) return "0.000000000000000000";
   const [iRaw, dRaw = ""] = s.split(".");
   const i = iRaw && iRaw.length > 0 ? iRaw : "0";
   const d18 = (dRaw + "0".repeat(18)).slice(0, 18);
 
-  // i は数値文字列の想定だが、極端に長い場合でも BigInt 化で安全に正規化
   let intPart = "0";
   try {
     intPart = String(BigInt(i));
@@ -132,7 +134,6 @@ function parseBody(raw: unknown):
   const projectIdStr = toNonEmptyString(b.projectId);
   if (!projectIdStr) return { ok: false, error: "PROJECT_ID_REQUIRED" };
 
-  // purposeId: undefined / null / non-empty string 以外はエラー
   let purposeIdStr: string | null | undefined = undefined;
   if (b.purposeId === null) {
     purposeIdStr = null;
@@ -147,6 +148,11 @@ function parseBody(raw: unknown):
 
   const chainId = toChainId(b.chainId);
   if (chainId == null) return { ok: false, error: "CHAIN_ID_REQUIRED" };
+
+  // ✅ ここで「テストネットは拒否」
+  if (!isMainnetOnlyChainId(chainId)) {
+    return { ok: false, error: "CHAIN_ID_NOT_ALLOWED" };
+  }
 
   const currency = toCurrency(b.currency);
   if (!currency) return { ok: false, error: "CURRENCY_REQUIRED" };
@@ -186,7 +192,12 @@ async function verifyAndExtract(params: {
   | { ok: true; decimals: number; valueRaw: bigint; blockNumber: bigint }
   | { ok: false; reason: string }
 > {
-  const rpcUrl = getRpcUrl(params.chainId);
+  // ✅ 念のため二重ガード（parseBody を経由しない呼び出しが将来入っても安全）
+  if (!isMainnetOnlyChainId(params.chainId)) {
+    return { ok: false, reason: "CHAIN_ID_NOT_ALLOWED" };
+  }
+
+  const rpcUrl = getRpcUrlFromLib(params.chainId);
   const chain = getViemChain(params.chainId);
   if (!rpcUrl || !chain) {
     return { ok: false, reason: "UNSUPPORTED_CHAIN_OR_MISSING_RPC" };
@@ -202,7 +213,6 @@ async function verifyAndExtract(params: {
 
   const client = createPublicClient({ chain, transport: http(rpcUrl) });
 
-  // ✅ receipt 未検出は「例外で落とさず PENDING 理由」として返す
   let receipt: Awaited<ReturnType<typeof client.getTransactionReceipt>> | null =
     null;
   try {
@@ -319,7 +329,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       purposeId = undefined;
     }
 
-    // 既に CONFIRMED なら冪等
     const existing = await prisma.contribution.findUnique({
       where: { txHash: parsed.txHash },
     });
@@ -343,18 +352,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const status: "CONFIRMED" | "PENDING" = v.ok ? "CONFIRMED" : "PENDING";
     const confirmedAt = v.ok ? now : null;
 
-    // verified のときだけ確定値を入れる（PENDING は reverify で更新）
     const decimals = v.ok ? v.decimals : 0;
     const amountRawStr = v.ok ? v.valueRaw.toString() : "0";
-
-    // amountDecimal は「送信額（human）」の正規化（18桁固定）を保存（既存設計に合わせる）
     const amountDecimalStr = normalizeTo18(parsed.amountHuman);
 
     const row = await prisma.contribution.upsert({
       where: { txHash: parsed.txHash },
       create: {
         projectId,
-        // create は必ず値が必要なので、undefined は null として入れる
         purposeId: purposeId === undefined ? null : purposeId,
         chainId: parsed.chainId,
         currency: parsed.currency,

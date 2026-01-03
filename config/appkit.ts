@@ -2,26 +2,33 @@
 import { cookieStorage, createStorage } from "@wagmi/core";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import {
+  mainnet,
   polygon,
-  polygonAmoy,
-  type AppKitNetwork, // ← 型をインポート
+  avalanche,
+  type AppKitNetwork,
 } from "@reown/appkit/networks";
 
 export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID!;
 if (!projectId) throw new Error("Missing NEXT_PUBLIC_PROJECT_ID");
 
-const required = Number(process.env.NEXT_PUBLIC_CHAIN_ID || "137");
+// default は env で制御（例: 43114）
+const required = Number(process.env.NEXT_PUBLIC_CHAIN_ID || "43114");
 
-// まず単体ネットワークを AppKitNetwork として確定
-const selectedNetwork: AppKitNetwork =
-  required === 80002 ? polygonAmoy : polygon;
+// mainnet-only の候補（順序は好みでOK）
+const allMainnets: AppKitNetwork[] = [avalanche, polygon, mainnet];
 
-// タプル型にする（最低1要素）
-export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [selectedNetwork];
+// defaultNetwork を先頭に寄せる（AppKit のUI初期値）
+const defaultNetwork =
+  allMainnets.find((n) => Number(n.id) === required) ?? avalanche;
+
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
+  defaultNetwork,
+  ...allMainnets.filter((n) => Number(n.id) !== Number(defaultNetwork.id)),
+];
 
 export const wagmiAdapter = new WagmiAdapter({
   projectId,
-  networks, // ← タプルのまま渡す
+  networks,
   ssr: true,
   storage: createStorage({ storage: cookieStorage }),
 });
