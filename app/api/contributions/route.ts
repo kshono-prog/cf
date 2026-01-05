@@ -21,7 +21,7 @@ import {
   parseUnits,
   type Address,
 } from "viem";
-import { polygon, avalanche } from "viem/chains";
+import { mainnet, polygon, avalanche } from "viem/chains";
 import { isSupportedChainId, type SupportedChainId } from "@/lib/chainConfig";
 import { getTokenOnChain } from "@/lib/tokenRegistry";
 
@@ -78,6 +78,7 @@ function isMainnetOnlyChainId(chainId: number): chainId is SupportedChainId {
 
 function getViemChain(chainId: number) {
   // テストネットはここに存在させない
+  if (chainId === 1) return mainnet;
   if (chainId === 137) return polygon;
   if (chainId === 43114) return avalanche;
   return null;

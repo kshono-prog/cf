@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { ethers } from "ethers";
-import type { Eip1193Provider } from "ethers";
+
 import {
   useAccount,
   useConnect,
@@ -13,7 +13,7 @@ import {
   usePublicClient,
 } from "wagmi";
 import { useEthersProvider } from "@/lib/useEthersSigner";
-import { parseAbiItem, formatUnits, type Address } from "viem";
+import { formatUnits, type Address } from "viem";
 import { useSearchParams } from "next/navigation";
 import { appkit } from "@/lib/appkitInstance";
 
@@ -30,12 +30,32 @@ import type { CreatorProfile } from "@/lib/profileTypes";
 import { PromoCreatorFounding } from "@/components/promo/PromoCreatorFounding";
 import { PromoGasSupport } from "@/components/promo/PromoGasSupport";
 import { PromoJpycEx } from "@/components/promo/PromoJpycEx";
-
-import { createPublicClient, http } from "viem";
 import { postReverify, autoReverifyPending } from "@/lib/reverifyClient";
 
-// ===== localStorage key =====
-const LAST_TX_KEY = "cf:lastTx:v1";
+import {
+  addAmount,
+  clampPct,
+  clearLastTx,
+  ERC20_ABI,
+  formatJpyc,
+  getEthereum,
+  getErrorMessage,
+  getPublicClientForChain,
+  INCREMENTS,
+  isInAppBrowser,
+  loadLastTx,
+  normalizeAmountInput,
+  openInMetaMaskDapp,
+  saveLastTx,
+  TOKENS,
+  TRANSFER_EVENT,
+  type Currency,
+  type WalletFlags,
+} from "@/components/profile/profileClientHelpers";
+import { TipThanksCard } from "@/components/profile/TipThanksCard";
+
+import { ProjectProgressCard } from "@/components/profile/ProjectProgressCard";
+import { WalletSection } from "@/components/profile/WalletSection";
 
 // ===== Public Summary Lite =====
 type PublicSummaryLite = {
@@ -50,6 +70,10 @@ type PublicSummaryLite = {
     progressPct: number;
   } | null;
 };
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
 
 /**
  * CreatorProfile の address が「null」を返してくる（Prisma/DB）ケースを吸収する入力型。
@@ -110,274 +134,6 @@ type ProjectProgressApi = {
   };
   purposes: PurposeDto[];
 };
-
-// ===== LastTx 型（送金復帰用）=====
-type Currency = "JPYC" | "USDC";
-
-type LastTx = {
-  txHash: `0x${string}`;
-  chainId: number;
-  currency: Currency;
-  amount: string; // human string
-  toAddress: string;
-  projectId: string | null;
-  purposeId: string | null;
-  createdAtMs: number; // Date.now()
-};
-
-function getPublicClientForChain(chainId: number) {
-  const cfg = getChainConfig(chainId);
-  if (!cfg) return null;
-  const rpc = cfg.viemChain.rpcUrls.default.http[0];
-  if (!rpc) return null;
-  return createPublicClient({
-    chain: cfg.viemChain,
-    transport: http(rpc),
-  });
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function isHexTxHash(v: unknown): v is `0x${string}` {
-  return typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
-}
-
-function isCurrency(v: unknown): v is Currency {
-  return v === "JPYC" || v === "USDC";
-}
-
-function parseLastTx(v: unknown): LastTx | null {
-  if (!isRecord(v)) return null;
-
-  const txHash = v.txHash;
-  const chainId = v.chainId;
-  const currency = v.currency;
-  const amount = v.amount;
-  const toAddress = v.toAddress;
-  const projectId = v.projectId;
-  const purposeId = v.purposeId;
-  const createdAtMs = v.createdAtMs;
-
-  if (!isHexTxHash(txHash)) return null;
-  if (typeof chainId !== "number" || !Number.isFinite(chainId)) return null;
-  if (!isCurrency(currency)) return null;
-  if (typeof amount !== "string" || amount.length === 0) return null;
-  if (typeof toAddress !== "string" || toAddress.length === 0) return null;
-
-  if (!(typeof projectId === "string" || projectId === null)) return null;
-  if (!(typeof purposeId === "string" || purposeId === null)) return null;
-
-  if (typeof createdAtMs !== "number" || !Number.isFinite(createdAtMs))
-    return null;
-
-  return {
-    txHash,
-    chainId,
-    currency,
-    amount,
-    toAddress,
-    projectId,
-    purposeId,
-    createdAtMs,
-  };
-}
-
-function loadLastTx(): LastTx | null {
-  if (typeof window === "undefined") return null;
-  const raw = window.localStorage.getItem(LAST_TX_KEY);
-  if (!raw) return null;
-  try {
-    const json = JSON.parse(raw) as unknown;
-    return parseLastTx(json);
-  } catch {
-    return null;
-  }
-}
-
-function saveLastTx(v: LastTx): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(LAST_TX_KEY, JSON.stringify(v));
-}
-
-function clearLastTx(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(LAST_TX_KEY);
-}
-
-/* ========== ウォレット関連ユーティリティ ========== */
-
-type WalletProvider = Eip1193Provider & {
-  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-  on?: (event: string, handler: (...args: unknown[]) => void) => void;
-};
-
-function getEthereum(): WalletProvider | undefined {
-  if (typeof window === "undefined") return undefined;
-  return (window as Window & { ethereum?: unknown }).ethereum as
-    | WalletProvider
-    | undefined;
-}
-
-function getErrorMessage(e: unknown) {
-  return e instanceof Error ? e.message : String(e);
-}
-
-/** アプリ内ブラウザ(Twitter/X, Instagram, LINE, etc.)ざっくり判定 */
-function isInAppBrowser() {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  return /Twitter|Instagram|FBAN|FBAV|Line\/|LINE|MicroMessenger/i.test(ua);
-}
-
-/** MetaMaskモバイルでこのdAppを開く Deep Link */
-function openInMetaMaskDapp() {
-  if (typeof window === "undefined") return;
-
-  const { host, pathname, search } = window.location;
-  const dappPath = `${host}${pathname}${search}`;
-  window.location.href = `https://metamask.app.link/dapp/${dappPath}`;
-}
-
-/* ========== そのほかユーティリティ ========== */
-
-function formatJpyc(n: number): string {
-  return n.toLocaleString("ja-JP");
-}
-
-function clampPct(p: number): number {
-  if (!Number.isFinite(p)) return 0;
-  if (p < 0) return 0;
-  if (p > 100) return 100;
-  return p;
-}
-
-/* ========== 定数/型 ========== */
-
-const ERC20_ABI = [
-  "function decimals() view returns (uint8)",
-  "function balanceOf(address) view returns (uint256)",
-  "function transfer(address to, uint256 amount) returns (bool)",
-];
-
-const TRANSFER_EVENT = parseAbiItem(
-  "event Transfer(address indexed from, address indexed to, uint256 value)"
-);
-
-// EIP-1193 フラグ
-type WalletFlags = {
-  isMetaMask?: boolean;
-  isRabby?: boolean;
-  isCoinbaseWallet?: boolean;
-  isOkxWallet?: boolean;
-  isOKXWallet?: boolean;
-  isBinanceWallet?: boolean;
-  isPhantom?: boolean;
-  isBitgetWallet?: boolean;
-  isTokenPocket?: boolean;
-  isMathWallet?: boolean;
-  isFrontier?: boolean;
-  isSafe?: boolean;
-  isZerion?: boolean;
-  isEnkrypt?: boolean;
-  isTallyWallet?: boolean;
-  isBraveWallet?: boolean;
-  isTrust?: boolean;
-  isSequence?: boolean;
-  isFrame?: boolean;
-  isXDEFI?: boolean;
-  isFireblocks?: boolean;
-};
-
-const TOKENS: Record<Currency, { label: string; presets: string[] }> = {
-  JPYC: {
-    label: "JPYC",
-    presets: ["10", "50", "100"],
-  },
-  USDC: {
-    label: "USDC",
-    presets: ["0.10", "0.50", "1.00"],
-  },
-};
-
-const INCREMENTS: Record<Currency, string[]> = {
-  JPYC: ["10", "100", "1000"],
-  USDC: ["0.1", "1", "10"],
-};
-
-function normalizeAmountInput(raw: string, cur: Currency): string {
-  const s = raw.replace(/[^\d.]/g, "");
-  if (cur === "JPYC") return s.split(".")[0] || "";
-  const [head, ...rest] = s.split(".");
-  return head + (rest.length ? "." + rest.join("").replace(/\./g, "") : "");
-}
-
-function addAmount(current: string, delta: string, cur: Currency): string {
-  const curNorm = normalizeAmountInput(current || "0", cur);
-  const deltaNorm = normalizeAmountInput(delta, cur);
-
-  const curNum = Number(curNorm || "0");
-  const deltaNum = Number(deltaNorm || "0");
-
-  const sum = curNum + deltaNum;
-  if (!Number.isFinite(sum) || sum < 0) {
-    return curNorm || "0";
-  }
-
-  if (cur === "JPYC") {
-    return String(Math.floor(sum));
-  }
-
-  return sum.toFixed(2);
-}
-
-/* ========== ティア＆サンクスカード（過去24h用） ========== */
-
-type TipTierClass =
-  | "tier-white"
-  | "tier-bronze"
-  | "tier-silver"
-  | "tier-gold"
-  | "tier-platinum"
-  | "tier-rainbow";
-
-function getTipTierClass(amountYen: number): TipTierClass {
-  if (amountYen <= 100) return "tier-white";
-  if (amountYen <= 500) return "tier-bronze";
-  if (amountYen <= 1000) return "tier-silver";
-  if (amountYen <= 5000) return "tier-gold";
-  if (amountYen <= 10000) return "tier-platinum";
-  return "tier-rainbow";
-}
-
-function formatYen(amount: number): string {
-  return amount.toLocaleString("ja-JP");
-}
-
-type TipThanksCardProps = {
-  amountYen: number;
-  artistName?: string;
-};
-
-function TipThanksCard({ amountYen, artistName }: TipThanksCardProps) {
-  const tierClass = getTipTierClass(amountYen);
-  const tierLabel = tierClass.replace("tier-", "").toUpperCase();
-
-  return (
-    <div className={`tip-card ${tierClass}`}>
-      <div className="tip-card__label">{tierLabel}</div>
-      <div className="tip-card__message-ja">
-        {artistName
-          ? `${artistName} さんへの投げ銭ありがとうございます！`
-          : "投げ銭ありがとうございます！"}
-      </div>
-      <div className="tip-card__message-en">
-        Thanks for your tip! (last 24h: {formatYen(amountYen)} JPYC)
-      </div>
-    </div>
-  );
-}
 
 /* ========== Phase1: Project status/get 型（/api/projects/[id]） ========== */
 
@@ -524,11 +280,9 @@ export default function ProfileClient({
     }
 
     // それ以外は「アプリが対応する主要チェーン」を出す（最終形はここをDBで制御）
-    const fallback: SupportedChainId[] = [
-      1, // Ethereum
-      137, // Polygon
-      43114, // Avalanche
-    ].filter((id) => isSupportedChainId(id)) as SupportedChainId[];
+    const fallback: SupportedChainId[] = [1, 137, 43114].filter((id) =>
+      isSupportedChainId(id)
+    ) as SupportedChainId[];
 
     return fallback.length > 0 ? fallback : [DEFAULT_CHAIN];
   }, [hasProject, supportedJpycChainIds.join("|"), DEFAULT_CHAIN]);
@@ -1034,7 +788,7 @@ export default function ProfileClient({
         for (const h of candidates) {
           if (cancelled) return;
           const r = await postReverify(h);
-          if (r.verified) anyConfirmed = true;
+          if (r.verified === true) anyConfirmed = true;
         }
 
         if (anyConfirmed && !cancelled) {
@@ -1549,6 +1303,21 @@ export default function ProfileClient({
       ? hasLegacyOnchainGoal
       : false;
 
+  // WalletSection 用の incrementButtons
+  const incrementButtons = useMemo(() => {
+    return INCREMENTS[currency].map((delta) => {
+      const label = currency === "JPYC" ? `+${delta} JPYC` : `+${delta} USD`;
+      return {
+        key: String(delta),
+        label,
+        disabled: sending,
+        onClick: () => {
+          setAmount((prev) => addAmount(prev, delta, currency));
+        },
+      };
+    });
+  }, [currency, sending]);
+
   /* ========== 表示部分 ========== */
   return (
     <div className="container-narrow py-8 force-light-theme">
@@ -1563,266 +1332,32 @@ export default function ProfileClient({
         <div className="px-4">
           {/* ========== 1) Phase1: Project Progress（DB集計） 主表示 ========== */}
           {showDbCard && (
-            <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 dark:border-gray-300 bg-white/95 dark:bg-white/95 shadow-sm">
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2 gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
-                      Project progress (DB / CONFIRMED)
-                    </p>
-
-                    {projectTitle ? (
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-900 leading-snug break-words">
-                        {projectTitle}
-                      </p>
-                    ) : null}
-
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-900">
-                      {projectStatus ? `Status: ${projectStatus}` : "Status: -"}
-                    </p>
-
-                    {profileAddressUrl ? (
-                      <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-600">
-                        Explorer:&nbsp;
-                        <a
-                          className="underline hover:no-underline break-all"
-                          href={profileAddressUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {requiredChainConfig
-                            ? `${requiredChainConfig.shortName} Explorer`
-                            : "Explorer"}
-                        </a>
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="shrink-0 text-right text-xs text-gray-600 dark:text-gray-700">
-                    {progressLoading ? (
-                      <span>読み込み中… / Loading…</span>
-                    ) : (
-                      <>
-                        <span className="font-mono">
-                          {(progressTotalYen ?? 0).toLocaleString()}
-                        </span>
-                        {" / "}
-                        <span className="font-mono">
-                          {(resolvedTargetYen ?? 0).toLocaleString()}
-                        </span>
-                        <span className="ml-1">JPYC</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {progressPercent != null && (
-                  <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden mb-2">
-                    <div
-                      className="h-full transition-all duration-500"
-                      style={{
-                        backgroundColor: headerColor,
-                        width: `${progressPercent}%`,
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* 追加：合算 + チェーン別内訳（透明性） */}
-                <div className="mt-2 rounded-2xl border border-gray-200/70 bg-gray-50/60 px-3 py-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-[11px] text-gray-600">
-                      <div className="font-semibold text-gray-700">
-                        合算（JPYC / CONFIRMED）
-                      </div>
-                      <div className="mt-0.5">
-                        <span className="font-mono font-semibold text-gray-900">
-                          {(progressTotalYen ?? 0).toLocaleString()}
-                        </span>{" "}
-                        JPYC
-                      </div>
-                      <div className="mt-1 text-[10px] text-gray-500">
-                        ※ 合算対象: JPYC が設定されている対応チェーン（confirmed
-                        のみ）
-                      </div>
-                    </div>
-
-                    <div className="text-[10px] text-gray-500 text-right">
-                      {supportedJpycChainIds.length > 0 ? (
-                        <>
-                          <div className="font-semibold text-gray-600">
-                            対象チェーン
-                          </div>
-                          <div className="mt-0.5">
-                            {supportedJpycChainIds
-                              .map((id) => {
-                                const cfg = getChainConfig(
-                                  id as SupportedChainId
-                                );
-                                return cfg?.shortName ?? `Chain(${id})`;
-                              })
-                              .join(" / ")}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-gray-400">対象チェーン: -</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <div className="text-[11px] text-gray-500 dark:text-gray-600">
-                    {progressConfirmedCount != null ? (
-                      <span>
-                        CONFIRMED tx:{" "}
-                        <span className="font-mono">
-                          {progressConfirmedCount}
-                        </span>
-                      </span>
-                    ) : (
-                      <span>CONFIRMED tx: -</span>
-                    )}
-                    {goalAchievedAt && (
-                      <span className="ml-2">
-                        AchievedAt:{" "}
-                        <span className="font-mono">
-                          {String(goalAchievedAt)}
-                        </span>
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="btn-secondary text-xs"
-                      onClick={() => {
-                        void fetchProjectStatusSafe();
-                        void fetchProjectProgressSafe();
-                      }}
-                      disabled={progressLoading || achieving}
-                    >
-                      進捗を更新 / Refresh
-                    </button>
-
-                    {showManualAchieveButton && (
-                      <button
-                        type="button"
-                        className="btn-secondary text-xs"
-                        onClick={() => void achieveGoalSafe()}
-                        disabled={achieving || progressLoading}
-                        style={{
-                          borderColor: headerColor,
-                          color: headerColor,
-                        }}
-                      >
-                        目標達成を確定 / Achieve
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* ---- 合算対象チェーン & チェーン別内訳 ---- */}
-                <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50/60 p-3">
-                  <div className="text-[11px] font-semibold text-gray-700">
-                    合算対象（JPYC / CONFIRMED）
-                  </div>
-
-                  <div className="mt-1 text-[10px] text-gray-500 leading-relaxed">
-                    本アプリが対応するチェーンのうち、JPYC
-                    が登録されているチェーンのみを合算します（CONFIRMED のみ）。
-                    対象チェーンは API の{" "}
-                    <span className="font-mono">supportedJpycChainIds</span>{" "}
-                    と一致します。
-                  </div>
-
-                  <div className="mt-2 text-[11px] text-gray-600">
-                    合算（JPYC / CONFIRMED）:{" "}
-                    <span className="font-mono font-semibold text-gray-900">
-                      {(progressTotalYen ?? 0).toLocaleString()}
-                    </span>{" "}
-                    JPYC
-                  </div>
-
-                  <div className="mt-2 text-[10px] text-gray-500">
-                    対象チェーン:{" "}
-                    {supportedJpycChainIds.length > 0
-                      ? supportedJpycChainIds
-                          .map((id) => {
-                            const cfg = getChainConfig(id as SupportedChainId);
-                            return cfg?.shortName ?? `Chain(${id})`;
-                          })
-                          .join(" / ")
-                      : "-"}
-                  </div>
-
-                  {byChainJpyc.length > 0 ? (
-                    <div className="mt-2 space-y-1">
-                      <div className="text-[11px] text-gray-500">
-                        チェーン別内訳
-                      </div>
-
-                      <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
-                        {byChainJpyc.map((r) => {
-                          const cfg = getChainConfig(
-                            r.chainId as SupportedChainId
-                          );
-                          const label = cfg?.shortName ?? `Chain(${r.chainId})`;
-                          return (
-                            <div
-                              key={String(r.chainId)}
-                              className="flex items-center justify-between px-3 py-2"
-                            >
-                              <div className="text-[12px] text-gray-800">
-                                {label}
-                              </div>
-                              <div className="text-[12px] font-mono font-semibold text-gray-900">
-                                {Number(r.confirmedAmountJpyc).toLocaleString()}{" "}
-                                JPYC
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {totalsAllChains ? (
-                        <div className="mt-2 text-[11px] text-gray-500">
-                          参考（全チェーン合算 / CONFIRMED）:{" "}
-                          <span className="font-mono">
-                            JPYC {totalsAllChains.JPYC ?? "0"} / USDC{" "}
-                            {totalsAllChains.USDC ?? "0"}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-[11px] text-gray-500">
-                      チェーン別内訳はありません（CONFIRMED
-                      が無い、または集計対象外の可能性があります）
-                    </div>
-                  )}
-                </div>
-
-                {progressError && (
-                  <p className="mt-2 text-[11px] text-rose-600 break-all">
-                    {progressError}
-                  </p>
-                )}
-
-                {progressReached === true && !goalAchievedAt && (
-                  <p className="mt-2 text-[11px] text-emerald-700">
-                    目標金額に到達しています。送金後は自動で達成確定を試行します（反映遅延がある場合は「Achieve」を押してください）。
-                  </p>
-                )}
-
-                {goalAchievedAt && (
-                  <p className="mt-2 text-[11px] text-emerald-700">
-                    目標達成が確定済みです。
-                  </p>
-                )}
-              </div>
-            </div>
+            <ProjectProgressCard
+              headerColor={headerColor}
+              projectTitle={projectTitle}
+              projectStatus={projectStatus}
+              profileAddressUrl={profileAddressUrl}
+              progressLoading={progressLoading}
+              progressError={progressError}
+              progressTotalYen={progressTotalYen}
+              resolvedTargetYen={resolvedTargetYen}
+              // progressPercent={progressPercent}
+              progressConfirmedCount={progressConfirmedCount}
+              goalAchievedAt={goalAchievedAt}
+              progressReached={progressReached}
+              supportedJpycChainIds={supportedJpycChainIds}
+              byChainJpyc={byChainJpyc}
+              // totalsAllChains={totalsAllChains}
+              achieving={achieving}
+              showManualAchieveButton={showManualAchieveButton}
+              onRefresh={() => {
+                void fetchProjectStatusSafe();
+                void fetchProjectProgressSafe();
+              }}
+              onAchieve={() => {
+                void achieveGoalSafe();
+              }}
+            />
           )}
 
           {/* ========== 2) Public Summary Goal（/api/public/creator の要約） 代替表示 ========== */}
@@ -1951,446 +1486,53 @@ export default function ProfileClient({
             </div>
           )}
 
-          {/* ウォレット接続エリア */}
-          <div className="mt-6 w-full rounded-2xl border border-gray-200 dark:border-gray-300 bg-white/95 dark:bg-white/95 backdrop-blur p-4 sm:p-5 space-y-3">
-            <div className="text-center">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-500">
-                Wallet
-              </p>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-900">
-                {connected
-                  ? `${walletLabel} に接続済み`
-                  : isWalletConnecting
-                  ? "ウォレットに接続中…"
-                  : "ウォレットに接続して投げ銭する"}
-              </h3>
-            </div>
-
-            <div className="grid place-items-center">
-              <div className="w-full flex justify-center">
-                {suppressConnectUI ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="text-[11px] text-gray-500">
-                      送金結果を確認中…（再接続は不要です）
-                    </div>
-                    <div className="text-[11px] text-gray-400">
-                      画面を閉じずにお待ちください
-                    </div>
-                  </div>
-                ) : !connected ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <appkit-button />
-                    {isWalletConnecting && (
-                      <div className="text-[11px] text-gray-500">
-                        接続処理中…
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="text-[11px] text-gray-500">
-                      {activeAddress
-                        ? `${activeAddress.slice(0, 6)}…${activeAddress.slice(
-                            -4
-                          )}`
-                        : "接続済み"}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn-secondary text-xs"
-                      onClick={() => void disconnectWallet()}
-                      disabled={isWalletConnecting || sending || resumeBusy}
-                    >
-                      切断 / Disconnect
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {inApp && !connected && (
-              <>
-                <p className="mt-2 text-[11px] text-center text-amber-700 dark:text-amber-700 leading-relaxed">
-                  アプリ内ブラウザではウォレットアプリが起動しない場合があります。
-                  「ブラウザで開く」または「MetaMaskアプリで開く」からアクセスしてください。
-                </p>
-                <div className="mt-1 flex justify-center">
-                  <button
-                    type="button"
-                    className="btn-secondary text-xs"
-                    onClick={openInMetaMaskDapp}
-                  >
-                    MetaMaskアプリで開く
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* 接続状態表示＋残高 */}
-            <div className="mt-2 text-center">
-              {connected ? (
-                <>
-                  {!onWrongChain && (
-                    <div
-                      className="
-                        mt-3 px-5 py-4 
-                        border border-gray-200 
-                        rounded-2xl 
-                        bg-white 
-                        shadow-sm 
-                        inline-block 
-                        text-left
-                        w-[260px]
-                      "
-                    >
-                      <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                        ウォレット残高
-                      </p>
-
-                      {walletBalancesLoading && (
-                        <div className="text-xs text-gray-500">読み込み中…</div>
-                      )}
-
-                      {!walletBalancesLoading && walletBalances && (
-                        <div className="space-y-2 text-sm text-gray-700">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block h-2.5 w-2.5 rounded-full bg-purple-500" />
-                              <span>
-                                {walletBalances.nativeSymbol ??
-                                  requiredChainConfig?.nativeSymbol ??
-                                  "Native"}
-                                （ガス代）
-                              </span>
-                            </div>
-                            <span className="font-mono font-semibold">
-                              {(() => {
-                                const v = Number(
-                                  walletBalances.nativeFormatted
-                                );
-                                if (!Number.isFinite(v)) {
-                                  return `0 ${
-                                    walletBalances.nativeSymbol ??
-                                    requiredChainConfig?.nativeSymbol ??
-                                    "Native"
-                                  }`;
-                                }
-                                const formatted =
-                                  v >= 0.001
-                                    ? v.toFixed(4)
-                                    : v.toExponential(2);
-                                return `${formatted} ${
-                                  walletBalances.nativeSymbol ??
-                                  requiredChainConfig?.nativeSymbol ??
-                                  "Native"
-                                }`;
-                              })()}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />
-                              <span>JPYC</span>
-                            </div>
-                            <span className="font-mono font-semibold">
-                              {(() => {
-                                const jpyc = walletBalances.tokens?.JPYC;
-                                if (!jpyc) return "…";
-                                const v = Number(jpyc.formatted);
-                                if (!Number.isFinite(v)) return "0 JPYC";
-                                const int = Math.floor(v);
-                                return `${int.toLocaleString()} JPYC`;
-                              })()}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {!walletBalancesLoading && !walletBalances && (
-                        <div className="text-xs text-gray-500">
-                          残高を取得できませんでした
-                        </div>
-                      )}
-
-                      <div className="mt-3 flex justify-end">
-                        <button
-                          type="button"
-                          className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                          onClick={() => void fetchWalletBalances()}
-                          disabled={walletBalancesLoading}
-                        >
-                          残高を更新 / Refresh
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-3 flex flex-col items-center gap-1 text-xs text-gray-500 dark:text-gray-600">
-                    <div>
-                      接続中ネットワーク:{" "}
-                      <span className="font-medium">
-                        {currentChainId !== undefined
-                          ? getChainConfig(currentChainId as SupportedChainId)
-                              ?.shortName ?? `Chain(${currentChainId})`
-                          : "未接続"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 送金チェーン・通貨・送金UI（ネットワーク一致時のみ） */}
-                  {connected && !onWrongChain && (
-                    <>
-                      <div className="mt-6 mb-2 text-center">
-                        <h3
-                          className="text-base sm:text-lg font-semibold"
-                          style={{ color: headerColor }}
-                        >
-                          {creator.displayName || username} さんへの投げ銭
-                        </h3>
-                      </div>
-
-                      {/* チェーン選択 */}
-                      <div className="mt-6">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-800">
-                          ネットワーク / Network
-                        </label>
-                        <div className="mt-1">
-                          <select
-                            className="input w-52 px-2 py-2 text-sm"
-                            value={String(selectedChainId)}
-                            onChange={(e) => {
-                              const v = Number(e.target.value);
-                              if (!isSupportedChainId(v)) return;
-                              setSelectedChainId(v as SupportedChainId);
-                            }}
-                          >
-                            {selectableChainIds.map((id) => {
-                              const cfg = getChainConfig(id);
-                              return (
-                                <option key={String(id)} value={String(id)}>
-                                  {cfg?.name ?? `Chain(${id})`}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                        <div className="mt-1 text-[11px] text-gray-500">
-                          ※
-                          この「送金ネットワーク」に合わせてウォレット側も切り替えてください
-                        </div>
-                      </div>
-
-                      {/* 通貨 */}
-                      <div className="mt-4">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-800">
-                          通貨 / Currency
-                        </label>
-                        <div className="mt-1">
-                          <select
-                            className="input w-28 px-2 py-2 text-sm"
-                            value={currency}
-                            onChange={(e) => {
-                              const c = e.target.value as Currency;
-                              setCurrency(c);
-                              setAmount(TOKENS[c].presets[0]);
-                            }}
-                          >
-                            <option value="JPYC">JPYC</option>
-                            <option value="USDC">USDC</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 space-y-3">
-                        <label className="block text-sm text-gray-700 dark:text-gray-800">
-                          送金金額 / Amount to send
-                        </label>
-
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            inputMode={
-                              currency === "JPYC" ? "numeric" : "decimal"
-                            }
-                            className="input flex-1 px-3 py-2"
-                            placeholder={
-                              currency === "JPYC"
-                                ? "例）150（円） / e.g. 150"
-                                : "例）1.25（USD） / e.g. 1.25"
-                            }
-                            value={amount}
-                            onChange={(e) =>
-                              setAmount(
-                                normalizeAmountInput(e.target.value, currency)
-                              )
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                const v = normalizeAmountInput(
-                                  amount,
-                                  currency
-                                );
-                                if (v) void send(v);
-                              }
-                            }}
-                          />
-
-                          <span className="text-sm text-gray-500 dark:text-gray-700">
-                            {currency === "JPYC" ? "円 / JPYC" : "USD"}
-                          </span>
-
-                          <button
-                            style={{
-                              backgroundColor: headerColor,
-                              color: "#fff",
-                              padding: "0.5rem 1rem",
-                              borderRadius: "0.75rem",
-                              fontWeight: 600,
-                              transition: "0.2s",
-                            }}
-                            onMouseOver={(e) => {
-                              (
-                                e.currentTarget as HTMLButtonElement
-                              ).style.backgroundColor = lighten(
-                                headerColor,
-                                0.25
-                              );
-                            }}
-                            onMouseOut={(e) => {
-                              (
-                                e.currentTarget as HTMLButtonElement
-                              ).style.backgroundColor = headerColor;
-                            }}
-                            onClick={() => {
-                              const v = normalizeAmountInput(amount, currency);
-                              if (v) void send(v);
-                            }}
-                            disabled={sending || !amount}
-                          >
-                            投げ銭 / Send
-                          </button>
-                        </div>
-
-                        <div className="flex gap-3">
-                          {INCREMENTS[currency].map((delta) => {
-                            const label =
-                              currency === "JPYC"
-                                ? `+${delta} JPYC`
-                                : `+${delta} USD`;
-
-                            return (
-                              <button
-                                key={delta}
-                                type="button"
-                                style={{
-                                  flex: 1,
-                                  minHeight: "48px",
-                                  backgroundColor: headerColor,
-                                  color: "white",
-                                  borderRadius: "0.75rem",
-                                  fontWeight: 600,
-                                  transition: "0.2s",
-                                }}
-                                onMouseOver={(e) => {
-                                  (
-                                    e.currentTarget as HTMLButtonElement
-                                  ).style.backgroundColor = lighten(
-                                    headerColor,
-                                    0.25
-                                  );
-                                }}
-                                onMouseOut={(e) => {
-                                  (
-                                    e.currentTarget as HTMLButtonElement
-                                  ).style.backgroundColor = headerColor;
-                                }}
-                                onClick={() => {
-                                  setAmount((prev) =>
-                                    addAmount(prev, delta, currency)
-                                  );
-                                }}
-                                disabled={sending}
-                              >
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <div className="mt-6 mb-2 text-center">
-                          <p className="text-xs text-gray-500 dark:text-gray-600 mt-1">
-                            送金先を間違えないようご確認ください
-                          </p>
-                        </div>
-
-                        {hasProject && (
-                          <div className="mt-3 text-[11px] text-gray-500 dark:text-gray-600 text-center">
-                            Project contribution is enabled (projectId:{" "}
-                            <span className="font-mono">{projectId}</span>)
-                            {purposeId && (
-                              <>
-                                {" "}
-                                / purposeId:{" "}
-                                <span className="font-mono">{purposeId}</span>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-600 mt-2">
-                    <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>接続中</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-600">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-gray-400" />
-                  <span>未接続</span>
-                </div>
-              )}
-            </div>
-
-            {/* ネットワーク警告（修正済み条件：selectedChainId と不一致の時だけ） */}
-            {connected && onWrongChain && (
-              <div className="mt-3 rounded-xl border border-amber-300/60 bg-amber-50/80 dark:border-amber-300/80 dark:bg-amber-50/80 p-3 text-amber-800">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="text-xs sm:text-sm">
-                    ネットワークが違います。選択中のネットワークに切り替えてください。
-                    <div className="mt-1 text-[11px] text-amber-800/90">
-                      選択中:{" "}
-                      <span className="font-semibold">
-                        {getChainConfig(selectedChainId)?.shortName ??
-                          `Chain(${selectedChainId})`}
-                      </span>{" "}
-                      / 接続中:{" "}
-                      <span className="font-semibold">
-                        {connectedChainId != null
-                          ? getChainConfig(connectedChainId as SupportedChainId)
-                              ?.shortName ?? `Chain(${connectedChainId})`
-                          : "-"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="shrink-0">
-                    <appkit-network-button />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="mt-2 inline-flex items-center gap-1 text-[11px] underline hover:no-underline"
-                  onClick={() => void switchChainToSelected()}
-                >
-                  ブラウザ拡張のMetaMaskで切り替える
-                </button>
-              </div>
-            )}
-          </div>
+          {/* ウォレット接続エリア（WalletSection に置換） */}
+          <WalletSection
+            connected={connected}
+            isWalletConnecting={isWalletConnecting}
+            walletLabel={walletLabel}
+            activeAddress={activeAddress}
+            currentChainId={currentChainId}
+            selectedChainId={selectedChainId}
+            connectedChainId={connectedChainId}
+            onWrongChain={onWrongChain}
+            inApp={inApp}
+            suppressConnectUI={suppressConnectUI}
+            resumeBusy={resumeBusy}
+            walletBalances={walletBalances}
+            walletBalancesLoading={walletBalancesLoading}
+            showSendUI={connected && !onWrongChain}
+            headerColor={headerColor}
+            creatorDisplayName={creator.displayName || username}
+            selectableChainIds={selectableChainIds}
+            currency={currency}
+            amount={amount}
+            onDisconnect={() => void disconnectWallet()}
+            onOpenInMetaMaskDapp={openInMetaMaskDapp}
+            onSwitchChainToSelected={() => void switchChainToSelected()}
+            onRefreshBalances={() => void fetchWalletBalances()}
+            onChangeChain={(next) => {
+              if (!isSupportedChainId(next)) return;
+              setSelectedChainId(next as SupportedChainId);
+            }}
+            onChangeCurrency={(next) => {
+              setCurrency(next);
+              setAmount(TOKENS[next].presets[0]);
+            }}
+            onChangeAmount={(next) => {
+              setAmount(normalizeAmountInput(next, currency));
+            }}
+            onSend={() => {
+              const v = normalizeAmountInput(amount, currency);
+              if (v) void send(v);
+            }}
+            onSendEnter={() => {
+              const v = normalizeAmountInput(amount, currency);
+              if (v) void send(v);
+            }}
+            incrementButtons={incrementButtons}
+            sending={sending}
+          />
 
           {/* 過去24時間サンクスカード */}
           {connected &&
@@ -2501,7 +1643,7 @@ export default function ProfileClient({
 
 // import { useEffect, useMemo, useState, useRef } from "react";
 // import { ethers } from "ethers";
-// import type { Eip1193Provider } from "ethers";
+
 // import {
 //   useAccount,
 //   useConnect,
@@ -2511,7 +1653,7 @@ export default function ProfileClient({
 //   usePublicClient,
 // } from "wagmi";
 // import { useEthersProvider } from "@/lib/useEthersSigner";
-// import { parseAbiItem, formatUnits, type Address } from "viem";
+// import { formatUnits, type Address } from "viem";
 // import { useSearchParams } from "next/navigation";
 // import { appkit } from "@/lib/appkitInstance";
 
@@ -2528,12 +1670,33 @@ export default function ProfileClient({
 // import { PromoCreatorFounding } from "@/components/promo/PromoCreatorFounding";
 // import { PromoGasSupport } from "@/components/promo/PromoGasSupport";
 // import { PromoJpycEx } from "@/components/promo/PromoJpycEx";
-
-// import { createPublicClient, http } from "viem";
 // import { postReverify, autoReverifyPending } from "@/lib/reverifyClient";
 
-// // ===== localStorage key =====
-// const LAST_TX_KEY = "cf:lastTx:v1";
+// import {
+//   addAmount,
+//   clampPct,
+//   clearLastTx,
+//   ERC20_ABI,
+//   formatJpyc,
+//   getEthereum,
+//   getErrorMessage,
+//   getPublicClientForChain,
+//   INCREMENTS,
+//   isInAppBrowser,
+//   loadLastTx,
+//   normalizeAmountInput,
+//   openInMetaMaskDapp,
+//   saveLastTx,
+//   TOKENS,
+//   TRANSFER_EVENT,
+//   type Currency,
+//   type WalletFlags,
+// } from "@/components/profile/profileClientHelpers";
+// import { TipThanksCard } from "@/components/profile/TipThanksCard";
+
+// import { ProjectProgressCard } from "@/components/profile/ProjectProgressCard";
+
+// import { WalletSection } from "@/components/profile/WalletSection";
 
 // // ===== Public Summary Lite =====
 // type PublicSummaryLite = {
@@ -2549,9 +1712,21 @@ export default function ProfileClient({
 //   } | null;
 // };
 
+// function isRecord(v: unknown): v is Record<string, unknown> {
+//   return typeof v === "object" && v !== null;
+// }
+
+// /**
+//  * CreatorProfile の address が「null」を返してくる（Prisma/DB）ケースを吸収する入力型。
+//  * 内部では CreatorProfile に正規化して扱う。
+//  */
+// type CreatorProfileInput = Omit<CreatorProfile, "address"> & {
+//   address?: string | null;
+// };
+
 // type Props = {
 //   username: string;
-//   creator: CreatorProfile;
+//   creator: CreatorProfileInput;
 //   projectId: string | null;
 //   publicSummary?: PublicSummaryLite | null;
 // };
@@ -2601,274 +1776,6 @@ export default function ProfileClient({
 //   purposes: PurposeDto[];
 // };
 
-// // ===== LastTx 型（送金復帰用）=====
-// type Currency = "JPYC" | "USDC";
-
-// type LastTx = {
-//   txHash: `0x${string}`;
-//   chainId: number;
-//   currency: Currency;
-//   amount: string; // human string
-//   toAddress: string;
-//   projectId: string | null;
-//   purposeId: string | null;
-//   createdAtMs: number; // Date.now()
-// };
-
-// function getPublicClientForChain(chainId: number) {
-//   const cfg = getChainConfig(chainId);
-//   if (!cfg) return null;
-//   const rpc = cfg.viemChain.rpcUrls.default.http[0];
-//   if (!rpc) return null;
-//   return createPublicClient({
-//     chain: cfg.viemChain,
-//     transport: http(rpc),
-//   });
-// }
-
-// function isRecord(v: unknown): v is Record<string, unknown> {
-//   return typeof v === "object" && v !== null;
-// }
-
-// function isHexTxHash(v: unknown): v is `0x${string}` {
-//   return typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
-// }
-
-// function isCurrency(v: unknown): v is Currency {
-//   return v === "JPYC" || v === "USDC";
-// }
-
-// function parseLastTx(v: unknown): LastTx | null {
-//   if (!isRecord(v)) return null;
-
-//   const txHash = v.txHash;
-//   const chainId = v.chainId;
-//   const currency = v.currency;
-//   const amount = v.amount;
-//   const toAddress = v.toAddress;
-//   const projectId = v.projectId;
-//   const purposeId = v.purposeId;
-//   const createdAtMs = v.createdAtMs;
-
-//   if (!isHexTxHash(txHash)) return null;
-//   if (typeof chainId !== "number" || !Number.isFinite(chainId)) return null;
-//   if (!isCurrency(currency)) return null;
-//   if (typeof amount !== "string" || amount.length === 0) return null;
-//   if (typeof toAddress !== "string" || toAddress.length === 0) return null;
-
-//   if (!(typeof projectId === "string" || projectId === null)) return null;
-//   if (!(typeof purposeId === "string" || purposeId === null)) return null;
-
-//   if (typeof createdAtMs !== "number" || !Number.isFinite(createdAtMs))
-//     return null;
-
-//   return {
-//     txHash,
-//     chainId,
-//     currency,
-//     amount,
-//     toAddress,
-//     projectId,
-//     purposeId,
-//     createdAtMs,
-//   };
-// }
-
-// function loadLastTx(): LastTx | null {
-//   if (typeof window === "undefined") return null;
-//   const raw = window.localStorage.getItem(LAST_TX_KEY);
-//   if (!raw) return null;
-//   try {
-//     const json = JSON.parse(raw) as unknown;
-//     return parseLastTx(json);
-//   } catch {
-//     return null;
-//   }
-// }
-
-// function saveLastTx(v: LastTx): void {
-//   if (typeof window === "undefined") return;
-//   window.localStorage.setItem(LAST_TX_KEY, JSON.stringify(v));
-// }
-
-// function clearLastTx(): void {
-//   if (typeof window === "undefined") return;
-//   window.localStorage.removeItem(LAST_TX_KEY);
-// }
-
-// /* ========== ウォレット関連ユーティリティ ========== */
-
-// type WalletProvider = Eip1193Provider & {
-//   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-//   on?: (event: string, handler: (...args: unknown[]) => void) => void;
-// };
-
-// function getEthereum(): WalletProvider | undefined {
-//   if (typeof window === "undefined") return undefined;
-//   return (window as Window & { ethereum?: unknown }).ethereum as
-//     | WalletProvider
-//     | undefined;
-// }
-
-// function getErrorMessage(e: unknown) {
-//   return e instanceof Error ? e.message : String(e);
-// }
-
-// /** アプリ内ブラウザ(Twitter/X, Instagram, LINE, etc.)ざっくり判定 */
-// function isInAppBrowser() {
-//   if (typeof navigator === "undefined") return false;
-//   const ua = navigator.userAgent || "";
-//   return /Twitter|Instagram|FBAN|FBAV|Line\/|LINE|MicroMessenger/i.test(ua);
-// }
-
-// /** MetaMaskモバイルでこのdAppを開く Deep Link */
-// function openInMetaMaskDapp() {
-//   if (typeof window === "undefined") return;
-
-//   const { host, pathname, search } = window.location;
-//   const dappPath = `${host}${pathname}${search}`;
-//   window.location.href = `https://metamask.app.link/dapp/${dappPath}`;
-// }
-
-// /* ========== そのほかユーティリティ ========== */
-
-// function formatJpyc(n: number): string {
-//   return n.toLocaleString("ja-JP");
-// }
-
-// function clampPct(p: number): number {
-//   if (!Number.isFinite(p)) return 0;
-//   if (p < 0) return 0;
-//   if (p > 100) return 100;
-//   return p;
-// }
-
-// /* ========== 定数/型 ========== */
-
-// const ERC20_ABI = [
-//   "function decimals() view returns (uint8)",
-//   "function balanceOf(address) view returns (uint256)",
-//   "function transfer(address to, uint256 amount) returns (bool)",
-// ];
-
-// const TRANSFER_EVENT = parseAbiItem(
-//   "event Transfer(address indexed from, address indexed to, uint256 value)"
-// );
-
-// // EIP-1193 フラグ
-// type WalletFlags = {
-//   isMetaMask?: boolean;
-//   isRabby?: boolean;
-//   isCoinbaseWallet?: boolean;
-//   isOkxWallet?: boolean;
-//   isOKXWallet?: boolean;
-//   isBinanceWallet?: boolean;
-//   isPhantom?: boolean;
-//   isBitgetWallet?: boolean;
-//   isTokenPocket?: boolean;
-//   isMathWallet?: boolean;
-//   isFrontier?: boolean;
-//   isSafe?: boolean;
-//   isZerion?: boolean;
-//   isEnkrypt?: boolean;
-//   isTallyWallet?: boolean;
-//   isBraveWallet?: boolean;
-//   isTrust?: boolean;
-//   isSequence?: boolean;
-//   isFrame?: boolean;
-//   isXDEFI?: boolean;
-//   isFireblocks?: boolean;
-// };
-
-// const TOKENS: Record<Currency, { label: string; presets: string[] }> = {
-//   JPYC: {
-//     label: "JPYC",
-//     presets: ["10", "50", "100"],
-//   },
-//   USDC: {
-//     label: "USDC",
-//     presets: ["0.10", "0.50", "1.00"],
-//   },
-// };
-
-// const INCREMENTS: Record<Currency, string[]> = {
-//   JPYC: ["10", "100", "1000"],
-//   USDC: ["0.1", "1", "10"],
-// };
-
-// function normalizeAmountInput(raw: string, cur: Currency): string {
-//   const s = raw.replace(/[^\d.]/g, "");
-//   if (cur === "JPYC") return s.split(".")[0] || "";
-//   const [head, ...rest] = s.split(".");
-//   return head + (rest.length ? "." + rest.join("").replace(/\./g, "") : "");
-// }
-
-// function addAmount(current: string, delta: string, cur: Currency): string {
-//   const curNorm = normalizeAmountInput(current || "0", cur);
-//   const deltaNorm = normalizeAmountInput(delta, cur);
-
-//   const curNum = Number(curNorm || "0");
-//   const deltaNum = Number(deltaNorm || "0");
-
-//   const sum = curNum + deltaNum;
-//   if (!Number.isFinite(sum) || sum < 0) {
-//     return curNorm || "0";
-//   }
-
-//   if (cur === "JPYC") {
-//     return String(Math.floor(sum));
-//   }
-
-//   return sum.toFixed(2);
-// }
-
-// /* ========== ティア＆サンクスカード（過去24h用） ========== */
-
-// type TipTierClass =
-//   | "tier-white"
-//   | "tier-bronze"
-//   | "tier-silver"
-//   | "tier-gold"
-//   | "tier-platinum"
-//   | "tier-rainbow";
-
-// function getTipTierClass(amountYen: number): TipTierClass {
-//   if (amountYen <= 100) return "tier-white";
-//   if (amountYen <= 500) return "tier-bronze";
-//   if (amountYen <= 1000) return "tier-silver";
-//   if (amountYen <= 5000) return "tier-gold";
-//   if (amountYen <= 10000) return "tier-platinum";
-//   return "tier-rainbow";
-// }
-
-// function formatYen(amount: number): string {
-//   return amount.toLocaleString("ja-JP");
-// }
-
-// type TipThanksCardProps = {
-//   amountYen: number;
-//   artistName?: string;
-// };
-
-// function TipThanksCard({ amountYen, artistName }: TipThanksCardProps) {
-//   const tierClass = getTipTierClass(amountYen);
-//   const tierLabel = tierClass.replace("tier-", "").toUpperCase();
-
-//   return (
-//     <div className={`tip-card ${tierClass}`}>
-//       <div className="tip-card__label">{tierLabel}</div>
-//       <div className="tip-card__message-ja">
-//         {artistName
-//           ? `${artistName} さんへの投げ銭ありがとうございます！`
-//           : "投げ銭ありがとうございます！"}
-//       </div>
-//       <div className="tip-card__message-en">
-//         Thanks for your tip! (last 24h: {formatYen(amountYen)} JPYC)
-//       </div>
-//     </div>
-//   );
-// }
-
 // /* ========== Phase1: Project status/get 型（/api/projects/[id]） ========== */
 
 // type ProjectStatusGet = {
@@ -2896,10 +1803,24 @@ export default function ProfileClient({
 
 // export default function ProfileClient({
 //   username,
-//   creator,
+//   creator: creatorInput,
 //   projectId,
 //   publicSummary,
 // }: Props) {
+//   // --- creator の address null を排除して CreatorProfile に正規化 ---
+//   const creator: CreatorProfile = useMemo(() => {
+//     const normalizedAddress =
+//       typeof creatorInput.address === "string" &&
+//       creatorInput.address.length > 0
+//         ? creatorInput.address
+//         : undefined;
+
+//     return {
+//       ...(creatorInput as Omit<CreatorProfile, "address">),
+//       address: normalizedAddress,
+//     };
+//   }, [creatorInput]);
+
 //   const reverifyOnViewBusyRef = useRef(false);
 
 //   const account = useAccount();
@@ -2995,6 +1916,7 @@ export default function ProfileClient({
 //       const filtered = supportedJpycChainIds
 //         .filter((id) => isSupportedChainId(id))
 //         .map((id) => id as SupportedChainId);
+
 //       if (filtered.length > 0) return filtered;
 //     }
 
@@ -3003,29 +1925,53 @@ export default function ProfileClient({
 //       1, // Ethereum
 //       137, // Polygon
 //       43114, // Avalanche
-//       11155111, // Sepolia
-//       80002, // Amoy
-//       43113, // Fuji
 //     ].filter((id) => isSupportedChainId(id)) as SupportedChainId[];
 
 //     return fallback.length > 0 ? fallback : [DEFAULT_CHAIN];
-//   }, [hasProject, supportedJpycChainIds, DEFAULT_CHAIN]);
+//   }, [hasProject, supportedJpycChainIds.join("|"), DEFAULT_CHAIN]);
 
 //   // selectableChainIds が変わったら selectedChainId を自動整合
+//   // ★ 接続中は「接続チェーンに寄せる」effect に任せる（競合防止）
 //   useEffect(() => {
 //     if (selectableChainIds.length === 0) return;
+//     if (connected) return;
+
 //     if (!selectableChainIds.includes(selectedChainId)) {
 //       setSelectedChainId(selectableChainIds[0]);
 //     }
 //     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, [selectableChainIds.join("|")]);
+//   }, [selectableChainIds.join("|"), connected]);
+
+//   // 接続したネットワークに「送金ネットワーク(selectedChainId)」を寄せる
+//   useEffect(() => {
+//     if (!connected) return;
+//     if (currentChainId == null) return;
+//     if (!isSupportedChainId(currentChainId)) return;
+
+//     const cid = currentChainId as SupportedChainId;
+
+//     // Project があり、対応チェーンが確定しているなら、その範囲外へは自動で寄せない
+//     if (hasProject && supportedJpycChainIds.length > 0) {
+//       if (!supportedJpycChainIds.includes(cid)) return;
+//     }
+
+//     // selectableChainIds の範囲外なら寄せない（UIの選択肢と整合）
+//     if (!selectableChainIds.includes(cid)) return;
+
+//     // ★ 既に同じなら更新しない（無駄な再レンダー防止）
+//     setSelectedChainId((prev) => (prev === cid ? prev : cid));
+//   }, [
+//     connected,
+//     currentChainId,
+//     hasProject,
+//     supportedJpycChainIds.join("|"),
+//     selectableChainIds.join("|"),
+//   ]);
 
 //   // ===== ネットワーク警告の条件（修正版） =====
 //   // 「接続中」かつ「ウォレットのチェーンが selectedChainId と不一致」の時だけ警告を出す
 //   const onWrongChain =
-//     connected &&
-//     connectedChainId !== null &&
-//     connectedChainId !== selectedChainId;
+//     connected && currentChainId != null && currentChainId !== selectedChainId;
 
 //   useEffect(() => {
 //     setInApp(isInAppBrowser());
@@ -4292,16 +3238,23 @@ export default function ProfileClient({
 //                 </div>
 
 //                 <div className="text-xs text-gray-500 dark:text-gray-600">
-//                   目標: {formatJpyc(publicSummary!.goal!.targetAmountJpyc)} JPYC
-//                   {publicSummary!.goal!.deadline ? (
+//                   目標:{" "}
+//                   {publicSummary?.goal
+//                     ? formatJpyc(publicSummary.goal.targetAmountJpyc)
+//                     : "-"}{" "}
+//                   JPYC
+//                   {publicSummary?.goal?.deadline ? (
 //                     <span className="ml-2">
-//                       期限: {publicSummary!.goal!.deadline!.slice(0, 10)}
+//                       期限: {publicSummary.goal.deadline.slice(0, 10)}
 //                     </span>
 //                   ) : null}
 //                 </div>
 
 //                 <div className="text-sm text-gray-800 dark:text-gray-900">
-//                   現在: {formatJpyc(publicSummary!.progress!.confirmedJpyc)}{" "}
+//                   現在:{" "}
+//                   {publicSummary?.progress
+//                     ? formatJpyc(publicSummary.progress.confirmedJpyc)
+//                     : "-"}{" "}
 //                   JPYC
 //                 </div>
 
@@ -4311,15 +3264,17 @@ export default function ProfileClient({
 //                     style={{
 //                       backgroundColor: headerColor,
 //                       width: `${clampPct(
-//                         publicSummary!.progress!.progressPct
+//                         publicSummary?.progress?.progressPct ?? 0
 //                       )}%`,
 //                     }}
 //                   />
 //                 </div>
 
 //                 <div className="text-[11px] text-gray-500 dark:text-gray-600">
-//                   {Math.floor(clampPct(publicSummary!.progress!.progressPct))}%
-//                   達成
+//                   {Math.floor(
+//                     clampPct(publicSummary?.progress?.progressPct ?? 0)
+//                   )}
+//                   % 達成
 //                 </div>
 //               </div>
 //             </div>

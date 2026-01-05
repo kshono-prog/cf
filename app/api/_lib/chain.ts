@@ -13,6 +13,8 @@ function env(name: string): string | null {
 
 export function getRpcUrl(chainId: number): string | null {
   // 既存 env と新 env を両対応
+  if (chainId === 1)
+    return env("NEXT_PUBLIC_RPC_URL_ETHEREUM") || env("ETHEREUM_RPC_URL");
   if (chainId === 137)
     return (
       env("NEXT_PUBLIC_RPC_URL_POLYGON") ||
@@ -38,6 +40,10 @@ export function getTokenAddress(
   currency: Currency
 ): string | null {
   // チェーン別envを優先
+  if (chainId === 1) {
+    if (currency === "JPYC") return env("NEXT_PUBLIC_JPYC_ADDRESS_ETHEREUM");
+    if (currency === "USDC") return env("NEXT_PUBLIC_USDC_ADDRESS_ETHEREUM");
+  }
   if (chainId === 137 || chainId === 80002) {
     if (currency === "JPYC")
       return (
