@@ -28,6 +28,20 @@ function toDatetimeLocal(iso: string) {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
+const EVENT_TIME_ZONE = "Asia/Tokyo";
+const EVENT_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: EVENT_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function formatEventDateTime(iso: string) {
+  return EVENT_DATE_FORMATTER.format(new Date(iso));
+}
+
 export default function EventManager({
   username,
   themeColor,
@@ -402,7 +416,7 @@ export default function EventManager({
 
                         {ev.date && (
                           <p className="text-[11px] text-gray-500">
-                            {new Date(ev.date).toLocaleString("ja-JP")}
+                            {formatEventDateTime(ev.date)}
                           </p>
                         )}
 
