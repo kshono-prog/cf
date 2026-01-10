@@ -1,6 +1,7 @@
 // app/[username]/events/page.tsx
 import { notFound } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
+import { EventDateTime } from "@/components/EventDateTime";
 import type { CreatorProfile } from "../page";
 
 // このプロジェクトの PageProps に合わせて Promise にする
@@ -147,13 +148,16 @@ export default async function EventsPage({ params }: EventsPageProps) {
                 {ev.date && (
                   <div className="text-xs text-gray-500">
                     開催日時:{" "}
-                    {new Date(ev.date).toLocaleString("ja-JP", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    <EventDateTime
+                      iso={ev.date}
+                      options={{
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }}
+                    />
                   </div>
                 )}
 
@@ -226,12 +230,15 @@ export default async function EventsPage({ params }: EventsPageProps) {
 
                   {ev.date && (
                     <p className="text-[11px] text-gray-500">
-                      {new Date(ev.date).toLocaleString("ja-JP", {
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      <EventDateTime
+                        iso={ev.date}
+                        options={{
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }}
+                      />
                     </p>
                   )}
 
