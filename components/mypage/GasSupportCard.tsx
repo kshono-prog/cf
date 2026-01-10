@@ -37,7 +37,7 @@ export function GasSupportCard(props: {
 
   const eligible = !!gas?.eligible;
   const reasons = gas?.reasons ?? [];
-  const claimAmt = gas?.claimableAmount ?? "0.02";
+  const claimAmt = gas?.claimableAmount ?? "";
   const faucetAddress = gas?.faucetAddress;
 
   return (
