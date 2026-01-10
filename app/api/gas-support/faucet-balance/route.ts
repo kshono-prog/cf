@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
+import { getChainConfig } from "@/lib/chainConfig";
+import { getRpcUrl } from "@/app/api/_lib/chain";
 
 function mustEnv(name: string): string {
   const v = process.env[name];
@@ -11,7 +13,11 @@ function mustEnv(name: string): string {
 export async function GET(_req: NextRequest) {
   try {
     const chainId = Number(process.env.CHAIN_ID ?? 137);
-    const rpcUrl = mustEnv("POLYGON_RPC_URL");
+    const chainConfig = getChainConfig(chainId);
+    if (!chainConfig) {
+      return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
+    }
+    const rpcUrl = getRpcUrl(chainId) ?? mustEnv("POLYGON_RPC_URL");
 
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
     const faucetWallet = await prisma.faucetWallet.findFirst({
@@ -30,8 +36,9 @@ export async function GET(_req: NextRequest) {
       chainId,
       enabled: config.enabled,
       faucetAddress: faucetWallet.address,
-      faucetBalancePol: ethers.formatEther(balWei),
-      claimAmountPol: config.claimAmountPol,
+      faucetBalance: ethers.formatEther(balWei),
+      claimableAmount: config.claimAmountPol,
+      nativeSymbol: chainConfig.nativeSymbol,
     });
   } catch (e) {
     console.error(e);

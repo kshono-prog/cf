@@ -142,7 +142,15 @@ export default async function EventsPage({ params }: EventsPageProps) {
             </p>
           ) : (
             events.map((ev) => (
-              <div key={ev.id} className="card p-3 space-y-1">
+              <div
+                key={ev.id}
+                className="card p-3 space-y-1 border border-amber-200 shadow-sm"
+                style={{
+                  backgroundColor: "#fff6d6",
+                  borderColor: "#f3d28e",
+                  boxShadow: "0 2px 6px rgba(120, 53, 15, 0.12)",
+                }}
+              >
                 <div className="text-sm font-semibold">{ev.title}</div>
 
                 {ev.date && (

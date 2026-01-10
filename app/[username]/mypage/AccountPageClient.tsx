@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useAccount, useSignMessage } from "wagmi";
+import { useAccount } from "wagmi";
 import type { Address } from "viem";
 
 import { withBaseUrl } from "@/utils/baseUrl";
@@ -12,22 +12,15 @@ import type {
   YoutubeVideo,
 } from "@/types/creator";
 
-import type { MeStatus, Status, GasEligibility } from "@/lib/mypage/types";
+import type { MeStatus, Status } from "@/lib/mypage/types";
 import {
   generateRandomId,
   getErrorFromApiJson,
   isRecord,
 } from "@/lib/mypage/helpers";
-import {
-  claimGasSupport,
-  createProject,
-  fetchGasEligibility,
-  fetchGasNonce,
-  fetchMe,
-} from "@/lib/mypage/api";
 
-import { GasSupportCard } from "@/components/mypage/GasSupportCard";
-import { ProjectCreateCard } from "@/components/mypage/ProjectCreateCard";
+import { createProject, fetchMe } from "@/lib/mypage/api";
+
 import {
   type OpenSections,
   type SectionKey,
@@ -175,7 +168,6 @@ type Props = {
 
 export default function AccountPageClient({ username }: Props) {
   const { address, isConnected } = useAccount();
-  const { signMessageAsync } = useSignMessage();
 
   const API_BASE = "";
 
@@ -227,16 +219,6 @@ export default function AccountPageClient({ username }: Props) {
   const toggleSection = (key: SectionKey) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
-
-  // -----------------------------
-  // Gas Support
-  // -----------------------------
-  const [gas, setGas] = useState<GasEligibility | null>(null);
-  const [gasLoading, setGasLoading] = useState<boolean>(false);
-  const [gasClaiming, setGasClaiming] = useState<boolean>(false);
-  const [gasTxHash, setGasTxHash] = useState<string | null>(null);
-
-  const shouldShowGasCard = status === "userOnly" || status === "creatorReady";
 
   // ============================
   // Project Create（①の入力）
@@ -465,79 +447,6 @@ export default function AccountPageClient({ username }: Props) {
       cancelled = true;
     };
   }, [API_BASE, isConnected, address, username]);
-
-  // gas eligibility
-  useEffect(() => {
-    const run = async () => {
-      if (!address) return;
-      if (!shouldShowGasCard) return;
-
-      const addr: Address = address;
-      setGasLoading(true);
-      try {
-        const res = await fetchGasEligibility({
-          apiBase: API_BASE,
-          address: addr,
-        });
-        if (res.ok) setGas(res.data);
-        else setGas(null);
-      } catch {
-        setGas(null);
-      } finally {
-        setGasLoading(false);
-      }
-    };
-    void run();
-  }, [API_BASE, address, shouldShowGasCard]);
-
-  async function refreshGasEligibility(): Promise<void> {
-    if (!address) return;
-    const addr: Address = address;
-
-    setGasLoading(true);
-    try {
-      const res = await fetchGasEligibility({
-        apiBase: API_BASE,
-        address: addr,
-      });
-      if (res.ok) setGas(res.data);
-    } finally {
-      setGasLoading(false);
-    }
-  }
-
-  async function handleClaimGasSupport(): Promise<void> {
-    if (!address) return;
-    const addr: Address = address;
-
-    setGasClaiming(true);
-    setGasTxHash(null);
-    setError(null);
-
-    try {
-      const nonce = await fetchGasNonce({ apiBase: API_BASE, address: addr });
-      if (!nonce.ok) throw new Error(nonce.error);
-
-      const signature = await signMessageAsync({ message: nonce.message });
-
-      const claimed = await claimGasSupport({
-        apiBase: API_BASE,
-        address: addr,
-        message: nonce.message,
-        signature,
-      });
-      if (!claimed.ok) throw new Error(claimed.error);
-
-      if (claimed.txHash) setGasTxHash(claimed.txHash);
-      await refreshGasEligibility();
-    } catch (e: unknown) {
-      const m =
-        e instanceof Error ? e.message : "ガス支援の実行に失敗しました。";
-      setError(m);
-    } finally {
-      setGasClaiming(false);
-    }
-  }
 
   // /api/user
   async function handleSaveUser(e: React.FormEvent): Promise<void> {
@@ -1054,17 +963,6 @@ export default function AccountPageClient({ username }: Props) {
           </div>
         )}
 
-        <GasSupportCard
-          address={creatorWalletAddress}
-          shouldShow={shouldShowGasCard}
-          gas={gas}
-          gasLoading={gasLoading}
-          gasClaiming={gasClaiming}
-          gasTxHash={gasTxHash}
-          onClaim={() => void handleClaimGasSupport()}
-          onRefresh={() => void refreshGasEligibility()}
-        />
-
         <MyPageAccordion
           open={openSections}
           onToggle={toggleSection}
@@ -1123,17 +1021,6 @@ export default function AccountPageClient({ username }: Props) {
           <p className="text-xs">{error}</p>
         </div>
       )}
-
-      <GasSupportCard
-        address={creatorWalletAddress}
-        shouldShow={shouldShowGasCard}
-        gas={gas}
-        gasLoading={gasLoading}
-        gasClaiming={gasClaiming}
-        gasTxHash={gasTxHash}
-        onClaim={() => void handleClaimGasSupport()}
-        onRefresh={() => void refreshGasEligibility()}
-      />
 
       <MyPageAccordion
         open={openSections}

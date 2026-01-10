@@ -26,8 +26,9 @@ export type GasEligibility = {
   reasons: string[];
   minJpyc?: number;
   jpycBalance?: string;
-  polBalance?: string;
-  claimableAmountPol?: string;
+  nativeBalance?: string;
+  claimableAmount?: string;
   faucetAddress?: string;
-  faucetBalancePol?: string;
+  faucetBalance?: string;
+  nativeSymbol?: string;
 };

@@ -117,22 +117,26 @@ model FaucetWallet {
 model GasClaim {
   id        String   @id @default(dbgenerated("gen_random_uuid()"))
   chainId   Int
-  address   String   @unique
+  address   String
   amountPol String
   txHash    String?  @unique
   status    String   @default("PENDING")
   reason    String?
   createdAt DateTime @default(now()) @db.Timestamp(6)
   updatedAt DateTime @default(now()) @db.Timestamp(6)
+
+  @@unique([chainId, address], map: "GasClaim_chainId_address_key")
 }
 
 model GasSupportNonce {
   id        String   @id @default(dbgenerated("gen_random_uuid()"))
-  address   String   @unique
+  chainId   Int
+  address   String
   nonce     String
   expiresAt DateTime @db.Timestamp(6)
   createdAt DateTime @default(now()) @db.Timestamp(6)
   updatedAt DateTime @default(now()) @db.Timestamp(6)
+  @@unique([chainId, address], map: "GasSupportNonce_chainId_address_key")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
+import { getChainConfig } from "@/lib/chainConfig";
+import { getRpcUrl, getTokenAddress } from "@/app/api/_lib/chain";
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -13,10 +15,25 @@ function mustEnv(name: string): string {
   return v;
 }
 
+function pickChainId(raw?: number): number {
+  if (typeof raw !== "number" || Number.isNaN(raw)) {
+    return Number(process.env.CHAIN_ID ?? 137);
+  }
+  return raw;
+}
+
+function getJpycAddress(chainId: number): string {
+  if (chainId === 137) {
+    return process.env.JPYC_ADDRESS || getTokenAddress(chainId, "JPYC") || "";
+  }
+  return getTokenAddress(chainId, "JPYC") || "";
+}
+
 type Body = {
   address?: string;
   message?: string;
   signature?: string;
+  chainId?: number;
 };
 
 export async function POST(req: NextRequest) {
@@ -40,9 +57,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const chainId = pickChainId(body.chainId);
+    const chainConfig = getChainConfig(chainId);
+    if (!chainConfig) {
+      return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
+    }
+
     // 1) nonce row
     const nonceRow = await prisma.gasSupportNonce.findUnique({
-      where: { address },
+      where: { chainId_address: { chainId, address } },
     });
     if (!nonceRow) {
       return NextResponse.json({ error: "NONCE_NOT_FOUND" }, { status: 400 });
@@ -60,9 +83,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "SIGNATURE_INVALID" }, { status: 401 });
     }
 
-    const chainId = Number(process.env.CHAIN_ID ?? 137);
-    const rpcUrl = mustEnv("POLYGON_RPC_URL");
-    const jpycAddress = mustEnv("JPYC_ADDRESS");
+    const rpcUrl = getRpcUrl(chainId) ?? mustEnv("POLYGON_RPC_URL");
+    const jpycAddress = getJpycAddress(chainId);
+    if (!jpycAddress) {
+      return NextResponse.json(
+        { error: "JPYC_ADDRESS_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
 
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
     if (!config || !config.enabled) {
@@ -92,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     const minJpycRaw = BigInt(config.minJpyc) * 10n ** BigInt(dec);
     const hasMinJpyc = jpycBalRaw >= minJpycRaw;
-    const isPolZero = polBalWei === 0n;
+    const isNativeZero = polBalWei === 0n;
 
     if (!hasMinJpyc) {
       return NextResponse.json(
@@ -100,15 +128,17 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
-    if (config.requirePolZero && !isPolZero) {
+    if (config.requirePolZero && !isNativeZero) {
       return NextResponse.json(
-        { error: "POL_BALANCE_NOT_ZERO" },
+        { error: "NATIVE_BALANCE_NOT_ZERO" },
         { status: 403 }
       );
     }
 
     // 4) already claimed?
-    const existing = await prisma.gasClaim.findUnique({ where: { address } });
+    const existing = await prisma.gasClaim.findUnique({
+      where: { chainId_address: { chainId, address } },
+    });
     if (existing) {
       return NextResponse.json({ error: "ALREADY_CLAIMED" }, { status: 409 });
     }
@@ -133,7 +163,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 7) send POL from faucet
+    // 7) send native token from faucet
     const faucetPk = mustEnv("FAUCET_PRIVATE_KEY");
     const faucetSigner = new ethers.Wallet(faucetPk, provider);
 
@@ -163,7 +193,7 @@ export async function POST(req: NextRequest) {
 
     // 8) consume nonce
     await prisma.gasSupportNonce
-      .delete({ where: { address } })
+      .delete({ where: { chainId_address: { chainId, address } } })
       .catch(() => null);
 
     return NextResponse.json({

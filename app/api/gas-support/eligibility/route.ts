@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
+import { getChainConfig } from "@/lib/chainConfig";
+import { getRpcUrl, getTokenAddress } from "@/app/api/_lib/chain";
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -13,6 +15,19 @@ function mustEnv(name: string): string {
   return v;
 }
 
+function pickChainId(raw: string | null): number {
+  if (!raw) return Number(process.env.CHAIN_ID ?? 137);
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : Number(process.env.CHAIN_ID ?? 137);
+}
+
+function getJpycAddress(chainId: number): string {
+  if (chainId === 137) {
+    return process.env.JPYC_ADDRESS || getTokenAddress(chainId, "JPYC") || "";
+  }
+  return getTokenAddress(chainId, "JPYC") || "";
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -21,9 +36,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid address" }, { status: 400 });
     }
 
-    const chainId = Number(process.env.CHAIN_ID ?? 137);
-    const rpcUrl = mustEnv("POLYGON_RPC_URL");
-    const jpycAddress = mustEnv("JPYC_ADDRESS");
+    const chainId = pickChainId(searchParams.get("chainId"));
+    const chainConfig = getChainConfig(chainId);
+    if (!chainConfig) {
+      return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
+    }
+
+    const rpcUrl = getRpcUrl(chainId) ?? mustEnv("POLYGON_RPC_URL");
+    const jpycAddress = getJpycAddress(chainId);
+    if (!jpycAddress) {
+      return NextResponse.json(
+        { error: "JPYC_ADDRESS_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
 
     // Faucet config
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
@@ -60,7 +86,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     // balances (string for UI)
-    const polBalance = ethers.formatEther(polBalWei);
+    const nativeBalance = ethers.formatEther(polBalWei);
     const jpycBalance = ethers.formatUnits(jpycBalRaw, dec);
 
     // eligibility
@@ -68,10 +94,10 @@ export async function GET(req: NextRequest) {
     const hasMinJpyc = jpycBalRaw >= minJpycRaw;
 
     const requirePolZero = config.requirePolZero;
-    const isPolZero = polBalWei === 0n;
+    const isNativeZero = polBalWei === 0n;
 
     const alreadyClaimed = await prisma.gasClaim.findUnique({
-      where: { address: address.toLowerCase() },
+      where: { chainId_address: { chainId, address: address.toLowerCase() } },
     });
 
     const faucetBalWei = await provider.getBalance(faucetWallet.address);
@@ -80,7 +106,9 @@ export async function GET(req: NextRequest) {
 
     const reasons: string[] = [];
     if (!hasMinJpyc) reasons.push("JPYC_BALANCE_LT_MIN");
-    if (requirePolZero && !isPolZero) reasons.push("POL_BALANCE_NOT_ZERO");
+    if (requirePolZero && !isNativeZero) {
+      reasons.push("NATIVE_BALANCE_NOT_ZERO");
+    }
     if (alreadyClaimed) reasons.push("ALREADY_CLAIMED");
     if (!faucetSufficient) reasons.push("FAUCET_INSUFFICIENT");
 
@@ -91,10 +119,11 @@ export async function GET(req: NextRequest) {
       reasons,
       minJpyc: config.minJpyc,
       jpycBalance,
-      polBalance,
-      claimableAmountPol: config.claimAmountPol,
+      nativeBalance,
+      claimableAmount: config.claimAmountPol,
       faucetAddress: faucetWallet.address,
-      faucetBalancePol: ethers.formatEther(faucetBalWei),
+      faucetBalance: ethers.formatEther(faucetBalWei),
+      nativeSymbol: chainConfig.nativeSymbol,
     });
   } catch (e) {
     console.error(e);

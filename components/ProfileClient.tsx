@@ -28,7 +28,6 @@ import { getTokenOnChain, type TokenKey } from "../lib/tokenRegistry";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import { PromoCreatorFounding } from "@/components/promo/PromoCreatorFounding";
-import { PromoGasSupport } from "@/components/promo/PromoGasSupport";
 import { PromoJpycEx } from "@/components/promo/PromoJpycEx";
 import { postReverify, autoReverifyPending } from "@/lib/reverifyClient";
 
@@ -56,6 +55,7 @@ import { TipThanksCard } from "@/components/profile/TipThanksCard";
 
 import { ProjectProgressCard } from "@/components/profile/ProjectProgressCard";
 import { WalletSection } from "@/components/profile/WalletSection";
+import { GasSupportTabs } from "@/components/profile/GasSupportTabs";
 
 // ===== Public Summary Lite =====
 type PublicSummaryLite = {
@@ -1592,7 +1592,7 @@ export default function ProfileClient({
           )}
 
           <PromoCreatorFounding headerColor={headerColor} />
-          <PromoGasSupport headerColor={headerColor} />
+          <GasSupportTabs />
           <PromoJpycEx headerColor={headerColor} />
 
           {/* フッター */}

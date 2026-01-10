@@ -11,7 +11,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid address" }, { status: 400 });
     }
 
-    const chainId = Number(process.env.CHAIN_ID ?? 137);
+    const chainIdRaw = searchParams.get("chainId");
+    const chainId = Number(chainIdRaw ?? process.env.CHAIN_ID ?? 137);
+    if (!Number.isFinite(chainId)) {
+      return NextResponse.json({ error: "INVALID_CHAIN_ID" }, { status: 400 });
+    }
 
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
     if (!config || !config.enabled) {
@@ -23,12 +27,12 @@ export async function GET(req: NextRequest) {
     const expiresAt = new Date(Date.now() + config.nonceTtlMinutes * 60_000);
 
     await prisma.gasSupportNonce.upsert({
-      where: { address: lower },
+      where: { chainId_address: { chainId, address: lower } },
       update: { nonce, expiresAt },
-      create: { address: lower, nonce, expiresAt },
+      create: { chainId, address: lower, nonce, expiresAt },
     });
 
-    const message = `creator funding gas support claim: ${nonce}`;
+    const message = `creator funding gas support claim (chainId:${chainId}): ${nonce}`;
 
     return NextResponse.json({
       address: lower,

@@ -38,12 +38,12 @@ export function reasonToJa(reason: string): string {
       return "ガス支援用ウォレットが未設定です。";
     case "JPYC_BALANCE_LT_MIN":
       return "JPYC残高が条件（100円以上）を満たしていません。";
-    case "POL_BALANCE_NOT_ZERO":
-      return "POL残高が0ではありません（対象外）。";
+    case "NATIVE_BALANCE_NOT_ZERO":
+      return "ガス代の残高が0ではありません（対象外）。";
     case "ALREADY_CLAIMED":
       return "このアドレスは既に受け取り済みです。";
     case "FAUCET_INSUFFICIENT":
-      return "ガス支援の原資（POL）が不足しています。";
+      return "ガス支援の原資が不足しています。";
     case "RATE_LIMITED":
       return "短時間に実行が多いため制限されています。少し時間をおいてください。";
     default:
