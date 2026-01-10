@@ -15,6 +15,13 @@ function mustEnv(name: string): string {
   return v;
 }
 
+function getFaucetPrivateKey(chainId: number): string {
+  if (chainId === 43114) {
+    return mustEnv("FAUCET_PRIVATE_KEY_AVAX");
+  }
+  return mustEnv("FAUCET_PRIVATE_KEY");
+}
+
 function pickChainId(raw?: number): number {
   if (typeof raw !== "number" || Number.isNaN(raw)) {
     return Number(process.env.CHAIN_ID ?? 137);
@@ -164,7 +171,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 7) send native token from faucet
-    const faucetPk = mustEnv("FAUCET_PRIVATE_KEY");
+    const faucetPk = getFaucetPrivateKey(chainId);
     const faucetSigner = new ethers.Wallet(faucetPk, provider);
 
     // safety: signer address must match configured faucet address
