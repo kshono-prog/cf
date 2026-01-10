@@ -6,8 +6,9 @@ import type { SocialLinks, YoutubeVideo } from "@/types/creator";
 import { AvatarUploader } from "./AvatarUploader";
 import { SocialLinksEditor } from "./SocialLinksEditor";
 import { YoutubeVideosEditor } from "./YoutubeVideosEditor";
-
+import EventManager from "@/components/EventManager";
 type Props = {
+  username: string;
   displayName: string;
   profile: string;
 
@@ -33,6 +34,7 @@ type Props = {
   saving: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  baseUrl?: string;
 
   onAvatarPreviewRevoke?: (prevUrl: string) => void;
 
@@ -41,6 +43,7 @@ type Props = {
 };
 
 export function CreatorProfileEditForm({
+  username,
   displayName,
   profile,
   avatarUrl,
@@ -59,6 +62,7 @@ export function CreatorProfileEditForm({
   saving,
   onSubmit,
   onCancel,
+  baseUrl = "",
   onAvatarPreviewRevoke,
   extraSections,
 }: Props) {
@@ -142,6 +146,12 @@ export function CreatorProfileEditForm({
         youtubeVideos={youtubeVideos}
         onChange={setYoutubeVideos}
         disabled={saving}
+      />
+
+      <EventManager
+        username={username}
+        themeColor={themeColor}
+        baseUrl={baseUrl}
       />
 
       {extraSections ? (

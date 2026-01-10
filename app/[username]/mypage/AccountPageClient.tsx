@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useAccount, useConnect, useSignMessage } from "wagmi";
+import { useAccount, useSignMessage } from "wagmi";
 import type { Address } from "viem";
 
 import { withBaseUrl } from "@/utils/baseUrl";
@@ -175,7 +175,6 @@ type Props = {
 
 export default function AccountPageClient({ username }: Props) {
   const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
   const { signMessageAsync } = useSignMessage();
 
   const API_BASE = "";
@@ -1012,12 +1011,9 @@ export default function AccountPageClient({ username }: Props) {
   if (status === "unconnected") {
     return (
       <UnconnectedMyPage
-        connectors={connectors}
         error={error}
         open={openSections}
         setOpen={setOpenSections}
-        onSetError={(m) => setError(m)}
-        onConnect={(connector) => connect({ connector })}
       />
     );
   }
@@ -1113,6 +1109,10 @@ export default function AccountPageClient({ username }: Props) {
 
   // creatorReady
   const creatorUsername = me?.creator?.username ?? username;
+  const eventBaseUrl = (process.env.NEXT_PUBLIC_BASE_URL ?? "").replace(
+    /\/$/,
+    ""
+  );
 
   return (
     <div className="container-narrow space-y-4">
@@ -1171,6 +1171,7 @@ export default function AccountPageClient({ username }: Props) {
         title="プロフィール・目標の編集（Project / Goal / Summary 統合）"
       >
         <CreatorProfileSection
+          username={creatorUsername}
           editing={editingProfile}
           onStartEdit={() => setEditingProfile(true)}
           onCancelEdit={() => setEditingProfile(false)}
@@ -1195,6 +1196,7 @@ export default function AccountPageClient({ username }: Props) {
           setAvatarPreview={setAvatarPreview}
           saving={saving}
           onSubmit={(e) => void handleSaveCreatorProfile(e)}
+          baseUrl={eventBaseUrl}
           extraSections={
             <div className="space-y-4">
               {/* -------- ① Project -------- */}

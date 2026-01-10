@@ -14,7 +14,7 @@ type EventDto = {
 type Props = {
   username: string;
   themeColor?: string;
-  baseUrl: string;
+  baseUrl?: string;
 };
 
 function toDatetimeLocal(iso: string) {
@@ -28,7 +28,11 @@ function toDatetimeLocal(iso: string) {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
-export default function EventManager({ username, themeColor, baseUrl }: Props) {
+export default function EventManager({
+  username,
+  themeColor,
+  baseUrl = "",
+}: Props) {
   // 変更系（作成/更新/削除）は既存 route.ts を利用
   const API_MUTATE = useMemo(
     () => `${baseUrl}/api/creators/${encodeURIComponent(username)}/events`,

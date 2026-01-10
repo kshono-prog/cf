@@ -266,9 +266,6 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
         {/* Meta + actions */}
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="text-[11px] text-gray-600 space-y-1">
-            <div>
-              対象チェーン: <span className="text-gray-900">{chainsText}</span>
-            </div>
             <div className="flex items-center gap-2">
               <span>
                 CONFIRMED tx:{" "}

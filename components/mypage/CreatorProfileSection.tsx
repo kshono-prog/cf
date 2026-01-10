@@ -7,6 +7,7 @@ import { CreatorProfileViewCard } from "./CreatorProfileViewCard";
 import type { SocialLinks, YoutubeVideo } from "@/types/creator";
 
 type Props = {
+  username: string;
   editing: boolean;
   onStartEdit: () => void;
   onCancelEdit: () => void;
@@ -46,17 +47,18 @@ type Props = {
   onSubmit: (e: React.FormEvent) => void;
 
   extraSections?: React.ReactNode;
+  baseUrl?: string;
 };
 
 export function CreatorProfileSection(props: Props) {
   const {
+    username,
     editing,
     onStartEdit,
     onCancelEdit,
 
     displayName,
     profile,
-
     // ✅ 削除
     // goalTitle,
     // goalTargetJpyc,
@@ -88,6 +90,7 @@ export function CreatorProfileSection(props: Props) {
     saving,
     onSubmit,
     extraSections,
+    baseUrl,
   } = props;
 
   if (!editing) {
@@ -106,6 +109,7 @@ export function CreatorProfileSection(props: Props) {
 
   return (
     <CreatorProfileEditForm
+      username={username}
       displayName={displayName}
       profile={profile}
       avatarUrl={avatarUrl}
@@ -124,6 +128,7 @@ export function CreatorProfileSection(props: Props) {
       saving={saving}
       onSubmit={onSubmit}
       onCancel={onCancelEdit}
+      baseUrl={baseUrl}
       extraSections={extraSections}
       onAvatarPreviewRevoke={(prevUrl) => URL.revokeObjectURL(prevUrl)}
     />

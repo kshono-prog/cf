@@ -2,27 +2,19 @@
 "use client";
 
 import React from "react";
-import type { Connector } from "wagmi";
 import type { OpenSections } from "@/components/mypage/MyPageAccordion";
 
 type UnconnectedMyPageProps = {
-  connectors: readonly Connector[];
   error: string | null;
   open: OpenSections;
   setOpen: React.Dispatch<React.SetStateAction<OpenSections>>;
-  onConnect: (connector: Connector) => void;
-  onSetError: (msg: string | null) => void;
 };
 
 export function UnconnectedMyPage({
-  connectors,
   error,
   open,
   setOpen,
-  onConnect,
-  onSetError,
 }: UnconnectedMyPageProps) {
-  const primaryConnector: Connector | undefined = connectors[0];
   const promoColor = "#005bbb"; // JPYC EX PR バッジ用カラー
 
   return (
@@ -195,59 +187,6 @@ export function UnconnectedMyPage({
           </p>
         </div>
       </div>
-
-      {/* 接続 */}
-      <div className="card p-4 space-y-3 bg-white">
-        <h2 className="text-sm font-semibold">ウォレット接続</h2>
-        <p className="text-xs text-gray-600">
-          まずはウォレットを接続してください（MetaMask / WalletConnect 等）。
-        </p>
-
-        <button
-          type="button"
-          className="btn w-full"
-          onClick={() => {
-            if (!primaryConnector) {
-              onSetError("利用可能なウォレットコネクタが見つかりません。");
-              return;
-            }
-            onConnect(primaryConnector);
-          }}
-        >
-          ウォレットを接続する
-        </button>
-
-        {connectors.length > 1 && (
-          <div className="pt-2 border-t border-gray-200">
-            <p className="text-[11px] text-gray-500 mb-2">
-              うまくいかない場合は別の方法をお試しください。
-            </p>
-            <div className="space-y-2">
-              {connectors.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className="btn-secondary w-full"
-                  onClick={() => onConnect(c)}
-                >
-                  {c.name} で接続
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <p className="text-[10px] text-gray-500">
-          ※ 接続できない場合は、MetaMask
-          のインストール状態、モバイルはアプリ内ブラウザ、 WalletConnect
-          の復帰動作などをご確認ください。
-        </p>
-      </div>
-
-      <p className="text-[11px] text-gray-500">
-        ※
-        ウォレット接続後、引き続きマイページから登録・編集を進めることができます。
-      </p>
     </div>
   );
 }
