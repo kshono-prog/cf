@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { MouseEvent } from "react";
 
 type BottomNavProps = {
@@ -20,10 +20,13 @@ export default function BottomNav({
   const router = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
+  const [pressed, setPressed] = useState<BottomNavProps["active"] | null>(null);
   const baseItemClass = "flex-1 flex items-center justify-center py-2";
   const iconBase = "w-7 h-7 transition-transform duration-150";
   const inactiveColor = "text-gray-400";
   const activeStyle = { color: themeColor };
+  const isActive = (item: BottomNavProps["active"]) =>
+    pressed === item || active === item;
 
   // 移動先の判定
   const calendarHref = `/${username}/events`;
@@ -48,6 +51,20 @@ export default function BottomNav({
       });
     };
 
+  const handleFavoriteNavigate = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    setPressed("favorite");
+    requestAnimationFrame(() => {
+      startTransition(() => {
+        if (pathname !== favoriteHref) {
+          router.push(favoriteHref);
+        } else {
+          router.refresh();
+        }
+      });
+    });
+  };
+
   return (
     <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto max-w-md flex items-center justify-between px-6">
@@ -61,9 +78,9 @@ export default function BottomNav({
         >
           <svg
             className={`${iconBase} ${
-              active === "calendar" ? "" : inactiveColor
+              isActive("calendar") ? "" : inactiveColor
             }`}
-            style={active === "calendar" ? activeStyle : undefined}
+            style={isActive("calendar") ? activeStyle : undefined}
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
@@ -101,13 +118,13 @@ export default function BottomNav({
           prefetch={true}
           className={baseItemClass}
           aria-label="クリエイターページ"
-          onClick={handleNavigate(favoriteHref)}
+          onClick={handleFavoriteNavigate}
         >
           <svg
             className={`${iconBase} ${
-              active === "favorite" ? "" : inactiveColor
+              isActive("favorite") ? "" : inactiveColor
             }`}
-            style={active === "favorite" ? activeStyle : undefined}
+            style={isActive("favorite") ? activeStyle : undefined}
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
@@ -131,9 +148,9 @@ export default function BottomNav({
         >
           <svg
             className={`${iconBase} ${
-              active === "profile" ? "" : inactiveColor
+              isActive("profile") ? "" : inactiveColor
             }`}
-            style={active === "profile" ? activeStyle : undefined}
+            style={isActive("profile") ? activeStyle : undefined}
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
