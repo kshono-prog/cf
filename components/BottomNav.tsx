@@ -25,13 +25,13 @@ export default function BottomNav({
   const iconBase = "w-7 h-7 transition-transform duration-150";
   const inactiveColor = "text-gray-400";
   const activeStyle = { color: themeColor };
-  const resolvedActive: BottomNavProps["active"] =
-    active ??
+  type NavItem = NonNullable<BottomNavProps["active"]>;
+  const resolvedActive = (active ??
     (pathname?.includes("/events")
       ? "calendar"
       : pathname?.includes("/mypage")
       ? "profile"
-      : "favorite");
+      : "favorite")) as NavItem;
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const touchLastRef = useRef<{ x: number; y: number } | null>(null);
   const isActive = (item: BottomNavProps["active"]) =>
@@ -68,25 +68,35 @@ export default function BottomNav({
     setPressed(null);
   }, [pathname]);
 
-  const navItems = [
-    { id: "calendar" as const, href: calendarHref },
-    { id: "favorite" as const, href: favoriteHref },
-    { id: "profile" as const, href: profileHref },
-  ];
+  const hrefByItem: Record<NavItem, string> = {
+    calendar: calendarHref,
+    favorite: favoriteHref,
+    profile: profileHref,
+  };
+
+  const swipeNextMap: Record<NavItem, NavItem | null> = {
+    calendar: "favorite",
+    favorite: "profile",
+    profile: null,
+  };
+
+  const swipePrevMap: Record<NavItem, NavItem | null> = {
+    calendar: null,
+    favorite: "calendar",
+    profile: "favorite",
+  };
 
   const handleSwipeNavigate = (direction: "next" | "prev") => {
-    const currentIndex = navItems.findIndex(
-      (item) => item.id === resolvedActive
-    );
-    if (currentIndex === -1) return;
-    const targetIndex =
-      direction === "next" ? currentIndex + 1 : currentIndex - 1;
-    const target = navItems[targetIndex];
-    if (!target) return;
-    setPressed(target.id);
+    const targetId =
+      direction === "next"
+        ? swipeNextMap[resolvedActive]
+        : swipePrevMap[resolvedActive];
+    if (!targetId) return;
+    const targetHref = hrefByItem[targetId];
+    setPressed(targetId);
     startTransition(() => {
-      if (pathname !== target.href) {
-        router.push(target.href);
+      if (pathname !== targetHref) {
+        router.push(targetHref);
       } else {
         router.refresh();
       }
