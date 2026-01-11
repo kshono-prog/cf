@@ -1,6 +1,5 @@
 // app/[username]/events/page.tsx
 import { notFound } from "next/navigation";
-import BottomNav from "@/components/BottomNav";
 import { EventDateTime } from "@/components/EventDateTime";
 import type { CreatorProfile } from "../page";
 
@@ -405,12 +404,6 @@ export default async function EventsPage({ params }: EventsPageProps) {
           </div>
         </div>
       </div>
-
-      <BottomNav
-        active="calendar"
-        themeColor={themeColor}
-        username={username}
-      />
     </div>
   );
 }

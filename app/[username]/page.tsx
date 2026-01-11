@@ -2,7 +2,6 @@
 
 import ProfileClient from "@/components/ProfileClient";
 import { notFound } from "next/navigation";
-import BottomNav from "@/components/BottomNav";
 import { prisma } from "@/lib/prisma";
 import { cache } from "react";
 
@@ -175,7 +174,6 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   if (!creatorResult) notFound();
 
   const { creator, profile } = creatorResult;
-  const themeColor = creator.themeColor ?? "#005bbb";
 
   // 2) projectId を Prisma から取得（既存ロジックそのまま）
   let projectId: string | null = null;
@@ -225,20 +223,10 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 force-light-theme">
-      <div className="flex-1 pb-24">
-        <ProfileClient
-          username={username}
-          creator={creator}
-          projectId={projectId}
-        />
-      </div>
-
-      <BottomNav
-        active="favorite"
-        themeColor={themeColor}
-        username={username}
-      />
-    </div>
+    <ProfileClient
+      username={username}
+      creator={creator}
+      projectId={projectId}
+    />
   );
 }

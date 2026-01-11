@@ -843,17 +843,6 @@ export default function ProfileClient({
             </div>
           ) : null}
 
-          <ProfileWalletClient
-            username={username}
-            creator={creator}
-            projectId={projectId}
-            supportedJpycChainIds={supportedJpycChainIds}
-            showLegacyCard={showLegacyCard}
-            headerColor={headerColor}
-            onPostContribution={postContribution}
-            onAfterSend={afterSendPipeline}
-          />
-
           {/* YouTube 動画ブロック */}
           {creator.youtubeVideos && creator.youtubeVideos.length > 0 && (
             <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-50 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-300">
@@ -889,6 +878,17 @@ export default function ProfileClient({
               ))}
             </div>
           )}
+
+          <ProfileWalletClient
+            username={username}
+            creator={creator}
+            projectId={projectId}
+            supportedJpycChainIds={supportedJpycChainIds}
+            showLegacyCard={showLegacyCard}
+            headerColor={headerColor}
+            onPostContribution={postContribution}
+            onAfterSend={afterSendPipeline}
+          />
 
           {/* フッター */}
           <footer

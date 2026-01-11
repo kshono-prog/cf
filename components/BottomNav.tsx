@@ -13,7 +13,7 @@ type BottomNavProps = {
 };
 
 export default function BottomNav({
-  active = "favorite",
+  active,
   themeColor = "#005bbb",
   username,
 }: BottomNavProps) {
@@ -25,8 +25,16 @@ export default function BottomNav({
   const iconBase = "w-7 h-7 transition-transform duration-150";
   const inactiveColor = "text-gray-400";
   const activeStyle = { color: themeColor };
+  const resolvedActive: BottomNavProps["active"] =
+    active ??
+    (pathname?.includes("/events")
+      ? "calendar"
+      : pathname?.includes("/mypage")
+      ? "profile"
+      : "favorite");
+
   const isActive = (item: BottomNavProps["active"]) =>
-    pressed !== null ? pressed === item : active === item;
+    pressed !== null ? pressed === item : resolvedActive === item;
 
   // 移動先の判定
   const calendarHref = `/${username}/events`;
