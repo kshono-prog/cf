@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { unstable_cache } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import {
@@ -45,43 +45,46 @@ function normalizeCreator(raw: {
   };
 }
 
-export const getCreatorProfileByUsername = cache(async (username: string) => {
-  const profile = await prisma.creatorProfile.findUnique({
-    where: { username },
-    include: {
-      socialLinks: true,
-      youtubeVideos: true,
-    },
-  });
+export const getCreatorProfileByUsername = unstable_cache(
+  async (username: string) => {
+    const profile = await prisma.creatorProfile.findUnique({
+      where: { username },
+      include: {
+        socialLinks: true,
+        youtubeVideos: true,
+      },
+    });
 
-  if (!profile) return null;
+    if (!profile) return null;
 
-  const socials: SocialLinks = {};
-  for (const link of profile.socialLinks) {
-    if (isSocialKey(link.type)) {
-      socials[link.type] = link.url;
+    const socials: SocialLinks = {};
+    for (const link of profile.socialLinks) {
+      if (isSocialKey(link.type)) {
+        socials[link.type] = link.url;
+      }
     }
-  }
-
-  return {
-    profile,
-    creator: normalizeCreator({
-      username: profile.username,
-      displayName: profile.displayName,
-      profileText: profile.profileText,
-      avatarUrl: profile.avatarUrl,
-      qrcodeUrl: profile.qrcodeUrl,
-      externalUrl: profile.externalUrl,
-      goalTitle: profile.goalTitle,
-      goalTargetJpyc: profile.goalTargetJpyc,
-      themeColor: profile.themeColor,
-      walletAddress: profile.walletAddress,
-      socials,
-      youtubeVideos: profile.youtubeVideos.map((video) => ({
-        url: video.url,
-        title: video.title ?? "",
-        description: video.description ?? "",
-      })),
-    }),
-  };
-});
+    return {
+      profile,
+      creator: normalizeCreator({
+        username: profile.username,
+        displayName: profile.displayName,
+        profileText: profile.profileText,
+        avatarUrl: profile.avatarUrl,
+        qrcodeUrl: profile.qrcodeUrl,
+        externalUrl: profile.externalUrl,
+        goalTitle: profile.goalTitle,
+        goalTargetJpyc: profile.goalTargetJpyc,
+        themeColor: profile.themeColor,
+        walletAddress: profile.walletAddress,
+        socials,
+        youtubeVideos: profile.youtubeVideos.map((video) => ({
+          url: video.url,
+          title: video.title ?? "",
+          description: video.description ?? "",
+        })),
+      }),
+    };
+  },
+  ["creator-profile-by-username"],
+  { revalidate: 60 }
+);
