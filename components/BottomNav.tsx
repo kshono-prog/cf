@@ -26,7 +26,7 @@ export default function BottomNav({
   const inactiveColor = "text-gray-400";
   const activeStyle = { color: themeColor };
   const isActive = (item: BottomNavProps["active"]) =>
-    pressed === item || active === item;
+    pressed !== null ? pressed === item : active === item;
 
   // 移動先の判定
   const calendarHref = `/${username}/events`;
@@ -40,30 +40,24 @@ export default function BottomNav({
   }, [router, calendarHref, favoriteHref, profileHref]);
 
   const handleNavigate =
-    (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    (item: BottomNavProps["active"], href: string) =>
+    (event: MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault();
-      startTransition(() => {
-        if (pathname !== href) {
-          router.push(href);
-        } else {
-          router.refresh();
-        }
+      setPressed(item);
+      requestAnimationFrame(() => {
+        startTransition(() => {
+          if (pathname !== href) {
+            router.push(href);
+          } else {
+            router.refresh();
+          }
+        });
       });
     };
 
-  const handleFavoriteNavigate = (event: MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    setPressed("favorite");
-    requestAnimationFrame(() => {
-      startTransition(() => {
-        if (pathname !== favoriteHref) {
-          router.push(favoriteHref);
-        } else {
-          router.refresh();
-        }
-      });
-    });
-  };
+  useEffect(() => {
+    setPressed(null);
+  }, [pathname]);
 
   return (
     <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
@@ -74,7 +68,7 @@ export default function BottomNav({
           prefetch={true}
           className={baseItemClass}
           aria-label="イベント"
-          onClick={handleNavigate(calendarHref)}
+          onClick={handleNavigate("calendar", calendarHref)}
         >
           <svg
             className={`${iconBase} ${
@@ -118,7 +112,7 @@ export default function BottomNav({
           prefetch={true}
           className={baseItemClass}
           aria-label="クリエイターページ"
-          onClick={handleFavoriteNavigate}
+          onClick={handleNavigate("favorite", favoriteHref)}
         >
           <svg
             className={`${iconBase} ${
@@ -144,7 +138,7 @@ export default function BottomNav({
           prefetch
           className={baseItemClass}
           aria-label="マイページ"
-          onClick={handleNavigate(profileHref)}
+          onClick={handleNavigate("profile", profileHref)}
         >
           <svg
             className={`${iconBase} ${
