@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useRef, useTransition } from "react";
+import { useCallback, useEffect, useRef, useTransition } from "react";
 
 type SwipeNavigationAreaProps = {
   username: string;
@@ -19,8 +19,8 @@ export default function SwipeNavigationArea({
   const router = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const touchLastRef = useRef<{ x: number; y: number } | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollTimerRef = useRef<number | null>(null);
 
   const resolvedActive = (
     pathname?.includes("/events")
@@ -48,12 +48,23 @@ export default function SwipeNavigationArea({
     profile: "favorite",
   };
 
+  const resetToCenter = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const width = el.clientWidth;
+    if (!width) return;
+    el.scrollLeft = width;
+  }, []);
+
   const handleSwipeNavigate = (direction: "next" | "prev") => {
     const targetId =
       direction === "next"
         ? swipeNextMap[resolvedActive]
         : swipePrevMap[resolvedActive];
-    if (!targetId) return;
+    if (!targetId) {
+      resetToCenter();
+      return;
+    }
     const targetHref = hrefByItem[targetId];
     startTransition(() => {
       if (pathname !== targetHref) {
@@ -64,43 +75,55 @@ export default function SwipeNavigationArea({
     });
   };
 
+  const handleScroll = useCallback(() => {
+    if (scrollTimerRef.current) {
+      window.clearTimeout(scrollTimerRef.current);
+    }
+    scrollTimerRef.current = window.setTimeout(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const width = el.clientWidth;
+      if (!width) return;
+      const left = el.scrollLeft;
+      if (left <= width * 0.35) {
+        handleSwipeNavigate("prev");
+        return;
+      }
+      if (left >= width * 1.65) {
+        handleSwipeNavigate("next");
+        return;
+      }
+      if (Math.abs(left - width) > 1) {
+        resetToCenter();
+      }
+    }, 80);
+  }, [handleSwipeNavigate, resetToCenter]);
+
+  useEffect(() => {
+    resetToCenter();
+  }, [pathname, resetToCenter]);
+
+  useEffect(() => {
+    const handleResize = () => resetToCenter();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [resetToCenter]);
+
   return (
     <div
-      className={className}
-      onTouchStart={(event) => {
-        const touch = event.touches[0];
-        if (!touch) return;
-        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-        touchLastRef.current = { x: touch.clientX, y: touch.clientY };
-      }}
-      onTouchMove={(event) => {
-        const touch = event.touches[0];
-        if (!touch) return;
-        touchLastRef.current = { x: touch.clientX, y: touch.clientY };
-      }}
-      onTouchEnd={() => {
-        const start = touchStartRef.current;
-        const last = touchLastRef.current;
-        touchStartRef.current = null;
-        touchLastRef.current = null;
-        if (!start || !last) return;
-        const deltaX = last.x - start.x;
-        const deltaY = last.y - start.y;
-        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
-          return;
-        }
-        if (deltaX < 0) {
-          handleSwipeNavigate("next");
-        } else {
-          handleSwipeNavigate("prev");
-        }
-      }}
-      onTouchCancel={() => {
-        touchStartRef.current = null;
-        touchLastRef.current = null;
-      }}
+      ref={scrollRef}
+      className={`overflow-x-auto snap-x snap-mandatory scroll-smooth overscroll-x-contain ${
+        className ?? ""
+      }`}
+      onScroll={handleScroll}
     >
-      {children}
+      <div className="flex min-h-full w-full">
+        <div className="w-full shrink-0 snap-start" aria-hidden="true" />
+        <div className="w-full shrink-0 snap-start">{children}</div>
+        <div className="w-full shrink-0 snap-start" aria-hidden="true" />
+      </div>
     </div>
   );
 }
