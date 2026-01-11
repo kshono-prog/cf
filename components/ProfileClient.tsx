@@ -3,7 +3,6 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
-import { ethers } from "ethers";
 
 import {
   useAccount,
@@ -16,7 +15,6 @@ import {
 import { useEthersProvider } from "@/lib/useEthersSigner";
 import { formatUnits, type Address } from "viem";
 import { useSearchParams } from "next/navigation";
-import { appkit } from "@/lib/appkitInstance";
 
 import {
   getChainConfig,
@@ -24,7 +22,7 @@ import {
   isSupportedChainId,
   type SupportedChainId,
 } from "../lib/chainConfig";
-import { readBalances, type WalletBalances } from "../lib/walletService";
+import type { WalletBalances } from "../lib/walletService";
 import { getTokenOnChain, type TokenKey } from "../lib/tokenRegistry";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import type { CreatorProfile } from "@/lib/profileTypes";
@@ -867,10 +865,13 @@ export default function ProfileClient({
   /* 目標進捗 JPYC 残高 (creator.address) - readBalances ベース */
 
   async function refreshGoalProgress() {
+    if (!creator.address || !creator.goalTitle || !creator.goalTargetJpyc) {
+      return;
+    }
+
+    const { readBalances } = await import("../lib/walletService");
+
     try {
-      if (!creator.address || !creator.goalTitle || !creator.goalTargetJpyc) {
-        return;
-      }
       const tokenKeys: readonly TokenKey[] = ["JPYC"];
       const balances = await readBalances({
         chainId: selectedChainId,
@@ -903,6 +904,7 @@ export default function ProfileClient({
     }
 
     setWalletBalancesLoading(true);
+    const { readBalances } = await import("../lib/walletService");
     try {
       const tokenKeys: readonly TokenKey[] = ["JPYC"];
       const balances = await readBalances({
@@ -1139,58 +1141,60 @@ export default function ProfileClient({
   async function disconnectWallet(): Promise<void> {
     try {
       await disconnectAsync();
-
-      if (
-        typeof (appkit as unknown as { disconnect?: () => Promise<void> })
-          .disconnect === "function"
-      ) {
-        await (
-          appkit as unknown as { disconnect: () => Promise<void> }
-        ).disconnect();
-      }
-
-      if (typeof window !== "undefined") {
-        const keys = Object.keys(window.localStorage);
-        for (const k of keys) {
-          if (
-            k.startsWith("wc@2:") ||
-            k.startsWith("walletconnect") ||
-            k.includes("WALLETCONNECT") ||
-            k.includes("appkit") ||
-            k.includes("reown")
-          ) {
-            window.localStorage.removeItem(k);
-          }
-        }
-      }
     } catch (e) {
       console.warn("disconnectWallet failed:", e);
+    }
+
+    const { appkit } = await import("@/lib/appkitInstance");
+    if (
+      typeof (appkit as unknown as { disconnect?: () => Promise<void> })
+        .disconnect === "function"
+    ) {
+      await (
+        appkit as unknown as { disconnect: () => Promise<void> }
+      ).disconnect();
+    }
+    if (typeof window !== "undefined") {
+      const keys = Object.keys(window.localStorage);
+      for (const k of keys) {
+        if (
+          k.startsWith("wc@2:") ||
+          k.startsWith("walletconnect") ||
+          k.includes("WALLETCONNECT") ||
+          k.includes("appkit") ||
+          k.includes("reown")
+        ) {
+          window.localStorage.removeItem(k);
+        }
+      }
     }
   }
 
   /* 送金処理 */
   async function send(overrideAmount?: string) {
+    if (!connected) {
+      alert("ウォレットを接続してください");
+      return;
+    }
+    if (onWrongChain) {
+      alert(
+        "ネットワークを切り替えてください（下部の切替ボタンから変更できます）"
+      );
+      return;
+    }
+    if (!toAddress) {
+      alert("送金先アドレスを入力してください");
+      return;
+    }
+
+    if (!ethersProvider) {
+      setStatus("ウォレットプロバイダが見つかりません");
+      return;
+    }
+
+    const { ethers } = await import("ethers");
+
     try {
-      if (!connected) {
-        alert("ウォレットを接続してください");
-        return;
-      }
-      if (onWrongChain) {
-        alert(
-          "ネットワークを切り替えてください（下部の切替ボタンから変更できます）"
-        );
-        return;
-      }
-      if (!toAddress) {
-        alert("送金先アドレスを入力してください");
-        return;
-      }
-
-      if (!ethersProvider) {
-        setStatus("ウォレットプロバイダが見つかりません");
-        return;
-      }
-
       setSending(true);
       setStatus("送金中…ウォレットで承認してください");
 
