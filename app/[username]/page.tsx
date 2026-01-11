@@ -2,126 +2,13 @@
 
 import ProfileClient from "@/components/ProfileClient";
 import { notFound } from "next/navigation";
+import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { prisma } from "@/lib/prisma";
-import { cache } from "react";
 
 type Params = { username: string };
 
-// ---- 型定義 ----
-const SOCIAL_KEYS = [
-  "twitter",
-  "instagram",
-  "youtube",
-  "facebook",
-  "tiktok",
-  "website",
-] as const;
-
-type SocialKey = (typeof SOCIAL_KEYS)[number];
-
-type SocialLinks = Partial<Record<SocialKey, string>>;
-
-function isSocialKey(v: string): v is SocialKey {
-  return (SOCIAL_KEYS as readonly string[]).includes(v);
-}
-
-type YoutubeVideo = {
-  url: string;
-  title: string;
-  description: string;
-};
-
-export type CreatorProfile = {
-  username: string;
-  address?: string;
-  displayName?: string;
-  avatarUrl?: string | null;
-  profile?: string | null;
-  qrcode?: string | null;
-  url?: string | null;
-  goalTitle?: string | null;
-  goalTargetJpyc?: number | null;
-  themeColor?: string | null;
-  socials?: SocialLinks;
-  youtubeVideos?: YoutubeVideo[];
-};
-
-function normalizeCreator(raw: {
-  username: string;
-  displayName: string | null;
-  profileText: string | null;
-  avatarUrl: string | null;
-  qrcodeUrl: string | null;
-  externalUrl: string | null;
-  goalTitle: string | null;
-  goalTargetJpyc: number | null;
-  themeColor: string | null;
-  walletAddress: string | null;
-  socials?: SocialLinks;
-  youtubeVideos?: YoutubeVideo[];
-}): CreatorProfile {
-  return {
-    username: raw.username,
-    address: raw.walletAddress ?? undefined,
-    displayName: raw.displayName ?? raw.username,
-    avatarUrl: raw.avatarUrl ?? null,
-    profile: raw.profileText ?? null,
-    qrcode: raw.qrcodeUrl ?? null,
-    url: raw.externalUrl ?? null,
-    goalTitle: raw.goalTitle ?? null,
-    goalTargetJpyc: raw.goalTargetJpyc ?? null,
-    themeColor: raw.themeColor ?? null,
-    socials: raw.socials,
-    youtubeVideos: raw.youtubeVideos,
-  };
-}
-
 const SITE_BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || "https://nagesen-v2.vercel.app";
-
-const getCreatorProfileByUsername = cache(async (username: string) => {
-  const profile = await prisma.creatorProfile.findUnique({
-    where: { username },
-    include: {
-      socialLinks: true,
-      youtubeVideos: true,
-    },
-  });
-
-  if (!profile) return null;
-
-  // ---- socials を型安全に詰める（TS7053対策）----
-  const socials: SocialLinks = {};
-  for (const link of profile.socialLinks) {
-    // Prisma 側で string になっていてもここで絞り込む
-    if (isSocialKey(link.type)) {
-      socials[link.type] = link.url;
-    }
-  }
-
-  return {
-    profile,
-    creator: normalizeCreator({
-      username: profile.username,
-      displayName: profile.displayName,
-      profileText: profile.profileText,
-      avatarUrl: profile.avatarUrl,
-      qrcodeUrl: profile.qrcodeUrl,
-      externalUrl: profile.externalUrl,
-      goalTitle: profile.goalTitle,
-      goalTargetJpyc: profile.goalTargetJpyc,
-      themeColor: profile.themeColor,
-      walletAddress: profile.walletAddress,
-      socials,
-      // ---- null を正規化して YoutubeVideo[] に合わせる（TS2322対策）----
-      youtubeVideos: profile.youtubeVideos.map((v) => ({
-        url: v.url,
-        title: v.title ?? "",
-        description: v.description ?? "",
-      })),
-    }),
-  };
-});
 
 export async function generateMetadata({
   params,

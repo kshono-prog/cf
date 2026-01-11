@@ -1,5 +1,7 @@
+//app/[username]/layout.tsx
 import BottomNav from "@/components/BottomNav";
-import { prisma } from "@/lib/prisma";
+import SwipeNavigationArea from "@/components/SwipeNavigationArea";
+import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 
 type Params = { username: string };
 
@@ -15,19 +17,17 @@ export default async function UsernameLayout({
   let themeColor = "#005bbb";
 
   try {
-    const profile = await prisma.creatorProfile.findUnique({
-      where: { username },
-      select: { themeColor: true },
-    });
-
-    themeColor = profile?.themeColor ?? themeColor;
+    const creatorResult = await getCreatorProfileByUsername(username);
+    themeColor = creatorResult?.creator.themeColor ?? themeColor;
   } catch (e) {
     console.error("Failed to resolve theme color:", e);
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 force-light-theme">
-      <div className="flex-1 pb-24">{children}</div>
+      <SwipeNavigationArea username={username} className="flex-1 pb-24">
+        {children}
+      </SwipeNavigationArea>
       <BottomNav themeColor={themeColor} username={username} />
     </div>
   );

@@ -1,7 +1,7 @@
 // app/[username]/events/page.tsx
 import { notFound } from "next/navigation";
 import { EventDateTime } from "@/components/EventDateTime";
-import type { CreatorProfile } from "../page";
+import type { CreatorProfile } from "@/lib/profileTypes";
 
 // このプロジェクトの PageProps に合わせて Promise にする
 type EventsPageProps = {
