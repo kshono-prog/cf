@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
+import dynamic from "next/dynamic";
 import { ethers } from "ethers";
 
 import {
@@ -55,7 +56,13 @@ import { TipThanksCard } from "@/components/profile/TipThanksCard";
 
 import { ProjectProgressCard } from "@/components/profile/ProjectProgressCard";
 import { WalletSection } from "@/components/profile/WalletSection";
-import { GasSupportTabs } from "@/components/profile/GasSupportTabs";
+const GasSupportTabs = dynamic(
+  () =>
+    import("@/components/profile/GasSupportTabs").then(
+      (module) => module.GasSupportTabs
+    ),
+  { ssr: false, loading: () => null }
+);
 
 import {
   isRecord,
@@ -1642,7 +1649,7 @@ export default function ProfileClient({
           )}
 
           <PromoCreatorFounding headerColor={headerColor} />
-          <GasSupportTabs />
+          {connected && <GasSupportTabs />}
           <PromoJpycEx headerColor={headerColor} />
 
           {/* フッター */}
