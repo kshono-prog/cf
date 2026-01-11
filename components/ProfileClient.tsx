@@ -75,6 +75,60 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
+function pickPublicSummaryLite(summary: unknown): PublicSummaryLite {
+  if (!isRecord(summary)) return { goal: null, progress: null };
+
+  const goalRaw = summary.goal;
+  const progressRaw = summary.progress;
+
+  const goal =
+    isRecord(goalRaw) &&
+    typeof goalRaw.targetAmountJpyc === "number" &&
+    (typeof goalRaw.achievedAt === "string" || goalRaw.achievedAt === null) &&
+    (typeof goalRaw.deadline === "string" || goalRaw.deadline === null)
+      ? {
+          targetAmountJpyc: goalRaw.targetAmountJpyc,
+          achievedAt: goalRaw.achievedAt as string | null,
+          deadline: goalRaw.deadline as string | null,
+        }
+      : null;
+
+  const progress =
+    isRecord(progressRaw) &&
+    typeof progressRaw.confirmedJpyc === "number" &&
+    (typeof progressRaw.targetJpyc === "number" ||
+      progressRaw.targetJpyc === null) &&
+    typeof progressRaw.progressPct === "number"
+      ? {
+          confirmedJpyc: progressRaw.confirmedJpyc,
+          targetJpyc: progressRaw.targetJpyc as number | null,
+          progressPct: progressRaw.progressPct,
+        }
+      : null;
+
+  return { goal, progress };
+}
+
+// ===== Public API response（/api/public/creator）=====
+type PublicCreatorResponse =
+  | {
+      ok: true;
+      creator: {
+        username: string;
+        displayName: string;
+        profileText: string | null;
+        avatarUrl: string | null;
+        themeColor: string | null;
+        qrcodeUrl: string | null;
+        externalUrl: string | null;
+      };
+      activeProjectId: string | null;
+      summary: unknown | null;
+    }
+  | { ok: false; error: string; detail?: string };
+
+const API_BASE = "";
+
 /**
  * CreatorProfile の address が「null」を返してくる（Prisma/DB）ケースを吸収する入力型。
  * 内部では CreatorProfile に正規化して扱う。
@@ -181,6 +235,7 @@ export default function ProfileClient({
   }, [creatorInput]);
 
   const reverifyOnViewBusyRef = useRef(false);
+  const publicSummaryFetchRef = useRef<string | null>(null);
 
   const account = useAccount();
   const { connector } = account;
@@ -206,6 +261,8 @@ export default function ProfileClient({
 
   // 既存：オンチェーン goal（creator.goalTitle / goalTargetJpyc）表示
   const [goalCurrentJpyc, setGoalCurrentJpyc] = useState<number | null>(null);
+  const [publicSummaryState, setPublicSummaryState] =
+    useState<PublicSummaryLite | null>(publicSummary ?? null);
 
   const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(
     null
@@ -218,6 +275,44 @@ export default function ProfileClient({
     account.status === "connecting" ||
     account.status === "reconnecting" ||
     connect.status === "pending";
+  useEffect(() => {
+    if (publicSummary !== undefined) {
+      setPublicSummaryState(publicSummary);
+      return;
+    }
+
+    if (publicSummaryFetchRef.current === username) return;
+    publicSummaryFetchRef.current = username;
+
+    let cancelled = false;
+
+    async function fetchPublicSummary(): Promise<void> {
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/public/creator?username=${encodeURIComponent(
+            username
+          )}`,
+          { cache: "no-store" }
+        );
+        const data: unknown = await res.json().catch(() => null);
+
+        if (!cancelled && res.ok && isRecord(data) && data.ok === true) {
+          const response = data as Extract<PublicCreatorResponse, { ok: true }>;
+          setPublicSummaryState(
+            response.summary ? pickPublicSummaryLite(response.summary) : null
+          );
+        }
+      } catch {
+        if (!cancelled) setPublicSummaryState(null);
+      }
+    }
+
+    void fetchPublicSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [publicSummary, username]);
 
   const activeAddress = account.address ?? "";
   const connected = account.status === "connected" && activeAddress.length > 0;
@@ -1291,7 +1386,8 @@ export default function ProfileClient({
     Number.isFinite(resolvedTargetYen) &&
     resolvedTargetYen > 0;
 
-  const hasPublicGoal = !!publicSummary?.goal && !!publicSummary?.progress;
+  const hasPublicGoal =
+    !!publicSummaryState?.goal && !!publicSummaryState?.progress;
   const hasLegacyOnchainGoal = !!creator.goalTitle && !!creator.goalTargetJpyc;
 
   const showDbCard = hasDbGoal;
@@ -1368,7 +1464,7 @@ export default function ProfileClient({
                   <div className="text-sm font-semibold text-gray-900 dark:text-gray-900">
                     Goal
                   </div>
-                  {publicSummary?.goal?.achievedAt ? (
+                  {publicSummaryState?.goal?.achievedAt ? (
                     <span className="text-[11px] text-emerald-700">
                       達成済み
                     </span>
@@ -1377,13 +1473,13 @@ export default function ProfileClient({
 
                 <div className="text-xs text-gray-500 dark:text-gray-600">
                   目標:{" "}
-                  {publicSummary?.goal
-                    ? formatJpyc(publicSummary.goal.targetAmountJpyc)
+                  {publicSummaryState?.goal
+                    ? formatJpyc(publicSummaryState.goal.targetAmountJpyc)
                     : "-"}{" "}
                   JPYC
-                  {publicSummary?.goal?.deadline ? (
+                  {publicSummaryState?.goal?.deadline ? (
                     <span className="ml-2">
-                      期限: {publicSummary.goal.deadline.slice(0, 10)}
+                      期限: {publicSummaryState.goal.deadline.slice(0, 10)}
                     </span>
                   ) : null}
                 </div>
@@ -1402,7 +1498,7 @@ export default function ProfileClient({
                     style={{
                       backgroundColor: headerColor,
                       width: `${clampPct(
-                        publicSummary?.progress?.progressPct ?? 0
+                        publicSummaryState?.progress?.progressPct ?? 0
                       )}%`,
                     }}
                   />
@@ -1410,7 +1506,7 @@ export default function ProfileClient({
 
                 <div className="text-[11px] text-gray-500 dark:text-gray-600">
                   {Math.floor(
-                    clampPct(publicSummary?.progress?.progressPct ?? 0)
+                    clampPct(publicSummaryState?.progress?.progressPct ?? 0)
                   )}
                   % 達成
                 </div>

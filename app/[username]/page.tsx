@@ -1,41 +1,35 @@
-// ===============================
-// 1) app/[username]/page.tsx 変更（追記＋ProfileClientへ渡す）
-// ===============================
+// app/[username]/page.tsx
 
 import ProfileClient from "@/components/ProfileClient";
 import { notFound } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { prisma } from "@/lib/prisma";
+import { cache } from "react";
 
 type Params = { username: string };
 
 // ---- 型定義 ----
-type SocialLinks = Partial<
-  Record<
-    "twitter" | "instagram" | "youtube" | "facebook" | "tiktok" | "website",
-    string
-  >
->;
+const SOCIAL_KEYS = [
+  "twitter",
+  "instagram",
+  "youtube",
+  "facebook",
+  "tiktok",
+  "website",
+] as const;
+
+type SocialKey = (typeof SOCIAL_KEYS)[number];
+
+type SocialLinks = Partial<Record<SocialKey, string>>;
+
+function isSocialKey(v: string): v is SocialKey {
+  return (SOCIAL_KEYS as readonly string[]).includes(v);
+}
 
 type YoutubeVideo = {
   url: string;
   title: string;
   description: string;
-};
-
-type CreatorApiResponse = {
-  username: string;
-  displayName: string;
-  profileText: string | null;
-  avatar: string | null;
-  qrcode: string | null;
-  url: string | null;
-  goalTitle: string | null;
-  goalTargetJpyc: number | null;
-  themeColor: string | null;
-  address: string | null;
-  socials?: SocialLinks;
-  youtubeVideos?: YoutubeVideo[];
 };
 
 export type CreatorProfile = {
@@ -53,85 +47,28 @@ export type CreatorProfile = {
   youtubeVideos?: YoutubeVideo[];
 };
 
-// ===== Public summary lite（/api/public/creator の要約）=====
-type PublicSummaryLite = {
-  goal: {
-    targetAmountJpyc: number;
-    achievedAt: string | null;
-    deadline: string | null;
-  } | null;
-  progress: {
-    confirmedJpyc: number;
-    targetJpyc: number | null;
-    progressPct: number;
-  } | null;
-};
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function pickPublicSummaryLite(summary: unknown): PublicSummaryLite {
-  if (!isRecord(summary)) return { goal: null, progress: null };
-
-  const goalRaw = summary.goal;
-  const progressRaw = summary.progress;
-
-  const goal =
-    isRecord(goalRaw) &&
-    typeof goalRaw.targetAmountJpyc === "number" &&
-    (typeof goalRaw.achievedAt === "string" || goalRaw.achievedAt === null) &&
-    (typeof goalRaw.deadline === "string" || goalRaw.deadline === null)
-      ? {
-          targetAmountJpyc: goalRaw.targetAmountJpyc,
-          achievedAt: goalRaw.achievedAt as string | null,
-          deadline: goalRaw.deadline as string | null,
-        }
-      : null;
-
-  const progress =
-    isRecord(progressRaw) &&
-    typeof progressRaw.confirmedJpyc === "number" &&
-    (typeof progressRaw.targetJpyc === "number" ||
-      progressRaw.targetJpyc === null) &&
-    typeof progressRaw.progressPct === "number"
-      ? {
-          confirmedJpyc: progressRaw.confirmedJpyc,
-          targetJpyc: progressRaw.targetJpyc as number | null,
-          progressPct: progressRaw.progressPct,
-        }
-      : null;
-
-  return { goal, progress };
-}
-
-// ===== Public API response（/api/public/creator）=====
-type PublicCreatorResponse =
-  | {
-      ok: true;
-      creator: {
-        username: string;
-        displayName: string;
-        profileText: string | null;
-        avatarUrl: string | null;
-        themeColor: string | null;
-        qrcodeUrl: string | null;
-        externalUrl: string | null;
-      };
-      activeProjectId: string | null;
-      summary: unknown | null;
-    }
-  | { ok: false; error: string; detail?: string };
-
-function normalizeCreator(raw: CreatorApiResponse): CreatorProfile {
+function normalizeCreator(raw: {
+  username: string;
+  displayName: string | null;
+  profileText: string | null;
+  avatarUrl: string | null;
+  qrcodeUrl: string | null;
+  externalUrl: string | null;
+  goalTitle: string | null;
+  goalTargetJpyc: number | null;
+  themeColor: string | null;
+  walletAddress: string | null;
+  socials?: SocialLinks;
+  youtubeVideos?: YoutubeVideo[];
+}): CreatorProfile {
   return {
     username: raw.username,
-    address: raw.address ?? undefined,
+    address: raw.walletAddress ?? undefined,
     displayName: raw.displayName ?? raw.username,
-    avatarUrl: raw.avatar ?? null,
+    avatarUrl: raw.avatarUrl ?? null,
     profile: raw.profileText ?? null,
-    qrcode: raw.qrcode ?? null,
-    url: raw.url ?? null,
+    qrcode: raw.qrcodeUrl ?? null,
+    url: raw.externalUrl ?? null,
     goalTitle: raw.goalTitle ?? null,
     goalTargetJpyc: raw.goalTargetJpyc ?? null,
     themeColor: raw.themeColor ?? null,
@@ -143,27 +80,58 @@ function normalizeCreator(raw: CreatorApiResponse): CreatorProfile {
 const SITE_BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || "https://nagesen-v2.vercel.app";
 
+const getCreatorProfileByUsername = cache(async (username: string) => {
+  const profile = await prisma.creatorProfile.findUnique({
+    where: { username },
+    include: {
+      socialLinks: true,
+      youtubeVideos: true,
+    },
+  });
+
+  if (!profile) return null;
+
+  // ---- socials を型安全に詰める（TS7053対策）----
+  const socials: SocialLinks = {};
+  for (const link of profile.socialLinks) {
+    // Prisma 側で string になっていてもここで絞り込む
+    if (isSocialKey(link.type)) {
+      socials[link.type] = link.url;
+    }
+  }
+
+  return {
+    profile,
+    creator: normalizeCreator({
+      username: profile.username,
+      displayName: profile.displayName,
+      profileText: profile.profileText,
+      avatarUrl: profile.avatarUrl,
+      qrcodeUrl: profile.qrcodeUrl,
+      externalUrl: profile.externalUrl,
+      goalTitle: profile.goalTitle,
+      goalTargetJpyc: profile.goalTargetJpyc,
+      themeColor: profile.themeColor,
+      walletAddress: profile.walletAddress,
+      socials,
+      // ---- null を正規化して YoutubeVideo[] に合わせる（TS2322対策）----
+      youtubeVideos: profile.youtubeVideos.map((v) => ({
+        url: v.url,
+        title: v.title ?? "",
+        description: v.description ?? "",
+      })),
+    }),
+  };
+});
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<Params>;
 }) {
   const { username } = await params;
-
-  let creator: CreatorProfile | null = null;
-
-  try {
-    const res = await fetch(
-      `${SITE_BASE_URL}/api/creators/${encodeURIComponent(username)}`,
-      { cache: "no-store" }
-    );
-    if (res.ok) {
-      const raw = (await res.json()) as CreatorApiResponse;
-      creator = normalizeCreator(raw);
-    }
-  } catch {
-    // ignore
-  }
+  const creator =
+    (await getCreatorProfileByUsername(username))?.creator ?? null;
 
   const pageUrl = `${SITE_BASE_URL}/${username}`;
   const displayName = creator?.displayName || username;
@@ -203,61 +171,50 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   const { username } = await params;
 
   // 1) クリエイタープロフィール（表示用）
-  const res = await fetch(
-    `${SITE_BASE_URL}/api/creators/${encodeURIComponent(username)}`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) notFound();
+  const creatorResult = await getCreatorProfileByUsername(username);
+  if (!creatorResult) notFound();
 
-  const raw = (await res.json()) as CreatorApiResponse;
-  const creator = normalizeCreator(raw);
+  const { creator, profile } = creatorResult;
   const themeColor = creator.themeColor ?? "#005bbb";
 
   // 2) projectId を Prisma から取得（既存ロジックそのまま）
   let projectId: string | null = null;
 
   try {
-    const profileRow = await prisma.creatorProfile.findUnique({
-      where: { username },
-      select: { id: true, activeProjectId: true, walletAddress: true },
-    });
+    if (profile.activeProjectId != null) {
+      projectId = profile.activeProjectId.toString();
+    } else {
+      const projByCreator = await prisma.project.findFirst({
+        where: { creatorProfileId: profile.id },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+      });
 
-    if (profileRow) {
-      if (profileRow.activeProjectId != null) {
-        projectId = profileRow.activeProjectId.toString();
+      if (projByCreator?.id != null) {
+        projectId = projByCreator.id.toString();
       } else {
-        const projByCreator = await prisma.project.findFirst({
-          where: { creatorProfileId: profileRow.id },
-          select: { id: true },
-          orderBy: { createdAt: "desc" },
-        });
+        const owner = profile.walletAddress?.toLowerCase() ?? null;
 
-        if (projByCreator?.id != null) {
-          projectId = projByCreator.id.toString();
-        } else {
-          const owner = profileRow.walletAddress?.toLowerCase() ?? null;
+        if (owner) {
+          const projByOwner = await prisma.project.findFirst({
+            where: { ownerAddress: owner },
+            select: { id: true },
+            orderBy: { createdAt: "desc" },
+          });
 
-          if (owner) {
-            const projByOwner = await prisma.project.findFirst({
-              where: { ownerAddress: owner },
-              select: { id: true },
-              orderBy: { createdAt: "desc" },
-            });
+          if (projByOwner?.id != null) {
+            projectId = projByOwner.id.toString();
 
-            if (projByOwner?.id != null) {
-              projectId = projByOwner.id.toString();
-
-              await prisma.$transaction([
-                prisma.project.update({
-                  where: { id: projByOwner.id },
-                  data: { creatorProfileId: profileRow.id },
-                }),
-                prisma.creatorProfile.update({
-                  where: { id: profileRow.id },
-                  data: { activeProjectId: projByOwner.id },
-                }),
-              ]);
-            }
+            await prisma.$transaction([
+              prisma.project.update({
+                where: { id: projByOwner.id },
+                data: { creatorProfileId: profile.id },
+              }),
+              prisma.creatorProfile.update({
+                where: { id: profile.id },
+                data: { activeProjectId: projByOwner.id },
+              }),
+            ]);
           }
         }
       }
@@ -267,26 +224,6 @@ export default async function Page({ params }: { params: Promise<Params> }) {
     projectId = null;
   }
 
-  // 3) /api/public/creator から publicSummaryLite を取得（追加）
-  let publicSummaryLite: PublicSummaryLite | null = null;
-
-  try {
-    const pres = await fetch(
-      `${SITE_BASE_URL}/api/public/creator?username=${encodeURIComponent(
-        username
-      )}`,
-      { cache: "no-store" }
-    );
-    const pjson: unknown = await pres.json().catch(() => null);
-
-    if (pres.ok && isRecord(pjson) && pjson.ok === true) {
-      const p = pjson as Extract<PublicCreatorResponse, { ok: true }>;
-      publicSummaryLite = p.summary ? pickPublicSummaryLite(p.summary) : null;
-    }
-  } catch {
-    publicSummaryLite = null;
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 force-light-theme">
       <div className="flex-1 pb-24">
@@ -294,7 +231,6 @@ export default async function Page({ params }: { params: Promise<Params> }) {
           username={username}
           creator={creator}
           projectId={projectId}
-          publicSummary={publicSummaryLite} // ✅ 追加：ProfileClientへ渡す
         />
       </div>
 

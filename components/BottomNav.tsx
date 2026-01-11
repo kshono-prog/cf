@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useTransition } from "react";
 import type { MouseEvent } from "react";
 
 type BottomNavProps = {
@@ -18,6 +19,7 @@ export default function BottomNav({
 }: BottomNavProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [, startTransition] = useTransition();
   const baseItemClass = "flex-1 flex items-center justify-center py-2";
   const iconBase = "w-7 h-7 transition-transform duration-150";
   const inactiveColor = "text-gray-400";
@@ -28,14 +30,22 @@ export default function BottomNav({
   const favoriteHref = `/${username}`;
   const profileHref = `/${username}/mypage`;
 
+  useEffect(() => {
+    router.prefetch(calendarHref);
+    router.prefetch(favoriteHref);
+    router.prefetch(profileHref);
+  }, [router, calendarHref, favoriteHref, profileHref]);
+
   const handleNavigate =
     (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault();
-      if (pathname !== href) {
-        router.push(href);
-      } else {
-        router.refresh();
-      }
+      startTransition(() => {
+        if (pathname !== href) {
+          router.push(href);
+        } else {
+          router.refresh();
+        }
+      });
     };
 
   return (
