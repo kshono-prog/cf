@@ -2,6 +2,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import type { MouseEvent } from "react";
 
 type BottomNavProps = {
   active?: "calendar" | "favorite" | "profile";
@@ -14,6 +16,8 @@ export default function BottomNav({
   themeColor = "#005bbb",
   username,
 }: BottomNavProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const baseItemClass = "flex-1 flex items-center justify-center py-2";
   const iconBase = "w-7 h-7 transition-transform duration-150";
   const inactiveColor = "text-gray-400";
@@ -24,15 +28,26 @@ export default function BottomNav({
   const favoriteHref = `/${username}`;
   const profileHref = `/${username}/mypage`;
 
+  const handleNavigate =
+    (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      if (pathname !== href) {
+        router.push(href);
+      } else {
+        router.refresh();
+      }
+    };
+
   return (
-    <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
+    <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto max-w-md flex items-center justify-between px-6">
         {/* カレンダー → /[username]/events */}
         <Link
-          href={`/${username}/events`}
+          href={calendarHref}
           prefetch={true}
           className={baseItemClass}
           aria-label="イベント"
+          onClick={handleNavigate(calendarHref)}
         >
           <svg
             className={`${iconBase} ${
@@ -72,10 +87,11 @@ export default function BottomNav({
 
         {/* ハート → クリエイター本人のトップ /[username] */}
         <Link
-          href={`/${username}`}
+          href={favoriteHref}
           prefetch={true}
           className={baseItemClass}
           aria-label="クリエイターページ"
+          onClick={handleNavigate(favoriteHref)}
         >
           <svg
             className={`${iconBase} ${
@@ -101,6 +117,7 @@ export default function BottomNav({
           prefetch
           className={baseItemClass}
           aria-label="マイページ"
+          onClick={handleNavigate(profileHref)}
         >
           <svg
             className={`${iconBase} ${
