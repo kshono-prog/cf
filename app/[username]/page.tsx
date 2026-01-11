@@ -4,6 +4,7 @@ import ProfileClient from "@/components/ProfileClient";
 import { notFound } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { prisma } from "@/lib/prisma";
+import { isRecord, pickPublicSummaryLite } from "@/lib/publicSummary";
 import { cache } from "react";
 
 type Params = { username: string };
@@ -79,6 +80,17 @@ function normalizeCreator(raw: {
 
 const SITE_BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || "https://nagesen-v2.vercel.app";
+
+async function fetchPublicSummaryLite(username: string) {
+  const url = `${SITE_BASE_URL}/api/public/creator?username=${encodeURIComponent(
+    username
+  )}`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  if (!res.ok) return null;
+  const data = (await res.json().catch(() => null)) as unknown;
+  if (!isRecord(data) || data.ok !== true) return null;
+  return pickPublicSummaryLite(data.summary);
+}
 
 const getCreatorProfileByUsername = cache(async (username: string) => {
   const profile = await prisma.creatorProfile.findUnique({
@@ -176,6 +188,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
 
   const { creator, profile } = creatorResult;
   const themeColor = creator.themeColor ?? "#005bbb";
+  const publicSummary = await fetchPublicSummaryLite(username);
 
   // 2) projectId を Prisma から取得（既存ロジックそのまま）
   let projectId: string | null = null;
@@ -231,6 +244,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
           username={username}
           creator={creator}
           projectId={projectId}
+          publicSummary={publicSummary}
         />
       </div>
 
