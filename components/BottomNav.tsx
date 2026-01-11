@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import type { MouseEvent } from "react";
 
 type BottomNavProps = {
@@ -32,7 +32,8 @@ export default function BottomNav({
       : pathname?.includes("/mypage")
       ? "profile"
       : "favorite");
-
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchLastRef = useRef<{ x: number; y: number } | null>(null);
   const isActive = (item: BottomNavProps["active"]) =>
     pressed !== null ? pressed === item : resolvedActive === item;
 
@@ -67,8 +68,63 @@ export default function BottomNav({
     setPressed(null);
   }, [pathname]);
 
+  const navItems = [
+    { id: "calendar" as const, href: calendarHref },
+    { id: "favorite" as const, href: favoriteHref },
+    { id: "profile" as const, href: profileHref },
+  ];
+
+  const handleSwipeNavigate = (direction: "next" | "prev") => {
+    const currentIndex = navItems.findIndex(
+      (item) => item.id === resolvedActive
+    );
+    if (currentIndex === -1) return;
+    const targetIndex =
+      direction === "next" ? currentIndex + 1 : currentIndex - 1;
+    const target = navItems[targetIndex];
+    if (!target) return;
+    setPressed(target.id);
+    startTransition(() => {
+      if (pathname !== target.href) {
+        router.push(target.href);
+      } else {
+        router.refresh();
+      }
+    });
+  };
+
   return (
-    <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
+    <nav
+      className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm"
+      onTouchStart={(event) => {
+        const touch = event.touches[0];
+        if (!touch) return;
+        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+        touchLastRef.current = { x: touch.clientX, y: touch.clientY };
+      }}
+      onTouchMove={(event) => {
+        const touch = event.touches[0];
+        if (!touch) return;
+        touchLastRef.current = { x: touch.clientX, y: touch.clientY };
+      }}
+      onTouchEnd={() => {
+        const start = touchStartRef.current;
+        const last = touchLastRef.current;
+        touchStartRef.current = null;
+        touchLastRef.current = null;
+        if (!start || !last) return;
+        const deltaX = last.x - start.x;
+        const deltaY = last.y - start.y;
+        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
+          return;
+        }
+        if (deltaX < 0) {
+          handleSwipeNavigate("next");
+        } else {
+          handleSwipeNavigate("prev");
+        }
+      }}
+    >
       <div className="mx-auto max-w-md flex items-center justify-between px-6">
         {/* カレンダー → /[username]/events */}
         <Link
