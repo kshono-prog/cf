@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
 import {
@@ -45,7 +46,7 @@ function normalizeCreator(raw: {
   };
 }
 
-export const getCreatorProfileByUsername = unstable_cache(
+const getCreatorProfileByUsernameCached = unstable_cache(
   async (username: string) => {
     const profile = await prisma.creatorProfile.findUnique({
       where: { username },
@@ -87,4 +88,8 @@ export const getCreatorProfileByUsername = unstable_cache(
   },
   ["creator-profile-by-username"],
   { revalidate: 60 }
+);
+
+export const getCreatorProfileByUsername = cache(async (username: string) =>
+  getCreatorProfileByUsernameCached(username)
 );
