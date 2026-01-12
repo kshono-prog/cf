@@ -19,7 +19,7 @@ export function PromoCreatorFounding({ headerColor }: Props) {
       </div>
 
       <h3 className="text-sm font-semibold text-gray-800 mb-2 text-center">
-        Creator Foundingについて
+        creator foundingについて
       </h3>
 
       <p className="text-sm text-gray-600 leading-relaxed mb-3">
@@ -53,12 +53,12 @@ export function PromoCreatorFounding({ headerColor }: Props) {
       <p className="text-[11px] text-gray-400 mt-3 text-center">
         📖 note：{" "}
         <a
-          href="https://note.com/crypto_ai_news/n/na5f38e144dea?app_launch=false"
+          href="https://docs.google.com/presentation/d/18KwyFPxHb_1lq9eLsWNnoPuZ5EB6cZeR7wcTtPBUcAE/edit?usp=sharing"
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:no-underline"
         >
-          Creator Founding 利用マニュアル / User guide
+          creator foundingについて
         </a>
       </p>
     </PromoCard>

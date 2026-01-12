@@ -922,8 +922,8 @@ export default function ProfileClient({
             </p>
           </footer>
         </div>
-        <MyPageFooter />
       </div>
+      <MyPageFooter />
     </div>
   );
 }
