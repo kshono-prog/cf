@@ -912,9 +912,13 @@ export default function AccountPageClient({ username }: Props) {
   // UI
   // ==================================================
   const promoHeaderColor = themeColor || "#005bbb";
+  const myPageHeader = (
+    <div className="container-narrow">
+      <PromoCreatorFounding headerColor={promoHeaderColor} />
+    </div>
+  );
   const promoFooter = (
     <div className="container-narrow space-y-4">
-      <PromoCreatorFounding headerColor={promoHeaderColor} />
       <MyPageFooter />
     </div>
   );
@@ -922,6 +926,7 @@ export default function AccountPageClient({ username }: Props) {
   if (status === "loading") {
     return (
       <>
+        {myPageHeader}
         <div className="container-narrow">
           <p className="text-sm text-gray-500">読み込み中です…</p>
         </div>
@@ -933,6 +938,7 @@ export default function AccountPageClient({ username }: Props) {
   if (status === "unconnected") {
     return (
       <>
+        {myPageHeader}
         <UnconnectedMyPage
           error={error}
           open={openSections}
@@ -946,6 +952,7 @@ export default function AccountPageClient({ username }: Props) {
   if (status === "noUser") {
     return (
       <>
+        {myPageHeader}
         <div className="container-narrow space-y-4">
           <h1 className="text-lg font-semibold mb-2">ユーザー登録</h1>
 
@@ -974,6 +981,7 @@ export default function AccountPageClient({ username }: Props) {
   if (status === "userOnly") {
     return (
       <>
+        {myPageHeader}
         <div className="container-narrow space-y-4">
           <h1 className="text-lg font-semibold mb-2">マイページ</h1>
 
@@ -1036,6 +1044,7 @@ export default function AccountPageClient({ username }: Props) {
 
   return (
     <>
+      {myPageHeader}
       <div className="container-narrow space-y-4">
         <h1 className="text-lg font-semibold mb-2">クリエイター管理</h1>
         {error && (

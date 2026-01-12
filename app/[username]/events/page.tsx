@@ -126,15 +126,9 @@ export default async function EventsPage({ params }: EventsPageProps) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 force-light-theme">
       <div className="container-narrow space-y-4">
-        {/* ヘッダー */}
-        <h1 className="text-lg font-semibold mb-2">{displayName} のイベント</h1>
-        <p className="text-sm text-gray-600 mb-4">
-          ライブ・配信・イベントの情報をまとめて確認できます。
-        </p>
-
         {/* ========== 上段：[username] の公開イベント一覧 ========== */}
         <div className="space-y-3 mb-10">
-          <h2 className="text-sm font-semibold">公開イベント</h2>
+          <h1 className="text-sm font-semibold">{displayName} のイベント</h1>
 
           {events.length === 0 ? (
             <p className="text-xs text-gray-500">
@@ -188,9 +182,7 @@ export default async function EventsPage({ params }: EventsPageProps) {
         {/* ========== 下段：[username] 以外の全ユーザー公開イベント一覧 ========== */}
         <div className="space-y-3 mb-10">
           <div className="flex items-end justify-between">
-            <h2 className="text-sm font-semibold">
-              みんなの公開イベント（{displayName} 以外）
-            </h2>
+            <h2 className="text-sm font-semibold">みんなの公開イベント</h2>
             <p className="text-[11px] text-gray-500">
               {publicEvents.length} 件
             </p>
@@ -270,11 +262,9 @@ export default async function EventsPage({ params }: EventsPageProps) {
         {/* 登録クリエイター一覧（ランダム）— 既存 */}
         {randomCreators.length > 0 && (
           <section className="mt-4">
-            <h2 className="text-sm font-semibold mb-2">
-              登録クリエイター一覧（ランダム表示）
-            </h2>
+            <h2 className="text-sm font-semibold mb-2">クリエイター一覧</h2>
             <p className="text-[11px] text-gray-500 mb-3">
-              このアプリに登録されているクリエイターをランダムに表示しています。
+              このアプリに登録されているクリエイターを表示しています。
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -9,58 +9,12 @@ type Props = {
 
 export function PromoCreatorFounding({ headerColor }: Props) {
   return (
-    <PromoCard headerColor={headerColor}>
-      <div className="flex justify-center mb-4">
-        <img
-          src="/icon/icon-cf.png"
-          alt="Creator Founding"
-          className="w-16 h-16 rounded-xl shadow-sm opacity-95"
-        />
-      </div>
-
-      <h3 className="text-sm font-semibold text-gray-800 mb-2 text-center">
-        creator foundingについて
-      </h3>
+    <>
+      <h1 className="text-lg font-semibold mb-2">creator foundingについて</h1>
 
       <p className="text-sm text-gray-600 leading-relaxed mb-3">
-        本サイトは、JPYCを活用してアーティストやクリエイターを直接支援するために、
-        個人開発者 <strong>Kazu</strong> によって開発・運営されています。
-        手数料や仲介を一切挟まず、あなたの想いが100％クリエイターへ届く、
-        新しい応援のかたちです。
+        本サイトは、JPYCなどのステーブルコインを使って、世界中からクリエイターを直接応援できる投げ銭プラットフォームです。少額から、安心して想いを届けられます。
       </p>
-
-      <h3 className="text-sm font-semibold text-gray-800 mb-2 mt-4 text-center">
-        About this tipping tool
-      </h3>
-
-      <p className="text-sm text-gray-600 leading-relaxed mb-3">
-        This tool is developed and operated by <strong>Kazu</strong> to directly
-        support artists and creators using JPYC. It enables 100% of your support
-        to reach creators without any fees or intermediaries.
-      </p>
-
-      <div className="flex flex-wrap gap-3 text-sm justify-center">
-        <a
-          href={`${process.env.NEXT_PUBLIC_BASE_URL}kazu`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition"
-        >
-          🎸 Kazuさんへの投げ銭
-        </a>
-      </div>
-
-      <p className="text-[11px] text-gray-400 mt-3 text-center">
-        📖 note：{" "}
-        <a
-          href="https://docs.google.com/presentation/d/18KwyFPxHb_1lq9eLsWNnoPuZ5EB6cZeR7wcTtPBUcAE/edit?usp=sharing"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:no-underline"
-        >
-          creator foundingについて
-        </a>
-      </p>
-    </PromoCard>
+    </>
   );
 }
