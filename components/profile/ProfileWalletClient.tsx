@@ -24,8 +24,6 @@ import type { WalletBalances } from "@/lib/walletService";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import { TipThanksCard } from "@/components/profile/TipThanksCard";
 import { WalletSection } from "@/components/profile/WalletSection";
-import { PromoCreatorFounding } from "@/components/promo/PromoCreatorFounding";
-import { PromoJpycEx } from "@/components/promo/PromoJpycEx";
 import {
   addAmount,
   clearLastTx,
@@ -796,9 +794,7 @@ export function ProfileWalletClient({
         {status}
       </p>
 
-      <PromoCreatorFounding headerColor={headerColor} />
       {connected && <GasSupportTabs />}
-      <PromoJpycEx headerColor={headerColor} />
     </>
   );
 }

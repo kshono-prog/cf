@@ -1,6 +1,7 @@
 // app/[username]/events/page.tsx
 import { notFound } from "next/navigation";
 import { EventDateTime } from "@/components/EventDateTime";
+import { MyPageFooter } from "@/components/MyPageFooter";
 import type { CreatorProfile } from "@/lib/profileTypes";
 
 // このプロジェクトの PageProps に合わせて Promise にする
@@ -403,6 +404,7 @@ export default async function EventsPage({ params }: EventsPageProps) {
             </p>
           </div>
         </div>
+        <MyPageFooter />
       </div>
     </div>
   );

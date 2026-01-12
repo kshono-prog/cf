@@ -31,6 +31,12 @@ export function PromoJpycEx({ headerColor }: Props) {
         <p className="text-sm text-gray-600 leading-relaxed">
           日本円のステーブルコイン「JPYC」を JPYC EXで、今すぐはじめよう。
         </p>
+        <p className="mt-1">
+          <br />
+          ※「JPYC」はJPYC株式会社が提供する1号電子決済手段（ステーブルコイン）です。
+          <br />
+          ※JPYCおよびJPYCロゴは、JPYC株式会社の登録商標です。
+        </p>
       </PromoCard>
     </div>
   );

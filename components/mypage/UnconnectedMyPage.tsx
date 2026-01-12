@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import { PromoJpycEx } from "@/components/promo/PromoJpycEx";
 import type { OpenSections } from "@/components/mypage/MyPageAccordion";
 
 type UnconnectedMyPageProps = {
@@ -22,7 +23,7 @@ export function UnconnectedMyPage({
       <h1 className="text-lg font-semibold mb-2">はじめての方へ</h1>
 
       <p className="text-sm text-gray-700">
-        Creator Founding は、JPYC
+        creator founding は、JPYC
         でクリエイターを応援できる投げ銭プラットフォームです。
         まずはウォレットを接続して、あなた専用のページや投げ銭体験を始めましょう。
       </p>
@@ -44,7 +45,7 @@ export function UnconnectedMyPage({
             className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-gray-50"
             onClick={() => setOpen((cur) => ({ ...cur, about: !cur.about }))}
           >
-            <span>1. Creator Founding とは</span>
+            <span>1. creator founding とは</span>
             <span className="text-[10px]">{open.about ? "▲" : "▼"}</span>
           </button>
           {open.about && (
@@ -155,38 +156,7 @@ export function UnconnectedMyPage({
       </div>
 
       {/* JPYC EX */}
-      <div className="mt-2 flex justify-center">
-        <div className="relative w-full p-4 bg-gray-50 rounded-2xl shadow-sm border border-gray-200 text-center">
-          <span
-            className="absolute -top-2 -left-2 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm text-white"
-            style={{ backgroundColor: promoColor }}
-          >
-            PR
-          </span>
-
-          <h3 className="text-sm font-semibold text-gray-800 mb-2">
-            JPYCの購入はこちら
-          </h3>
-
-          <a
-            href="https://jpyc.co.jp/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex justify-center mb-3"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icon/jpycex-logo-normal-blue.svg"
-              alt="JPYC EX Logo"
-              className="h-12 w-auto opacity-90 hover:opacity-100 transition"
-            />
-          </a>
-
-          <p className="text-sm text-gray-600 leading-relaxed">
-            日本円のステーブルコイン「JPYC」を JPYC EXで、今すぐはじめよう。
-          </p>
-        </div>
-      </div>
+      <PromoJpycEx headerColor={promoColor} />
     </div>
   );
 }

@@ -906,25 +906,18 @@ export default function ProfileClient({
                 className="w-[170px] h-auto opacity-90"
               />
             </div>
-
             <p>
-              ※本サービスは、クリエイター応援を目的とした個人学習による無償提供のUIツールです。
-              <br />
-              ※本サービス（コンテンツ・作品等）はJPYC株式会社の公式コンテンツではありません。
-              <br />
-              ※「JPYC」はJPYC株式会社が提供する1号電子決済手段（ステーブルコイン）です。
-              <br />
-              ※JPYCおよびJPYCロゴは、JPYC株式会社の登録商標です。
-              <br />
-              ※JPYC / USDC
-              の送付は外部ウォレットで実行され、本サービスは送付処理に関与しません。
+              ・本サービスは、クリエイター応援を目的とした個人学習による無償提供のUIツールです。
             </p>
-
             <p>
-              注意：本サイトの投げ銭は<strong>無償の応援</strong>
-              です。返金や金銭的・物品的な対価は一切発生しません。 / This tip is{" "}
-              <strong>purely voluntary support</strong>. No refund or
-              financial/material reward is provided.
+              ・本サービス（コンテンツ・作品等）はJPYC株式会社の公式コンテンツではありません。
+            </p>
+            <p>
+              ・JPYC/USDCの送付は外部ウォレットで実行され、本サービスは送付処理に関与しません。
+            </p>
+            <p>
+              ・本サイトの投げ銭は<strong>無償の応援</strong>
+              です。返金や金銭的・物品的な対価は一切発生しません。
             </p>
           </footer>
         </div>

@@ -31,8 +31,10 @@ import { UserUpdateForm } from "@/components/mypage/UserUpdateForm";
 import { CreatorApplyCard } from "@/components/mypage/CreatorApplyCard";
 import { MyPageAccordion } from "@/components/mypage/MyPageAccordion";
 import { UnconnectedMyPage } from "@/components/mypage/UnconnectedMyPage";
+import { MyPageFooter } from "@/components/MyPageFooter";
 import { BridgeWithWormholeOrManualButton } from "@/components/bridge/BridgeWithWormholeOrManualButton";
 import { ProjectSection } from "@/components/mypage/ProjectSection";
+import { PromoCreatorFounding } from "@/components/promo/PromoCreatorFounding";
 
 const SHOW_SUMMARY_ACTIONS = false;
 
@@ -909,99 +911,119 @@ export default function AccountPageClient({ username }: Props) {
   // ==================================================
   // UI
   // ==================================================
+  const promoHeaderColor = themeColor || "#005bbb";
+  const promoFooter = (
+    <div className="container-narrow space-y-4">
+      <PromoCreatorFounding headerColor={promoHeaderColor} />
+      <MyPageFooter />
+    </div>
+  );
+
   if (status === "loading") {
     return (
-      <div className="container-narrow">
-        <p className="text-sm text-gray-500">読み込み中です…</p>
-      </div>
+      <>
+        <div className="container-narrow">
+          <p className="text-sm text-gray-500">読み込み中です…</p>
+        </div>
+        {promoFooter}
+      </>
     );
   }
 
   if (status === "unconnected") {
     return (
-      <UnconnectedMyPage
-        error={error}
-        open={openSections}
-        setOpen={setOpenSections}
-      />
+      <>
+        <UnconnectedMyPage
+          error={error}
+          open={openSections}
+          setOpen={setOpenSections}
+        />
+        {promoFooter}
+      </>
     );
   }
 
   if (status === "noUser") {
     return (
-      <div className="container-narrow space-y-4">
-        <h1 className="text-lg font-semibold mb-2">ユーザー登録</h1>
+      <>
+        <div className="container-narrow space-y-4">
+          <h1 className="text-lg font-semibold mb-2">ユーザー登録</h1>
 
-        {error && (
-          <div className="alert-warn">
-            <p className="text-xs">{error}</p>
-          </div>
-        )}
+          {error && (
+            <div className="alert-warn">
+              <p className="text-xs">{error}</p>
+            </div>
+          )}
 
-        <UserRegistrationForm
-          usernameInput={usernameInput}
-          displayName={displayName}
-          profile={profile}
-          setUsernameInput={setUsernameInput}
-          setDisplayName={setDisplayName}
-          setProfile={setProfile}
-          saving={saving}
-          onSubmit={handleSaveUser}
-        />
-      </div>
-    );
-  }
-
-  if (status === "userOnly") {
-    return (
-      <div className="container-narrow space-y-4">
-        <h1 className="text-lg font-semibold mb-2">マイページ</h1>
-
-        {error && (
-          <div className="alert-warn">
-            <p className="text-xs">{error}</p>
-          </div>
-        )}
-
-        <MyPageAccordion
-          open={openSections}
-          onToggle={toggleSection}
-          sectionKey="about"
-          title="現在の登録情報"
-        >
-          <div className="space-y-2">
-            <p className="text-sm">
-              表示名：{me?.user?.displayName ?? "（未設定）"}
-            </p>
-            <p className="text-xs text-gray-500 whitespace-pre-wrap">
-              プロフィール：{me?.user?.profile ?? "（未設定）"}
-            </p>
-          </div>
-        </MyPageAccordion>
-
-        <MyPageAccordion
-          open={openSections}
-          onToggle={toggleSection}
-          sectionKey="wallet"
-          title="ユーザー情報の更新"
-        >
-          <UserUpdateForm
+          <UserRegistrationForm
+            usernameInput={usernameInput}
             displayName={displayName}
             profile={profile}
+            setUsernameInput={setUsernameInput}
             setDisplayName={setDisplayName}
             setProfile={setProfile}
             saving={saving}
             onSubmit={handleSaveUser}
           />
-        </MyPageAccordion>
+        </div>
+        {promoFooter}
+      </>
+    );
+  }
 
-        <hr className="border-gray-200" />
+  if (status === "userOnly") {
+    return (
+      <>
+        <div className="container-narrow space-y-4">
+          <h1 className="text-lg font-semibold mb-2">マイページ</h1>
 
-        <CreatorApplyCard
-          saving={saving}
-          onApply={() => void handleApplyCreator()}
-        />
-      </div>
+          {error && (
+            <div className="alert-warn">
+              <p className="text-xs">{error}</p>
+            </div>
+          )}
+
+          <MyPageAccordion
+            open={openSections}
+            onToggle={toggleSection}
+            sectionKey="about"
+            title="現在の登録情報"
+          >
+            <div className="space-y-2">
+              <p className="text-sm">
+                表示名：{me?.user?.displayName ?? "（未設定）"}
+              </p>
+              <p className="text-xs text-gray-500 whitespace-pre-wrap">
+                プロフィール：{me?.user?.profile ?? "（未設定）"}
+              </p>
+            </div>
+          </MyPageAccordion>
+
+          <MyPageAccordion
+            open={openSections}
+            onToggle={toggleSection}
+            sectionKey="wallet"
+            title="ユーザー情報の更新"
+          >
+            <UserUpdateForm
+              displayName={displayName}
+              profile={profile}
+              setDisplayName={setDisplayName}
+              setProfile={setProfile}
+              saving={saving}
+              onSubmit={handleSaveUser}
+            />
+          </MyPageAccordion>
+
+          <hr className="border-gray-200" />
+
+          <CreatorApplyCard
+            saving={saving}
+            onApply={() => void handleApplyCreator()}
+          />
+        </div>
+        {promoFooter}
+      </>
     );
   }
 
@@ -1013,93 +1035,93 @@ export default function AccountPageClient({ username }: Props) {
   );
 
   return (
-    <div className="container-narrow space-y-4">
-      <h1 className="text-lg font-semibold mb-2">クリエイター管理</h1>
+    <>
+      <div className="container-narrow space-y-4">
+        <h1 className="text-lg font-semibold mb-2">クリエイター管理</h1>
+        {error && (
+          <div className="alert-warn">
+            <p className="text-xs">{error}</p>
+          </div>
+        )}
 
-      {error && (
-        <div className="alert-warn">
-          <p className="text-xs">{error}</p>
-        </div>
-      )}
+        <MyPageAccordion
+          open={openSections}
+          onToggle={toggleSection}
+          sectionKey="flow"
+          title="リンク"
+        >
+          <div className="card p-0 bg-transparent space-y-2">
+            <p className="text-xs text-gray-500">あなたの投げ銭ページ</p>
 
-      <MyPageAccordion
-        open={openSections}
-        onToggle={toggleSection}
-        sectionKey="flow"
-        title="リンク"
-      >
-        <div className="card p-0 bg-transparent space-y-2">
-          <p className="text-xs text-gray-500">あなたの投げ銭ページ</p>
+            <a
+              href={withBaseUrl(creatorUsername)}
+              className="text-sm font-mono text-blue-600 underline break-all"
+            >
+              {withBaseUrl(creatorUsername)}
+            </a>
 
-          <a
-            href={withBaseUrl(creatorUsername)}
-            className="text-sm font-mono text-blue-600 underline break-all"
-          >
-            {withBaseUrl(creatorUsername)}
-          </a>
+            {localProjectId && (
+              <p className="text-[11px] text-gray-500 mt-2">
+                現在の projectId：
+                <span className="font-mono">{localProjectId}</span>
+              </p>
+            )}
+          </div>
+        </MyPageAccordion>
 
-          {localProjectId && (
-            <p className="text-[11px] text-gray-500 mt-2">
-              現在の projectId：
-              <span className="font-mono">{localProjectId}</span>
-            </p>
-          )}
-        </div>
-      </MyPageAccordion>
-
-      {/* ======================================================
+        {/* ======================================================
           ★統合セクション（① Project/Goal/Summary + ② Profile）
           - ①の入力UIを②の中に追加（この中が「入力の唯一の場所」）
         ====================================================== */}
-      <MyPageAccordion
-        open={openSections}
-        onToggle={toggleSection}
-        sectionKey="project"
-        title="プロフィール・目標の編集（Project / Goal / Summary 統合）"
-      >
-        <CreatorProfileSection
-          username={creatorUsername}
-          editing={editingProfile}
-          onStartEdit={() => setEditingProfile(true)}
-          onCancelEdit={() => setEditingProfile(false)}
-          displayName={displayName}
-          profile={profile}
-          // goalTitle={goalTitle}
-          // goalTargetJpyc={goalTargetJpyc}
-          avatarUrl={avatarUrl}
-          themeColor={themeColor}
-          socials={socials}
-          youtubeVideos={youtubeVideos}
-          avatarFile={avatarFile}
-          avatarPreview={avatarPreview}
-          setDisplayName={setDisplayName}
-          setProfile={setProfile}
-          // setGoalTitle={setGoalTitle}
-          // setGoalTargetJpyc={setGoalTargetJpyc}
-          setThemeColor={setThemeColor}
-          setSocials={setSocials}
-          setYoutubeVideos={setYoutubeVideos}
-          setAvatarFile={setAvatarFile}
-          setAvatarPreview={setAvatarPreview}
-          saving={saving}
-          onSubmit={(e) => void handleSaveCreatorProfile(e)}
-          baseUrl={eventBaseUrl}
-          extraSections={
-            <div className="space-y-4">
-              {/* -------- ① Project -------- */}
-              <ProjectSection
-                ownerAddress={address?.toLowerCase() ?? ""}
-                activeProjectId={localProjectId}
-                featureHideSummaryActions={!SHOW_SUMMARY_ACTIONS}
-                onActiveProjectIdChange={(pid) => {
-                  setLocalProjectId(pid);
-                  // ついでに summary の対象も切り替わるのでクリア
-                  setSummary(null);
-                  setMsg(null);
-                  setGoalMsg(null);
-                }}
-              />
-              {/* <div className="rounded-xl border bg-white p-4 space-y-3">
+        <MyPageAccordion
+          open={openSections}
+          onToggle={toggleSection}
+          sectionKey="project"
+          title="プロフィール・目標の編集（Project / Goal / Summary 統合）"
+        >
+          <CreatorProfileSection
+            username={creatorUsername}
+            editing={editingProfile}
+            onStartEdit={() => setEditingProfile(true)}
+            onCancelEdit={() => setEditingProfile(false)}
+            displayName={displayName}
+            profile={profile}
+            // goalTitle={goalTitle}
+            // goalTargetJpyc={goalTargetJpyc}
+            avatarUrl={avatarUrl}
+            themeColor={themeColor}
+            socials={socials}
+            youtubeVideos={youtubeVideos}
+            avatarFile={avatarFile}
+            avatarPreview={avatarPreview}
+            setDisplayName={setDisplayName}
+            setProfile={setProfile}
+            // setGoalTitle={setGoalTitle}
+            // setGoalTargetJpyc={setGoalTargetJpyc}
+            setThemeColor={setThemeColor}
+            setSocials={setSocials}
+            setYoutubeVideos={setYoutubeVideos}
+            setAvatarFile={setAvatarFile}
+            setAvatarPreview={setAvatarPreview}
+            saving={saving}
+            onSubmit={(e) => void handleSaveCreatorProfile(e)}
+            baseUrl={eventBaseUrl}
+            extraSections={
+              <div className="space-y-4">
+                {/* -------- ① Project -------- */}
+                <ProjectSection
+                  ownerAddress={address?.toLowerCase() ?? ""}
+                  activeProjectId={localProjectId}
+                  featureHideSummaryActions={!SHOW_SUMMARY_ACTIONS}
+                  onActiveProjectIdChange={(pid) => {
+                    setLocalProjectId(pid);
+                    // ついでに summary の対象も切り替わるのでクリア
+                    setSummary(null);
+                    setMsg(null);
+                    setGoalMsg(null);
+                  }}
+                />
+                {/* <div className="rounded-xl border bg-white p-4 space-y-3">
                 <div className="font-semibold">Project</div>
 
                 <ProjectCreateCard
@@ -1123,271 +1145,287 @@ export default function AccountPageClient({ username }: Props) {
                 )}
               </div> */}
 
-              {/* -------- ① Goal (Project Goal table) -------- */}
-              <div className="rounded-xl border bg-white p-4 space-y-3">
-                <div className="font-semibold">Goal（Project）</div>
-
-                {!localProjectId ? (
-                  <div className="text-sm text-gray-600">
-                    先に Project を作成してください（上の Project カード）。
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <div className="text-xs text-gray-500">Target JPYC</div>
-                        <input
-                          className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
-                          value={goalTargetInput}
-                          onChange={(e) => setGoalTargetInput(e.target.value)}
-                          placeholder="例: 1000"
-                          disabled={goalSaving || summaryLoading}
-                          inputMode="numeric"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-xs text-gray-500">
-                          Deadline (optional)
-                        </div>
-                        <input
-                          className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
-                          type="date"
-                          value={goalDeadlineInput}
-                          onChange={(e) => setGoalDeadlineInput(e.target.value)}
-                          disabled={goalSaving || summaryLoading}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
-                        onClick={() => void saveGoal()}
-                        disabled={!isConnected || !address || goalSaving}
-                        title={!isConnected ? "ウォレット接続が必要です" : ""}
-                        type="button"
-                      >
-                        {goalSaving ? "Saving..." : "Goal を保存"}
-                      </button>
-
-                      <button
-                        className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40"
-                        onClick={() => void refreshSummary()}
-                        disabled={!localProjectId || summaryLoading}
-                        type="button"
-                      >
-                        {summaryLoading ? "Loading..." : "Summary更新"}
-                      </button>
-
-                      {goalMsg ? (
-                        <span className="text-xs text-gray-600">{goalMsg}</span>
-                      ) : null}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* -------- ① Summary + Actions -------- */}
-              {SHOW_SUMMARY_ACTIONS ? (
+                {/* -------- ① Goal (Project Goal table) -------- */}
                 <div className="rounded-xl border bg-white p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-semibold">Summary / Actions</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-40"
-                        onClick={() => void refreshSummary()}
-                        disabled={!localProjectId || summaryLoading}
-                        type="button"
-                      >
-                        {summaryLoading ? "Loading..." : "Refresh"}
-                      </button>
-                    </div>
-                  </div>
+                  <div className="font-semibold">Goal（Project）</div>
 
                   {!localProjectId ? (
                     <div className="text-sm text-gray-600">
-                      Project 作成後に Summary を利用できます。
+                      先に Project を作成してください（上の Project カード）。
                     </div>
                   ) : (
                     <>
-                      {msg && (
-                        <div
-                          className={`text-xs rounded-lg px-3 py-2 border ${
-                            msg.kind === "error"
-                              ? "border-rose-200 bg-rose-50 text-rose-800"
-                              : msg.kind === "success"
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                              : "border-gray-200 bg-gray-50 text-gray-700"
-                          }`}
-                        >
-                          {msg.text}
-                        </div>
-                      )}
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-1">
                           <div className="text-xs text-gray-500">
-                            Project status
+                            Target JPYC
                           </div>
-                          <div className="text-sm">
-                            {summary?.project.status ?? "—"}
-                          </div>
+                          <input
+                            className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
+                            value={goalTargetInput}
+                            onChange={(e) => setGoalTargetInput(e.target.value)}
+                            placeholder="例: 1000"
+                            disabled={goalSaving || summaryLoading}
+                            inputMode="numeric"
+                          />
                         </div>
 
                         <div className="space-y-1">
-                          <div className="text-xs text-gray-500">Progress</div>
-                          <div className="text-sm">
-                            {summary
-                              ? `${summary.progress.confirmedJpyc.toLocaleString()} / ${
-                                  summary.progress.targetJpyc != null
-                                    ? summary.progress.targetJpyc.toLocaleString()
-                                    : "—"
-                                } JPYC (${Math.floor(
-                                  summary.progress.progressPct
-                                )}%)`
-                              : "—"}
+                          <div className="text-xs text-gray-500">
+                            Deadline (optional)
                           </div>
+                          <input
+                            className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
+                            type="date"
+                            value={goalDeadlineInput}
+                            onChange={(e) =>
+                              setGoalDeadlineInput(e.target.value)
+                            }
+                            disabled={goalSaving || summaryLoading}
+                          />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <div className="text-xs text-gray-500">
-                            Distribution plan (JSON)
-                          </div>
-                          <textarea
-                            className="w-full min-h-[140px] rounded-lg border px-3 py-2 font-mono text-[12px]"
-                            value={planText}
-                            onChange={(e) => setPlanText(e.target.value)}
-                            disabled={!canSavePlan || summaryLoading}
-                            placeholder='{"recipients":[...]}'
-                          />
-                          <button
-                            className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
-                            onClick={() => void doSavePlan()}
-                            disabled={!canSavePlan || summaryLoading}
-                            title={!isOwner ? "owner のみ保存できます" : ""}
-                            type="button"
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+                          onClick={() => void saveGoal()}
+                          disabled={!isConnected || !address || goalSaving}
+                          title={!isConnected ? "ウォレット接続が必要です" : ""}
+                          type="button"
+                        >
+                          {goalSaving ? "Saving..." : "Goal を保存"}
+                        </button>
+
+                        <button
+                          className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40"
+                          onClick={() => void refreshSummary()}
+                          disabled={!localProjectId || summaryLoading}
+                          type="button"
+                        >
+                          {summaryLoading ? "Loading..." : "Summary更新"}
+                        </button>
+
+                        {goalMsg ? (
+                          <span className="text-xs text-gray-600">
+                            {goalMsg}
+                          </span>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* -------- ① Summary + Actions -------- */}
+                {SHOW_SUMMARY_ACTIONS ? (
+                  <div className="rounded-xl border bg-white p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold">Summary / Actions</div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-40"
+                          onClick={() => void refreshSummary()}
+                          disabled={!localProjectId || summaryLoading}
+                          type="button"
+                        >
+                          {summaryLoading ? "Loading..." : "Refresh"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {!localProjectId ? (
+                      <div className="text-sm text-gray-600">
+                        Project 作成後に Summary を利用できます。
+                      </div>
+                    ) : (
+                      <>
+                        {msg && (
+                          <div
+                            className={`text-xs rounded-lg px-3 py-2 border ${
+                              msg.kind === "error"
+                                ? "border-rose-200 bg-rose-50 text-rose-800"
+                                : msg.kind === "success"
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                : "border-gray-200 bg-gray-50 text-gray-700"
+                            }`}
                           >
-                            Plan を保存
-                          </button>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="text-xs text-gray-500">
-                            Distribution result txHashes (JSON or lines)
+                            {msg.text}
                           </div>
-                          <textarea
-                            className="w-full min-h-[140px] rounded-lg border px-3 py-2 font-mono text-[12px]"
-                            value={txHashesText}
-                            onChange={(e) => setTxHashesText(e.target.value)}
-                            disabled={!canSaveDistResult || summaryLoading}
-                            placeholder='["0x...","0x..."]'
-                          />
+                        )}
 
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                              <div className="text-xs text-gray-500">
-                                currency
-                              </div>
-                              <select
-                                className="w-full rounded-lg border px-3 py-2 text-sm"
-                                value={currency}
-                                onChange={(e) =>
-                                  setCurrency(e.target.value as "JPYC" | "USDC")
-                                }
-                                disabled={!canSaveDistResult || summaryLoading}
-                              >
-                                <option value="JPYC">JPYC</option>
-                                <option value="USDC">USDC</option>
-                              </select>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <div className="text-xs text-gray-500">
+                              Project status
                             </div>
-
-                            <div className="space-y-1">
-                              <div className="text-xs text-gray-500">
-                                chainId
-                              </div>
-                              <input
-                                className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
-                                value={String(distChainId)}
-                                onChange={(e) => {
-                                  const n = Number(e.target.value);
-                                  if (Number.isFinite(n)) setDistChainId(n);
-                                }}
-                                disabled={!canSaveDistResult || summaryLoading}
-                                inputMode="numeric"
-                              />
+                            <div className="text-sm">
+                              {summary?.project.status ?? "—"}
                             </div>
                           </div>
 
                           <div className="space-y-1">
                             <div className="text-xs text-gray-500">
-                              note (optional)
+                              Progress
                             </div>
-                            <input
-                              className="w-full rounded-lg border px-3 py-2 text-sm"
-                              value={note}
-                              onChange={(e) => setNote(e.target.value)}
-                              disabled={!canSaveDistResult || summaryLoading}
+                            <div className="text-sm">
+                              {summary
+                                ? `${summary.progress.confirmedJpyc.toLocaleString()} / ${
+                                    summary.progress.targetJpyc != null
+                                      ? summary.progress.targetJpyc.toLocaleString()
+                                      : "—"
+                                  } JPYC (${Math.floor(
+                                    summary.progress.progressPct
+                                  )}%)`
+                                : "—"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <div className="text-xs text-gray-500">
+                              Distribution plan (JSON)
+                            </div>
+                            <textarea
+                              className="w-full min-h-[140px] rounded-lg border px-3 py-2 font-mono text-[12px]"
+                              value={planText}
+                              onChange={(e) => setPlanText(e.target.value)}
+                              disabled={!canSavePlan || summaryLoading}
+                              placeholder='{"recipients":[...]}'
                             />
+                            <button
+                              className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+                              onClick={() => void doSavePlan()}
+                              disabled={!canSavePlan || summaryLoading}
+                              title={!isOwner ? "owner のみ保存できます" : ""}
+                              type="button"
+                            >
+                              Plan を保存
+                            </button>
                           </div>
 
+                          <div className="space-y-1">
+                            <div className="text-xs text-gray-500">
+                              Distribution result txHashes (JSON or lines)
+                            </div>
+                            <textarea
+                              className="w-full min-h-[140px] rounded-lg border px-3 py-2 font-mono text-[12px]"
+                              value={txHashesText}
+                              onChange={(e) => setTxHashesText(e.target.value)}
+                              disabled={!canSaveDistResult || summaryLoading}
+                              placeholder='["0x...","0x..."]'
+                            />
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <div className="text-xs text-gray-500">
+                                  currency
+                                </div>
+                                <select
+                                  className="w-full rounded-lg border px-3 py-2 text-sm"
+                                  value={currency}
+                                  onChange={(e) =>
+                                    setCurrency(
+                                      e.target.value as "JPYC" | "USDC"
+                                    )
+                                  }
+                                  disabled={
+                                    !canSaveDistResult || summaryLoading
+                                  }
+                                >
+                                  <option value="JPYC">JPYC</option>
+                                  <option value="USDC">USDC</option>
+                                </select>
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="text-xs text-gray-500">
+                                  chainId
+                                </div>
+                                <input
+                                  className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
+                                  value={String(distChainId)}
+                                  onChange={(e) => {
+                                    const n = Number(e.target.value);
+                                    if (Number.isFinite(n)) setDistChainId(n);
+                                  }}
+                                  disabled={
+                                    !canSaveDistResult || summaryLoading
+                                  }
+                                  inputMode="numeric"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="text-xs text-gray-500">
+                                note (optional)
+                              </div>
+                              <input
+                                className="w-full rounded-lg border px-3 py-2 text-sm"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                disabled={!canSaveDistResult || summaryLoading}
+                              />
+                            </div>
+
+                            <button
+                              className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+                              onClick={() => void doSaveDistributionResult()}
+                              disabled={!canSaveDistResult || summaryLoading}
+                              title={!isOwner ? "owner のみ保存できます" : ""}
+                              type="button"
+                            >
+                              Distribution 結果を保存
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-2">
                           <button
-                            className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
-                            onClick={() => void doSaveDistributionResult()}
-                            disabled={!canSaveDistResult || summaryLoading}
-                            title={!isOwner ? "owner のみ保存できます" : ""}
+                            className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40"
+                            onClick={() => void doAchieve()}
+                            disabled={!canAchieve || summaryLoading}
+                            title={
+                              !canAchieve
+                                ? "条件未達 or owner ではありません"
+                                : ""
+                            }
                             type="button"
                           >
-                            Distribution 結果を保存
+                            目標達成を確定（Achieve）
                           </button>
-                        </div>
-                      </div>
 
-                      <div className="flex flex-wrap items-center gap-2 pt-2">
-                        <button
-                          className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40"
-                          onClick={() => void doAchieve()}
-                          disabled={!canAchieve || summaryLoading}
-                          title={
-                            !canAchieve
-                              ? "条件未達 or owner ではありません"
-                              : ""
-                          }
-                          type="button"
-                        >
-                          目標達成を確定（Achieve）
-                        </button>
-
-                        <div className="ml-auto">
-                          {localProjectId ? (
-                            <BridgeWithWormholeOrManualButton
-                              projectId={localProjectId}
-                              currency={currency}
-                              disabled={!canBridge}
-                              onBridged={() => void refreshSummary()}
-                            />
-                          ) : null}
+                          <div className="ml-auto">
+                            {localProjectId ? (
+                              <BridgeWithWormholeOrManualButton
+                                projectId={localProjectId}
+                                currency={currency}
+                                disabled={!canBridge}
+                                onBridged={() => void refreshSummary()}
+                              />
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
 
-                      {summary?.goal?.achievedAt && (
-                        <div className="text-[11px] text-emerald-700">
-                          achievedAt:{" "}
-                          <span className="font-mono">
-                            {summary.goal.achievedAt}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : null}
-            </div>
-          }
-        />
-      </MyPageAccordion>
-    </div>
+                        {summary?.goal?.achievedAt && (
+                          <div className="text-[11px] text-emerald-700">
+                            achievedAt:{" "}
+                            <span className="font-mono">
+                              {summary.goal.achievedAt}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            }
+          />
+        </MyPageAccordion>
+      </div>
+      {promoFooter}
+    </>
   );
 }
