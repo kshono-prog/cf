@@ -37,6 +37,15 @@ export async function generateMetadata({
   return {
     title,
     description,
+    applicationName: displayName,
+    appleWebApp: {
+      title: displayName,
+    },
+    manifest: `/${username}/manifest.webmanifest`,
+    icons: {
+      icon: [{ url: imageUrl }],
+      apple: [{ url: imageUrl }],
+    },
     openGraph: {
       title,
       description,

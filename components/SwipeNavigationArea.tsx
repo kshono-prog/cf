@@ -21,6 +21,7 @@ export default function SwipeNavigationArea({
   const [, startTransition] = useTransition();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const scrollTimerRef = useRef<number | null>(null);
+  const navDirectionKey = "nav-slide-direction";
 
   const resolvedActive = (
     pathname?.includes("/events")
@@ -48,12 +49,12 @@ export default function SwipeNavigationArea({
     profile: "favorite",
   };
 
-  const resetToCenter = useCallback(() => {
+  const resetToCenter = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = scrollRef.current;
     if (!el) return;
     const width = el.clientWidth;
     if (!width) return;
-    el.scrollLeft = width;
+    el.scrollTo({ left: width, behavior });
   }, []);
 
   const handleSwipeNavigate = (direction: "next" | "prev") => {
@@ -66,6 +67,7 @@ export default function SwipeNavigationArea({
       return;
     }
     const targetHref = hrefByItem[targetId];
+    window.sessionStorage.setItem(navDirectionKey, direction);
     startTransition(() => {
       if (pathname !== targetHref) {
         router.push(targetHref);
@@ -94,17 +96,36 @@ export default function SwipeNavigationArea({
         return;
       }
       if (Math.abs(left - width) > 1) {
-        resetToCenter();
+        resetToCenter("smooth");
       }
     }, 80);
   }, [handleSwipeNavigate, resetToCenter]);
 
   useEffect(() => {
-    resetToCenter();
+    const el = scrollRef.current;
+    if (!el) return;
+    const width = el.clientWidth;
+    if (!width) return;
+    const direction = window.sessionStorage.getItem(navDirectionKey) as
+      | "next"
+      | "prev"
+      | null;
+    if (direction) {
+      window.sessionStorage.removeItem(navDirectionKey);
+    }
+    if (!direction) {
+      resetToCenter("auto");
+      return;
+    }
+    const startLeft = direction === "next" ? 0 : width * 2;
+    el.scrollTo({ left: startLeft, behavior: "auto" });
+    requestAnimationFrame(() => {
+      el.scrollTo({ left: width, behavior: "smooth" });
+    });
   }, [pathname, resetToCenter]);
 
   useEffect(() => {
-    const handleResize = () => resetToCenter();
+    const handleResize = () => resetToCenter("auto");
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
@@ -114,7 +135,7 @@ export default function SwipeNavigationArea({
   return (
     <div
       ref={scrollRef}
-      className={`overflow-x-auto snap-x snap-mandatory scroll-smooth overscroll-x-contain ${
+      className={`overflow-x-auto snap-x snap-mandatory overscroll-x-contain ${
         className ?? ""
       }`}
       onScroll={handleScroll}

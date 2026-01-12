@@ -25,6 +25,7 @@ export default function BottomNav({
   const iconBase = "w-7 h-7 transition-transform duration-150";
   const inactiveColor = "text-gray-400";
   const activeStyle = { color: themeColor };
+  const navDirectionKey = "nav-slide-direction";
   type NavItem = NonNullable<BottomNavProps["active"]>;
   const resolvedActive = (active ??
     (pathname?.includes("/events")
@@ -68,6 +69,16 @@ export default function BottomNav({
     setPressed(null);
   }, [pathname]);
 
+  const navOrder: NavItem[] = ["calendar", "favorite", "profile"];
+  const getDirection = (from: NavItem, to: NavItem) => {
+    const fromIndex = navOrder.indexOf(from);
+    const toIndex = navOrder.indexOf(to);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+      return null;
+    }
+    return toIndex > fromIndex ? "next" : "prev";
+  };
+
   const hrefByItem: Record<NavItem, string> = {
     calendar: calendarHref,
     favorite: favoriteHref,
@@ -96,6 +107,7 @@ export default function BottomNav({
     setPressed(targetId);
     startTransition(() => {
       if (pathname !== targetHref) {
+        window.sessionStorage.setItem(navDirectionKey, direction);
         router.push(targetHref);
       } else {
         router.refresh();
@@ -142,7 +154,13 @@ export default function BottomNav({
           prefetch={true}
           className={baseItemClass}
           aria-label="イベント"
-          onClick={handleNavigate("calendar", calendarHref)}
+          onClick={(event) => {
+            const direction = getDirection(resolvedActive, "calendar");
+            if (direction && pathname !== calendarHref) {
+              window.sessionStorage.setItem(navDirectionKey, direction);
+            }
+            handleNavigate("calendar", calendarHref)(event);
+          }}
         >
           <svg
             className={`${iconBase} ${
@@ -186,7 +204,13 @@ export default function BottomNav({
           prefetch={true}
           className={baseItemClass}
           aria-label="クリエイターページ"
-          onClick={handleNavigate("favorite", favoriteHref)}
+          onClick={(event) => {
+            const direction = getDirection(resolvedActive, "favorite");
+            if (direction && pathname !== favoriteHref) {
+              window.sessionStorage.setItem(navDirectionKey, direction);
+            }
+            handleNavigate("favorite", favoriteHref)(event);
+          }}
         >
           <svg
             className={`${iconBase} ${
@@ -212,7 +236,13 @@ export default function BottomNav({
           prefetch
           className={baseItemClass}
           aria-label="マイページ"
-          onClick={handleNavigate("profile", profileHref)}
+          onClick={(event) => {
+            const direction = getDirection(resolvedActive, "profile");
+            if (direction && pathname !== profileHref) {
+              window.sessionStorage.setItem(navDirectionKey, direction);
+            }
+            handleNavigate("profile", profileHref)(event);
+          }}
         >
           <svg
             className={`${iconBase} ${
