@@ -78,6 +78,35 @@ async function getJpycDecimals(
   return decimals;
 }
 
+type BalanceSnapshot = {
+  polBalWei: bigint;
+  dec: number;
+  jpycBalRaw: bigint;
+  faucetBalWei: bigint;
+};
+
+async function loadBalances(
+  provider: ethers.AbstractProvider,
+  jpyc: ethers.Contract,
+  address: string,
+  faucetAddress: string,
+  cacheKey: string
+): Promise<BalanceSnapshot> {
+  const decimalsPromise = retryRpcCall(() => getJpycDecimals(jpyc, cacheKey));
+  const faucetBalancePromise = retryRpcCall(() =>
+    provider.getBalance(faucetAddress)
+  );
+
+  const [polBalWei, dec, jpycBalRaw, faucetBalWei] = await Promise.all([
+    retryRpcCall(() => provider.getBalance(address)),
+    decimalsPromise,
+    retryRpcCall(() => jpyc.balanceOf(address) as Promise<bigint>),
+    faucetBalancePromise,
+  ]);
+
+  return { polBalWei, dec, jpycBalRaw, faucetBalWei };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -159,27 +188,47 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const provider = buildProvider(chainId, rpcUrls);
-    const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
+    let provider = buildProvider(chainId, rpcUrls);
+    let jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
     const cacheKey = `${chainId}:${jpycAddress.toLowerCase()}`;
-    const decimalsPromise = retryRpcCall(() => getJpycDecimals(jpyc, cacheKey));
-    const faucetBalancePromise = retryRpcCall(() =>
-      provider.getBalance(faucetWallet.address)
-    );
 
-    let polBalWei: bigint;
-    let dec: number;
-    let jpycBalRaw: bigint;
-    let faucetBalWei: bigint;
+    let balances: BalanceSnapshot | null = null;
+    let loadError: unknown;
     try {
-      [polBalWei, dec, jpycBalRaw, faucetBalWei] = await Promise.all([
-        retryRpcCall(() => provider.getBalance(address)),
-        decimalsPromise,
-        retryRpcCall(() => jpyc.balanceOf(address) as Promise<bigint>),
-        faucetBalancePromise,
-      ]);
+      balances = await loadBalances(
+        provider,
+        jpyc,
+        address,
+        faucetWallet.address,
+        cacheKey
+      );
     } catch (error) {
-      console.error("RPC_CALL_FAILED", error);
+      loadError = error;
+      if (isNetworkChangedError(error)) {
+        const refreshedRpcUrls = await filterWorkingRpcUrls(
+          chainId,
+          rpcUrlsRaw
+        );
+        if (refreshedRpcUrls.length > 0) {
+          provider = buildProvider(chainId, refreshedRpcUrls);
+          jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
+          try {
+            balances = await loadBalances(
+              provider,
+              jpyc,
+              address,
+              faucetWallet.address,
+              cacheKey
+            );
+          } catch (retryError) {
+            loadError = retryError;
+          }
+        }
+      }
+    }
+
+    if (!balances) {
+      console.error("RPC_CALL_FAILED", loadError);
       return NextResponse.json({
         chainId,
         address: address.toLowerCase(),
@@ -194,6 +243,8 @@ export async function GET(req: NextRequest) {
         nativeSymbol: chainConfig.nativeSymbol,
       });
     }
+
+    const { polBalWei, dec, jpycBalRaw, faucetBalWei } = balances;
 
     // balances (string for UI)
     const nativeBalance = ethers.formatEther(polBalWei);

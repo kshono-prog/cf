@@ -39,11 +39,12 @@ export function buildProvider(
   if (rpcUrls.length === 0) {
     throw new Error("No RPC URLs provided");
   }
+  const network = { chainId, name: `chain-${chainId}` };
   if (rpcUrls.length === 1) {
-    return new ethers.JsonRpcProvider(rpcUrls[0], "any", PROVIDER_OPTIONS);
+    return new ethers.JsonRpcProvider(rpcUrls[0], network, PROVIDER_OPTIONS);
   }
   const providers = rpcUrls.map(
-    (url) => new ethers.JsonRpcProvider(url, "any", PROVIDER_OPTIONS)
+    (url) => new ethers.JsonRpcProvider(url, network, PROVIDER_OPTIONS)
   );
   return new ethers.FallbackProvider(providers, 1);
 }

@@ -46,6 +46,13 @@ function normalizeCreator(raw: {
   };
 }
 
+type CreatorProfileRecord = {
+  id: string;
+  username: string;
+  walletAddress: string | null;
+  activeProjectId: string | null;
+};
+
 const getCreatorProfileByUsernameCached = unstable_cache(
   async (username: string) => {
     const profile = await prisma.creatorProfile.findUnique({
@@ -64,8 +71,15 @@ const getCreatorProfileByUsernameCached = unstable_cache(
         socials[link.type] = link.url;
       }
     }
+    const safeProfile: CreatorProfileRecord = {
+      id: profile.id.toString(),
+      username: profile.username,
+      walletAddress: profile.walletAddress,
+      activeProjectId: profile.activeProjectId?.toString() ?? null,
+    };
+
     return {
-      profile,
+      profile: safeProfile,
       creator: normalizeCreator({
         username: profile.username,
         displayName: profile.displayName,

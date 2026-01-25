@@ -81,8 +81,9 @@ export default async function Page({ params }: { params: Promise<Params> }) {
     if (profile.activeProjectId != null) {
       projectId = profile.activeProjectId.toString();
     } else {
+      const profileId = BigInt(profile.id);
       const projByCreator = await prisma.project.findFirst({
-        where: { creatorProfileId: profile.id },
+        where: { creatorProfileId: profileId },
         select: { id: true },
         orderBy: { createdAt: "desc" },
       });
@@ -105,10 +106,10 @@ export default async function Page({ params }: { params: Promise<Params> }) {
             await prisma.$transaction([
               prisma.project.update({
                 where: { id: projByOwner.id },
-                data: { creatorProfileId: profile.id },
+                data: { creatorProfileId: profileId },
               }),
               prisma.creatorProfile.update({
-                where: { id: profile.id },
+                where: { id: profileId },
                 data: { activeProjectId: projByOwner.id },
               }),
             ]);
