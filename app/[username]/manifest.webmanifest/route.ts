@@ -6,12 +6,11 @@ const SITE_BASE_URL =
 
 type Params = { username: string };
 
-export default async function manifest({
-  params,
-}: {
-  params: Params;
-}): Promise<MetadataRoute.Manifest> {
-  const { username } = params;
+export async function GET(
+  _request: Request,
+  ctx: { params: Promise<Params> }
+): Promise<Response> {
+  const { username } = await ctx.params;
   const creator =
     (await getCreatorProfileByUsername(username))?.creator ?? null;
 
@@ -22,7 +21,7 @@ export default async function manifest({
       ? rawImage
       : `${SITE_BASE_URL}${rawImage}`;
 
-  return {
+  const manifest: MetadataRoute.Manifest = {
     name: displayName,
     short_name: displayName,
     start_url: `/${username}`,
@@ -38,4 +37,9 @@ export default async function manifest({
       },
     ],
   };
+  return Response.json(manifest, {
+    headers: {
+      "Content-Type": "application/manifest+json",
+    },
+  });
 }
