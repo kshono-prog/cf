@@ -540,6 +540,8 @@ export default function ProfileClient({
     [projectId]
   );
   const [autoReverifyRunning, setAutoReverifyRunning] = useState(false);
+  const [loadWalletSection, setLoadWalletSection] = useState(false);
+  const walletSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!projectId) return;
@@ -599,6 +601,67 @@ export default function ProfileClient({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, progressTotalYen]);
+
+  useEffect(() => {
+    if (loadWalletSection) return;
+    if (typeof window === "undefined") return;
+
+    let observer: IntersectionObserver | null = null;
+    let idleId: number | null = null;
+    let timeoutId: number | null = null;
+
+    const trigger = () => {
+      if (observer && walletSectionRef.current) {
+        observer.unobserve(walletSectionRef.current);
+      }
+      if (idleId != null) {
+        const win = window as Window & {
+          cancelIdleCallback?: (id: number) => void;
+        };
+        win.cancelIdleCallback?.(idleId);
+      }
+      if (timeoutId != null) {
+        window.clearTimeout(timeoutId);
+      }
+      setLoadWalletSection(true);
+    };
+
+    observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        trigger();
+      }
+    });
+
+    if (walletSectionRef.current) {
+      observer.observe(walletSectionRef.current);
+    }
+
+    const win = window as Window & {
+      requestIdleCallback?: (
+        callback: (deadline: { didTimeout: boolean }) => void,
+        options?: { timeout: number }
+      ) => number;
+    };
+
+    if (win.requestIdleCallback) {
+      idleId = win.requestIdleCallback(() => trigger(), { timeout: 2000 });
+    } else {
+      timeoutId = window.setTimeout(() => trigger(), 2000);
+    }
+
+    return () => {
+      observer?.disconnect();
+      if (idleId != null) {
+        const cancelWin = window as Window & {
+          cancelIdleCallback?: (id: number) => void;
+        };
+        cancelWin.cancelIdleCallback?.(idleId);
+      }
+      if (timeoutId != null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [loadWalletSection]);
 
   async function postContribution(args: {
     projectId?: string;
@@ -870,16 +933,24 @@ export default function ProfileClient({
         </div>
       )}
 
-      <ProfileWalletClient
-        username={username}
-        creator={creator}
-        projectId={projectId}
-        supportedJpycChainIds={supportedJpycChainIds}
-        showLegacyCard={showLegacyCard}
-        headerColor={headerColor}
-        onPostContribution={postContribution}
-        onAfterSend={afterSendPipeline}
-      />
+      <div ref={walletSectionRef}>
+        {loadWalletSection ? (
+          <ProfileWalletClient
+            username={username}
+            creator={creator}
+            projectId={projectId}
+            supportedJpycChainIds={supportedJpycChainIds}
+            showLegacyCard={showLegacyCard}
+            headerColor={headerColor}
+            onPostContribution={postContribution}
+            onAfterSend={afterSendPipeline}
+          />
+        ) : (
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
+            ウォレット情報を準備しています…
+          </div>
+        )}
+      </div>
 
       {/* フッター */}
       <footer
