@@ -5,9 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, cookieToInitialState, type Config } from "wagmi";
 import { wagmiConfig } from "@/config/appkit";
 
-// これを import するだけで初期化は走る（副作用はファイルスコープで1回）
-import "@/lib/appkitInstance";
-
 const queryClient = new QueryClient();
 
 export default function AppKitProvider({

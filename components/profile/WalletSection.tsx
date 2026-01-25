@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import type { WalletBalances } from "@/lib/walletService";
 import { getChainConfig, type SupportedChainId } from "@/lib/chainConfig";
 import type { Currency } from "@/components/profile/profileClientHelpers";
@@ -65,6 +65,10 @@ export type WalletSectionProps = {
 };
 
 export function WalletSection(props: WalletSectionProps) {
+  useEffect(() => {
+    void import("@/lib/appkitInstance");
+  }, []);
+
   const {
     connected,
     isWalletConnecting,
