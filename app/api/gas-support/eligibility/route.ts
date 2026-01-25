@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
 import { getChainConfig } from "@/lib/chainConfig";
-import { getRpcUrl, getTokenAddress } from "@/app/api/_lib/chain";
+import { getRpcUrls, getTokenAddress } from "@/app/api/_lib/chain";
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -52,6 +52,14 @@ function getJpycAddress(chainId: number): string {
   return getTokenAddress(chainId, "JPYC") || "";
 }
 
+function buildProvider(rpcUrls: string[]): ethers.AbstractProvider {
+  if (rpcUrls.length === 1) {
+    return new ethers.JsonRpcProvider(rpcUrls[0]);
+  }
+  const providers = rpcUrls.map((url) => new ethers.JsonRpcProvider(url));
+  return new ethers.FallbackProvider(providers);
+}
+
 async function getJpycDecimals(
   jpyc: ethers.Contract,
   cacheKey: string
@@ -77,8 +85,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
     }
 
-    const rpcUrl = getRpcUrl(chainId);
-    if (!rpcUrl) {
+    const rpcUrls = getRpcUrls(chainId);
+    if (rpcUrls.length === 0) {
       return NextResponse.json(
         { error: "RPC_URL_NOT_CONFIGURED" },
         { status: 500 }
@@ -132,7 +140,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const provider = buildProvider(rpcUrls);
     const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
     const cacheKey = `${chainId}:${jpycAddress.toLowerCase()}`;
     const decimalsPromise = retryRpcCall(() => getJpycDecimals(jpyc, cacheKey));

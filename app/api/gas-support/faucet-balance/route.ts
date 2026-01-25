@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
 import { getChainConfig } from "@/lib/chainConfig";
-import { getRpcUrl } from "@/app/api/_lib/chain";
+import { getRpcUrls } from "@/app/api/_lib/chain";
 
-function mustEnv(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing env: ${name}`);
-  return v;
+function buildProvider(rpcUrls: string[]): ethers.AbstractProvider {
+  if (rpcUrls.length === 1) {
+    return new ethers.JsonRpcProvider(rpcUrls[0]);
+  }
+  const providers = rpcUrls.map((url) => new ethers.JsonRpcProvider(url));
+  return new ethers.FallbackProvider(providers);
 }
 
 export async function GET(_req: NextRequest) {
@@ -17,7 +19,13 @@ export async function GET(_req: NextRequest) {
     if (!chainConfig) {
       return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
     }
-    const rpcUrl = getRpcUrl(chainId) ?? mustEnv("POLYGON_RPC_URL");
+    const rpcUrls = getRpcUrls(chainId);
+    if (rpcUrls.length === 0) {
+      return NextResponse.json(
+        { error: "RPC_URL_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
 
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
     const faucetWallet = await prisma.faucetWallet.findFirst({
@@ -29,7 +37,7 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ chainId, enabled: false });
     }
 
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const provider = buildProvider(rpcUrls);
     const balWei = await provider.getBalance(faucetWallet.address);
 
     return NextResponse.json({

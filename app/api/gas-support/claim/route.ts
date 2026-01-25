@@ -2,24 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
 import { getChainConfig } from "@/lib/chainConfig";
-import { getRpcUrl, getTokenAddress } from "@/app/api/_lib/chain";
+import { getRpcUrls, getTokenAddress } from "@/app/api/_lib/chain";
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function decimals() view returns (uint8)",
 ];
 
-function mustEnv(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing env: ${name}`);
-  return v;
-}
-
 function getFaucetPrivateKey(chainId: number): string {
   if (chainId === 43114) {
-    return mustEnv("FAUCET_PRIVATE_KEY_AVAX");
+    return process.env.FAUCET_PRIVATE_KEY_AVAX || "";
   }
-  return mustEnv("FAUCET_PRIVATE_KEY");
+  return process.env.FAUCET_PRIVATE_KEY || "";
 }
 
 function pickChainId(raw?: number): number {
@@ -34,6 +28,14 @@ function getJpycAddress(chainId: number): string {
     return process.env.JPYC_ADDRESS || getTokenAddress(chainId, "JPYC") || "";
   }
   return getTokenAddress(chainId, "JPYC") || "";
+}
+
+function buildProvider(rpcUrls: string[]): ethers.AbstractProvider {
+  if (rpcUrls.length === 1) {
+    return new ethers.JsonRpcProvider(rpcUrls[0]);
+  }
+  const providers = rpcUrls.map((url) => new ethers.JsonRpcProvider(url));
+  return new ethers.FallbackProvider(providers);
 }
 
 type Body = {
@@ -90,7 +92,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "SIGNATURE_INVALID" }, { status: 401 });
     }
 
-    const rpcUrl = getRpcUrl(chainId) ?? mustEnv("POLYGON_RPC_URL");
+    const rpcUrls = getRpcUrls(chainId);
+    if (rpcUrls.length === 0) {
+      return NextResponse.json(
+        { error: "RPC_URL_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
+
     const jpycAddress = getJpycAddress(chainId);
     if (!jpycAddress) {
       return NextResponse.json(
@@ -115,8 +124,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const faucetPk = getFaucetPrivateKey(chainId);
+    if (!faucetPk) {
+      return NextResponse.json(
+        { error: "FAUCET_PRIVATE_KEY_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
+
     // 3) eligibility re-check (server-side)
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const provider = buildProvider(rpcUrls);
     const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
 
     const [polBalWei, dec, jpycBalRaw] = await Promise.all([
@@ -171,7 +188,6 @@ export async function POST(req: NextRequest) {
     });
 
     // 7) send native token from faucet
-    const faucetPk = getFaucetPrivateKey(chainId);
     const faucetSigner = new ethers.Wallet(faucetPk, provider);
 
     // safety: signer address must match configured faucet address

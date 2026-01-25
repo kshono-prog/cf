@@ -35,6 +35,33 @@ export function getRpcUrl(chainId: number): string | null {
   return null;
 }
 
+export function getRpcUrls(chainId: number): string[] {
+  const urls: string[] = [];
+  const add = (url: string | null | undefined) => {
+    if (!url) return;
+    const trimmed = url.trim();
+    if (!trimmed || urls.includes(trimmed)) return;
+    urls.push(trimmed);
+  };
+
+  add(getRpcUrl(chainId));
+
+  if (chainId === 137) {
+    add(env("POLYGON_RPC_URL"));
+    add("https://polygon-rpc.com");
+    add("https://rpc.ankr.com/polygon");
+    add("https://polygon-bor-rpc.publicnode.com");
+  }
+
+  if (chainId === 80002) {
+    add(env("POLYGON_AMOY_RPC_URL"));
+    add("https://rpc-amoy.polygon.technology");
+    add("https://polygon-amoy-bor-rpc.publicnode.com");
+  }
+
+  return urls;
+}
+
 export function getTokenAddress(
   chainId: number,
   currency: Currency
