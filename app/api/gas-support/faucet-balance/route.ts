@@ -5,11 +5,14 @@ import { getChainConfig } from "@/lib/chainConfig";
 import { getRpcUrls } from "@/app/api/_lib/chain";
 
 function buildProvider(rpcUrls: string[]): ethers.AbstractProvider {
+  const providerOptions = { batchMaxCount: 1 };
   if (rpcUrls.length === 1) {
-    return new ethers.JsonRpcProvider(rpcUrls[0]);
+    return new ethers.JsonRpcProvider(rpcUrls[0], undefined, providerOptions);
   }
-  const providers = rpcUrls.map((url) => new ethers.JsonRpcProvider(url));
-  return new ethers.FallbackProvider(providers);
+  const providers = rpcUrls.map(
+    (url) => new ethers.JsonRpcProvider(url, undefined, providerOptions)
+  );
+  return new ethers.FallbackProvider(providers, 1);
 }
 
 export async function GET(_req: NextRequest) {
