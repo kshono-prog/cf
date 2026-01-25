@@ -9,6 +9,8 @@ const ERC20_ABI = [
   "function decimals() view returns (uint8)",
 ];
 
+const jpycDecimalsCache = new Map<string, number>();
+
 function mustEnv(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`Missing env: ${name}`);
@@ -26,6 +28,17 @@ function getJpycAddress(chainId: number): string {
     return process.env.JPYC_ADDRESS || getTokenAddress(chainId, "JPYC") || "";
   }
   return getTokenAddress(chainId, "JPYC") || "";
+}
+
+async function getJpycDecimals(
+  jpyc: ethers.Contract,
+  cacheKey: string
+): Promise<number> {
+  const cached = jpycDecimalsCache.get(cacheKey);
+  if (typeof cached === "number") return cached;
+  const decimals = Number(await jpyc.decimals());
+  jpycDecimalsCache.set(cacheKey, decimals);
+  return decimals;
 }
 
 export async function GET(req: NextRequest) {
@@ -78,11 +91,15 @@ export async function GET(req: NextRequest) {
 
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
+    const cacheKey = `${chainId}:${jpycAddress.toLowerCase()}`;
+    const decimalsPromise = getJpycDecimals(jpyc, cacheKey);
+    const faucetBalancePromise = provider.getBalance(faucetWallet.address);
 
-    const [polBalWei, dec, jpycBalRaw] = await Promise.all([
+    const [polBalWei, dec, jpycBalRaw, faucetBalWei] = await Promise.all([
       provider.getBalance(address),
-      jpyc.decimals() as Promise<number>,
+      decimalsPromise,
       jpyc.balanceOf(address) as Promise<bigint>,
+      faucetBalancePromise,
     ]);
 
     // balances (string for UI)
@@ -100,7 +117,6 @@ export async function GET(req: NextRequest) {
       where: { chainId_address: { chainId, address: address.toLowerCase() } },
     });
 
-    const faucetBalWei = await provider.getBalance(faucetWallet.address);
     const claimAmountWei = ethers.parseEther(config.claimAmountPol);
     const faucetSufficient = faucetBalWei >= claimAmountWei;
 
