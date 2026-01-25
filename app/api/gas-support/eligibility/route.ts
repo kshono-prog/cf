@@ -11,12 +11,6 @@ const ERC20_ABI = [
 
 const jpycDecimalsCache = new Map<string, number>();
 
-function mustEnv(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing env: ${name}`);
-  return v;
-}
-
 function pickChainId(raw: string | null): number {
   if (!raw) return Number(process.env.CHAIN_ID ?? 137);
   const parsed = Number(raw);
@@ -55,11 +49,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
     }
 
-    const rpcUrl = getRpcUrl(chainId) ?? mustEnv("POLYGON_RPC_URL");
+    const rpcUrl = getRpcUrl(chainId);
+    if (!rpcUrl) {
+      return NextResponse.json(
+        { error: "RPC_URL_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
+
     const jpycAddress = getJpycAddress(chainId);
     if (!jpycAddress) {
       return NextResponse.json(
         { error: "JPYC_ADDRESS_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
+    if (!ethers.isAddress(jpycAddress)) {
+      return NextResponse.json(
+        { error: "JPYC_ADDRESS_INVALID" },
         { status: 500 }
       );
     }
@@ -88,6 +95,14 @@ export async function GET(req: NextRequest) {
         reasons: ["FAUCET_WALLET_NOT_CONFIGURED"],
       });
     }
+    if (!ethers.isAddress(faucetWallet.address)) {
+      return NextResponse.json({
+        chainId,
+        address: address.toLowerCase(),
+        eligible: false,
+        reasons: ["FAUCET_ADDRESS_INVALID"],
+      });
+    }
 
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
@@ -95,12 +110,33 @@ export async function GET(req: NextRequest) {
     const decimalsPromise = getJpycDecimals(jpyc, cacheKey);
     const faucetBalancePromise = provider.getBalance(faucetWallet.address);
 
-    const [polBalWei, dec, jpycBalRaw, faucetBalWei] = await Promise.all([
-      provider.getBalance(address),
-      decimalsPromise,
-      jpyc.balanceOf(address) as Promise<bigint>,
-      faucetBalancePromise,
-    ]);
+    let polBalWei: bigint;
+    let dec: number;
+    let jpycBalRaw: bigint;
+    let faucetBalWei: bigint;
+    try {
+      [polBalWei, dec, jpycBalRaw, faucetBalWei] = await Promise.all([
+        provider.getBalance(address),
+        decimalsPromise,
+        jpyc.balanceOf(address) as Promise<bigint>,
+        faucetBalancePromise,
+      ]);
+    } catch (error) {
+      console.error("RPC_CALL_FAILED", error);
+      return NextResponse.json({
+        chainId,
+        address: address.toLowerCase(),
+        eligible: false,
+        reasons: ["RPC_CALL_FAILED"],
+        minJpyc: config.minJpyc,
+        jpycBalance: "0",
+        nativeBalance: "0",
+        claimableAmount: config.claimAmountPol,
+        faucetAddress: faucetWallet.address,
+        faucetBalance: "0",
+        nativeSymbol: chainConfig.nativeSymbol,
+      });
+    }
 
     // balances (string for UI)
     const nativeBalance = ethers.formatEther(polBalWei);
