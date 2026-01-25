@@ -120,7 +120,7 @@ export async function GET(
       })),
 
       lastBridgeRuns: project.bridgeRuns.map((r) => ({
-        id: r.id,
+        id: r.id.toString(),
         mode: r.mode,
         currency: r.currency,
         dryRun: r.dryRun,
@@ -130,7 +130,7 @@ export async function GET(
       })),
 
       lastDistributionRuns: project.distributionRuns.map((r) => ({
-        id: r.id,
+        id: r.id.toString(),
         mode: r.mode,
         chainId: r.chainId,
         currency: r.currency,

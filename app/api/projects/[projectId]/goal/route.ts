@@ -1,8 +1,19 @@
 // app/api/projects/[projectId]/goal/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Goal } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+type GoalPayload = {
+  id: string;
+  projectId: string;
+  targetAmountJpyc: number;
+  deadline: string | null;
+  achievedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -30,6 +41,26 @@ function lower(v: string): string {
 
 type Params = { projectId: string };
 
+function serializeGoal(goal: {
+  id: bigint;
+  projectId: bigint;
+  targetAmountJpyc: number;
+  deadline: Date | null;
+  achievedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): GoalPayload {
+  return {
+    id: goal.id.toString(),
+    projectId: goal.projectId.toString(),
+    targetAmountJpyc: goal.targetAmountJpyc,
+    deadline: goal.deadline ? goal.deadline.toISOString() : null,
+    achievedAt: goal.achievedAt ? goal.achievedAt.toISOString() : null,
+    createdAt: goal.createdAt.toISOString(),
+    updatedAt: goal.updatedAt.toISOString(),
+  };
+}
+
 export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
   try {
     const { projectId } = await ctx.params;
@@ -43,12 +74,16 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
         targetAmountJpyc: true,
         deadline: true,
         achievedAt: true,
+        settlementPolicy: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
-    return NextResponse.json({ ok: true, goal: goal ?? null });
+    return NextResponse.json({
+      ok: true,
+      goal: goal ? serializeGoal(goal) : null,
+    });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: "GOAL_GET_FAILED" },
@@ -127,12 +162,13 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
         targetAmountJpyc: true,
         deadline: true,
         achievedAt: true,
+        settlementPolicy: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
-    return NextResponse.json({ ok: true, goal: saved });
+    return NextResponse.json({ ok: true, goal: serializeGoal(saved) });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: "GOAL_SAVE_FAILED" },

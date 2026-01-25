@@ -26,6 +26,17 @@ type EventPutBody = {
   isPublished?: boolean;
 };
 
+function serializeGoalAmount(
+  goalAmountJpyc: bigint | number | null
+): string | number | null {
+  if (goalAmountJpyc === null) {
+    return null;
+  }
+  return typeof goalAmountJpyc === "bigint"
+    ? goalAmountJpyc.toString()
+    : goalAmountJpyc;
+}
+
 // GET: イベント一覧取得
 export async function GET(
   _req: NextRequest,
@@ -59,7 +70,7 @@ export async function GET(
         // API レスポンスでは startAt を date として返す
         date: e.startAt ? e.startAt.toISOString() : null,
         // goalAmountJpyc を goalAmount として返す
-        goalAmount: e.goalAmountJpyc,
+        goalAmount: serializeGoalAmount(e.goalAmountJpyc),
         // placeName / placeUrl / ticketUrl などは必要になったらここに追加
       })),
     });
@@ -125,7 +136,7 @@ export async function POST(
       description: newEvent.description,
       // レスポンスでは startAt を date として返す
       date: newEvent.startAt ? newEvent.startAt.toISOString() : null,
-      goalAmount: newEvent.goalAmountJpyc,
+      goalAmount: serializeGoalAmount(newEvent.goalAmountJpyc),
     });
   } catch (error: unknown) {
     console.error("EVENT_CREATE_ERROR", error);

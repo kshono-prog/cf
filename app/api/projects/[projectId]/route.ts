@@ -100,7 +100,7 @@ export async function GET(
         orderIndex: b.orderIndex,
       })),
       lastBridgeRuns: project.bridgeRuns.map((r) => ({
-        id: r.id,
+        id: r.id.toString(),
         mode: r.mode,
         currency: r.currency,
         dryRun: r.dryRun,
@@ -109,7 +109,7 @@ export async function GET(
         dbConfirmedTotalAmountDecimal: r.dbConfirmedTotalAmountDecimal ?? null,
       })),
       lastDistributionRuns: project.distributionRuns.map((r) => ({
-        id: r.id,
+        id: r.id.toString(),
         mode: r.mode,
         chainId: r.chainId,
         currency: r.currency,
