@@ -49,7 +49,11 @@ export function getRpcUrls(chainId: number): string[] {
   if (chainId === 137) {
     add(env("POLYGON_RPC_URL"));
     add("https://polygon-rpc.com");
-    add("https://rpc.ankr.com/polygon");
+    add(env("ANKR_RPC_URL"));
+    const ankrKey = env("ANKR_API_KEY");
+    if (ankrKey) {
+      add(`https://rpc.ankr.com/polygon/${ankrKey}`);
+    }
     add("https://polygon-bor-rpc.publicnode.com");
   }
 

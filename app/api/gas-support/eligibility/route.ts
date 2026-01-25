@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getRpcUrls, getTokenAddress } from "@/app/api/_lib/chain";
+import { buildProvider, filterWorkingRpcUrls } from "@/app/api/_lib/rpc";
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -29,7 +30,8 @@ async function retryRpcCall<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
       return await fn();
     } catch (error) {
       lastError = error;
-      if (!isRateLimitError(error) || attempt === attempts - 1) {
+      const retriable = isRateLimitError(error) || isNetworkChangedError(error);
+      if (!retriable || attempt === attempts - 1) {
         throw error;
       }
       const delayMs = 400 + attempt * 400 + Math.floor(Math.random() * 200);
@@ -52,15 +54,17 @@ function getJpycAddress(chainId: number): string {
   return getTokenAddress(chainId, "JPYC") || "";
 }
 
-function buildProvider(rpcUrls: string[]): ethers.AbstractProvider {
-  const providerOptions = { batchMaxCount: 1 };
-  if (rpcUrls.length === 1) {
-    return new ethers.JsonRpcProvider(rpcUrls[0], undefined, providerOptions);
+function isNetworkChangedError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { code?: string; event?: string; shortMessage?: string };
+  if (err.code === "NETWORK_ERROR" && err.event === "changed") return true;
+  if (
+    typeof err.shortMessage === "string" &&
+    err.shortMessage.includes("network changed")
+  ) {
+    return true;
   }
-  const providers = rpcUrls.map(
-    (url) => new ethers.JsonRpcProvider(url, undefined, providerOptions)
-  );
-  return new ethers.FallbackProvider(providers, 1);
+  return false;
 }
 
 async function getJpycDecimals(
@@ -88,10 +92,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
     }
 
-    const rpcUrls = getRpcUrls(chainId);
-    if (rpcUrls.length === 0) {
+    const rpcUrlsRaw = getRpcUrls(chainId);
+    if (rpcUrlsRaw.length === 0) {
       return NextResponse.json(
         { error: "RPC_URL_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
+
+    const rpcUrls = await filterWorkingRpcUrls(chainId, rpcUrlsRaw);
+    if (rpcUrls.length === 0) {
+      console.error("[RPC] No valid RPC endpoints after probing", {
+        chainId,
+        rpcUrlsRaw,
+      });
+      return NextResponse.json(
+        { error: "NO_VALID_RPC_ENDPOINT" },
         { status: 500 }
       );
     }
@@ -143,7 +159,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const provider = buildProvider(rpcUrls);
+    const provider = buildProvider(chainId, rpcUrls);
     const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
     const cacheKey = `${chainId}:${jpycAddress.toLowerCase()}`;
     const decimalsPromise = retryRpcCall(() => getJpycDecimals(jpyc, cacheKey));

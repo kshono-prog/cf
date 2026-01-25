@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getRpcUrls, getTokenAddress } from "@/app/api/_lib/chain";
+import { buildProvider, filterWorkingRpcUrls } from "@/app/api/_lib/rpc";
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -28,17 +29,6 @@ function getJpycAddress(chainId: number): string {
     return process.env.JPYC_ADDRESS || getTokenAddress(chainId, "JPYC") || "";
   }
   return getTokenAddress(chainId, "JPYC") || "";
-}
-
-function buildProvider(rpcUrls: string[]): ethers.AbstractProvider {
-  const providerOptions = { batchMaxCount: 1 };
-  if (rpcUrls.length === 1) {
-    return new ethers.JsonRpcProvider(rpcUrls[0], undefined, providerOptions);
-  }
-  const providers = rpcUrls.map(
-    (url) => new ethers.JsonRpcProvider(url, undefined, providerOptions)
-  );
-  return new ethers.FallbackProvider(providers, 1);
 }
 
 type Body = {
@@ -95,10 +85,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "SIGNATURE_INVALID" }, { status: 401 });
     }
 
-    const rpcUrls = getRpcUrls(chainId);
-    if (rpcUrls.length === 0) {
+    const rpcUrlsRaw = getRpcUrls(chainId);
+    if (rpcUrlsRaw.length === 0) {
       return NextResponse.json(
         { error: "RPC_URL_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
+
+    const rpcUrls = await filterWorkingRpcUrls(chainId, rpcUrlsRaw);
+    if (rpcUrls.length === 0) {
+      console.error("[RPC] No valid RPC endpoints after probing", {
+        chainId,
+        rpcUrlsRaw,
+      });
+      return NextResponse.json(
+        { error: "NO_VALID_RPC_ENDPOINT" },
         { status: 500 }
       );
     }
@@ -136,7 +138,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3) eligibility re-check (server-side)
-    const provider = buildProvider(rpcUrls);
+    const provider = buildProvider(chainId, rpcUrls);
     const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
 
     const [polBalWei, dec, jpycBalRaw] = await Promise.all([

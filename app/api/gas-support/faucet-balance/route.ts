@@ -3,17 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getRpcUrls } from "@/app/api/_lib/chain";
-
-function buildProvider(rpcUrls: string[]): ethers.AbstractProvider {
-  const providerOptions = { batchMaxCount: 1 };
-  if (rpcUrls.length === 1) {
-    return new ethers.JsonRpcProvider(rpcUrls[0], undefined, providerOptions);
-  }
-  const providers = rpcUrls.map(
-    (url) => new ethers.JsonRpcProvider(url, undefined, providerOptions)
-  );
-  return new ethers.FallbackProvider(providers, 1);
-}
+import { buildProvider, filterWorkingRpcUrls } from "@/app/api/_lib/rpc";
 
 export async function GET(_req: NextRequest) {
   try {
@@ -22,10 +12,21 @@ export async function GET(_req: NextRequest) {
     if (!chainConfig) {
       return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
     }
-    const rpcUrls = getRpcUrls(chainId);
-    if (rpcUrls.length === 0) {
+    const rpcUrlsRaw = getRpcUrls(chainId);
+    if (rpcUrlsRaw.length === 0) {
       return NextResponse.json(
         { error: "RPC_URL_NOT_CONFIGURED" },
+        { status: 500 }
+      );
+    }
+    const rpcUrls = await filterWorkingRpcUrls(chainId, rpcUrlsRaw);
+    if (rpcUrls.length === 0) {
+      console.error("[RPC] No valid RPC endpoints after probing", {
+        chainId,
+        rpcUrlsRaw,
+      });
+      return NextResponse.json(
+        { error: "NO_VALID_RPC_ENDPOINT" },
         { status: 500 }
       );
     }
@@ -40,7 +41,7 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ chainId, enabled: false });
     }
 
-    const provider = buildProvider(rpcUrls);
+    const provider = buildProvider(chainId, rpcUrls);
     const balWei = await provider.getBalance(faucetWallet.address);
 
     return NextResponse.json({
