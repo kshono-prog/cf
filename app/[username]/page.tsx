@@ -1,9 +1,12 @@
 // app/[username]/page.tsx
 
-import ProfileClient from "@/components/ProfileClient";
+import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { prisma } from "@/lib/prisma";
+import { ProfileSummaryServer } from "@/components/profile/ProfileSummaryServer";
+import { MyPageFooter } from "@/components/MyPageFooter";
+import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 
 type Params = { username: string };
 
@@ -119,10 +122,22 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   }
 
   return (
-    <ProfileClient
-      username={username}
-      creator={creator}
-      projectId={projectId}
-    />
+    <div className="container-narrow py-8 force-light-theme">
+      <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+        <ProfileSummaryServer
+          username={username}
+          creator={creator}
+          headerColor={creator.themeColor || "#005bbb"}
+        />
+        <div className="px-4">
+          <ProfileClientSection
+            username={username}
+            creator={creator}
+            projectId={projectId}
+          />
+        </div>
+      </div>
+      <MyPageFooter />
+    </div>
   );
 }

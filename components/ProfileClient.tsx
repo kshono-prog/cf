@@ -79,6 +79,7 @@ type Props = {
   creator: CreatorProfileInput;
   projectId: string | null;
   publicSummary?: PublicSummaryLite | null;
+  layout?: "full" | "content";
 };
 
 // ===== Project Progress（/api/projects/[projectId]/progress）型 =====
@@ -156,6 +157,7 @@ export default function ProfileClient({
   creator: creatorInput,
   projectId,
   publicSummary,
+  layout = "full",
 }: Props) {
   // --- creator の address null を排除して CreatorProfile に正規化 ---
   const creator: CreatorProfile = useMemo(() => {
@@ -744,6 +746,178 @@ export default function ProfileClient({
       ? hasLegacyOnchainGoal
       : false;
 
+  const content = (
+    <>
+      {/* ========== 1) Phase1: Project Progress（DB集計） 主表示 ========== */}
+      {showDbCard && (
+        <ProjectProgressCard
+          headerColor={headerColor}
+          projectTitle={projectTitle}
+          projectStatus={projectStatus}
+          profileAddressUrl={profileAddressUrl}
+          progressLoading={progressLoading}
+          progressError={progressError}
+          progressTotalYen={progressTotalYen}
+          resolvedTargetYen={resolvedTargetYen}
+          // progressPercent={progressPercent}
+          progressConfirmedCount={progressConfirmedCount}
+          goalAchievedAt={goalAchievedAt}
+          progressReached={progressReached}
+          supportedJpycChainIds={supportedJpycChainIds}
+          byChainJpyc={byChainJpyc}
+          // totalsAllChains={totalsAllChains}
+          achieving={achieving}
+          showManualAchieveButton={showManualAchieveButton}
+          onRefresh={() => {
+            void fetchProjectStatusSafe();
+            void fetchProjectProgressSafe();
+          }}
+          onAchieve={() => {
+            void achieveGoalSafe();
+          }}
+        />
+      )}
+
+      {/* ========== 2) Public Summary Goal（/api/public/creator の要約） 代替表示 ========== */}
+      {showPublicCard ? (
+        <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 dark:border-gray-300 bg-white/95 dark:bg-white/95 shadow-sm">
+          <div className="p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-900">
+                Goal
+              </div>
+              {publicSummaryState?.goal?.achievedAt ? (
+                <span className="text-[11px] text-emerald-700">達成済み</span>
+              ) : null}
+            </div>
+
+            <div className="text-xs text-gray-500 dark:text-gray-600">
+              目標:{" "}
+              {publicSummaryState?.goal
+                ? formatJpyc(publicSummaryState.goal.targetAmountJpyc)
+                : "-"}{" "}
+              JPYC
+              {publicSummaryState?.goal?.deadline ? (
+                <span className="ml-2">
+                  期限: {publicSummaryState.goal.deadline.slice(0, 10)}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="text-sm text-gray-800 dark:text-gray-900">
+              現在:{" "}
+              {publicSummary?.progress
+                ? formatJpyc(publicSummary.progress.confirmedJpyc)
+                : "-"}{" "}
+              JPYC
+            </div>
+
+            <div className="h-2 w-full rounded bg-gray-200 overflow-hidden">
+              <div
+                className="h-2"
+                style={{
+                  backgroundColor: headerColor,
+                  width: `${clampPct(
+                    publicSummaryState?.progress?.progressPct ?? 0
+                  )}%`,
+                }}
+              />
+            </div>
+
+            <div className="text-[11px] text-gray-500 dark:text-gray-600">
+              {Math.floor(
+                clampPct(publicSummaryState?.progress?.progressPct ?? 0)
+              )}
+              % 達成
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* YouTube 動画ブロック */}
+      {creator.youtubeVideos && creator.youtubeVideos.length > 0 && (
+        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-50 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-300">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-900 mb-2">
+            🎬 紹介動画 / Featured Videos
+          </h3>
+
+          {creator.youtubeVideos.map((v, idx) => (
+            <div key={idx} className="mb-6 last:mb-0">
+              <a
+                href={v.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <img
+                  src={`https://img.youtube.com/vi/${extractYouTubeId(
+                    v.url
+                  )}/hqdefault.jpg`}
+                  alt={v.title}
+                  className="rounded-xl w-full mb-2 shadow-sm hover:opacity-90 transition"
+                />
+              </a>
+
+              <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-900 mb-2 mt-4">
+                {v.title}
+              </h4>
+
+              <p className="text-sm text-gray-600 dark:text-gray-700 leading-relaxed mb-3">
+                {v.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ProfileWalletClient
+        username={username}
+        creator={creator}
+        projectId={projectId}
+        supportedJpycChainIds={supportedJpycChainIds}
+        showLegacyCard={showLegacyCard}
+        headerColor={headerColor}
+        onPostContribution={postContribution}
+        onAfterSend={afterSendPipeline}
+      />
+
+      {/* フッター */}
+      <footer
+        className="mt-8 -mx-4 sm:-mx-6 px-6 py-5 text-center text-[11px] leading-relaxed text-white/90 space-y-3"
+        style={{
+          backgroundColor: defaultColor,
+          backgroundImage:
+            "linear-gradient(135deg, rgba(255,255,255,0.16), transparent 45%)",
+        }}
+      >
+        <div className="flex justify-center mb-2">
+          <img
+            src="/icon/creator_founding_white.svg"
+            alt="creator founding logo"
+            className="w-[170px] h-auto opacity-90"
+          />
+        </div>
+        <p>
+          ・本サービスは、クリエイター応援を目的とした個人学習による無償提供のUIツールです。
+        </p>
+        <p>
+          ・本サービス（コンテンツ・作品等）はJPYC株式会社の公式コンテンツではありません。
+        </p>
+        <p>
+          ・JPYC/USDCの送付は利用者が外部ウォレットで行うもので、本サービスは資金の保管・預託・管理・送付やその代理・媒介には一切関与しません。
+        </p>
+        <p>
+          ・本サイトの投げ銭は<strong>無償の応援</strong>
+          です。返金や金銭的・物品的な対価は一切発生しません。
+        </p>
+      </footer>
+    </>
+  );
+
+  if (layout === "content") {
+    return content;
+  }
+
   /* ========== 表示部分 ========== */
   return (
     <div className="container-narrow py-8 force-light-theme">
@@ -755,173 +929,7 @@ export default function ProfileClient({
           headerColor={headerColor}
         />
 
-        <div className="px-4">
-          {/* ========== 1) Phase1: Project Progress（DB集計） 主表示 ========== */}
-          {showDbCard && (
-            <ProjectProgressCard
-              headerColor={headerColor}
-              projectTitle={projectTitle}
-              projectStatus={projectStatus}
-              profileAddressUrl={profileAddressUrl}
-              progressLoading={progressLoading}
-              progressError={progressError}
-              progressTotalYen={progressTotalYen}
-              resolvedTargetYen={resolvedTargetYen}
-              // progressPercent={progressPercent}
-              progressConfirmedCount={progressConfirmedCount}
-              goalAchievedAt={goalAchievedAt}
-              progressReached={progressReached}
-              supportedJpycChainIds={supportedJpycChainIds}
-              byChainJpyc={byChainJpyc}
-              // totalsAllChains={totalsAllChains}
-              achieving={achieving}
-              showManualAchieveButton={showManualAchieveButton}
-              onRefresh={() => {
-                void fetchProjectStatusSafe();
-                void fetchProjectProgressSafe();
-              }}
-              onAchieve={() => {
-                void achieveGoalSafe();
-              }}
-            />
-          )}
-
-          {/* ========== 2) Public Summary Goal（/api/public/creator の要約） 代替表示 ========== */}
-          {showPublicCard ? (
-            <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 dark:border-gray-300 bg-white/95 dark:bg-white/95 shadow-sm">
-              <div className="p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-900">
-                    Goal
-                  </div>
-                  {publicSummaryState?.goal?.achievedAt ? (
-                    <span className="text-[11px] text-emerald-700">
-                      達成済み
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className="text-xs text-gray-500 dark:text-gray-600">
-                  目標:{" "}
-                  {publicSummaryState?.goal
-                    ? formatJpyc(publicSummaryState.goal.targetAmountJpyc)
-                    : "-"}{" "}
-                  JPYC
-                  {publicSummaryState?.goal?.deadline ? (
-                    <span className="ml-2">
-                      期限: {publicSummaryState.goal.deadline.slice(0, 10)}
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className="text-sm text-gray-800 dark:text-gray-900">
-                  現在:{" "}
-                  {publicSummary?.progress
-                    ? formatJpyc(publicSummary.progress.confirmedJpyc)
-                    : "-"}{" "}
-                  JPYC
-                </div>
-
-                <div className="h-2 w-full rounded bg-gray-200 overflow-hidden">
-                  <div
-                    className="h-2"
-                    style={{
-                      backgroundColor: headerColor,
-                      width: `${clampPct(
-                        publicSummaryState?.progress?.progressPct ?? 0
-                      )}%`,
-                    }}
-                  />
-                </div>
-
-                <div className="text-[11px] text-gray-500 dark:text-gray-600">
-                  {Math.floor(
-                    clampPct(publicSummaryState?.progress?.progressPct ?? 0)
-                  )}
-                  % 達成
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* YouTube 動画ブロック */}
-          {creator.youtubeVideos && creator.youtubeVideos.length > 0 && (
-            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-50 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-300">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-900 mb-2">
-                🎬 紹介動画 / Featured Videos
-              </h3>
-
-              {creator.youtubeVideos.map((v, idx) => (
-                <div key={idx} className="mb-6 last:mb-0">
-                  <a
-                    href={v.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <img
-                      src={`https://img.youtube.com/vi/${extractYouTubeId(
-                        v.url
-                      )}/hqdefault.jpg`}
-                      alt={v.title}
-                      className="rounded-xl w-full mb-2 shadow-sm hover:opacity-90 transition"
-                    />
-                  </a>
-
-                  <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-900 mb-2 mt-4">
-                    {v.title}
-                  </h4>
-
-                  <p className="text-sm text-gray-600 dark:text-gray-700 leading-relaxed mb-3">
-                    {v.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <ProfileWalletClient
-            username={username}
-            creator={creator}
-            projectId={projectId}
-            supportedJpycChainIds={supportedJpycChainIds}
-            showLegacyCard={showLegacyCard}
-            headerColor={headerColor}
-            onPostContribution={postContribution}
-            onAfterSend={afterSendPipeline}
-          />
-
-          {/* フッター */}
-          <footer
-            className="mt-8 -mx-4 sm:-mx-6 px-6 py-5 text-center text-[11px] leading-relaxed text-white/90 space-y-3"
-            style={{
-              backgroundColor: defaultColor,
-              backgroundImage:
-                "linear-gradient(135deg, rgba(255,255,255,0.16), transparent 45%)",
-            }}
-          >
-            <div className="flex justify-center mb-2">
-              <img
-                src="/icon/creator_founding_white.svg"
-                alt="creator founding logo"
-                className="w-[170px] h-auto opacity-90"
-              />
-            </div>
-            <p>
-              ・本サービスは、クリエイター応援を目的とした個人学習による無償提供のUIツールです。
-            </p>
-            <p>
-              ・本サービス（コンテンツ・作品等）はJPYC株式会社の公式コンテンツではありません。
-            </p>
-            <p>
-              ・JPYC/USDCの送付は利用者が外部ウォレットで行うもので、本サービスは資金の保管・預託・管理・送付やその代理・媒介には一切関与しません。
-            </p>
-            <p>
-              ・本サイトの投げ銭は<strong>無償の応援</strong>
-              です。返金や金銭的・物品的な対価は一切発生しません。
-            </p>
-          </footer>
-        </div>
+        <div className="px-4">{content}</div>
       </div>
       <MyPageFooter />
     </div>
