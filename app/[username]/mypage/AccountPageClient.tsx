@@ -29,6 +29,7 @@ import { CreatorProfileSection } from "@/components/mypage/CreatorProfileSection
 import { UserRegistrationForm } from "@/components/mypage/UserRegistrationForm";
 import { UserUpdateForm } from "@/components/mypage/UserUpdateForm";
 import { CreatorApplyCard } from "@/components/mypage/CreatorApplyCard";
+import { GasSupportTabs } from "@/components/mypage/GasSupportTabs";
 import { MyPageAccordion } from "@/components/mypage/MyPageAccordion";
 import { UnconnectedMyPage } from "@/components/mypage/UnconnectedMyPage";
 import { MyPageFooter } from "@/components/MyPageFooter";
@@ -215,6 +216,7 @@ export default function AccountPageClient({ username }: Props) {
     wallet: true,
     jpyc: true,
     flow: true,
+    gas: true,
     project: true,
   });
 
@@ -1076,6 +1078,15 @@ export default function AccountPageClient({ username }: Props) {
               </p>
             )}
           </div>
+        </MyPageAccordion>
+
+        <MyPageAccordion
+          open={openSections}
+          onToggle={toggleSection}
+          sectionKey="gas"
+          title="ガス代支援"
+        >
+          <GasSupportTabs />
         </MyPageAccordion>
 
         {/* ======================================================

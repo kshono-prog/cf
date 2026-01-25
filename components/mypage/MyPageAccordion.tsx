@@ -3,7 +3,13 @@
 
 import React from "react";
 
-export type SectionKey = "about" | "wallet" | "jpyc" | "flow" | "project";
+export type SectionKey =
+  | "about"
+  | "wallet"
+  | "jpyc"
+  | "flow"
+  | "gas"
+  | "project";
 
 export type OpenSections = Record<SectionKey, boolean>;
 

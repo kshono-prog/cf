@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import {
   useAccount,
@@ -42,14 +41,6 @@ import {
   type Currency,
   type WalletFlags,
 } from "@/components/profile/profileClientHelpers";
-
-const GasSupportTabs = dynamic(
-  () =>
-    import("@/components/profile/GasSupportTabs").then(
-      (module) => module.GasSupportTabs
-    ),
-  { ssr: false, loading: () => null }
-);
 
 type ContributionArgs = {
   projectId?: string;
@@ -793,8 +784,6 @@ export function ProfileWalletClient({
       >
         {status}
       </p>
-
-      {connected && <GasSupportTabs />}
     </>
   );
 }
