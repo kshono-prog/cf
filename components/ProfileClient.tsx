@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
-
+import { useChainId } from "wagmi";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import { postReverify, autoReverifyPending } from "@/lib/reverifyClient";
@@ -764,10 +764,19 @@ export default function ProfileClient({
 
   const defaultColor = "#005bbb";
   const headerColor = creator.themeColor || defaultColor;
+  const connectedChainId = useChainId();
   const explorerChainId = useMemo(() => {
+    if (
+      isSupportedChainId(connectedChainId) &&
+      (supportedJpycChainIds.length === 0 ||
+        supportedJpycChainIds.includes(connectedChainId))
+    ) {
+      return connectedChainId;
+    }
+
     const first = supportedJpycChainIds.find((id) => isSupportedChainId(id));
     return first != null ? (first as SupportedChainId) : getDefaultChainId();
-  }, [supportedJpycChainIds]);
+  }, [connectedChainId, supportedJpycChainIds]);
   const explorerChainConfig = getChainConfig(explorerChainId);
   const profileAddressUrl =
     creator.address && explorerChainConfig?.explorerBaseUrl

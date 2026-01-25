@@ -36,6 +36,9 @@ export function buildProvider(
   chainId: number,
   rpcUrls: string[]
 ): ethers.AbstractProvider {
+  if (rpcUrls.length === 0) {
+    throw new Error("No RPC URLs provided");
+  }
   if (rpcUrls.length === 1) {
     return new ethers.JsonRpcProvider(rpcUrls[0], chainId, PROVIDER_OPTIONS);
   }
