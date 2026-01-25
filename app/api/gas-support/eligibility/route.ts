@@ -10,6 +10,34 @@ const ERC20_ABI = [
 ];
 
 const jpycDecimalsCache = new Map<string, number>();
+const RATE_LIMIT_PATTERNS = [/rate limit/i, /too many requests/i];
+
+function isRateLimitError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const message = String((error as { message?: string }).message || "");
+  if (RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(message))) return true;
+  const nestedMessage = String(
+    (error as { error?: { message?: string } }).error?.message || ""
+  );
+  return RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(nestedMessage));
+}
+
+async function retryRpcCall<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isRateLimitError(error) || attempt === attempts - 1) {
+        throw error;
+      }
+      const delayMs = 400 + attempt * 400 + Math.floor(Math.random() * 200);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
 
 function pickChainId(raw: string | null): number {
   if (!raw) return Number(process.env.CHAIN_ID ?? 137);
@@ -107,8 +135,10 @@ export async function GET(req: NextRequest) {
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
     const cacheKey = `${chainId}:${jpycAddress.toLowerCase()}`;
-    const decimalsPromise = getJpycDecimals(jpyc, cacheKey);
-    const faucetBalancePromise = provider.getBalance(faucetWallet.address);
+    const decimalsPromise = retryRpcCall(() => getJpycDecimals(jpyc, cacheKey));
+    const faucetBalancePromise = retryRpcCall(() =>
+      provider.getBalance(faucetWallet.address)
+    );
 
     let polBalWei: bigint;
     let dec: number;
@@ -116,9 +146,9 @@ export async function GET(req: NextRequest) {
     let faucetBalWei: bigint;
     try {
       [polBalWei, dec, jpycBalRaw, faucetBalWei] = await Promise.all([
-        provider.getBalance(address),
+        retryRpcCall(() => provider.getBalance(address)),
         decimalsPromise,
-        jpyc.balanceOf(address) as Promise<bigint>,
+        retryRpcCall(() => jpyc.balanceOf(address) as Promise<bigint>),
         faucetBalancePromise,
       ]);
     } catch (error) {
