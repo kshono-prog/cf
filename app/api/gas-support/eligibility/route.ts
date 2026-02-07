@@ -12,7 +12,17 @@ const ERC20_ABI = [
 
 const jpycDecimalsCache = new Map<string, number>();
 const RATE_LIMIT_PATTERNS = [/rate limit/i, /too many requests/i];
-
+const TRANSIENT_ERROR_PATTERNS = [
+  /timeout/i,
+  /timed out/i,
+  /gateway/i,
+  /temporarily unavailable/i,
+  /service unavailable/i,
+  /connection reset/i,
+  /socket hang up/i,
+  /ECONNRESET/i,
+  /EAI_AGAIN/i,
+];
 function isRateLimitError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const message = String((error as { message?: string }).message || "");
@@ -23,6 +33,28 @@ function isRateLimitError(error: unknown): boolean {
   return RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(nestedMessage));
 }
 
+function isTransientRpcError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as {
+    code?: string;
+    message?: string;
+    shortMessage?: string;
+    cause?: { code?: string; message?: string };
+  };
+  const code = err.code ?? err.cause?.code ?? "";
+  if (
+    code === "NETWORK_ERROR" ||
+    code === "SERVER_ERROR" ||
+    code === "TIMEOUT"
+  ) {
+    return true;
+  }
+  const message = `${err.message ?? ""} ${err.shortMessage ?? ""} ${
+    err.cause?.message ?? ""
+  }`;
+  return TRANSIENT_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 async function retryRpcCall<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -30,7 +62,10 @@ async function retryRpcCall<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
       return await fn();
     } catch (error) {
       lastError = error;
-      const retriable = isRateLimitError(error) || isNetworkChangedError(error);
+      const retriable =
+        isRateLimitError(error) ||
+        isNetworkChangedError(error) ||
+        isTransientRpcError(error);
       if (!retriable || attempt === attempts - 1) {
         throw error;
       }
@@ -188,47 +223,36 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    let provider = buildProvider(chainId, rpcUrls);
-    let jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
     const cacheKey = `${chainId}:${jpycAddress.toLowerCase()}`;
 
     let balances: BalanceSnapshot | null = null;
-    let loadError: unknown;
-    try {
-      balances = await loadBalances(
-        provider,
-        jpyc,
-        address,
-        faucetWallet.address,
-        cacheKey
-      );
-    } catch (error) {
-      loadError = error;
-      if (isNetworkChangedError(error)) {
-        const refreshedRpcUrls = await filterWorkingRpcUrls(
-          chainId,
-          rpcUrlsRaw
+    let loadError: unknown = null;
+    const rpcFailures: Array<{ url: string; error: unknown }> = [];
+
+    for (const rpcUrl of rpcUrls) {
+      const provider = buildProvider(chainId, [rpcUrl]);
+      const jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
+      try {
+        balances = await loadBalances(
+          provider,
+          jpyc,
+          address,
+          faucetWallet.address,
+          cacheKey
         );
-        if (refreshedRpcUrls.length > 0) {
-          provider = buildProvider(chainId, refreshedRpcUrls);
-          jpyc = new ethers.Contract(jpycAddress, ERC20_ABI, provider);
-          try {
-            balances = await loadBalances(
-              provider,
-              jpyc,
-              address,
-              faucetWallet.address,
-              cacheKey
-            );
-          } catch (retryError) {
-            loadError = retryError;
-          }
-        }
+        break;
+      } catch (error) {
+        loadError = error;
+        rpcFailures.push({ url: rpcUrl, error });
       }
     }
 
     if (!balances) {
-      console.error("RPC_CALL_FAILED", loadError);
+      console.error("RPC_CALL_FAILED", {
+        chainId,
+        loadError,
+        rpcFailures,
+      });
       return NextResponse.json({
         chainId,
         address: address.toLowerCase(),

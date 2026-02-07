@@ -2,6 +2,20 @@ import { ethers } from "ethers";
 
 const PROVIDER_OPTIONS = { batchMaxCount: 1 };
 
+function createRpcProvider(
+  chainId: number,
+  url: string
+): ethers.JsonRpcProvider {
+  return new ethers.JsonRpcProvider(
+    url,
+    chainId,
+    {
+      ...PROVIDER_OPTIONS,
+      staticNetwork: true,
+    }
+  );
+}
+
 export async function filterWorkingRpcUrls(
   chainId: number,
   rpcUrls: string[]
@@ -10,7 +24,7 @@ export async function filterWorkingRpcUrls(
 
   for (const url of rpcUrls) {
     try {
-      const probeProvider = new ethers.JsonRpcProvider(url, "any");
+      const probeProvider = createRpcProvider(chainId, url);
       const net = await probeProvider.getNetwork();
       const detected = Number(net.chainId);
 
@@ -39,12 +53,12 @@ export function buildProvider(
   if (rpcUrls.length === 0) {
     throw new Error("No RPC URLs provided");
   }
-  const network = { chainId, name: `chain-${chainId}` };
+
   if (rpcUrls.length === 1) {
-    return new ethers.JsonRpcProvider(rpcUrls[0], network, PROVIDER_OPTIONS);
+    return createRpcProvider(chainId, rpcUrls[0]);
   }
-  const providers = rpcUrls.map(
-    (url) => new ethers.JsonRpcProvider(url, network, PROVIDER_OPTIONS)
-  );
+
+  const providers = rpcUrls.map((url) => createRpcProvider(chainId, url));
+
   return new ethers.FallbackProvider(providers, 1);
 }
