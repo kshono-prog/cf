@@ -9,14 +9,14 @@ import {
   toBigIntOrThrow,
   lowerOrNull,
 } from "@/lib/api/guards";
+import {
+  ensureProjectSettlement,
+  recomputeProjectSettlement,
+} from "@/lib/projectSettlement";
 
 export const dynamic = "force-dynamic";
 
 type Params = { projectId: string };
-
-type Body = {
-  address?: unknown; // ownerチェック用（接続アドレス）
-};
 
 function decimalToJpycIntFloor(amountDecimal: Prisma.Decimal | null): number {
   if (!amountDecimal) return 0;
@@ -85,6 +85,9 @@ export async function POST(
         where: { id: projectId },
         data: { status: "GOAL_ACHIEVED", updatedAt: now },
       });
+
+      await ensureProjectSettlement(tx, projectId);
+      await recomputeProjectSettlement(tx, projectId);
 
       return g;
     });

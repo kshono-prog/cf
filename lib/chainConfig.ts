@@ -3,7 +3,6 @@ import {
   mainnet,
   polygon,
   avalanche,
-  type Chain as ViemChain,
 } from "viem/chains";
 
 // ===== mainnet only =====

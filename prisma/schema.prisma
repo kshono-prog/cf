@@ -234,6 +234,10 @@ model Project {
   budgetItems               BudgetItem[]
   contributions             Contribution[]
   distributionRuns          DistributionRun[]
+  settlementState          ProjectSettlement?
+  bridgeSteps              ProjectBridgeStep[]
+  distributionEntries      DistributionEntry[]
+  distributionExecutions   DistributionExecution[]
   goal                      Goal?
   creatorProfile            CreatorProfile?   @relation(fields: [creatorProfileId], references: [id], onUpdate: NoAction)
   purposes                  Purpose[]
@@ -260,6 +264,93 @@ model DistributionRun {
   @@index([projectId])
   @@index([createdAt])
   @@index([mode])
+}
+
+model ProjectSettlement {
+  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId           BigInt                    @unique
+  status              ProjectSettlementStatus   @default(NOT_READY)
+  bridgedTotalAtomic  Decimal                   @default(0) @db.Decimal(78, 0)
+  distributedTotalAtomic Decimal                @default(0) @db.Decimal(78, 0)
+  readyAt             DateTime?                 @db.Timestamptz(6)
+  distributedAt       DateTime?                 @db.Timestamptz(6)
+  createdAt           DateTime                  @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime                  @default(now()) @db.Timestamptz(6)
+  project             Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ProjectBridgeStep {
+  id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId             BigInt
+  sourceChain           BridgeSourceChain
+  destinationChain      BridgeDestinationChain @default(AVALANCHE)
+  token                 SettlementToken
+  status                BridgeStepStatus   @default(PENDING)
+  bridgedAmountAtomic   Decimal            @default(0) @db.Decimal(78, 0)
+  txHash                String?
+  completedAt           DateTime?          @db.Timestamptz(6)
+  recordedByWallet      String?
+  memo                  String?
+  createdAt             DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime           @default(now()) @db.Timestamptz(6)
+  project               Project            @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([projectId, sourceChain, destinationChain, token], map: "ProjectBridgeStep_project_source_dest_token_key")
+  @@index([projectId, status], map: "ProjectBridgeStep_project_status_idx")
+}
+
+model DistributionEntry {
+  id                        String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId                 BigInt
+  recipientAddressChecksum  String
+  token                     SettlementToken
+  amountAtomic              Decimal                 @db.Decimal(78, 0)
+  memo                      String?
+  status                    DistributionEntryStatus @default(DRAFT)
+  sentAt                    DateTime?               @db.Timestamptz(6)
+  txHash                    String?
+  orderIndex                Int                     @default(0)
+  createdAt                 DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime                @default(now()) @db.Timestamptz(6)
+  project                   Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  executionItems            DistributionExecutionItem[]
+
+  @@index([projectId, orderIndex], map: "DistributionEntry_project_order_idx")
+  @@index([projectId, status], map: "DistributionEntry_project_status_idx")
+  @@index([txHash], map: "DistributionEntry_txHash_idx")
+}
+
+model DistributionExecution {
+  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId          BigInt
+  initiatedByWallet  String?
+  startedAt          DateTime                  @default(now()) @db.Timestamptz(6)
+  finishedAt         DateTime?                 @db.Timestamptz(6)
+  result             DistributionExecutionResult @default(PARTIAL_SUCCESS)
+  note               String?
+  createdAt          DateTime                  @default(now()) @db.Timestamptz(6)
+  project            Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  items              DistributionExecutionItem[]
+
+  @@index([projectId, startedAt], map: "DistributionExecution_project_started_idx")
+}
+
+model DistributionExecutionItem {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  executionId           String                  @db.Uuid
+  distributionEntryId   String                  @db.Uuid
+  status                DistributionEntryStatus
+  txHash                String?
+  errorReason           String?
+  createdAt             DateTime                @default(now()) @db.Timestamptz(6)
+  execution             DistributionExecution   @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  distributionEntry     DistributionEntry       @relation(fields: [distributionEntryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([executionId], map: "DistributionExecutionItem_execution_idx")
+  @@index([distributionEntryId], map: "DistributionExecutionItem_entry_idx")
 }
 
 /// ✅ NEW: bridge execution log (Route B: LOG_ONLY)
@@ -352,4 +443,45 @@ model BudgetItem {
   project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([projectId, orderIndex])
+}
+
+enum ProjectSettlementStatus {
+  NOT_READY
+  BRIDGING
+  READY_FOR_DISTRIBUTION
+  DISTRIBUTED
+}
+
+enum BridgeSourceChain {
+  POLYGON
+  ETHEREUM
+}
+
+enum BridgeDestinationChain {
+  AVALANCHE
+}
+
+enum BridgeStepStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum SettlementToken {
+  JPYC
+  USDC
+}
+
+enum DistributionEntryStatus {
+  DRAFT
+  QUEUED
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum DistributionExecutionResult {
+  PARTIAL_SUCCESS
+  SUCCESS
+  FAILED
 }

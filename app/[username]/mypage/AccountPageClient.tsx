@@ -35,6 +35,7 @@ import { UnconnectedMyPage } from "@/components/mypage/UnconnectedMyPage";
 import { MyPageFooter } from "@/components/MyPageFooter";
 import { BridgeWithWormholeOrManualButton } from "@/components/bridge/BridgeWithWormholeOrManualButton";
 import { ProjectSection } from "@/components/mypage/ProjectSection";
+import { ProjectSettlementPanel } from "@/components/mypage/ProjectSettlementPanel";
 import { PromoCreatorFounding } from "@/components/promo/PromoCreatorFounding";
 
 const SHOW_SUMMARY_ACTIONS = false;
@@ -1235,6 +1236,12 @@ export default function AccountPageClient({ username }: Props) {
                     </>
                   )}
                 </div>
+
+                <ProjectSettlementPanel
+                  projectId={localProjectId}
+                  walletAddress={address ?? null}
+                  isConnected={isConnected}
+                />
 
                 {/* -------- ① Summary + Actions -------- */}
                 {SHOW_SUMMARY_ACTIONS ? (
