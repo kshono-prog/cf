@@ -1,6 +1,5 @@
 // app/[username]/page.tsx
 
-import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { prisma } from "@/lib/prisma";
@@ -74,7 +73,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
 
   const { creator, profile } = creatorResult;
 
-  // 2) projectId を Prisma から取得（既存ロジックそのまま）
+  // 2) projectId を Prisma から取得（初回表示を優先して read-only で解決）
   let projectId: string | null = null;
 
   try {
@@ -82,40 +81,23 @@ export default async function Page({ params }: { params: Promise<Params> }) {
       projectId = profile.activeProjectId.toString();
     } else {
       const profileId = BigInt(profile.id);
-      const projByCreator = await prisma.project.findFirst({
-        where: { creatorProfileId: profileId },
+      const owner = profile.walletAddress?.toLowerCase() ?? null;
+      const projectWhereOr: Array<
+        { creatorProfileId: bigint } | { ownerAddress: string }
+      > = [{ creatorProfileId: profileId }];
+      if (owner) {
+        projectWhereOr.push({ ownerAddress: owner });
+      }
+
+      const project = await prisma.project.findFirst({
+        where: {
+          OR: projectWhereOr,
+        },
         select: { id: true },
         orderBy: { createdAt: "desc" },
       });
 
-      if (projByCreator?.id != null) {
-        projectId = projByCreator.id.toString();
-      } else {
-        const owner = profile.walletAddress?.toLowerCase() ?? null;
-
-        if (owner) {
-          const projByOwner = await prisma.project.findFirst({
-            where: { ownerAddress: owner },
-            select: { id: true },
-            orderBy: { createdAt: "desc" },
-          });
-
-          if (projByOwner?.id != null) {
-            projectId = projByOwner.id.toString();
-
-            await prisma.$transaction([
-              prisma.project.update({
-                where: { id: projByOwner.id },
-                data: { creatorProfileId: profileId },
-              }),
-              prisma.creatorProfile.update({
-                where: { id: profileId },
-                data: { activeProjectId: projByOwner.id },
-              }),
-            ]);
-          }
-        }
-      }
+      projectId = project?.id?.toString() ?? null;
     }
   } catch (e) {
     console.error("Failed to resolve projectId:", e);
