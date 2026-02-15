@@ -1,6 +1,7 @@
 // app/api/creators/random/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 import type { CreatorProfile } from "@/types/creator";
 
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
     : 100;
 
   try {
-    const total = await prisma.creatorProfile.count();
+    const total = await withPrismaRetry(() => prisma.creatorProfile.count());
 
     if (total === 0) {
       return NextResponse.json<CreatorProfile[]>([]);
@@ -27,15 +28,17 @@ export async function GET(req: NextRequest) {
     const maxSkip = Math.max(total - limit, 0);
     const skip = maxSkip > 0 ? Math.floor(Math.random() * (maxSkip + 1)) : 0;
 
-    const rows = await prisma.creatorProfile.findMany({
-      skip,
-      take: limit,
-      orderBy: { createdAt: "asc" },
-      include: {
-        socialLinks: true,
-        youtubeVideos: true,
-      },
-    });
+    const rows = await withPrismaRetry(() =>
+      prisma.creatorProfile.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: "asc" },
+        include: {
+          socialLinks: true,
+          youtubeVideos: true,
+        },
+      })
+    );
 
     const result: CreatorProfile[] = rows.map((p) => {
       // SocialLinks / YoutubeVideo は必要なら後で拡張でもOK

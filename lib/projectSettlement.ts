@@ -1,8 +1,46 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
-export type TxClient = Prisma.TransactionClient;
+export type TxClient = Prisma.TransactionClient | PrismaClient;
 
 const DECIMAL_ZERO = new Prisma.Decimal(0);
+
+export function isSettlementSchemaMissingError(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code !== "P2021" && error.code !== "P2022") return false;
+    const table = (error.meta as { table?: unknown } | undefined)?.table;
+    if (typeof table === "string" && table.includes("ProjectSettlement")) {
+      return true;
+    }
+    const msg = error.message ?? "";
+    return (
+      msg.includes("ProjectSettlement") ||
+      msg.includes("ProjectBridgeStep") ||
+      msg.includes("DistributionEntry") ||
+      msg.includes("DistributionExecution")
+    );
+  }
+
+  if (error instanceof Prisma.PrismaClientUnknownRequestError) {
+    const msg = error.message ?? "";
+    return (
+      msg.includes("ProjectSettlement") ||
+      msg.includes("ProjectBridgeStep") ||
+      msg.includes("DistributionEntry") ||
+      msg.includes("DistributionExecution")
+    );
+  }
+
+  if (error instanceof Error) {
+    return (
+      error.message.includes("ProjectSettlement") ||
+      error.message.includes("ProjectBridgeStep") ||
+      error.message.includes("DistributionEntry") ||
+      error.message.includes("DistributionExecution")
+    );
+  }
+
+  return false;
+}
 
 export function toAtomicDecimalOrNull(v: unknown): Prisma.Decimal | null {
   if (typeof v === "number") {
@@ -132,7 +170,7 @@ export async function recomputeProjectSettlement(
 
   const now = new Date();
 
-  return tx.projectSettlement.update({
+  const updatedSettlement = await tx.projectSettlement.update({
     where: { projectId },
     data: {
       status: nextStatus,
@@ -143,4 +181,16 @@ export async function recomputeProjectSettlement(
       updatedAt: now,
     },
   });
+
+  if (nextStatus === "DISTRIBUTED") {
+    await tx.project.update({
+      where: { id: projectId },
+      data: {
+        status: "DISTRIBUTED",
+        updatedAt: now,
+      },
+    });
+  }
+
+  return updatedSettlement;
 }

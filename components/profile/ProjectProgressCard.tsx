@@ -291,18 +291,6 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
             >
               更新
             </button>
-
-            {showManualAchieveButton ? (
-              <button
-                type="button"
-                className="btn-secondary text-xs"
-                onClick={onAchieve}
-                disabled={achieving || progressLoading}
-                style={{ borderColor: headerColor, color: headerColor }}
-              >
-                達成確定
-              </button>
-            ) : null}
           </div>
         </div>
 
@@ -351,7 +339,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
         {progressReached === true && !goalAchievedAt ? (
           <div className="mt-2 text-[11px] text-emerald-700">
-            目標に到達しています。反映遅延がある場合は「達成確定」を押してください。
+            目標に到達しています。達成確定は myPage の Goal（Project）から実行してください。
           </div>
         ) : null}
 

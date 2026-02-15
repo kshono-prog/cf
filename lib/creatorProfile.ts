@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 import {
   SOCIAL_ICON_CONFIG,
   type CreatorProfile,
@@ -55,13 +56,15 @@ type CreatorProfileRecord = {
 
 const getCreatorProfileByUsernameCached = unstable_cache(
   async (username: string) => {
-    const profile = await prisma.creatorProfile.findUnique({
-      where: { username },
-      include: {
-        socialLinks: true,
-        youtubeVideos: true,
-      },
-    });
+    const profile = await withPrismaRetry(() =>
+      prisma.creatorProfile.findUnique({
+        where: { username },
+        include: {
+          socialLinks: true,
+          youtubeVideos: true,
+        },
+      })
+    );
 
     if (!profile) return null;
 

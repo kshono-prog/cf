@@ -1,6 +1,7 @@
 // app/api/events/public/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
@@ -18,26 +19,28 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       200
     );
 
-    const events = await prisma.event.findMany({
-      where: {
-        isPublished: true,
-        ...(excludeUsernames.length > 0
-          ? { creatorProfile: { username: { notIn: excludeUsernames } } }
-          : {}),
-      },
-      orderBy: { startAt: "asc" },
-      take: limit,
-      include: {
-        creatorProfile: {
-          select: {
-            username: true,
-            displayName: true,
-            avatarUrl: true,
-            themeColor: true,
+    const events = await withPrismaRetry(() =>
+      prisma.event.findMany({
+        where: {
+          isPublished: true,
+          ...(excludeUsernames.length > 0
+            ? { creatorProfile: { username: { notIn: excludeUsernames } } }
+            : {}),
+        },
+        orderBy: { startAt: "asc" },
+        take: limit,
+        include: {
+          creatorProfile: {
+            select: {
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              themeColor: true,
+            },
           },
         },
-      },
-    });
+      })
+    );
 
     // BigInt を文字列化して返す
     return NextResponse.json({

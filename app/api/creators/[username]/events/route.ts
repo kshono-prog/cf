@@ -1,6 +1,7 @@
 // app/api/creators/[username]/events/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 
 type EventPostBody = {
   title?: string;
@@ -46,20 +47,24 @@ export async function GET(
   const { username } = await ctx.params;
 
   try {
-    const creator = await prisma.creatorProfile.findUnique({
-      where: { username },
-      select: { id: true },
-    });
+    const creator = await withPrismaRetry(() =>
+      prisma.creatorProfile.findUnique({
+        where: { username },
+        select: { id: true },
+      })
+    );
 
     if (!creator) {
       // クリエイターがまだ存在しない場合は 404 ではなく空配列を返す
       return NextResponse.json({ events: [] });
     }
 
-    const events = await prisma.event.findMany({
-      where: { creatorProfileId: creator.id, isPublished: true },
-      orderBy: { startAt: "asc" },
-    });
+    const events = await withPrismaRetry(() =>
+      prisma.event.findMany({
+        where: { creatorProfileId: creator.id, isPublished: true },
+        orderBy: { startAt: "asc" },
+      })
+    );
 
     // BigInt をそのまま返すと JSON 化で落ちるので、文字列に変換する
     return NextResponse.json({
@@ -102,10 +107,12 @@ export async function POST(
       );
     }
 
-    const creator = await prisma.creatorProfile.findUnique({
-      where: { username },
-      select: { id: true },
-    });
+    const creator = await withPrismaRetry(() =>
+      prisma.creatorProfile.findUnique({
+        where: { username },
+        select: { id: true },
+      })
+    );
 
     if (!creator) {
       return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
@@ -113,22 +120,24 @@ export async function POST(
 
     const startAt = new Date(date);
 
-    const newEvent = await prisma.event.create({
-      data: {
-        creatorProfileId: creator.id,
-        title,
-        description: description || null,
-        // Prisma 側のフィールド名に合わせる
-        startAt,
-        endAt: null,
-        placeName: null,
-        placeUrl: null,
-        ticketUrl: null,
-        goalAmountJpyc:
-          typeof goalAmount === "number" ? Math.trunc(goalAmount) : null,
-        isPublished: true,
-      },
-    });
+    const newEvent = await withPrismaRetry(() =>
+      prisma.event.create({
+        data: {
+          creatorProfileId: creator.id,
+          title,
+          description: description || null,
+          // Prisma 側のフィールド名に合わせる
+          startAt,
+          endAt: null,
+          placeName: null,
+          placeUrl: null,
+          ticketUrl: null,
+          goalAmountJpyc:
+            typeof goalAmount === "number" ? Math.trunc(goalAmount) : null,
+          isPublished: true,
+        },
+      })
+    );
 
     return NextResponse.json({
       id: newEvent.id.toString(),
@@ -157,10 +166,12 @@ export async function PUT(
       return NextResponse.json({ error: "EVENT_ID_REQUIRED" }, { status: 400 });
     }
 
-    const creator = await prisma.creatorProfile.findUnique({
-      where: { username },
-      select: { id: true },
-    });
+    const creator = await withPrismaRetry(() =>
+      prisma.creatorProfile.findUnique({
+        where: { username },
+        select: { id: true },
+      })
+    );
     if (!creator) {
       return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
     }
@@ -168,30 +179,36 @@ export async function PUT(
     // 自分のイベントのみ更新できるようにガード
     const eventId = BigInt(body.id);
 
-    const existing = await prisma.event.findFirst({
-      where: { id: eventId, creatorProfileId: creator.id },
-      select: { id: true },
-    });
+    const existing = await withPrismaRetry(() =>
+      prisma.event.findFirst({
+        where: { id: eventId, creatorProfileId: creator.id },
+        select: { id: true },
+      })
+    );
     if (!existing) {
       return NextResponse.json({ error: "EVENT_NOT_FOUND" }, { status: 404 });
     }
 
-    const updated = await prisma.event.update({
-      where: { id: eventId },
-      data: {
-        title: typeof body.title === "string" ? body.title : undefined,
-        description:
-          typeof body.description === "string" ? body.description : undefined,
-        startAt:
-          typeof body.date === "string" ? new Date(body.date) : undefined,
-        goalAmountJpyc:
-          typeof body.goalAmount === "number"
-            ? Math.trunc(body.goalAmount)
-            : undefined,
-        isPublished:
-          typeof body.isPublished === "boolean" ? body.isPublished : undefined,
-      },
-    });
+    const updated = await withPrismaRetry(() =>
+      prisma.event.update({
+        where: { id: eventId },
+        data: {
+          title: typeof body.title === "string" ? body.title : undefined,
+          description:
+            typeof body.description === "string" ? body.description : undefined,
+          startAt:
+            typeof body.date === "string" ? new Date(body.date) : undefined,
+          goalAmountJpyc:
+            typeof body.goalAmount === "number"
+              ? Math.trunc(body.goalAmount)
+              : undefined,
+          isPublished:
+            typeof body.isPublished === "boolean"
+              ? body.isPublished
+              : undefined,
+        },
+      })
+    );
 
     return NextResponse.json({
       id: updated.id.toString(),
@@ -221,10 +238,12 @@ export async function DELETE(
       return NextResponse.json({ error: "EVENT_ID_REQUIRED" }, { status: 400 });
     }
 
-    const creator = await prisma.creatorProfile.findUnique({
-      where: { username },
-      select: { id: true },
-    });
+    const creator = await withPrismaRetry(() =>
+      prisma.creatorProfile.findUnique({
+        where: { username },
+        select: { id: true },
+      })
+    );
     if (!creator) {
       return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
     }
@@ -232,15 +251,17 @@ export async function DELETE(
     const eventId = BigInt(id);
 
     // 自分のイベントのみ削除できるようにガード
-    const existing = await prisma.event.findFirst({
-      where: { id: eventId, creatorProfileId: creator.id },
-      select: { id: true },
-    });
+    const existing = await withPrismaRetry(() =>
+      prisma.event.findFirst({
+        where: { id: eventId, creatorProfileId: creator.id },
+        select: { id: true },
+      })
+    );
     if (!existing) {
       return NextResponse.json({ error: "EVENT_NOT_FOUND" }, { status: 404 });
     }
 
-    await prisma.event.delete({ where: { id: eventId } });
+    await withPrismaRetry(() => prisma.event.delete({ where: { id: eventId } }));
 
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {

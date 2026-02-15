@@ -2,18 +2,21 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 
 export async function GET(req: NextRequest, context: any) {
   const { username } = context.params as { username: string };
 
-  const profile = await prisma.creatorProfile.findUnique({
-    where: { username },
-    include: {
-      // user: true,  // ← これはもう削除済みで OK
-      socialLinks: true,
-      youtubeVideos: true,
-    },
-  });
+  const profile = await withPrismaRetry(() =>
+    prisma.creatorProfile.findUnique({
+      where: { username },
+      include: {
+        // user: true,  // ← これはもう削除済みで OK
+        socialLinks: true,
+        youtubeVideos: true,
+      },
+    })
+  );
 
   if (!profile) {
     return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });

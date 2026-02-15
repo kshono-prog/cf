@@ -783,11 +783,12 @@ export default function AccountPageClient({ username }: Props) {
   const doAchieve = useCallback(async () => {
     if (!localProjectId) return;
     if (!address) {
-      setMsg({ kind: "error", text: "WALLET_NOT_CONNECTED" });
+      setGoalMsg("WALLET_NOT_CONNECTED");
       return;
     }
     setSummaryLoading(true);
     setMsg(null);
+    setGoalMsg(null);
     try {
       const url = `/api/projects/${encodeURIComponent(
         localProjectId
@@ -799,14 +800,31 @@ export default function AccountPageClient({ username }: Props) {
           isRecord(json) && typeof json.error === "string"
             ? json.error
             : `HTTP_${res.status}`;
-        setMsg({ kind: "error", text: code });
+        setGoalMsg(code);
         return;
       }
 
+      const achievedAt =
+        isRecord(json) && typeof json.achievedAt === "string"
+          ? json.achievedAt
+          : new Date().toISOString();
+
+      setSummary((prev) => {
+        if (!prev || !prev.goal) return prev;
+        return {
+          ...prev,
+          project: { ...prev.project, status: "GOAL_ACHIEVED" },
+          goal: { ...prev.goal, achievedAt },
+        };
+      });
+
       setMsg({ kind: "success", text: "GOAL_ACHIEVED_SET" });
       await refreshSummary();
+      setGoalMsg(
+        `目標達成を確定しました（status: GOAL_ACHIEVED, achievedAt: ${achievedAt}）`
+      );
     } catch {
-      setMsg({ kind: "error", text: "GOAL_ACHIEVE_FAILED" });
+      setGoalMsg("GOAL_ACHIEVE_FAILED");
     } finally {
       setSummaryLoading(false);
     }
@@ -1233,6 +1251,67 @@ export default function AccountPageClient({ username }: Props) {
                           </span>
                         ) : null}
                       </div>
+
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 space-y-2">
+                        <div className="text-sm font-medium">
+                          目標達成確定（myPageオーナーのみ）
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          目標に到達したあと、プロジェクトオーナー本人が
+                          「目標達成を確定」できます。
+                        </div>
+                        <div className="text-xs text-gray-700">
+                          進捗:{" "}
+                          {summary
+                            ? `${summary.progress.confirmedJpyc.toLocaleString()} / ${
+                                summary.progress.targetJpyc != null
+                                  ? summary.progress.targetJpyc.toLocaleString()
+                                  : "—"
+                              } JPYC`
+                            : "—"}
+                        </div>
+                        <div className="text-xs text-gray-700">
+                          Goal状態:{" "}
+                          {goalAchieved
+                            ? `達成確定済み (${summary?.goal?.achievedAt ?? "-"})`
+                            : "未確定"}
+                        </div>
+                        <div className="text-xs text-gray-700">
+                          Project status: {summary?.project.status ?? "—"}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40"
+                            onClick={() => void doAchieve()}
+                            disabled={!canAchieve || summaryLoading}
+                            title={
+                              !isConnected
+                                ? "ウォレット接続が必要です"
+                                : !isOwner
+                                ? "プロジェクトオーナーのみ確定できます"
+                                : !goalIsSet
+                                ? "先にGoalを設定してください"
+                                : goalAchieved
+                                ? "すでに達成確定済みです"
+                                : !summary
+                                ? "Summaryを更新してください"
+                                : "達成条件を満たしていません"
+                            }
+                            type="button"
+                          >
+                            {summaryLoading
+                              ? "Loading..."
+                              : goalAchieved
+                              ? "達成確定済み"
+                              : "目標達成を確定"}
+                          </button>
+                          {!isOwner ? (
+                            <span className="text-xs text-amber-700">
+                              現在接続中のウォレットはオーナーではありません
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>
@@ -1409,20 +1488,6 @@ export default function AccountPageClient({ username }: Props) {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 pt-2">
-                          <button
-                            className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40"
-                            onClick={() => void doAchieve()}
-                            disabled={!canAchieve || summaryLoading}
-                            title={
-                              !canAchieve
-                                ? "条件未達 or owner ではありません"
-                                : ""
-                            }
-                            type="button"
-                          >
-                            目標達成を確定（Achieve）
-                          </button>
-
                           <div className="ml-auto">
                             {localProjectId ? (
                               <BridgeWithWormholeOrManualButton

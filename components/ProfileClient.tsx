@@ -786,12 +786,7 @@ export default function ProfileClient({
   const resolvedTargetYen =
     progressTargetYen != null ? progressTargetYen : projectGoalTargetYen;
 
-  const showManualAchieveButton = useMemo(() => {
-    if (!hasProject) return false;
-    if (progressReached !== true) return false;
-    if (goalAchievedAt) return false;
-    return true;
-  }, [hasProject, progressReached, goalAchievedAt]);
+  const showManualAchieveButton = false;
 
   // =========================================================
   // 表示優先順位（要求通り）

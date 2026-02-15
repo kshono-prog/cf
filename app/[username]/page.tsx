@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation";
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 import { ProfileSummaryServer } from "@/components/profile/ProfileSummaryServer";
 import { MyPageFooter } from "@/components/MyPageFooter";
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
@@ -89,13 +90,15 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         projectWhereOr.push({ ownerAddress: owner });
       }
 
-      const project = await prisma.project.findFirst({
-        where: {
-          OR: projectWhereOr,
-        },
-        select: { id: true },
-        orderBy: { createdAt: "desc" },
-      });
+      const project = await withPrismaRetry(() =>
+        prisma.project.findFirst({
+          where: {
+            OR: projectWhereOr,
+          },
+          select: { id: true },
+          orderBy: { createdAt: "desc" },
+        })
+      );
 
       projectId = project?.id?.toString() ?? null;
     }

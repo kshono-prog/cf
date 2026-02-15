@@ -1,6 +1,7 @@
 // app/api/public/creator/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,20 +43,22 @@ export async function GET(
   const username = usernameRaw.trim();
 
   try {
-    const creator = await prisma.creatorProfile.findUnique({
-      where: { username },
-      select: {
-        username: true,
-        displayName: true,
-        profileText: true,
-        avatarUrl: true,
-        themeColor: true,
-        qrcodeUrl: true,
-        externalUrl: true,
-        activeProjectId: true,
-        status: true,
-      },
-    });
+    const creator = await withPrismaRetry(() =>
+      prisma.creatorProfile.findUnique({
+        where: { username },
+        select: {
+          username: true,
+          displayName: true,
+          profileText: true,
+          avatarUrl: true,
+          themeColor: true,
+          qrcodeUrl: true,
+          externalUrl: true,
+          activeProjectId: true,
+          status: true,
+        },
+      })
+    );
 
     if (!creator) {
       return NextResponse.json(

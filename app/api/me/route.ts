@@ -1,6 +1,7 @@
 // app/api/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 import type {
   CreatorProfile,
   SocialLinks,
@@ -84,39 +85,43 @@ export async function GET(req: NextRequest): Promise<NextResponse<MeRes>> {
   if (!walletAddress) return okEmpty();
 
   try {
-    const profile = await prisma.creatorProfile.findUnique({
-      where: { walletAddress },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        profileText: true,
-        avatarUrl: true,
-        qrcodeUrl: true,
-        externalUrl: true,
-        themeColor: true,
-        walletAddress: true,
-        activeProjectId: true,
-        status: true,
-      },
-    });
+    const profile = await withPrismaRetry(() =>
+      prisma.creatorProfile.findUnique({
+        where: { walletAddress },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          profileText: true,
+          avatarUrl: true,
+          qrcodeUrl: true,
+          externalUrl: true,
+          themeColor: true,
+          walletAddress: true,
+          activeProjectId: true,
+          status: true,
+        },
+      })
+    );
 
     if (!profile) return okEmpty();
 
     const hasCreator = profile.status === "PUBLISHED";
 
-    const [socialRows, youtubeRows] = await Promise.all([
-      prisma.creatorSocialLink.findMany({
-        where: { profileId: profile.id },
-        select: { type: true, url: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.creatorYoutubeVideo.findMany({
-        where: { profileId: profile.id },
-        select: { url: true, title: true, description: true },
-        orderBy: { createdAt: "asc" },
-      }),
-    ]);
+    const [socialRows, youtubeRows] = await withPrismaRetry(() =>
+      Promise.all([
+        prisma.creatorSocialLink.findMany({
+          where: { profileId: profile.id },
+          select: { type: true, url: true },
+          orderBy: { createdAt: "asc" },
+        }),
+        prisma.creatorYoutubeVideo.findMany({
+          where: { profileId: profile.id },
+          select: { url: true, title: true, description: true },
+          orderBy: { createdAt: "asc" },
+        }),
+      ])
+    );
 
     const socialsResult: SocialLinks = {};
     for (const row of socialRows) {

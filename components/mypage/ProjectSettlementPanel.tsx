@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getAddress, isAddress, isHash } from "viem";
-import { useChainId } from "wagmi";
+import { useChainId, usePublicClient, useWalletClient } from "wagmi";
 
 type SettlementStatus =
   | "NOT_READY"
@@ -48,6 +48,218 @@ type DistributionDraft = {
   token: "JPYC" | "USDC";
 };
 
+type DistributionExecutionItemView = {
+  id: string;
+  distributionEntryId: string;
+  status: "DRAFT" | "QUEUED" | "SENT" | "FAILED" | "CANCELLED";
+  txHash: string | null;
+  errorReason: string | null;
+  createdAt: string;
+};
+
+type DistributionExecutionView = {
+  id: string;
+  initiatedByWallet: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+  result: "PARTIAL_SUCCESS" | "SUCCESS" | "FAILED";
+  note: string | null;
+  items: DistributionExecutionItemView[];
+};
+
+type TokenPreflight = {
+  token: "JPYC" | "USDC";
+  tokenAddress: string | null;
+  requiredAtomic: bigint;
+  walletBalanceAtomic: bigint | null;
+  sufficient: boolean;
+};
+
+type BridgeSourceChain = "POLYGON" | "ETHEREUM";
+
+type BridgePrepareResponse = {
+  ok: true;
+  bridgeRunId: string;
+  snapshotConfirmedTotalAmountDecimal: string;
+  source: { chainId: number };
+  destination: { chainId: number; recipientAddress: string };
+  token: { address: string };
+};
+
+type BridgeRunApiResponse = {
+  ok: true;
+  bridgeRunId: string;
+  bridgeTxHash: string;
+};
+
+type BridgeReverifyApiResponse =
+  | { ok: true; verified: true; bridgedAt: string; bridgeRunId: string }
+  | { ok: true; verified: false; reason?: string };
+
+type BridgeExecutionConfig = {
+  tokenTransferrerAddress: `0x${string}`;
+  destinationBlockchainId: `0x${string}`;
+  destinationTokenTransferrerAddress: `0x${string}`;
+  requiredGasLimit: bigint;
+  tokenDecimals: number;
+  sourceTokenAddress?: `0x${string}`;
+};
+
+const ERC20_TRANSFER_ABI = [
+  {
+    type: "function",
+    name: "transfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
+const ERC20_BALANCE_OF_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
+
+const ERC20_ALLOWANCE_ABI = [
+  {
+    type: "function",
+    name: "allowance",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
+
+const ERC20_APPROVE_ABI = [
+  {
+    type: "function",
+    name: "approve",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
+const ICTT_SEND_ABI = [
+  {
+    type: "function",
+    name: "send",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "input",
+        type: "tuple",
+        components: [
+          { name: "destinationBlockchainId", type: "bytes32" },
+          { name: "destinationTokenTransferrerAddress", type: "address" },
+          { name: "recipient", type: "address" },
+          { name: "amount", type: "uint256" },
+          { name: "requiredGasLimit", type: "uint256" },
+        ],
+      },
+    ],
+    outputs: [],
+  },
+] as const;
+
+function parseBridgeAmountAtomic(raw: string, decimals: number): bigint | null {
+  const s = raw.trim();
+  if (!s) return null;
+  if (!/^\d+(\.\d+)?$/.test(s)) return null;
+  const [whole, fracRaw = ""] = s.split(".");
+  const frac = fracRaw.slice(0, decimals).padEnd(decimals, "0");
+  const normalized = `${whole}${frac}`.replace(/^0+/, "");
+  if (!normalized) return 0n;
+  return BigInt(normalized);
+}
+
+function envAddress(name: string): `0x${string}` | null {
+  const v = process.env[name];
+  if (!v || !isAddress(v)) return null;
+  return getAddress(v);
+}
+
+function toHex32(name: string): `0x${string}` | null {
+  const v = process.env[name];
+  if (!v || !/^0x[0-9a-fA-F]{64}$/.test(v)) return null;
+  return v as `0x${string}`;
+}
+
+function getBridgeExecutionConfig(
+  sourceChainId: number,
+  token: "JPYC" | "USDC"
+): BridgeExecutionConfig | null {
+  const prefix =
+    sourceChainId === 137
+      ? "POLYGON"
+      : sourceChainId === 80002
+      ? "POLYGON_AMOY"
+      : sourceChainId === 1
+      ? "ETHEREUM"
+      : sourceChainId === 11155111
+      ? "ETHEREUM_SEPOLIA"
+      : null;
+  if (!prefix) return null;
+
+  const tokenTransferrerAddress = envAddress(
+    `NEXT_PUBLIC_ICTT_${prefix}_TOKEN_TRANSFERRER`
+  );
+  const destinationBlockchainId = toHex32(
+    `NEXT_PUBLIC_ICTT_${prefix}_DEST_BLOCKCHAIN_ID`
+  );
+  const destinationTokenTransferrerAddress = envAddress(
+    `NEXT_PUBLIC_ICTT_${prefix}_DEST_TOKEN_TRANSFERRER`
+  );
+  if (
+    !tokenTransferrerAddress ||
+    !destinationBlockchainId ||
+    !destinationTokenTransferrerAddress
+  ) {
+    return null;
+  }
+
+  const gasRaw = process.env[`NEXT_PUBLIC_ICTT_${prefix}_REQUIRED_GAS_LIMIT`];
+  const gasValue = typeof gasRaw === "string" ? gasRaw : "";
+  const requiredGasLimit = /^\d+$/.test(gasValue) ? BigInt(gasValue) : 250000n;
+  const decimalsRaw = process.env[`NEXT_PUBLIC_ICTT_${prefix}_${token}_DECIMALS`];
+  const tokenDecimals = /^\d+$/.test(decimalsRaw ?? "") ? Number(decimalsRaw) : 18;
+  const sourceTokenAddress = envAddress(
+    `NEXT_PUBLIC_ICTT_${prefix}_${token}_SOURCE_TOKEN`
+  );
+
+  return {
+    tokenTransferrerAddress,
+    destinationBlockchainId,
+    destinationTokenTransferrerAddress,
+    requiredGasLimit,
+    tokenDecimals,
+    sourceTokenAddress: sourceTokenAddress ?? undefined,
+  };
+}
+
+function getAvalancheTokenAddress(token: "JPYC" | "USDC"): `0x${string}` | null {
+  const raw =
+    token === "JPYC"
+      ? process.env.NEXT_PUBLIC_JPYC_ADDRESS_AVAX
+      : process.env.NEXT_PUBLIC_USDC_ADDRESS_AVAX;
+  if (!raw || !isAddress(raw)) return null;
+  return getAddress(raw);
+}
+
 function asErrorCode(json: unknown, fallback: string): string {
   if (json && typeof json === "object" && "error" in json) {
     const e = (json as { error?: unknown }).error;
@@ -88,6 +300,9 @@ export function ProjectSettlementPanel(props: {
   isConnected: boolean;
 }) {
   const chainId = useChainId();
+  const sourcePublicClient = usePublicClient();
+  const avalanchePublicClient = usePublicClient({ chainId: 43114 });
+  const { data: walletClient } = useWalletClient();
   const { projectId, walletAddress, isConnected } = props;
 
   const [loading, setLoading] = useState(false);
@@ -95,13 +310,29 @@ export function ProjectSettlementPanel(props: {
   const [settlement, setSettlement] = useState<SettlementView | null>(null);
   const [bridgeSteps, setBridgeSteps] = useState<BridgeStep[]>([]);
   const [entries, setEntries] = useState<DistributionEntry[]>([]);
+  const [recentExecutions, setRecentExecutions] = useState<
+    DistributionExecutionView[]
+  >([]);
 
   const [rows, setRows] = useState<DistributionDraft[]>([makeEmptyRow()]);
+  const [draftDirty, setDraftDirty] = useState(false);
+  const [isDistributing, setIsDistributing] = useState(false);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [runtimeRowStatus, setRuntimeRowStatus] = useState<
+    Record<string, "QUEUED" | "SENT" | "FAILED">
+  >({});
+  const [preflight, setPreflight] = useState<TokenPreflight[]>([]);
 
   const [bridgeAmountPolygon, setBridgeAmountPolygon] = useState("");
   const [bridgeTxPolygon, setBridgeTxPolygon] = useState("");
   const [bridgeAmountEthereum, setBridgeAmountEthereum] = useState("");
   const [bridgeTxEthereum, setBridgeTxEthereum] = useState("");
+  const [bridgeNowBusy, setBridgeNowBusy] = useState<
+    Partial<Record<BridgeSourceChain, boolean>>
+  >({});
+  const [bridgeNowStatus, setBridgeNowStatus] = useState<
+    Partial<Record<BridgeSourceChain, string>>
+  >({});
 
   const canUse = !!projectId;
 
@@ -110,6 +341,8 @@ export function ProjectSettlementPanel(props: {
       setSettlement(null);
       setBridgeSteps([]);
       setEntries([]);
+      setRecentExecutions([]);
+      setPreflight([]);
       return;
     }
 
@@ -142,8 +375,10 @@ export function ProjectSettlementPanel(props: {
       const b = (json as { bridgeSteps?: BridgeStep[] }).bridgeSteps;
       const d = (json as { distributionEntries?: DistributionEntry[] })
         .distributionEntries;
+      const x = (json as { recentExecutions?: DistributionExecutionView[] })
+        .recentExecutions;
 
-      if (!s || !Array.isArray(b) || !Array.isArray(d)) {
+      if (!s || !Array.isArray(b) || !Array.isArray(d) || !Array.isArray(x)) {
         setMessage("SETTLEMENT_RESPONSE_INVALID");
         return;
       }
@@ -151,6 +386,7 @@ export function ProjectSettlementPanel(props: {
       setSettlement(s);
       setBridgeSteps(b);
       setEntries(d);
+      setRecentExecutions(x);
 
       const editableRows = d
         .filter((x) => x.status !== "SENT")
@@ -162,6 +398,10 @@ export function ProjectSettlementPanel(props: {
           token: x.token,
         }));
       setRows(editableRows.length > 0 ? editableRows : [makeEmptyRow()]);
+      setDraftDirty(false);
+      setRuntimeRowStatus({});
+      setActiveEntryId(null);
+      setPreflight([]);
     } catch {
       setMessage("SETTLEMENT_FETCH_FAILED");
     } finally {
@@ -251,6 +491,8 @@ export function ProjectSettlementPanel(props: {
 
   function updateDraft(index: number, patch: Partial<DistributionDraft>) {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+    setDraftDirty(true);
+    setPreflight([]);
   }
 
   async function saveDistributions() {
@@ -368,6 +610,598 @@ export function ProjectSettlementPanel(props: {
     }
   }
 
+  async function postDistributionRowResult(input: {
+    entryId: string;
+    status: "SENT" | "FAILED";
+    txHash?: string;
+    executionId?: string;
+    errorReason?: string;
+  }): Promise<string | null> {
+    if (!projectId || !walletAddress) return null;
+
+    const res = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/settlement/distribution-result`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: walletAddress,
+          executionId: input.executionId,
+          entryId: input.entryId,
+          status: input.status,
+          txHash: input.txHash,
+          errorReason: input.errorReason,
+        }),
+      }
+    );
+
+    const json: unknown = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(asErrorCode(json, `HTTP_${res.status}`));
+    }
+
+    if (!json || typeof json !== "object") return null;
+    const maybe = (json as { executionId?: unknown }).executionId;
+    return typeof maybe === "string" && maybe.length > 0 ? maybe : null;
+  }
+
+  function getTargets(mode: "ALL" | "FAILED_ONLY"): DistributionEntry[] {
+    return mode === "FAILED_ONLY"
+      ? entries.filter((x) => x.status === "FAILED")
+      : entries.filter((x) => x.status !== "SENT" && x.status !== "CANCELLED");
+  }
+
+  async function runPreflight(
+    mode: "ALL" | "FAILED_ONLY"
+  ): Promise<{ ok: boolean; checks: TokenPreflight[]; reason?: string }> {
+    if (!walletAddress) {
+      return { ok: false, checks: [], reason: "ADDRESS_REQUIRED" };
+    }
+    if (!avalanchePublicClient) {
+      return { ok: false, checks: [], reason: "PUBLIC_CLIENT_NOT_READY" };
+    }
+
+    const targets = getTargets(mode);
+    const sum: { JPYC: bigint; USDC: bigint } = {
+      JPYC: 0n,
+      USDC: 0n,
+    };
+
+    for (const row of targets) {
+      try {
+        const amount = BigInt(row.amountAtomic);
+        if (amount <= 0n) continue;
+        if (row.token === "JPYC") {
+          sum.JPYC = sum.JPYC + amount;
+        } else {
+          sum.USDC = sum.USDC + amount;
+        }
+      } catch {
+        return { ok: false, checks: [], reason: "AMOUNT_INVALID" };
+      }
+    }
+
+    const checks: TokenPreflight[] = [];
+    for (const token of ["JPYC", "USDC"] as const) {
+      const tokenAddress = getAvalancheTokenAddress(token);
+      const requiredAtomic = sum[token];
+
+      if (requiredAtomic === 0n) {
+        checks.push({
+          token,
+          tokenAddress,
+          requiredAtomic,
+          walletBalanceAtomic: null,
+          sufficient: true,
+        });
+        continue;
+      }
+
+      if (!tokenAddress) {
+        checks.push({
+          token,
+          tokenAddress: null,
+          requiredAtomic,
+          walletBalanceAtomic: null,
+          sufficient: false,
+        });
+        continue;
+      }
+
+      const bal = await avalanchePublicClient.readContract({
+        address: tokenAddress,
+        abi: ERC20_BALANCE_OF_ABI,
+        functionName: "balanceOf",
+        args: [getAddress(walletAddress)],
+      });
+
+      checks.push({
+        token,
+        tokenAddress,
+        requiredAtomic,
+        walletBalanceAtomic: bal,
+        sufficient: bal >= requiredAtomic,
+      });
+    }
+
+    const ok = checks.every((c) => c.sufficient);
+    return { ok, checks, reason: ok ? undefined : "INSUFFICIENT_TOKEN_BALANCE" };
+  }
+
+  function expectedSourceChainId(sourceChain: BridgeSourceChain): number {
+    if (sourceChain === "POLYGON") {
+      return process.env.NEXT_PUBLIC_POLYGON_CHAIN_ID === "80002" ? 80002 : 137;
+    }
+    if (process.env.NEXT_PUBLIC_ETHEREUM_CHAIN_ID === "11155111") return 11155111;
+    return 1;
+  }
+
+  function asBridgePrepareResponse(json: unknown): BridgePrepareResponse | null {
+    if (!json || typeof json !== "object") return null;
+    const obj = json as Record<string, unknown>;
+    if (obj.ok !== true) return null;
+    if (typeof obj.bridgeRunId !== "string" || !obj.bridgeRunId) return null;
+    if (
+      typeof obj.snapshotConfirmedTotalAmountDecimal !== "string" ||
+      !obj.snapshotConfirmedTotalAmountDecimal
+    ) {
+      return null;
+    }
+    const source = obj.source as Record<string, unknown> | undefined;
+    const destination = obj.destination as Record<string, unknown> | undefined;
+    const token = obj.token as Record<string, unknown> | undefined;
+    if (!source || !destination || !token) return null;
+    if (typeof source.chainId !== "number") return null;
+    if (typeof destination.chainId !== "number") return null;
+    if (typeof destination.recipientAddress !== "string") return null;
+    if (typeof token.address !== "string") return null;
+
+    return {
+      ok: true,
+      bridgeRunId: obj.bridgeRunId,
+      snapshotConfirmedTotalAmountDecimal: obj.snapshotConfirmedTotalAmountDecimal,
+      source: { chainId: source.chainId },
+      destination: {
+        chainId: destination.chainId,
+        recipientAddress: destination.recipientAddress,
+      },
+      token: { address: token.address },
+    };
+  }
+
+  async function runOneClickBridge(sourceChain: BridgeSourceChain) {
+    if (!projectId || !walletAddress) {
+      setMessage("ADDRESS_REQUIRED");
+      return;
+    }
+    if (!isConnected || !walletClient || !walletClient.account) {
+      setMessage("WALLET_NOT_CONNECTED");
+      return;
+    }
+
+    setBridgeNowBusy((prev) => ({ ...prev, [sourceChain]: true }));
+    setBridgeNowStatus((prev) => ({ ...prev, [sourceChain]: "prepare中..." }));
+    setMessage(null);
+
+    try {
+      const sourceChainId = expectedSourceChainId(sourceChain);
+      if (chainId !== sourceChainId) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: `ネットワークを ${sourceChainId} に切り替えてください`,
+        }));
+        return;
+      }
+
+      const prepareRes = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/bridge/prepare`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: walletAddress,
+            currency: "JPYC",
+            provider: "MANUAL",
+          }),
+        }
+      );
+      const prepareJson: unknown = await prepareRes.json().catch(() => null);
+      if (!prepareRes.ok) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: asErrorCode(prepareJson, `HTTP_${prepareRes.status}`),
+        }));
+        return;
+      }
+
+      const prepared = asBridgePrepareResponse(prepareJson);
+      if (!prepared) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: "BRIDGE_PREPARE_SHAPE_MISMATCH",
+        }));
+        return;
+      }
+      if (prepared.source.chainId !== sourceChainId) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: `prepareのsourceChainが不一致です(${prepared.source.chainId})`,
+        }));
+        return;
+      }
+      if (!sourcePublicClient) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: "PUBLIC_CLIENT_NOT_READY",
+        }));
+        return;
+      }
+
+      const cfg = getBridgeExecutionConfig(prepared.source.chainId, "JPYC");
+      if (!cfg) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: "ICTT_CONFIG_NOT_READY",
+        }));
+        return;
+      }
+
+      const atomicAmount = parseBridgeAmountAtomic(
+        prepared.snapshotConfirmedTotalAmountDecimal,
+        cfg.tokenDecimals
+      );
+      if (atomicAmount === null || atomicAmount <= 0n) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: "BRIDGE_AMOUNT_INVALID",
+        }));
+        return;
+      }
+
+      if (cfg.sourceTokenAddress) {
+        setBridgeNowStatus((prev) => ({ ...prev, [sourceChain]: "approve確認中..." }));
+        const allowance = await sourcePublicClient.readContract({
+          address: cfg.sourceTokenAddress,
+          abi: ERC20_ALLOWANCE_ABI,
+          functionName: "allowance",
+          args: [getAddress(walletAddress), cfg.tokenTransferrerAddress],
+        });
+        if (allowance < atomicAmount) {
+          setBridgeNowStatus((prev) => ({
+            ...prev,
+            [sourceChain]: "approve署名を待っています...",
+          }));
+          const approveHash = await walletClient.writeContract({
+            address: cfg.sourceTokenAddress,
+            abi: ERC20_APPROVE_ABI,
+            functionName: "approve",
+            args: [cfg.tokenTransferrerAddress, atomicAmount],
+            account: getAddress(walletAddress),
+          });
+          const approveReceipt = await sourcePublicClient.waitForTransactionReceipt({
+            hash: approveHash,
+            confirmations: 1,
+            timeout: 120_000,
+          });
+          if (approveReceipt.status !== "success") {
+            setBridgeNowStatus((prev) => ({
+              ...prev,
+              [sourceChain]: "APPROVE_TX_FAILED",
+            }));
+            return;
+          }
+        }
+      }
+
+      setBridgeNowStatus((prev) => ({
+        ...prev,
+        [sourceChain]: "bridge署名を待っています...",
+      }));
+      const bridgeHash = await walletClient.writeContract({
+        address: cfg.tokenTransferrerAddress,
+        abi: ICTT_SEND_ABI,
+        functionName: "send",
+        args: [
+          {
+            destinationBlockchainId: cfg.destinationBlockchainId,
+            destinationTokenTransferrerAddress:
+              cfg.destinationTokenTransferrerAddress,
+            recipient: getAddress(prepared.destination.recipientAddress),
+            amount: atomicAmount,
+            requiredGasLimit: cfg.requiredGasLimit,
+          },
+        ],
+        account: getAddress(walletAddress),
+      });
+
+      const bridgeReceipt = await sourcePublicClient.waitForTransactionReceipt({
+        hash: bridgeHash,
+        confirmations: 1,
+        timeout: 180_000,
+      });
+      if (bridgeReceipt.status !== "success") {
+        setBridgeNowStatus((prev) => ({ ...prev, [sourceChain]: "BRIDGE_TX_FAILED" }));
+        return;
+      }
+
+      setBridgeNowStatus((prev) => ({ ...prev, [sourceChain]: "bridge/run保存中..." }));
+      const runRes = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/bridge/run`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: walletAddress,
+            bridgeRunId: prepared.bridgeRunId,
+            bridgeTxHash: bridgeHash,
+          }),
+        }
+      );
+      const runJson: unknown = await runRes.json().catch(() => null);
+      if (!runRes.ok) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: asErrorCode(runJson, `HTTP_${runRes.status}`),
+        }));
+        return;
+      }
+      const runParsed =
+        runJson && typeof runJson === "object"
+          ? (runJson as BridgeRunApiResponse)
+          : null;
+      if (!runParsed || runParsed.ok !== true) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: "BRIDGE_RUN_RESPONSE_INVALID",
+        }));
+        return;
+      }
+
+      setBridgeNowStatus((prev) => ({ ...prev, [sourceChain]: "着金確認中(reverify)..." }));
+      let verified = false;
+      for (let i = 0; i < 20; i += 1) {
+        const reverifyRes = await fetch(
+          `/api/projects/${encodeURIComponent(projectId)}/bridge/reverify`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              address: walletAddress,
+              bridgeRunId: prepared.bridgeRunId,
+            }),
+          }
+        );
+        const reverifyJson: unknown = await reverifyRes.json().catch(() => null);
+        if (!reverifyRes.ok) {
+          setBridgeNowStatus((prev) => ({
+            ...prev,
+            [sourceChain]: asErrorCode(reverifyJson, `HTTP_${reverifyRes.status}`),
+          }));
+          return;
+        }
+        const parsed =
+          reverifyJson && typeof reverifyJson === "object"
+            ? (reverifyJson as BridgeReverifyApiResponse)
+            : null;
+        if (parsed && parsed.ok === true && parsed.verified) {
+          verified = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+
+      if (!verified) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: "着金未確認。時間をおいて再実行してください",
+        }));
+        return;
+      }
+
+      setBridgeNowStatus((prev) => ({
+        ...prev,
+        [sourceChain]: "settlement反映中...",
+      }));
+      const settlementBridgeRes = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/settlement/bridge`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: walletAddress,
+            sourceChain,
+            token: "JPYC",
+            bridgedAmountAtomic: atomicAmount.toString(),
+            txHash: bridgeHash,
+            completedAt: new Date().toISOString(),
+            memo: "AUTO_ONE_CLICK_BRIDGE",
+          }),
+        }
+      );
+      const settlementBridgeJson: unknown = await settlementBridgeRes
+        .json()
+        .catch(() => null);
+      if (!settlementBridgeRes.ok) {
+        setBridgeNowStatus((prev) => ({
+          ...prev,
+          [sourceChain]: asErrorCode(
+            settlementBridgeJson,
+            `HTTP_${settlementBridgeRes.status}`
+          ),
+        }));
+        return;
+      }
+
+      setBridgeNowStatus((prev) => ({ ...prev, [sourceChain]: "完了" }));
+      setMessage(`${formatChainName(sourceChain)} の Bridge now を完了しました`);
+      if (sourceChain === "POLYGON") {
+        setBridgeAmountPolygon(atomicAmount.toString());
+        setBridgeTxPolygon(bridgeHash);
+      } else {
+        setBridgeAmountEthereum(atomicAmount.toString());
+        setBridgeTxEthereum(bridgeHash);
+      }
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "BRIDGE_NOW_FAILED";
+      setBridgeNowStatus((prev) => ({ ...prev, [sourceChain]: msg }));
+    } finally {
+      setBridgeNowBusy((prev) => ({ ...prev, [sourceChain]: false }));
+    }
+  }
+
+  async function checkBalances(mode: "ALL" | "FAILED_ONLY" = "ALL") {
+    try {
+      const result = await runPreflight(mode);
+      setPreflight(result.checks);
+      if (!result.ok) {
+        setMessage(result.reason ?? "PRECHECK_FAILED");
+      } else {
+        setMessage("残高チェックOK");
+      }
+      return result;
+    } catch {
+      setPreflight([]);
+      setMessage("BALANCE_CHECK_FAILED");
+      return { ok: false, checks: [], reason: "BALANCE_CHECK_FAILED" };
+    }
+  }
+
+  async function executeDistribution(mode: "ALL" | "FAILED_ONLY") {
+    if (!projectId || !walletAddress) {
+      setMessage("ADDRESS_REQUIRED");
+      return;
+    }
+    if (!walletClient) {
+      setMessage("WALLET_CLIENT_NOT_READY");
+      return;
+    }
+    if (!walletClient.account) {
+      setMessage("WALLET_ACCOUNT_NOT_READY");
+      return;
+    }
+    if (!avalanchePublicClient) {
+      setMessage("PUBLIC_CLIENT_NOT_READY");
+      return;
+    }
+    if (!isConnected) {
+      setMessage("WALLET_NOT_CONNECTED");
+      return;
+    }
+    if (chainId !== 43114) {
+      setMessage("CHAIN_NOT_AVALANCHE");
+      return;
+    }
+    if (settlement?.status !== "READY_FOR_DISTRIBUTION") {
+      setMessage("SETTLEMENT_NOT_READY_FOR_DISTRIBUTION");
+      return;
+    }
+    if (draftDirty) {
+      setMessage("SAVE_DISTRIBUTION_DRAFT_FIRST");
+      return;
+    }
+    const bridged = BigInt(settlement.bridgedTotalAtomic);
+    if (bridged <= 0n) {
+      setMessage("NO_BRIDGED_BALANCE");
+      return;
+    }
+
+    const targets = getTargets(mode);
+
+    if (targets.length === 0) {
+      setMessage("NO_DISTRIBUTION_TARGETS");
+      return;
+    }
+
+    const precheck = await checkBalances(mode);
+    if (!precheck.ok) {
+      return;
+    }
+
+    setIsDistributing(true);
+    setLoading(true);
+    setMessage("Distribute開始: ウォレットで順次承認してください");
+    setRuntimeRowStatus({});
+
+    let executionId: string | null = null;
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const row of targets) {
+      setActiveEntryId(row.id);
+      setRuntimeRowStatus((prev) => ({ ...prev, [row.id]: "QUEUED" }));
+
+      try {
+        const tokenAddress = getAvalancheTokenAddress(row.token);
+        if (!tokenAddress) {
+          throw new Error(`TOKEN_ADDRESS_NOT_CONFIGURED_${row.token}`);
+        }
+
+        const amount = BigInt(row.amountAtomic);
+        if (amount <= 0n) throw new Error("AMOUNT_INVALID");
+
+        const txHash = await walletClient.writeContract({
+          address: tokenAddress,
+          abi: ERC20_TRANSFER_ABI,
+          functionName: "transfer",
+          args: [getAddress(row.recipientAddressChecksum), amount],
+          account: getAddress(walletAddress),
+        });
+
+        const receipt = await avalanchePublicClient.waitForTransactionReceipt({
+          hash: txHash,
+          confirmations: 1,
+          timeout: 120_000,
+        });
+
+        if (receipt.status !== "success") {
+          throw new Error("TX_RECEIPT_FAILED");
+        }
+
+        const nextExecutionId = await postDistributionRowResult({
+          entryId: row.id,
+          status: "SENT",
+          txHash,
+          executionId: executionId ?? undefined,
+        });
+
+        if (!executionId && nextExecutionId) executionId = nextExecutionId;
+
+        successCount += 1;
+        setRuntimeRowStatus((prev) => ({ ...prev, [row.id]: "SENT" }));
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : "TX_FAILED";
+        try {
+          const nextExecutionId = await postDistributionRowResult({
+            entryId: row.id,
+            status: "FAILED",
+            executionId: executionId ?? undefined,
+            errorReason: reason,
+          });
+          if (!executionId && nextExecutionId) executionId = nextExecutionId;
+        } catch {
+          // API保存失敗時も次行処理は継続する
+        }
+        failedCount += 1;
+        setRuntimeRowStatus((prev) => ({ ...prev, [row.id]: "FAILED" }));
+      }
+    }
+
+    setActiveEntryId(null);
+    setIsDistributing(false);
+    setLoading(false);
+
+    if (failedCount === 0) {
+      setMessage(`Distribute完了: ${successCount}件成功`);
+    } else {
+      setMessage(
+        `Distribute一部完了: 成功 ${successCount}件 / 失敗 ${failedCount}件`
+      );
+    }
+
+    await refresh();
+  }
+
   async function recompute() {
     if (!projectId) return;
     setLoading(true);
@@ -409,6 +1243,14 @@ export function ProjectSettlementPanel(props: {
   const ethereumDone = bridgeSteps.some(
     (x) => x.sourceChain === "ETHEREUM" && x.status === "COMPLETED"
   );
+  const canDistribute =
+    settlement?.status === "READY_FOR_DISTRIBUTION" &&
+    chainId === 43114 &&
+    !!walletAddress &&
+    !draftDirty &&
+    !isDistributing;
+  const hasPreflightFailure =
+    preflight.length > 0 && preflight.some((x) => !x.sufficient);
 
   return (
     <div className="rounded-xl border bg-white p-4 space-y-4">
@@ -479,6 +1321,19 @@ export function ProjectSettlementPanel(props: {
           >
             完了を記録
           </button>
+          <button
+            type="button"
+            className="rounded border px-3 py-1.5 text-xs disabled:opacity-40"
+            onClick={() => void runOneClickBridge("POLYGON")}
+            disabled={loading || !walletAddress || bridgeNowBusy.POLYGON}
+          >
+            {bridgeNowBusy.POLYGON ? "Bridge now..." : "Bridge now (wallet)"}
+          </button>
+          {bridgeNowStatus.POLYGON ? (
+            <div className="text-[11px] text-gray-600 break-all">
+              {bridgeNowStatus.POLYGON}
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-lg border p-3 space-y-2">
@@ -513,6 +1368,19 @@ export function ProjectSettlementPanel(props: {
           >
             完了を記録
           </button>
+          <button
+            type="button"
+            className="rounded border px-3 py-1.5 text-xs disabled:opacity-40"
+            onClick={() => void runOneClickBridge("ETHEREUM")}
+            disabled={loading || !walletAddress || bridgeNowBusy.ETHEREUM}
+          >
+            {bridgeNowBusy.ETHEREUM ? "Bridge now..." : "Bridge now (wallet)"}
+          </button>
+          {bridgeNowStatus.ETHEREUM ? (
+            <div className="text-[11px] text-gray-600 break-all">
+              {bridgeNowStatus.ETHEREUM}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -522,7 +1390,11 @@ export function ProjectSettlementPanel(props: {
           <button
             type="button"
             className="rounded border px-3 py-1.5 text-xs"
-            onClick={() => setRows((prev) => [...prev, makeEmptyRow()])}
+            onClick={() => {
+              setRows((prev) => [...prev, makeEmptyRow()]);
+              setDraftDirty(true);
+              setPreflight([]);
+            }}
             disabled={loading}
           >
             行を追加
@@ -533,6 +1405,9 @@ export function ProjectSettlementPanel(props: {
           合計: {totals.planned} / Bridge済み: {totals.bridged}
           {totals.exceeds ? (
             <span className="text-rose-700 ml-2">(超過しています)</span>
+          ) : null}
+          {draftDirty ? (
+            <span className="text-amber-700 ml-2">未保存の変更があります</span>
           ) : null}
         </div>
 
@@ -569,9 +1444,11 @@ export function ProjectSettlementPanel(props: {
               <button
                 type="button"
                 className="md:col-span-1 rounded border px-2 py-1.5 text-xs"
-                onClick={() =>
-                  setRows((prev) => prev.filter((_, idx) => idx !== i))
-                }
+                onClick={() => {
+                  setRows((prev) => prev.filter((_, idx) => idx !== i));
+                  setDraftDirty(true);
+                  setPreflight([]);
+                }}
               >
                 削除
               </button>
@@ -590,6 +1467,118 @@ export function ProjectSettlementPanel(props: {
       </div>
 
       <div className="rounded-lg border p-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-2 justify-between">
+          <div className="text-sm font-medium">Distribution execution</div>
+          <div className="text-xs text-gray-500">
+            送金は接続ウォレットの署名で1件ずつ実行されます
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="rounded border px-4 py-2 text-sm disabled:opacity-40"
+            onClick={() => void checkBalances("ALL")}
+            disabled={loading || !walletAddress || !isConnected || chainId !== 43114}
+          >
+            送信前に残高チェック
+          </button>
+          <button
+            type="button"
+            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+            onClick={() => void executeDistribution("ALL")}
+            disabled={!canDistribute || hasPreflightFailure}
+          >
+            {isDistributing ? "Distributing..." : "Distribute on Avalanche"}
+          </button>
+          <button
+            type="button"
+            className="rounded border px-4 py-2 text-sm disabled:opacity-40"
+            onClick={() => void executeDistribution("FAILED_ONLY")}
+            disabled={
+              !canDistribute ||
+              !entries.some((e) => e.status === "FAILED") ||
+              hasPreflightFailure
+            }
+          >
+            失敗分のみ再送
+          </button>
+        </div>
+        {preflight.length > 0 ? (
+          <div className="rounded border bg-gray-50 p-2 text-xs space-y-1">
+            {preflight.map((p) => (
+              <div key={p.token} className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">{p.token}</span>
+                <span>required: {p.requiredAtomic.toString()}</span>
+                <span>
+                  balance:{" "}
+                  {p.walletBalanceAtomic === null
+                    ? "N/A"
+                    : p.walletBalanceAtomic.toString()}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded border ${
+                    p.sufficient
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      : "bg-rose-50 text-rose-700 border-rose-100"
+                  }`}
+                >
+                  {p.sufficient ? "OK" : "不足"}
+                </span>
+              </div>
+            ))}
+            {hasPreflightFailure ? (
+              <div className="text-rose-700">残高不足またはトークン設定不足があります。</div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="text-sm font-medium">Execution logs</div>
+        {recentExecutions.length === 0 ? (
+          <div className="text-xs text-gray-500">まだ実行ログがありません。</div>
+        ) : (
+          <div className="space-y-2">
+            {recentExecutions.map((ex) => (
+              <details key={ex.id} className="rounded border p-2">
+                <summary className="cursor-pointer text-xs flex flex-wrap items-center gap-2">
+                  <span className="font-mono">{ex.id.slice(0, 10)}...</span>
+                  <span className="px-2 py-0.5 rounded bg-gray-100">
+                    {ex.result}
+                  </span>
+                  <span>started: {ex.startedAt}</span>
+                </summary>
+                <div className="mt-2 space-y-1 text-xs">
+                  <div>initiatedBy: {ex.initiatedByWallet ?? "N/A"}</div>
+                  <div>finishedAt: {ex.finishedAt ?? "N/A"}</div>
+                  {ex.note ? <div>note: {ex.note}</div> : null}
+                  {ex.items.map((it) => (
+                    <div key={it.id} className="rounded border p-1 flex flex-wrap items-center gap-2">
+                      <span className="font-mono">{it.distributionEntryId.slice(0, 8)}...</span>
+                      <span className="px-2 py-0.5 rounded bg-gray-100">{it.status}</span>
+                      {it.txHash ? (
+                        <a
+                          className="text-blue-600 underline font-mono"
+                          href={`https://snowtrace.io/tx/${it.txHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {it.txHash.slice(0, 10)}...
+                        </a>
+                      ) : null}
+                      {it.errorReason ? (
+                        <span className="text-rose-700">{it.errorReason}</span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border p-3 space-y-2">
         <div className="text-sm font-medium">送信結果の記録（行単位）</div>
         {entries.length === 0 ? (
           <div className="text-xs text-gray-500">まだ配分行がありません。</div>
@@ -600,11 +1589,21 @@ export function ProjectSettlementPanel(props: {
                 <span className="font-mono">{e.recipientAddressChecksum}</span>
                 <span>{e.amountAtomic}</span>
                 <span className="px-2 py-0.5 rounded bg-gray-100">{e.status}</span>
+                {runtimeRowStatus[e.id] ? (
+                  <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+                    runtime:{runtimeRowStatus[e.id]}
+                  </span>
+                ) : null}
+                {activeEntryId === e.id && isDistributing ? (
+                  <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
+                    sending...
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   className="rounded border px-2 py-1"
                   onClick={() => void markEntryResult(e, "SENT")}
-                  disabled={loading || e.status === "SENT"}
+                  disabled={loading || isDistributing || e.status === "SENT"}
                 >
                   SENT
                 </button>
@@ -612,7 +1611,7 @@ export function ProjectSettlementPanel(props: {
                   type="button"
                   className="rounded border px-2 py-1"
                   onClick={() => void markEntryResult(e, "FAILED")}
-                  disabled={loading}
+                  disabled={loading || isDistributing}
                 >
                   FAILED
                 </button>

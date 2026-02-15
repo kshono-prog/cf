@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/guards";
 import {
   ensureProjectSettlement,
+  isSettlementSchemaMissingError,
   recomputeProjectSettlement,
 } from "@/lib/projectSettlement";
 
@@ -86,11 +87,18 @@ export async function POST(
         data: { status: "GOAL_ACHIEVED", updatedAt: now },
       });
 
-      await ensureProjectSettlement(tx, projectId);
-      await recomputeProjectSettlement(tx, projectId);
-
       return g;
     });
+
+    try {
+      await ensureProjectSettlement(prisma, projectId);
+      await recomputeProjectSettlement(prisma, projectId);
+    } catch (e) {
+      if (!isSettlementSchemaMissingError(e)) {
+        // Goal達成自体は成功済み。settlement 同期のみ失敗としてログを残す
+        console.error("PROJECT_GOAL_ACHIEVE_SETTLEMENT_SYNC_FAILED", e);
+      }
+    }
 
     return okJson({
       achieved: true,
