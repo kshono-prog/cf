@@ -1,4 +1,5 @@
 ./api/allocations/[allocationId]/route.ts
+./api/agent/tasks/route.ts
 ./api/contributions/reverify/route.ts
 ./api/contributions/route.ts
 ./api/creator/avatar/route.ts
@@ -14,6 +15,9 @@
 ./api/gas-support/faucet-balance/route.ts
 ./api/gas-support/nonce/route.ts
 ./api/me/route.ts
+./api/metrics/collect/route.ts
+./api/metrics/snapshots/route.ts
+./api/metrics/trends/route.ts
 ./api/projects/[projectId]/bridge/execute/route.ts
 ./api/projects/[projectId]/bridge/route.ts
 ./api/projects/[projectId]/budget/route.ts
@@ -31,4 +35,6 @@
 ./api/projects/route.ts
 ./api/purposes/[purposeId]/allocations/route.ts
 ./api/purposes/[purposeId]/route.ts
+./api/social/connections/route.ts
+./api/translation/route.ts
 ./api/user/route.ts

@@ -10,6 +10,10 @@ export type MeStatus = {
   } | null;
   creator?: CreatorProfile | null;
   projectId?: string | null;
+  projectIdsByCurrency?: {
+    JPYC: string | null;
+    USDC: string | null;
+  };
 };
 
 export type Status =

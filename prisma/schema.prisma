@@ -25,11 +25,17 @@ model CreatorProfile {
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   activeProjectId BigInt?
+  activeProjectIdJpyc BigInt?
+  activeProjectIdUsdc BigInt?
   socialLinks     CreatorSocialLink[]
   youtubeVideos   CreatorYoutubeVideo[]
   events          Event[]
   projects        Project[]
   tips            Tip[]
+  socialConnections SocialConnection[]
+  metricSnapshots   ContentMetricSnapshot[]
+  agentTasks        AgentTask[]
+  agentTaskAuditLogs AgentTaskAuditLog[]
 }
 
 model CreatorSocialLink {
@@ -212,6 +218,7 @@ model Project {
   description               String?
   status                    String            @default("DRAFT")
   purposeMode               String            @default("OPTIONAL")
+  currency                  String            @default("JPYC")
   createdAt                 DateTime          @default(now()) @db.Timestamptz(6)
   updatedAt                 DateTime          @default(now()) @db.Timestamptz(6)
   liquidityChainId          Int?
@@ -238,14 +245,129 @@ model Project {
   bridgeSteps              ProjectBridgeStep[]
   distributionEntries      DistributionEntry[]
   distributionExecutions   DistributionExecution[]
+  cctpBridgeJobs          CctpBridgeJob[]
   goal                      Goal?
   creatorProfile            CreatorProfile?   @relation(fields: [creatorProfileId], references: [id], onUpdate: NoAction)
   purposes                  Purpose[]
+  metricSnapshots           ContentMetricSnapshot[]
+  agentTasks                AgentTask[]
+  agentTaskAuditLogs        AgentTaskAuditLog[]
 
   @@index([creatorProfileId])
+  @@index([creatorProfileId, currency])
   @@index([status])
   @@index([eventBlockchainId])
   @@index([liquidityBlockchainId])
+}
+
+model CctpBridgeJob {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId            BigInt
+  currency             SettlementToken       @default(USDC)
+  sourceChain          BridgeSourceChain
+  destinationChain     BridgeDestinationChain @default(AVALANCHE)
+  status               CctpBridgeJobStatus   @default(PENDING)
+  idempotencyKey       String                @unique
+  goalAchievedAt       DateTime              @db.Timestamptz(6)
+  burnAmountAtomic     Decimal?              @db.Decimal(78, 0)
+  burnTxHash           String?
+  burnMessageHash      String?
+  attestation          String?
+  attestationFetchedAt DateTime?             @db.Timestamptz(6)
+  mintTxHash           String?
+  failureReason        String?
+  attempts             Int                   @default(0)
+  maxAttempts          Int                   @default(8)
+  nextRetryAt          DateTime?             @db.Timestamptz(6)
+  createdAt            DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime              @default(now()) @db.Timestamptz(6)
+  project              Project               @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([projectId, createdAt], map: "CctpBridgeJob_project_created_idx")
+  @@index([projectId, status], map: "CctpBridgeJob_project_status_idx")
+  @@index([status, nextRetryAt], map: "CctpBridgeJob_status_retry_idx")
+}
+
+model SocialConnection {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  platform         String
+  accountHandle    String
+  accountId        String?
+  status           String         @default("ACTIVE")
+  accessTokenRef   String?
+  refreshTokenRef  String?
+  tokenExpiresAt   DateTime?      @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime       @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  snapshots        ContentMetricSnapshot[]
+
+  @@unique([platform, accountHandle], map: "SocialConnection_platform_handle_key")
+  @@index([creatorProfileId, platform, status], map: "SocialConnection_creator_platform_status_idx")
+}
+
+model ContentMetricSnapshot {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId   BigInt
+  projectId          BigInt?
+  socialConnectionId String?           @db.Uuid
+  platform           String
+  contentExternalId  String
+  contentUrl         String?
+  postedAt           DateTime?         @db.Timestamptz(6)
+  capturedAt         DateTime          @default(now()) @db.Timestamptz(6)
+  views              Int?
+  likes              Int?
+  comments           Int?
+  shares             Int?
+  rawJson            Json              @default("{}")
+  creatorProfile     CreatorProfile    @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project            Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  socialConnection   SocialConnection? @relation(fields: [socialConnectionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([creatorProfileId, capturedAt], map: "ContentMetricSnapshot_creator_captured_idx")
+  @@index([projectId, platform, capturedAt], map: "ContentMetricSnapshot_project_platform_captured_idx")
+  @@index([socialConnectionId], map: "ContentMetricSnapshot_connection_idx")
+}
+
+model AgentTask {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  projectId        BigInt?
+  taskType         String
+  status           String         @default("QUEUED")
+  inputJson        Json           @default("{}")
+  outputJson       Json           @default("{}")
+  requestedBy      String?
+  approvedBy       String?
+  approvedAt       DateTime?      @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime       @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  auditLogs        AgentTaskAuditLog[]
+
+  @@index([creatorProfileId, status, createdAt], map: "AgentTask_creator_status_created_idx")
+  @@index([projectId, taskType, createdAt], map: "AgentTask_project_type_created_idx")
+}
+
+model AgentTaskAuditLog {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agentTaskId     String    @db.Uuid
+  creatorProfileId BigInt
+  projectId       BigInt?
+  action          String
+  actorAddress    String?
+  metaJson        Json      @default("{}")
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  agentTask       AgentTask @relation(fields: [agentTaskId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile  CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project         Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([agentTaskId, createdAt], map: "AgentTaskAuditLog_task_created_idx")
+  @@index([creatorProfileId, createdAt], map: "AgentTaskAuditLog_creator_created_idx")
+  @@index([projectId, createdAt], map: "AgentTaskAuditLog_project_created_idx")
 }
 
 model DistributionRun {
@@ -483,5 +605,14 @@ enum DistributionEntryStatus {
 enum DistributionExecutionResult {
   PARTIAL_SUCCESS
   SUCCESS
+  FAILED
+}
+
+enum CctpBridgeJobStatus {
+  PENDING
+  BURN_SUBMITTED
+  ATTESTATION_READY
+  MINT_SUBMITTED
+  COMPLETED
   FAILED
 }

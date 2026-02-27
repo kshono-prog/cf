@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { getChainConfig, type SupportedChainId } from "@/lib/chainConfig";
+import { formatReadableNumber } from "@/lib/numberFormat";
 
 /** /api/projects/[projectId]/progress のチェーン別内訳行 */
 export type ProgressByChainRow = {
@@ -31,6 +32,7 @@ export type ProjectProgressCardProps = {
   progressConfirmedCount: number | null;
   goalAchievedAt: string | null;
   progressReached: boolean | null;
+  currencyLabel?: "JPYC" | "USDC";
 
   // チェーン情報
   supportedJpycChainIds: number[];
@@ -90,6 +92,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
     progressConfirmedCount,
     goalAchievedAt,
     progressReached,
+    currencyLabel = "JPYC",
     supportedJpycChainIds,
     byChainJpyc,
     achieving,
@@ -101,6 +104,31 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
   const currentYen = progressTotalYen ?? 0;
   const targetYen = resolvedTargetYen ?? 0;
   const canShowBar = targetYen > 0;
+  const isUsdc = currencyLabel === "USDC";
+
+  function formatAmount(v: number): string {
+    if (!Number.isFinite(v)) return isUsdc ? "0.00" : "0";
+    if (isUsdc) {
+      return formatReadableNumber(v, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+    return Math.floor(v).toLocaleString();
+  }
+
+  const rowAmount = useCallback(
+    (r: ProgressByChainRow): number => {
+      if (isUsdc) {
+        const n = Number(r.confirmedAmountDecimal ?? "0");
+        return Number.isFinite(n) ? n : 0;
+      }
+      return typeof r.confirmedAmountJpyc === "number"
+        ? r.confirmedAmountJpyc
+        : 0;
+    },
+    [isUsdc]
+  );
 
   // チェーン別の “積み上げセグメント” を作る
   const segments = useMemo(() => {
@@ -112,8 +140,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
     const map = new Map<number, number>();
     for (const r of byChainJpyc) {
-      const v =
-        typeof r.confirmedAmountJpyc === "number" ? r.confirmedAmountJpyc : 0;
+      const v = rowAmount(r);
       if (!Number.isFinite(v) || v <= 0) continue;
       map.set(r.chainId, (map.get(r.chainId) ?? 0) + v);
     }
@@ -151,7 +178,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
     }
 
     return out;
-  }, [byChainJpyc, supportedJpycChainIds, canShowBar, targetYen]);
+  }, [byChainJpyc, supportedJpycChainIds, canShowBar, targetYen, rowAmount]);
 
   const totalPct = canShowBar ? clampPct((currentYen / targetYen) * 100) : 0;
 
@@ -188,11 +215,11 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
           </div>
 
           <div className="shrink-0 text-right">
-            <div className="text-xs text-gray-500">JPYC</div>
+            <div className="text-xs text-gray-500">{currencyLabel}</div>
             <div className="text-sm font-mono font-semibold text-gray-900">
               {progressLoading
                 ? "Loading…"
-                : `${currentYen.toLocaleString()} / ${targetYen.toLocaleString()}`}
+                : `${formatAmount(currentYen)} / ${formatAmount(targetYen)}`}
             </div>
           </div>
         </div>
@@ -226,7 +253,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
                       }}
                       title={`${
                         seg.label
-                      }: ${seg.amountYen.toLocaleString()} JPYC`}
+                      }: ${formatAmount(seg.amountYen)} ${currencyLabel}`}
                     />
                   ))
                 ) : (
@@ -297,7 +324,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
         {/* Details (optional) */}
         <details className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
           <summary className="cursor-pointer text-[11px] font-semibold text-gray-700 select-none">
-            チェーン別内訳（JPYC / CONFIRMED）
+            チェーン別内訳（{currencyLabel} / CONFIRMED）
           </summary>
 
           <div className="mt-2">
@@ -319,7 +346,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
                     </div>
 
                     <div className="text-[12px] font-mono font-semibold text-gray-900">
-                      {Number(r.confirmedAmountJpyc).toLocaleString()} JPYC
+                      {formatAmount(rowAmount(r))} {currencyLabel}
                     </div>
                   </div>
                 ))}

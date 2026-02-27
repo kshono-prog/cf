@@ -58,7 +58,15 @@ type Props = {
   username: string;
   creator: CreatorProfile;
   projectId: string | null;
+  projectIdsByCurrency?: {
+    JPYC: string | null;
+    USDC: string | null;
+  } | null;
   supportedJpycChainIds: number[];
+  supportedChainIdsByCurrency?: {
+    JPYC: number[];
+    USDC: number[];
+  } | null;
   showLegacyCard: boolean;
   headerColor: string;
   onPostContribution: (
@@ -71,7 +79,9 @@ export function ProfileWalletClient({
   username,
   creator,
   projectId,
+  projectIdsByCurrency,
   supportedJpycChainIds,
+  supportedChainIdsByCurrency,
   showLegacyCard,
   headerColor,
   onPostContribution,
@@ -121,11 +131,26 @@ export function ProfileWalletClient({
 
   const connectedChainId = currentChainId ?? null;
 
-  const hasProject = !!projectId;
+  const hasProject =
+    !!projectId ||
+    !!projectIdsByCurrency?.JPYC ||
+    !!projectIdsByCurrency?.USDC;
+  const activeProjectId = projectIdsByCurrency?.[currency] ?? projectId ?? null;
+
+  const allowedChainIdsForCurrency = useMemo(() => {
+    if (currency === "USDC") {
+      const usdcIds = supportedChainIdsByCurrency?.USDC ?? [];
+      if (hasProject && usdcIds.length > 0) return usdcIds;
+    }
+    if (hasProject && supportedJpycChainIds.length > 0) {
+      return supportedJpycChainIds;
+    }
+    return [];
+  }, [currency, hasProject, supportedChainIdsByCurrency, supportedJpycChainIds]);
 
   const selectableChainIds: SupportedChainId[] = useMemo(() => {
-    if (hasProject && supportedJpycChainIds.length > 0) {
-      const filtered = supportedJpycChainIds
+    if (allowedChainIdsForCurrency.length > 0) {
+      const filtered = allowedChainIdsForCurrency
         .filter((id) => isSupportedChainId(id))
         .map((id) => id as SupportedChainId);
 
@@ -137,17 +162,15 @@ export function ProfileWalletClient({
     ) as SupportedChainId[];
 
     return fallback.length > 0 ? fallback : [DEFAULT_CHAIN];
-  }, [hasProject, supportedJpycChainIds.join("|"), DEFAULT_CHAIN]);
+  }, [allowedChainIdsForCurrency, DEFAULT_CHAIN]);
 
   useEffect(() => {
     if (selectableChainIds.length === 0) return;
-    if (connected) return;
 
     if (!selectableChainIds.includes(selectedChainId)) {
       setSelectedChainId(selectableChainIds[0]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectableChainIds.join("|"), connected]);
+  }, [selectableChainIds, selectedChainId]);
 
   useEffect(() => {
     if (!connected) return;
@@ -156,8 +179,8 @@ export function ProfileWalletClient({
 
     const cid = currentChainId as SupportedChainId;
 
-    if (hasProject && supportedJpycChainIds.length > 0) {
-      if (!supportedJpycChainIds.includes(cid)) return;
+    if (allowedChainIdsForCurrency.length > 0) {
+      if (!allowedChainIdsForCurrency.includes(cid)) return;
     }
 
     if (!selectableChainIds.includes(cid)) return;
@@ -166,9 +189,8 @@ export function ProfileWalletClient({
   }, [
     connected,
     currentChainId,
-    hasProject,
-    supportedJpycChainIds.join("|"),
-    selectableChainIds.join("|"),
+    allowedChainIdsForCurrency,
+    selectableChainIds,
   ]);
 
   const onWrongChain =
@@ -334,18 +356,24 @@ export function ProfileWalletClient({
   }, [creator.address, creator.goalTargetJpyc, selectedChainId]);
 
   async function fetchWalletBalances() {
-    if (!connected || !activeAddress || onWrongChain) {
+    if (!connected || !activeAddress) {
       setWalletBalances(null);
       setWalletBalancesLoading(false);
       return;
     }
 
+    const balanceChainId: SupportedChainId = isSupportedChainId(
+      currentChainId ?? 0
+    )
+      ? (currentChainId as SupportedChainId)
+      : selectedChainId;
+
     setWalletBalancesLoading(true);
     const { readBalances } = await import("@/lib/walletService");
     try {
-      const tokenKeys: readonly TokenKey[] = ["JPYC"];
+      const tokenKeys: readonly TokenKey[] = ["JPYC", "USDC"];
       const balances = await readBalances({
-        chainId: selectedChainId,
+        chainId: balanceChainId,
         account: activeAddress as Address,
         tokenKeys,
       });
@@ -361,7 +389,7 @@ export function ProfileWalletClient({
   useEffect(() => {
     void fetchWalletBalances();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected, activeAddress, onWrongChain, selectedChainId]);
+  }, [connected, activeAddress, currentChainId, selectedChainId]);
 
   useEffect(() => {
     if (
@@ -582,7 +610,7 @@ export function ProfileWalletClient({
         currency,
         amount: amtStr,
         toAddress,
-        projectId: projectId ?? null,
+        projectId: activeProjectId,
         purposeId: purposeId ?? null,
         createdAtMs: Date.now(),
       });
@@ -600,7 +628,7 @@ export function ProfileWalletClient({
       }
 
       await onPostContribution({
-        projectId: projectId ?? undefined,
+        projectId: activeProjectId ?? undefined,
         purposeId,
         chainId: selectedChainId,
         currency,

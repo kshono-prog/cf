@@ -60,7 +60,15 @@ type PublicCreatorResponse =
         externalUrl: string | null;
       };
       activeProjectId: string | null;
+      projectIdsByCurrency?: {
+        JPYC: string | null;
+        USDC: string | null;
+      };
       summary: unknown | null;
+      summariesByCurrency?: {
+        JPYC: unknown | null;
+        USDC: unknown | null;
+      };
     }
   | { ok: false; error: string; detail?: string };
 
@@ -78,6 +86,10 @@ type Props = {
   username: string;
   creator: CreatorProfileInput;
   projectId: string | null;
+  projectIdsByCurrency?: {
+    JPYC: string | null;
+    USDC: string | null;
+  } | null;
   publicSummary?: PublicSummaryLite | null;
   layout?: "full" | "content";
 };
@@ -94,6 +106,11 @@ type ProgressByChainRow = {
   confirmedAmountJpyc: number;
 };
 
+type ProgressSupportedChainIdsByCurrency = {
+  JPYC: number[];
+  USDC: number[];
+};
+
 type PurposeDto = { id: string; title?: string | null };
 
 type ProjectProgressApi = {
@@ -101,17 +118,32 @@ type ProjectProgressApi = {
   project: { id: string; status: string; title?: string | null };
   goal: {
     id: string;
+    unitCurrency?: Currency;
+    targetAmount?: number;
     targetAmountJpyc: number;
     achievedAt: string | null;
     deadline?: string | null;
   } | null;
   progress: {
+    currency?: Currency;
     confirmedJpyc: number;
+    confirmedTotal?: number;
+    confirmedByCurrency?: {
+      JPYC: number;
+      USDC: number;
+    };
+    targetAmount?: number | null;
     targetJpyc: number | null;
     progressPct: number;
 
+    supportedChainIds?: number[];
     supportedJpycChainIds: number[];
+    supportedChainIdsByCurrency?: ProgressSupportedChainIdsByCurrency;
     byChain: ProgressByChainRow[];
+    byChainByCurrency?: {
+      JPYC: ProgressByChainRow[];
+      USDC: ProgressByChainRow[];
+    };
     totalsAllChains: ProgressTotalsAllChains;
 
     perPurpose: Array<{
@@ -135,6 +167,8 @@ type ProjectStatusGet = {
   project: { id: string; status: string; title?: string | null };
   goal: {
     id: string;
+    unitCurrency?: Currency;
+    targetAmount?: number | null;
     targetAmountJpyc: number | null;
     achievedAt: string | null;
   } | null;
@@ -156,6 +190,7 @@ export default function ProfileClient({
   username,
   creator: creatorInput,
   projectId,
+  projectIdsByCurrency,
   publicSummary,
   layout = "full",
 }: Props) {
@@ -172,6 +207,25 @@ export default function ProfileClient({
       address: normalizedAddress,
     };
   }, [creatorInput]);
+  const [viewCurrency, setViewCurrency] = useState<Currency>("JPYC");
+  const resolvedProjectIdsByCurrency = useMemo(
+    () => ({
+      JPYC: projectIdsByCurrency?.JPYC ?? projectId ?? null,
+      USDC: projectIdsByCurrency?.USDC ?? null,
+    }),
+    [projectIdsByCurrency, projectId]
+  );
+  const activeProjectId = resolvedProjectIdsByCurrency[viewCurrency];
+  useEffect(() => {
+    if (resolvedProjectIdsByCurrency[viewCurrency]) return;
+    if (resolvedProjectIdsByCurrency.JPYC) {
+      setViewCurrency("JPYC");
+      return;
+    }
+    if (resolvedProjectIdsByCurrency.USDC) {
+      setViewCurrency("USDC");
+    }
+  }, [resolvedProjectIdsByCurrency, viewCurrency]);
 
   const reverifyOnViewBusyRef = useRef(false);
   const publicSummaryFetchRef = useRef<string | null>(null);
@@ -220,7 +274,7 @@ export default function ProfileClient({
 
   // ===== Phase1 Progress/Goal states =====
 
-  const hasProject = !!projectId;
+  const hasProject = !!activeProjectId;
 
   const [projectStatus, setProjectStatus] = useState<string | null>(null);
   const [projectTitle, setProjectTitle] = useState<string | null>(null);
@@ -241,6 +295,11 @@ export default function ProfileClient({
   const [supportedJpycChainIds, setSupportedJpycChainIds] = useState<number[]>(
     []
   );
+  const [supportedChainIdsByCurrency, setSupportedChainIdsByCurrency] =
+    useState<ProgressSupportedChainIdsByCurrency>({
+      JPYC: [],
+      USDC: [],
+    });
   const [byChainJpyc, setByChainJpyc] = useState<ProgressByChainRow[]>([]);
   const [totalsAllChains, setTotalsAllChains] =
     useState<ProgressTotalsAllChains | null>(null);
@@ -255,11 +314,11 @@ export default function ProfileClient({
   /* ========== Phase1: status/progress loader ========== */
 
   async function fetchProjectStatusSafe() {
-    if (!projectId) return;
+    if (!activeProjectId) return;
 
     try {
       const res = await fetch(
-        `/api/projects/${encodeURIComponent(projectId)}`,
+        `/api/projects/${encodeURIComponent(activeProjectId)}`,
         {
           method: "GET",
           cache: "no-store",
@@ -281,7 +340,7 @@ export default function ProfileClient({
           (json.goal?.achievedAt as string | null | undefined) ?? null;
         if (achievedAt) setGoalAchievedAt(achievedAt);
 
-        const tt = json.goal?.targetAmountJpyc ?? null;
+        const tt = json.goal?.targetAmount ?? json.goal?.targetAmountJpyc ?? null;
         if (typeof tt === "number" && Number.isFinite(tt)) {
           setProjectGoalTargetYen(tt);
         }
@@ -299,11 +358,11 @@ export default function ProfileClient({
   }
 
   async function fetchPendingTxHashesSafe(): Promise<`0x${string}`[]> {
-    if (!projectId) return [];
+    if (!activeProjectId) return [];
     try {
       const res = await fetch(
         `/api/projects/${encodeURIComponent(
-          projectId
+          activeProjectId
         )}/contributions?status=PENDING`,
         { method: "GET", cache: "no-store" }
       );
@@ -326,14 +385,14 @@ export default function ProfileClient({
   }
 
   async function autoReverifyPendingOnView(): Promise<void> {
-    if (!projectId) return;
+    if (!activeProjectId) return;
 
     if (reverifyOnViewBusyRef.current) return;
     reverifyOnViewBusyRef.current = true;
 
     try {
       const r = await autoReverifyPending({
-        projectId,
+        projectId: activeProjectId,
         cooldownMs: 60_000,
         maxPerView: 3,
       });
@@ -348,14 +407,14 @@ export default function ProfileClient({
   }
 
   async function fetchProjectProgressSafe(): Promise<ProjectProgressApi | null> {
-    if (!projectId) return null;
+    if (!activeProjectId) return null;
 
     setProgressLoading(true);
     setProgressError(null);
 
     try {
       const res = await fetch(
-        `/api/projects/${encodeURIComponent(projectId)}/progress`,
+        `/api/projects/${encodeURIComponent(activeProjectId)}/progress`,
         { method: "GET", cache: "no-store" }
       );
 
@@ -391,13 +450,36 @@ export default function ProfileClient({
       );
 
       // ---- supported chains / byChain / totalsAllChains ----
-      const ids = Array.isArray(typed.progress.supportedJpycChainIds)
+      const idsLegacy = Array.isArray(typed.progress.supportedJpycChainIds)
         ? typed.progress.supportedJpycChainIds.filter(
             (x): x is number => typeof x === "number" && Number.isFinite(x)
           )
         : [];
+      const idsAll = Array.isArray(typed.progress.supportedChainIds)
+        ? typed.progress.supportedChainIds.filter(
+            (x): x is number => typeof x === "number" && Number.isFinite(x)
+          )
+        : [];
 
-      setSupportedJpycChainIds(ids);
+      setSupportedJpycChainIds(idsAll.length > 0 ? idsAll : idsLegacy);
+
+      const byCur = typed.progress.supportedChainIdsByCurrency;
+      if (
+        isRecord(byCur) &&
+        Array.isArray(byCur.JPYC) &&
+        Array.isArray(byCur.USDC)
+      ) {
+        setSupportedChainIdsByCurrency({
+          JPYC: byCur.JPYC.filter(
+            (x): x is number => typeof x === "number" && Number.isFinite(x)
+          ),
+          USDC: byCur.USDC.filter(
+            (x): x is number => typeof x === "number" && Number.isFinite(x)
+          ),
+        });
+      } else {
+        setSupportedChainIdsByCurrency({ JPYC: idsLegacy, USDC: [] });
+      }
 
       const bc = Array.isArray(typed.progress.byChain)
         ? typed.progress.byChain
@@ -434,10 +516,12 @@ export default function ProfileClient({
       }
 
       // ---- 既存：progress / goal ----
-      const confirmed = Number(typed.progress.confirmedJpyc ?? 0);
+      const confirmed = Number(
+        typed.progress.confirmedTotal ?? typed.progress.confirmedJpyc ?? 0
+      );
       setProgressTotalYen(Number.isFinite(confirmed) ? confirmed : 0);
 
-      const target = typed.progress.targetJpyc ?? null;
+      const target = typed.progress.targetAmount ?? typed.progress.targetJpyc ?? null;
       setProgressTargetYen(
         typeof target === "number" && Number.isFinite(target) ? target : null
       );
@@ -457,8 +541,9 @@ export default function ProfileClient({
 
       setProgressConfirmedCount(null);
 
-      if (typed.goal?.targetAmountJpyc != null) {
-        setProjectGoalTargetYen(typed.goal.targetAmountJpyc);
+      const goalTarget = typed.goal?.targetAmount ?? typed.goal?.targetAmountJpyc;
+      if (goalTarget != null) {
+        setProjectGoalTargetYen(goalTarget);
       }
 
       return typed;
@@ -471,12 +556,12 @@ export default function ProfileClient({
   }
 
   async function achieveGoalSafe(): Promise<GoalAchievePost | null> {
-    if (!projectId) return null;
+    if (!activeProjectId) return null;
 
     setAchieving(true);
     try {
       const res = await fetch(
-        `/api/projects/${encodeURIComponent(projectId)}/goal/achieve`,
+        `/api/projects/${encodeURIComponent(activeProjectId)}/goal/achieve`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -504,14 +589,14 @@ export default function ProfileClient({
   }
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!activeProjectId) return;
 
     void fetchProjectStatusSafe();
     void fetchProjectProgressSafe();
     void autoReverifyPendingOnView();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [activeProjectId]);
 
   const MAX_PER_LOAD = 5;
   const COOLDOWN_MS = 20_000;
@@ -535,16 +620,16 @@ export default function ProfileClient({
     }
   }
 
-  const attemptedThisViewRef = useMemo(
-    () => ({ set: new Set<string>() }),
-    [projectId]
-  );
+  const attemptedThisViewRef = useRef<{ set: Set<string> }>({
+    set: new Set<string>(),
+  });
   const [autoReverifyRunning, setAutoReverifyRunning] = useState(false);
   const [loadWalletSection, setLoadWalletSection] = useState(false);
   const walletSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!activeProjectId) return;
+    attemptedThisViewRef.current.set.clear();
     let cancelled = false;
 
     async function run(): Promise<void> {
@@ -561,7 +646,7 @@ export default function ProfileClient({
 
         const candidates: `0x${string}`[] = [];
         for (const h of pending) {
-          if (attemptedThisViewRef.set.has(h)) continue;
+          if (attemptedThisViewRef.current.set.has(h)) continue;
 
           const last = getLastAttempt(h);
           if (t0 - last < COOLDOWN_MS) continue;
@@ -573,7 +658,7 @@ export default function ProfileClient({
         if (candidates.length === 0) return;
 
         for (const h of candidates) {
-          attemptedThisViewRef.set.add(h);
+          attemptedThisViewRef.current.set.add(h);
           setLastAttempt(h, t0);
         }
 
@@ -600,7 +685,7 @@ export default function ProfileClient({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, progressTotalYen]);
+  }, [activeProjectId, progressTotalYen]);
 
   useEffect(() => {
     if (loadWalletSection) return;
@@ -719,7 +804,7 @@ export default function ProfileClient({
    * 4) reached なら goal/achieve（未達成時のみ）
    */
   async function afterSendPipeline(txHash: string) {
-    if (!projectId) return;
+    if (!activeProjectId) return;
 
     const maxTry = 3;
     for (let i = 0; i < maxTry; i++) {
@@ -735,16 +820,17 @@ export default function ProfileClient({
         ? p.goal.achievedAt
         : null) ?? goalAchievedAt;
 
+    const targetRaw = p?.progress?.targetAmount ?? p?.progress?.targetJpyc;
     const target =
-      typeof p?.progress?.targetJpyc === "number" &&
-      Number.isFinite(p.progress.targetJpyc)
-        ? p.progress.targetJpyc
+      typeof targetRaw === "number" && Number.isFinite(targetRaw)
+        ? targetRaw
         : null;
 
+    const confirmedRaw =
+      p?.progress?.confirmedTotal ?? p?.progress?.confirmedJpyc ?? 0;
     const confirmed =
-      typeof p?.progress?.confirmedJpyc === "number" &&
-      Number.isFinite(p.progress.confirmedJpyc)
-        ? p.progress.confirmedJpyc
+      typeof confirmedRaw === "number" && Number.isFinite(confirmedRaw)
+        ? confirmedRaw
         : 0;
 
     const reached = target != null && target > 0 ? confirmed >= target : null;
@@ -815,6 +901,29 @@ export default function ProfileClient({
 
   const content = (
     <>
+      <div className="mt-4 flex items-center gap-2">
+        <span className="text-xs text-gray-500">表示通貨</span>
+        {(["JPYC", "USDC"] as const).map((cur) => {
+          const active = viewCurrency === cur;
+          const disabled = !resolvedProjectIdsByCurrency[cur];
+          return (
+            <button
+              key={cur}
+              type="button"
+              onClick={() => setViewCurrency(cur)}
+              disabled={disabled}
+              className={`rounded-full border px-3 py-1 text-xs ${
+                active
+                  ? "border-black bg-black text-white"
+                  : "border-gray-300 bg-white text-gray-700"
+              } disabled:opacity-40`}
+            >
+              {cur}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ========== 1) Phase1: Project Progress（DB集計） 主表示 ========== */}
       {showDbCard && (
         <ProjectProgressCard
@@ -830,6 +939,7 @@ export default function ProfileClient({
           progressConfirmedCount={progressConfirmedCount}
           goalAchievedAt={goalAchievedAt}
           progressReached={progressReached}
+          currencyLabel={viewCurrency}
           supportedJpycChainIds={supportedJpycChainIds}
           byChainJpyc={byChainJpyc}
           // totalsAllChains={totalsAllChains}
@@ -942,8 +1052,10 @@ export default function ProfileClient({
           <ProfileWalletClient
             username={username}
             creator={creator}
-            projectId={projectId}
+            projectId={activeProjectId}
+            projectIdsByCurrency={resolvedProjectIdsByCurrency}
             supportedJpycChainIds={supportedJpycChainIds}
+            supportedChainIdsByCurrency={supportedChainIdsByCurrency}
             showLegacyCard={showLegacyCard}
             headerColor={headerColor}
             onPostContribution={postContribution}

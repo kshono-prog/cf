@@ -330,6 +330,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       purposeId = undefined;
     }
 
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, currency: true },
+    });
+    if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+    if (project.currency !== parsed.currency) {
+      return errJson("PROJECT_CURRENCY_MISMATCH", 400);
+    }
+
     const existing = await prisma.contribution.findUnique({
       where: { txHash: parsed.txHash },
     });

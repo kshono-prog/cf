@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getAddress, isAddress, isHash } from "viem";
 import { useChainId, usePublicClient, useWalletClient } from "wagmi";
+import { formatBigIntGrouped } from "@/lib/numberFormat";
 
 type SettlementStatus =
   | "NOT_READY"
@@ -67,6 +68,34 @@ type DistributionExecutionView = {
   items: DistributionExecutionItemView[];
 };
 
+type CctpJobView = {
+  id: string;
+  currency: "JPYC" | "USDC";
+  sourceChain: "POLYGON" | "ETHEREUM";
+  destinationChain: "AVALANCHE";
+  status:
+    | "PENDING"
+    | "BURN_SUBMITTED"
+    | "ATTESTATION_READY"
+    | "MINT_SUBMITTED"
+    | "COMPLETED"
+    | "FAILED";
+  idempotencyKey: string;
+  goalAchievedAt: string;
+  burnAmountAtomic: string | null;
+  burnTxHash: string | null;
+  burnMessageHash: string | null;
+  attestation: string | null;
+  attestationFetchedAt: string | null;
+  mintTxHash: string | null;
+  failureReason: string | null;
+  attempts: number;
+  maxAttempts: number;
+  nextRetryAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type TokenPreflight = {
   token: "JPYC" | "USDC";
   tokenAddress: string | null;
@@ -84,6 +113,16 @@ type BridgePrepareResponse = {
   source: { chainId: number };
   destination: { chainId: number; recipientAddress: string };
   token: { address: string };
+  ictt?: {
+    ready: boolean;
+    tokenTransferrerAddress: string | null;
+    destinationBlockchainId: string | null;
+    destinationTokenTransferrerAddress: string | null;
+    sourceTokenAddress: string | null;
+    requiredGasLimit: string;
+    tokenDecimals: number;
+    missing?: string[];
+  };
 };
 
 type BridgeRunApiResponse = {
@@ -285,12 +324,12 @@ function statusBadgeClass(status: SettlementStatus): string {
   return "bg-gray-100 text-gray-700 border-gray-200";
 }
 
-function makeEmptyRow(): DistributionDraft {
+function makeEmptyRow(token: "JPYC" | "USDC"): DistributionDraft {
   return {
     recipientAddress: "",
     amountAtomic: "",
     memo: "",
-    token: "JPYC",
+    token,
   };
 }
 
@@ -298,12 +337,18 @@ export function ProjectSettlementPanel(props: {
   projectId: string | null;
   walletAddress: string | null;
   isConnected: boolean;
+  projectCurrency?: "JPYC" | "USDC";
 }) {
   const chainId = useChainId();
   const sourcePublicClient = usePublicClient();
   const avalanchePublicClient = usePublicClient({ chainId: 43114 });
   const { data: walletClient } = useWalletClient();
-  const { projectId, walletAddress, isConnected } = props;
+  const {
+    projectId,
+    walletAddress,
+    isConnected,
+    projectCurrency = "JPYC",
+  } = props;
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -313,8 +358,11 @@ export function ProjectSettlementPanel(props: {
   const [recentExecutions, setRecentExecutions] = useState<
     DistributionExecutionView[]
   >([]);
+  const [cctpJobs, setCctpJobs] = useState<CctpJobView[]>([]);
 
-  const [rows, setRows] = useState<DistributionDraft[]>([makeEmptyRow()]);
+  const [rows, setRows] = useState<DistributionDraft[]>([
+    makeEmptyRow(projectCurrency),
+  ]);
   const [draftDirty, setDraftDirty] = useState(false);
   const [isDistributing, setIsDistributing] = useState(false);
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
@@ -336,6 +384,15 @@ export function ProjectSettlementPanel(props: {
 
   const canUse = !!projectId;
 
+  useEffect(() => {
+    setRows((prev) =>
+      prev.map((row) => ({
+        ...row,
+        token: projectCurrency,
+      }))
+    );
+  }, [projectCurrency]);
+
   const refresh = useCallback(async () => {
     if (!projectId) {
       setSettlement(null);
@@ -343,6 +400,7 @@ export function ProjectSettlementPanel(props: {
       setEntries([]);
       setRecentExecutions([]);
       setPreflight([]);
+      setCctpJobs([]);
       return;
     }
 
@@ -377,6 +435,7 @@ export function ProjectSettlementPanel(props: {
         .distributionEntries;
       const x = (json as { recentExecutions?: DistributionExecutionView[] })
         .recentExecutions;
+      const c = (json as { cctpJobs?: CctpJobView[] }).cctpJobs;
 
       if (!s || !Array.isArray(b) || !Array.isArray(d) || !Array.isArray(x)) {
         setMessage("SETTLEMENT_RESPONSE_INVALID");
@@ -387,6 +446,7 @@ export function ProjectSettlementPanel(props: {
       setBridgeSteps(b);
       setEntries(d);
       setRecentExecutions(x);
+      setCctpJobs(Array.isArray(c) ? c : []);
 
       const editableRows = d
         .filter((x) => x.status !== "SENT")
@@ -395,9 +455,11 @@ export function ProjectSettlementPanel(props: {
           recipientAddress: x.recipientAddressChecksum,
           amountAtomic: x.amountAtomic,
           memo: x.memo ?? "",
-          token: x.token,
+          token: projectCurrency,
         }));
-      setRows(editableRows.length > 0 ? editableRows : [makeEmptyRow()]);
+      setRows(
+        editableRows.length > 0 ? editableRows : [makeEmptyRow(projectCurrency)]
+      );
       setDraftDirty(false);
       setRuntimeRowStatus({});
       setActiveEntryId(null);
@@ -407,7 +469,7 @@ export function ProjectSettlementPanel(props: {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectCurrency, projectId]);
 
   useEffect(() => {
     void refresh();
@@ -415,22 +477,25 @@ export function ProjectSettlementPanel(props: {
 
   const totals = useMemo(() => {
     const planned = rows.reduce((acc, row) => {
-      const n = Number(row.amountAtomic);
-      if (!Number.isFinite(n) || n <= 0) return acc;
+      const raw = row.amountAtomic.trim();
+      if (!/^\d+$/.test(raw)) return acc;
+      const n = BigInt(raw);
+      if (n <= 0n) return acc;
       return acc + n;
-    }, 0);
+    }, 0n);
 
-    const bridged = Number(settlement?.bridgedTotalAtomic ?? "0");
+    const bridgedRaw = settlement?.bridgedTotalAtomic ?? "0";
+    const bridged = /^\d+$/.test(bridgedRaw) ? BigInt(bridgedRaw) : 0n;
     return {
       planned,
       bridged,
-      exceeds: Number.isFinite(bridged) && planned > bridged,
+      exceeds: planned > bridged,
     };
   }, [rows, settlement?.bridgedTotalAtomic]);
 
   const walletNotice = !isConnected
     ? "ウォレット未接続です"
-    : chainId !== 43114
+    : settlement?.status === "READY_FOR_DISTRIBUTION" && chainId !== 43114
     ? "Avalanche C-Chain(43114)に切り替えてください"
     : null;
 
@@ -465,7 +530,7 @@ export function ProjectSettlementPanel(props: {
           body: JSON.stringify({
             address: walletAddress,
             sourceChain,
-            token: "JPYC",
+            token: projectCurrency,
             bridgedAmountAtomic: amount,
             txHash: txHash || undefined,
             completedAt: new Date().toISOString(),
@@ -521,7 +586,7 @@ export function ProjectSettlementPanel(props: {
         recipientAddress: getAddress(row.recipientAddress),
         amountAtomic: row.amountAtomic,
         memo: row.memo.trim() || undefined,
-        token: row.token,
+        token: projectCurrency,
         orderIndex: index,
       }));
 
@@ -547,6 +612,52 @@ export function ProjectSettlementPanel(props: {
       await refresh();
     } catch {
       setMessage("DISTRIBUTION_SAVE_FAILED");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function runCctpAction(
+    action:
+      | "SYNC_FROM_GOAL"
+      | "MARK_BURN_SUBMITTED"
+      | "FETCH_ATTESTATION"
+      | "MARK_MINT_SUBMITTED"
+      | "COMPLETE"
+      | "FAIL"
+      | "RETRY",
+    payload: Record<string, unknown>
+  ) {
+    if (!projectId || !walletAddress) {
+      setMessage("ADDRESS_REQUIRED");
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/cctp/jobs`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: walletAddress,
+            action,
+            ...payload,
+          }),
+        }
+      );
+      const json: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMessage(asErrorCode(json, `HTTP_${res.status}`));
+        await refresh();
+        return;
+      }
+      setMessage(`CCTP action: ${action}`);
+      await refresh();
+    } catch {
+      setMessage("CCTP_ACTION_FAILED");
     } finally {
       setLoading(false);
     }
@@ -750,6 +861,7 @@ export function ProjectSettlementPanel(props: {
     const source = obj.source as Record<string, unknown> | undefined;
     const destination = obj.destination as Record<string, unknown> | undefined;
     const token = obj.token as Record<string, unknown> | undefined;
+    const ictt = obj.ictt as Record<string, unknown> | undefined;
     if (!source || !destination || !token) return null;
     if (typeof source.chainId !== "number") return null;
     if (typeof destination.chainId !== "number") return null;
@@ -766,6 +878,38 @@ export function ProjectSettlementPanel(props: {
         recipientAddress: destination.recipientAddress,
       },
       token: { address: token.address },
+      ictt: ictt
+        ? {
+            ready: ictt.ready === true,
+            tokenTransferrerAddress:
+              typeof ictt.tokenTransferrerAddress === "string"
+                ? ictt.tokenTransferrerAddress
+                : null,
+            destinationBlockchainId:
+              typeof ictt.destinationBlockchainId === "string"
+                ? ictt.destinationBlockchainId
+                : null,
+            destinationTokenTransferrerAddress:
+              typeof ictt.destinationTokenTransferrerAddress === "string"
+                ? ictt.destinationTokenTransferrerAddress
+                : null,
+            sourceTokenAddress:
+              typeof ictt.sourceTokenAddress === "string"
+                ? ictt.sourceTokenAddress
+                : null,
+            requiredGasLimit:
+              typeof ictt.requiredGasLimit === "string"
+                ? ictt.requiredGasLimit
+                : "250000",
+            tokenDecimals:
+              typeof ictt.tokenDecimals === "number" && Number.isFinite(ictt.tokenDecimals)
+                ? ictt.tokenDecimals
+                : 18,
+            missing: Array.isArray(ictt.missing)
+              ? ictt.missing.filter((x): x is string => typeof x === "string")
+              : [],
+          }
+        : undefined,
     };
   }
 
@@ -800,7 +944,7 @@ export function ProjectSettlementPanel(props: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             address: walletAddress,
-            currency: "JPYC",
+            currency: projectCurrency,
             provider: "MANUAL",
           }),
         }
@@ -837,11 +981,48 @@ export function ProjectSettlementPanel(props: {
         return;
       }
 
-      const cfg = getBridgeExecutionConfig(prepared.source.chainId, "JPYC");
+      const cfgFromPrepare =
+        prepared.ictt?.ready &&
+        prepared.ictt.tokenTransferrerAddress &&
+        prepared.ictt.destinationBlockchainId &&
+        prepared.ictt.destinationTokenTransferrerAddress &&
+        isAddress(prepared.ictt.tokenTransferrerAddress) &&
+        /^0x[0-9a-fA-F]{64}$/.test(prepared.ictt.destinationBlockchainId) &&
+        isAddress(prepared.ictt.destinationTokenTransferrerAddress)
+          ? {
+              tokenTransferrerAddress: getAddress(
+                prepared.ictt.tokenTransferrerAddress
+              ),
+              destinationBlockchainId:
+                prepared.ictt.destinationBlockchainId as `0x${string}`,
+              destinationTokenTransferrerAddress: getAddress(
+                prepared.ictt.destinationTokenTransferrerAddress
+              ),
+              requiredGasLimit: /^\d+$/.test(prepared.ictt.requiredGasLimit)
+                ? BigInt(prepared.ictt.requiredGasLimit)
+                : 250000n,
+              tokenDecimals: Number.isFinite(prepared.ictt.tokenDecimals)
+                ? prepared.ictt.tokenDecimals
+                : 18,
+              sourceTokenAddress:
+                prepared.ictt.sourceTokenAddress &&
+                isAddress(prepared.ictt.sourceTokenAddress)
+                  ? getAddress(prepared.ictt.sourceTokenAddress)
+                  : undefined,
+            }
+          : null;
+
+      const cfg =
+        cfgFromPrepare ??
+        getBridgeExecutionConfig(prepared.source.chainId, projectCurrency);
       if (!cfg) {
+        const missing = prepared.ictt?.missing?.length
+          ? `: ${prepared.ictt.missing.join(", ")}`
+          : "";
         setBridgeNowStatus((prev) => ({
           ...prev,
-          [sourceChain]: "ICTT_CONFIG_NOT_READY",
+          [sourceChain]:
+            `ICTT_CONFIG_NOT_READY${missing}`,
         }));
         return;
       }
@@ -1010,7 +1191,7 @@ export function ProjectSettlementPanel(props: {
           body: JSON.stringify({
             address: walletAddress,
             sourceChain,
-            token: "JPYC",
+            token: projectCurrency,
             bridgedAmountAtomic: atomicAmount.toString(),
             txHash: bridgeHash,
             completedAt: new Date().toISOString(),
@@ -1256,7 +1437,9 @@ export function ProjectSettlementPanel(props: {
     <div className="rounded-xl border bg-white p-4 space-y-4">
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div>
-          <div className="font-semibold">Settlement (Bridge → Distribution)</div>
+          <div className="font-semibold">
+            Settlement (Bridge → Distribution) [{projectCurrency}]
+          </div>
           <div className="text-xs text-gray-500 mt-1">
             本UIは資金を保管しません。送金・ブリッジは必ずユーザー自身のウォレットで実行されます。
           </div>
@@ -1292,12 +1475,12 @@ export function ProjectSettlementPanel(props: {
         <div className="rounded-lg border p-3 space-y-2">
           <div className="text-sm font-medium">Polygon → Avalanche</div>
           <a
-            href="https://core.app/bridge/"
+            href="https://portalbridge.com/"
             target="_blank"
             rel="noreferrer"
             className="text-xs text-blue-600 underline"
           >
-            Open official bridge
+            Open recommended bridge (Wormhole)
           </a>
           <div className="text-xs">状態: {polygonDone ? "COMPLETED" : "PENDING"}</div>
           <input
@@ -1339,12 +1522,12 @@ export function ProjectSettlementPanel(props: {
         <div className="rounded-lg border p-3 space-y-2">
           <div className="text-sm font-medium">Ethereum → Avalanche</div>
           <a
-            href="https://core.app/bridge/"
+            href="https://portalbridge.com/"
             target="_blank"
             rel="noreferrer"
             className="text-xs text-blue-600 underline"
           >
-            Open official bridge
+            Open recommended bridge (Wormhole)
           </a>
           <div className="text-xs">状態: {ethereumDone ? "COMPLETED" : "PENDING"}</div>
           <input
@@ -1391,7 +1574,7 @@ export function ProjectSettlementPanel(props: {
             type="button"
             className="rounded border px-3 py-1.5 text-xs"
             onClick={() => {
-              setRows((prev) => [...prev, makeEmptyRow()]);
+              setRows((prev) => [...prev, makeEmptyRow(projectCurrency)]);
               setDraftDirty(true);
               setPreflight([]);
             }}
@@ -1402,7 +1585,8 @@ export function ProjectSettlementPanel(props: {
         </div>
 
         <div className="text-xs text-gray-600">
-          合計: {totals.planned} / Bridge済み: {totals.bridged}
+          合計: {formatBigIntGrouped(totals.planned)} / Bridge済み:{" "}
+          {formatBigIntGrouped(totals.bridged)}
           {totals.exceeds ? (
             <span className="text-rose-700 ml-2">(超過しています)</span>
           ) : null}
@@ -1428,9 +1612,10 @@ export function ProjectSettlementPanel(props: {
                 inputMode="numeric"
               />
               <select
-                className="md:col-span-2 rounded border px-2 py-1.5 text-xs"
+                className="md:col-span-2 rounded border px-2 py-1.5 text-xs bg-gray-50"
                 value={row.token}
-                onChange={(e) => updateDraft(i, { token: e.target.value as "JPYC" | "USDC" })}
+                disabled
+                aria-label="token"
               >
                 <option value="JPYC">JPYC</option>
                 <option value="USDC">USDC</option>
@@ -1577,6 +1762,148 @@ export function ProjectSettlementPanel(props: {
           </div>
         )}
       </div>
+
+      {projectCurrency === "USDC" ? (
+        <div className="rounded-lg border p-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-medium">CCTP Bridge Jobs (USDC)</div>
+            <button
+              type="button"
+              className="rounded border px-3 py-1.5 text-xs disabled:opacity-40"
+              onClick={() => void runCctpAction("SYNC_FROM_GOAL", {})}
+              disabled={loading || !walletAddress}
+            >
+              Goalからジョブ同期
+            </button>
+          </div>
+
+          {cctpJobs.length === 0 ? (
+            <div className="text-xs text-gray-500">
+              CCTPジョブはまだありません（Goal達成後に生成されます）
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {cctpJobs.map((job) => (
+                <details key={job.id} className="rounded border p-2">
+                  <summary className="cursor-pointer text-xs flex flex-wrap items-center gap-2">
+                    <span className="font-mono">{job.id.slice(0, 10)}...</span>
+                    <span className="px-2 py-0.5 rounded bg-gray-100">{job.status}</span>
+                    <span>{job.sourceChain} → {job.destinationChain}</span>
+                    <span>attempts: {job.attempts}/{job.maxAttempts}</span>
+                  </summary>
+                  <div className="mt-2 space-y-1 text-xs">
+                    <div>burnTx: {job.burnTxHash ?? "N/A"}</div>
+                    <div>messageHash: {job.burnMessageHash ?? "N/A"}</div>
+                    <div>
+                      attestation:{" "}
+                      {job.attestation ? `${job.attestation.slice(0, 18)}...` : "N/A"}
+                    </div>
+                    <div>mintTx: {job.mintTxHash ?? "N/A"}</div>
+                    {job.failureReason ? (
+                      <div className="text-rose-700">error: {job.failureReason}</div>
+                    ) : null}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1"
+                        onClick={() => {
+                          const burnTxHash = window.prompt("burn tx hash", job.burnTxHash ?? "");
+                          if (!burnTxHash) return;
+                          const burnAmountAtomic = window.prompt(
+                            "burn amount atomic",
+                            job.burnAmountAtomic ?? "0"
+                          );
+                          if (!burnAmountAtomic) return;
+                          const burnMessageHash = window.prompt(
+                            "burn message hash (0x...)",
+                            job.burnMessageHash ?? ""
+                          );
+                          void runCctpAction("MARK_BURN_SUBMITTED", {
+                            jobId: job.id,
+                            sourceChain: job.sourceChain,
+                            burnTxHash,
+                            burnAmountAtomic,
+                            burnMessageHash: burnMessageHash || undefined,
+                          });
+                        }}
+                        disabled={loading}
+                      >
+                        Burn記録
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1"
+                        onClick={() =>
+                          void runCctpAction("FETCH_ATTESTATION", {
+                            jobId: job.id,
+                            burnMessageHash: job.burnMessageHash ?? undefined,
+                          })
+                        }
+                        disabled={loading}
+                      >
+                        Attestation取得
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1"
+                        onClick={() => {
+                          const mintTxHash = window.prompt("mint tx hash", job.mintTxHash ?? "");
+                          if (!mintTxHash) return;
+                          void runCctpAction("MARK_MINT_SUBMITTED", {
+                            jobId: job.id,
+                            mintTxHash,
+                          });
+                        }}
+                        disabled={loading}
+                      >
+                        Mint記録
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1"
+                        onClick={() =>
+                          void runCctpAction("COMPLETE", {
+                            jobId: job.id,
+                            mintTxHash: job.mintTxHash ?? undefined,
+                          })
+                        }
+                        disabled={loading}
+                      >
+                        完了確定
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1"
+                        onClick={() => {
+                          const reason = window.prompt(
+                            "failure reason",
+                            job.failureReason ?? "MANUAL_FAILED"
+                          );
+                          void runCctpAction("FAIL", {
+                            jobId: job.id,
+                            failureReason: reason || "MANUAL_FAILED",
+                          });
+                        }}
+                        disabled={loading}
+                      >
+                        失敗記録
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1"
+                        onClick={() => void runCctpAction("RETRY", { jobId: job.id })}
+                        disabled={loading || job.status !== "FAILED"}
+                      >
+                        再試行
+                      </button>
+                    </div>
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <div className="rounded-lg border p-3 space-y-2">
         <div className="text-sm font-medium">送信結果の記録（行単位）</div>

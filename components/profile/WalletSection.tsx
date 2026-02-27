@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import type { WalletBalances } from "@/lib/walletService";
 import { getChainConfig, type SupportedChainId } from "@/lib/chainConfig";
 import type { Currency } from "@/components/profile/profileClientHelpers";
+import { formatReadableNumber } from "@/lib/numberFormat";
 
 export type WalletSectionProps = {
   // 状態
@@ -189,97 +190,116 @@ export function WalletSection(props: WalletSectionProps) {
       <div className="mt-2 text-center">
         {connected ? (
           <>
-            {!onWrongChain && (
-              <div
-                className="
-                  mt-3 px-5 py-4 
-                  border border-gray-200 
-                  rounded-2xl 
-                  bg-white 
-                  shadow-sm 
-                  inline-block 
-                  text-left
-                  w-[260px]
-                "
-              >
-                <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  ウォレット残高
-                </p>
+            <div
+              className="
+                mt-3 px-5 py-4
+                border border-gray-200
+                rounded-2xl
+                bg-white
+                shadow-sm
+                inline-block
+                text-left
+                w-[300px]
+              "
+            >
+              <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                ウォレット残高
+              </p>
 
-                {walletBalancesLoading && (
-                  <div className="text-xs text-gray-500">読み込み中…</div>
-                )}
+              {walletBalancesLoading && (
+                <div className="text-xs text-gray-500">読み込み中…</div>
+              )}
 
-                {!walletBalancesLoading && walletBalances && (
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-purple-500" />
-                        <span>
-                          {walletBalances.nativeSymbol ??
-                            requiredChainConfig?.nativeSymbol ??
-                            "Native"}
-                          （ガス代）
-                        </span>
-                      </div>
-                      <span className="font-mono font-semibold">
-                        {(() => {
-                          const v = Number(walletBalances.nativeFormatted);
-                          if (!Number.isFinite(v)) {
-                            return `0 ${
-                              walletBalances.nativeSymbol ??
-                              requiredChainConfig?.nativeSymbol ??
-                              "Native"
-                            }`;
-                          }
-                          const formatted =
-                            v >= 0.001 ? v.toFixed(4) : v.toExponential(2);
-                          return `${formatted} ${
+              {!walletBalancesLoading && walletBalances && (
+                <div className="space-y-2 text-sm text-gray-700">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-purple-500" />
+                      <span>
+                        {walletBalances.nativeSymbol ??
+                          requiredChainConfig?.nativeSymbol ??
+                          "Native"}
+                        （ガス代）
+                      </span>
+                    </div>
+                    <span className="font-mono font-semibold">
+                      {(() => {
+                        const v = Number(walletBalances.nativeFormatted);
+                        if (!Number.isFinite(v)) {
+                          return `0 ${
                             walletBalances.nativeSymbol ??
                             requiredChainConfig?.nativeSymbol ??
                             "Native"
                           }`;
-                        })()}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />
-                        <span>JPYC</span>
-                      </div>
-                      <span className="font-mono font-semibold">
-                        {(() => {
-                          const jpyc = walletBalances.tokens?.JPYC;
-                          if (!jpyc) return "…";
-                          const v = Number(jpyc.formatted);
-                          if (!Number.isFinite(v)) return "0 JPYC";
-                          const int = Math.floor(v);
-                          return `${int.toLocaleString()} JPYC`;
-                        })()}
-                      </span>
-                    </div>
+                        }
+                        const formatted = formatReadableNumber(v, {
+                          maximumFractionDigits: 6,
+                        });
+                        return `${formatted} ${
+                          walletBalances.nativeSymbol ??
+                          requiredChainConfig?.nativeSymbol ??
+                          "Native"
+                        }`;
+                      })()}
+                    </span>
                   </div>
-                )}
 
-                {!walletBalancesLoading && !walletBalances && (
-                  <div className="text-xs text-gray-500">
-                    残高を取得できませんでした
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />
+                      <span>JPYC</span>
+                    </div>
+                    <span className="font-mono font-semibold">
+                      {(() => {
+                        const jpyc = walletBalances.tokens?.JPYC;
+                        if (!jpyc) return "…";
+                        const v = Number(jpyc.formatted);
+                        if (!Number.isFinite(v)) return "0 JPYC";
+                        return `${formatReadableNumber(v, {
+                          maximumFractionDigits: 2,
+                        })} JPYC`;
+                      })()}
+                    </span>
                   </div>
-                )}
 
-                <div className="mt-3 flex justify-end">
-                  <button
-                    type="button"
-                    className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                    onClick={onRefreshBalances}
-                    disabled={walletBalancesLoading}
-                  >
-                    残高を更新 / Refresh
-                  </button>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                      <span>USDC</span>
+                    </div>
+                    <span className="font-mono font-semibold">
+                      {(() => {
+                        const usdc = walletBalances.tokens?.USDC;
+                        if (!usdc) return "…";
+                        const v = Number(usdc.formatted);
+                        if (!Number.isFinite(v)) return "0.00 USDC";
+                        return `${formatReadableNumber(v, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })} USDC`;
+                      })()}
+                    </span>
+                  </div>
                 </div>
+              )}
+
+              {!walletBalancesLoading && !walletBalances && (
+                <div className="text-xs text-gray-500">
+                  残高を取得できませんでした
+                </div>
+              )}
+
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                  onClick={onRefreshBalances}
+                  disabled={walletBalancesLoading}
+                >
+                  残高を更新 / Refresh
+                </button>
               </div>
-            )}
+            </div>
 
             <div className="mt-3 flex flex-col items-center gap-1 text-xs text-gray-500 dark:text-gray-600">
               <div>

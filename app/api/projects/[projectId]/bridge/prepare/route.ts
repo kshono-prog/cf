@@ -57,6 +57,55 @@ function buildWormholeBridgeUrl(params: {
   return "https://portalbridge.com/";
 }
 
+function pickDestinationTokenAddress(params: {
+  projectTokenAddress: string | null | undefined;
+  liquidityChainId: number;
+  currency: Currency;
+}): string | null {
+  const byProject = params.projectTokenAddress?.trim() ?? "";
+  if (byProject) return byProject;
+
+  // Fallback: chain/currency別 env を利用
+  if (params.liquidityChainId === 43114 || params.liquidityChainId === 43113) {
+    if (params.currency === "JPYC") {
+      return (
+        process.env.NEXT_PUBLIC_JPYC_ADDRESS_AVAX?.trim() ||
+        process.env.NEXT_PUBLIC_JPYC_ADDRESS?.trim() ||
+        null
+      );
+    }
+    if (params.currency === "USDC") {
+      return (
+        process.env.NEXT_PUBLIC_USDC_ADDRESS_AVAX?.trim() ||
+        process.env.NEXT_PUBLIC_USDC_ADDRESS?.trim() ||
+        null
+      );
+    }
+  }
+
+  return null;
+}
+
+function envAddress(name: string): Address | null {
+  const v = process.env[name];
+  if (!v || !isAddress(v)) return null;
+  return getAddress(v);
+}
+
+function envHex32(name: string): `0x${string}` | null {
+  const v = process.env[name];
+  if (!v || !/^0x[0-9a-fA-F]{64}$/.test(v)) return null;
+  return v as `0x${string}`;
+}
+
+function resolveIcttPrefix(sourceChainId: number): string | null {
+  if (sourceChainId === 137) return "POLYGON";
+  if (sourceChainId === 80002) return "POLYGON_AMOY";
+  if (sourceChainId === 1) return "ETHEREUM";
+  if (sourceChainId === 11155111) return "ETHEREUM_SEPOLIA";
+  return null;
+}
+
 export async function POST(
   req: NextRequest,
   ctx: { params: Promise<Params> }
@@ -111,7 +160,12 @@ export async function POST(
 
     // 宛先で「着金検証」に使う tokenAddress（Avalanche 側のトークン）
     // 現状 project.icttTokenAddress を流用（後で destTokenAddress 等に分離してもOK）
-    const tokenAddress = project.icttTokenAddress ?? "";
+    const tokenAddress =
+      pickDestinationTokenAddress({
+        projectTokenAddress: project.icttTokenAddress,
+        liquidityChainId,
+        currency,
+      }) ?? "";
     const tokenAddr = toAddressStrict(tokenAddress);
     if (!tokenAddr) return errJson("DEST_TOKEN_ADDRESS_REQUIRED", 400);
 
@@ -140,6 +194,78 @@ export async function POST(
       provider === "WORMHOLE_UI"
         ? "Wormhole UIで Polygon → Avalanche を選び、完了後に Avalanche 側の着金 txHash（Snowtraceで確認できるもの）を貼り付けてください。"
         : "任意の方法で Polygon → Avalanche をブリッジし、完了後に Avalanche 側の着金 txHash（Snowtraceで確認できるもの）を貼り付けてください。";
+
+    const icttPrefix = resolveIcttPrefix(eventFundingChainId);
+    const envIctt = icttPrefix
+      ? {
+          tokenTransferrerAddress: envAddress(
+            `NEXT_PUBLIC_ICTT_${icttPrefix}_TOKEN_TRANSFERRER`
+          ),
+          destinationBlockchainId: envHex32(
+            `NEXT_PUBLIC_ICTT_${icttPrefix}_DEST_BLOCKCHAIN_ID`
+          ),
+          destinationTokenTransferrerAddress: envAddress(
+            `NEXT_PUBLIC_ICTT_${icttPrefix}_DEST_TOKEN_TRANSFERRER`
+          ),
+          sourceTokenAddress: envAddress(
+            `NEXT_PUBLIC_ICTT_${icttPrefix}_${currency}_SOURCE_TOKEN`
+          ),
+          requiredGasLimitRaw:
+            process.env[`NEXT_PUBLIC_ICTT_${icttPrefix}_REQUIRED_GAS_LIMIT`] ??
+            "",
+          tokenDecimalsRaw:
+            process.env[`NEXT_PUBLIC_ICTT_${icttPrefix}_${currency}_DECIMALS`] ??
+            "",
+        }
+      : null;
+
+    const requiredGasLimit =
+      envIctt && /^\d+$/.test(envIctt.requiredGasLimitRaw)
+        ? envIctt.requiredGasLimitRaw
+        : "250000";
+    const tokenDecimals =
+      envIctt && /^\d+$/.test(envIctt.tokenDecimalsRaw)
+        ? Number(envIctt.tokenDecimalsRaw)
+        : 18;
+
+    const projectIcttTokenHome = toAddressStrict(project.icttTokenHome ?? null);
+    const projectIcttTokenRemote = toAddressStrict(project.icttTokenRemote ?? null);
+    const projectLiquidityBlockchainId =
+      project.liquidityBlockchainId &&
+      /^0x[0-9a-fA-F]{64}$/.test(project.liquidityBlockchainId)
+        ? (project.liquidityBlockchainId as `0x${string}`)
+        : null;
+    const projectSourceTokenAddress = toAddressStrict(project.icttTokenAddress ?? null);
+
+    const resolvedIcttTokenTransferrer =
+      envIctt?.tokenTransferrerAddress ?? projectIcttTokenHome;
+    const resolvedIcttDestinationBlockchainId =
+      envIctt?.destinationBlockchainId ?? projectLiquidityBlockchainId;
+    const resolvedIcttDestinationTokenTransferrer =
+      envIctt?.destinationTokenTransferrerAddress ?? projectIcttTokenRemote;
+    const resolvedIcttSourceTokenAddress =
+      envIctt?.sourceTokenAddress ?? projectSourceTokenAddress;
+
+    const icttReady =
+      !!resolvedIcttTokenTransferrer &&
+      !!resolvedIcttDestinationBlockchainId &&
+      !!resolvedIcttDestinationTokenTransferrer;
+    const icttMissing: string[] = [];
+    if (!resolvedIcttTokenTransferrer) {
+      icttMissing.push(
+        `tokenTransferrerAddress (env: NEXT_PUBLIC_ICTT_${icttPrefix ?? "UNKNOWN"}_TOKEN_TRANSFERRER / project: icttTokenHome)`
+      );
+    }
+    if (!resolvedIcttDestinationBlockchainId) {
+      icttMissing.push(
+        `destinationBlockchainId (env: NEXT_PUBLIC_ICTT_${icttPrefix ?? "UNKNOWN"}_DEST_BLOCKCHAIN_ID / project: liquidityBlockchainId)`
+      );
+    }
+    if (!resolvedIcttDestinationTokenTransferrer) {
+      icttMissing.push(
+        `destinationTokenTransferrerAddress (env: NEXT_PUBLIC_ICTT_${icttPrefix ?? "UNKNOWN"}_DEST_TOKEN_TRANSFERRER / project: icttTokenRemote)`
+      );
+    }
 
     // BridgeRun を作る（ここでは Project.status は進めない）
     const run = await prisma.bridgeRun.create({
@@ -209,6 +335,17 @@ export async function POST(
           run.liquidityChainId === 43114
             ? "Snowtrace (Avalanche)"
             : "Fuji explorer",
+      },
+      ictt: {
+        ready: icttReady,
+        tokenTransferrerAddress: resolvedIcttTokenTransferrer,
+        destinationBlockchainId: resolvedIcttDestinationBlockchainId,
+        destinationTokenTransferrerAddress:
+          resolvedIcttDestinationTokenTransferrer,
+        sourceTokenAddress: resolvedIcttSourceTokenAddress,
+        requiredGasLimit,
+        tokenDecimals,
+        missing: icttMissing,
       },
 
       createdAt: run.createdAt.toISOString(),

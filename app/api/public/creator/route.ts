@@ -22,7 +22,15 @@ type PublicOk = {
     externalUrl: string | null;
   };
   activeProjectId: string | null;
+  projectIdsByCurrency: {
+    JPYC: string | null;
+    USDC: string | null;
+  };
   summary: unknown | null; // /api/projects/[id]/summary の応答をそのまま返す
+  summariesByCurrency: {
+    JPYC: unknown | null;
+    USDC: unknown | null;
+  };
 };
 
 type PublicErr = { ok: false; error: string; detail?: string };
@@ -55,6 +63,8 @@ export async function GET(
           qrcodeUrl: true,
           externalUrl: true,
           activeProjectId: true,
+          activeProjectIdJpyc: true,
+          activeProjectIdUsdc: true,
           status: true,
         },
       })
@@ -75,8 +85,20 @@ export async function GET(
     const activeProjectId = creator.activeProjectId
       ? creator.activeProjectId.toString()
       : null;
+    const projectIdsByCurrency = {
+      JPYC: creator.activeProjectIdJpyc
+        ? creator.activeProjectIdJpyc.toString()
+        : null,
+      USDC: creator.activeProjectIdUsdc
+        ? creator.activeProjectIdUsdc.toString()
+        : null,
+    };
 
     let summary: unknown | null = null;
+    const summariesByCurrency: { JPYC: unknown | null; USDC: unknown | null } = {
+      JPYC: null,
+      USDC: null,
+    };
 
     // ここが重要：DB組み立てをやめ、既存 summary API を内部 fetch
     if (activeProjectId) {
@@ -93,6 +115,17 @@ export async function GET(
       }
     }
 
+    for (const currency of ["JPYC", "USDC"] as const) {
+      const pid = projectIdsByCurrency[currency];
+      if (!pid) continue;
+      const origin = req.nextUrl.origin;
+      const url = `${origin}/api/projects/${encodeURIComponent(pid)}/summary`;
+      const sres = await fetch(url, { cache: "no-store" }).catch(() => null);
+      if (sres && sres.ok) {
+        summariesByCurrency[currency] = await sres.json().catch(() => null);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       creator: {
@@ -105,7 +138,9 @@ export async function GET(
         externalUrl: creator.externalUrl,
       },
       activeProjectId,
+      projectIdsByCurrency,
       summary,
+      summariesByCurrency,
     });
   } catch (e: unknown) {
     return NextResponse.json(

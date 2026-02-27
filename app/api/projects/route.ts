@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 
 type PurposeMode = "OPTIONAL" | "REQUIRED" | "NONE";
+type Currency = "JPYC" | "USDC";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -45,6 +46,11 @@ function asPurposeMode(v: unknown): PurposeMode | null {
   return null;
 }
 
+function asCurrency(v: unknown): Currency | null {
+  if (v === "JPYC" || v === "USDC") return v;
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const bodyUnknown: unknown = await req.json().catch(() => null);
@@ -59,6 +65,7 @@ export async function POST(req: NextRequest) {
     const description = asNullableString(bodyUnknown.description);
     const purposeMode: PurposeMode =
       asPurposeMode(bodyUnknown.purposeMode) ?? "OPTIONAL";
+    const currency: Currency = asCurrency(bodyUnknown.currency) ?? "JPYC";
 
     if (!title) {
       return NextResponse.json(
@@ -93,6 +100,7 @@ export async function POST(req: NextRequest) {
           title,
           description,
           purposeMode, // string運用でもOK
+          currency,
           ownerAddress,
           status: "DRAFT",
           creatorProfileId: creator.id,
@@ -103,6 +111,7 @@ export async function POST(req: NextRequest) {
           description: true,
           purposeMode: true,
           status: true,
+          currency: true,
           ownerAddress: true,
           createdAt: true,
           updatedAt: true,
@@ -111,7 +120,10 @@ export async function POST(req: NextRequest) {
 
       await tx.creatorProfile.update({
         where: { id: creator.id },
-        data: { activeProjectId: project.id },
+        data:
+          currency === "USDC"
+            ? { activeProjectId: project.id, activeProjectIdUsdc: project.id }
+            : { activeProjectId: project.id, activeProjectIdJpyc: project.id },
         select: { id: true },
       });
 
@@ -128,6 +140,7 @@ export async function POST(req: NextRequest) {
           description: result.description ?? null,
           purposeMode: result.purposeMode,
           status: result.status,
+          currency: result.currency,
           ownerAddress: result.ownerAddress ?? null,
           createdAt: result.createdAt.toISOString(),
           updatedAt: result.updatedAt.toISOString(),

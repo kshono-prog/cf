@@ -39,6 +39,15 @@ export async function GET(req: NextRequest, context: any) {
     goalTargetJpyc: profile.goalTargetJpyc,
     themeColor: profile.themeColor,
     address: profile.walletAddress, // CreatorProfile に統合したアドレス
+    projectId: profile.activeProjectId ? profile.activeProjectId.toString() : null,
+    projectIdsByCurrency: {
+      JPYC: profile.activeProjectIdJpyc
+        ? profile.activeProjectIdJpyc.toString()
+        : null,
+      USDC: profile.activeProjectIdUsdc
+        ? profile.activeProjectIdUsdc.toString()
+        : null,
+    },
     socials,
     youtubeVideos: profile.youtubeVideos.map((v) => ({
       url: v.url,

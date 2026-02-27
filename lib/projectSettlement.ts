@@ -130,14 +130,18 @@ export async function recomputeProjectSettlement(
 ) {
   await ensureProjectSettlement(tx, projectId);
 
-  const [goal, steps, bridged, sent, entries] = await Promise.all([
+  const [project, goal, steps, bridged, sent, entries] = await Promise.all([
+    tx.project.findUnique({
+      where: { id: projectId },
+      select: { currency: true },
+    }),
     tx.goal.findUnique({
       where: { projectId },
       select: { achievedAt: true },
     }),
     tx.projectBridgeStep.findMany({
       where: { projectId, status: "COMPLETED" },
-      select: { sourceChain: true },
+      select: { sourceChain: true, token: true },
     }),
     sumCompletedBridgedAtomic(tx, projectId),
     sumSentDistributionAtomic(tx, projectId),
@@ -148,9 +152,12 @@ export async function recomputeProjectSettlement(
   ]);
 
   const achieved = !!goal?.achievedAt;
+  const projectCurrency = project?.currency === "USDC" ? "USDC" : "JPYC";
   const hasPolygon = steps.some((s) => s.sourceChain === "POLYGON");
   const hasEthereum = steps.some((s) => s.sourceChain === "ETHEREUM");
-  const bridgesCompleted = hasPolygon && hasEthereum;
+  const hasUsdcBridge = steps.some((s) => s.token === "USDC");
+  const bridgesCompleted =
+    projectCurrency === "USDC" ? hasUsdcBridge : hasPolygon && hasEthereum;
 
   const hasEntries = entries.length > 0;
   const allSent = hasEntries && entries.every((e) => e.status === "SENT");

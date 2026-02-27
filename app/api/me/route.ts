@@ -22,6 +22,10 @@ type MeOk = {
   user: { displayName: string; profile: string | null } | null;
   creator: CreatorProfile | null;
   projectId: string | null;
+  projectIdsByCurrency: {
+    JPYC: string | null;
+    USDC: string | null;
+  };
 };
 
 type MeErr = { ok: false; error: string; detail?: string };
@@ -59,6 +63,7 @@ function okEmpty(): NextResponse<MeOk> {
     user: null,
     creator: null,
     projectId: null,
+    projectIdsByCurrency: { JPYC: null, USDC: null },
   });
 }
 
@@ -99,6 +104,8 @@ export async function GET(req: NextRequest): Promise<NextResponse<MeRes>> {
           themeColor: true,
           walletAddress: true,
           activeProjectId: true,
+          activeProjectIdJpyc: true,
+          activeProjectIdUsdc: true,
           status: true,
         },
       })
@@ -149,6 +156,15 @@ export async function GET(req: NextRequest): Promise<NextResponse<MeRes>> {
       youtubeVideos: youtubeResult,
     };
 
+    const projectIdsByCurrency = {
+      JPYC: profile.activeProjectIdJpyc
+        ? profile.activeProjectIdJpyc.toString()
+        : null,
+      USDC: profile.activeProjectIdUsdc
+        ? profile.activeProjectIdUsdc.toString()
+        : null,
+    };
+
     return NextResponse.json({
       ok: true,
       hasUser: true,
@@ -161,7 +177,8 @@ export async function GET(req: NextRequest): Promise<NextResponse<MeRes>> {
       creator: hasCreator ? creator : null,
       projectId: profile.activeProjectId
         ? profile.activeProjectId.toString()
-        : null,
+        : projectIdsByCurrency.JPYC,
+      projectIdsByCurrency,
     });
   } catch (e: unknown) {
     console.error("ME_PRISMA_ERROR", e);

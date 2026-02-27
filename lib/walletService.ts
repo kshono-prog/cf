@@ -10,6 +10,7 @@ import type { SupportedChainId } from "./chainConfig";
 import { getChainConfig } from "./chainConfig";
 import type { TokenKey } from "./tokenRegistry";
 import { getTokenOnChain } from "./tokenRegistry";
+import { getClientRpcUrl } from "./clientRpc";
 
 const ERC20_ABI = [
   {
@@ -63,9 +64,10 @@ export function getPublicClientForChain(
 ): PublicClient {
   const cfg = getChainConfig(chainId);
   if (!cfg) throw new Error(`Unsupported chainId=${chainId}`);
+  const rpcUrl = getClientRpcUrl(chainId);
   return createPublicClient({
     chain: cfg.viemChain,
-    transport: http(),
+    transport: http(rpcUrl ?? undefined),
   });
 }
 

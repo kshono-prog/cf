@@ -14,18 +14,24 @@ type ProfileClientSectionProps = {
   username: string;
   creator: Omit<CreatorProfile, "address"> & { address?: string | null };
   projectId: string | null;
+  projectIdsByCurrency?: {
+    JPYC: string | null;
+    USDC: string | null;
+  } | null;
 };
 
 export function ProfileClientSection({
   username,
   creator,
   projectId,
+  projectIdsByCurrency,
 }: ProfileClientSectionProps) {
   return (
     <ProfileClient
       username={username}
       creator={creator}
       projectId={projectId}
+      projectIdsByCurrency={projectIdsByCurrency ?? undefined}
       layout="content"
     />
   );

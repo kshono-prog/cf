@@ -3,7 +3,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 
 /**
  * Goal 自動達成判定ユーティリティ
- * - CONFIRMED(JPYC) 合計が targetAmountJpyc に到達したら goal.achievedAt を立てる
+ * - project.currency の CONFIRMED 合計が targetAmountJpyc に到達したら goal.achievedAt を立てる
  * - project.status は「進行中ステータス」のときだけ GOAL_ACHIEVED に更新（巻き戻し防止）
  * - 冪等（既に achievedAt があれば何もしない）
  *
@@ -12,6 +12,11 @@ import type { Prisma, PrismaClient } from "@prisma/client";
  * - トランザクション制御は呼び出し側で行ってください
  */
 export type DbLike = PrismaClient | Prisma.TransactionClient;
+type Currency = "JPYC" | "USDC";
+
+function toCurrency(v: string): Currency | null {
+  return v === "JPYC" || v === "USDC" ? v : null;
+}
 
 // Decimal(38,18) を「円（floor）」として扱う（既存ロジックと揃える）
 function decimalToJpycIntFloor(amountDecimal: Prisma.Decimal | null): number {
@@ -70,7 +75,7 @@ export async function tryAutoAchieveGoal(params: {
   // project.status は status 更新の可否判断に必要
   const project = await params.db.project.findUnique({
     where: { id: params.projectId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, currency: true },
   });
 
   if (!project) {
@@ -79,6 +84,16 @@ export async function tryAutoAchieveGoal(params: {
       ok: true,
       achieved: false,
       reason: "GOAL_NOT_SET",
+      confirmedJpyc: 0,
+      targetJpyc: null,
+    };
+  }
+  const projectCurrency = toCurrency(project.currency);
+  if (!projectCurrency) {
+    return {
+      ok: true,
+      achieved: false,
+      reason: "TARGET_INVALID",
       confirmedJpyc: 0,
       targetJpyc: null,
     };
@@ -121,12 +136,12 @@ export async function tryAutoAchieveGoal(params: {
     };
   }
 
-  // CONFIRMED(JPYC) 合計を集計
+  // CONFIRMED(project currency) 合計を集計
   const sum = await params.db.contribution.aggregate({
     where: {
       projectId: params.projectId,
       status: "CONFIRMED",
-      currency: "JPYC",
+      currency: projectCurrency,
     },
     _sum: { amountDecimal: true },
   });

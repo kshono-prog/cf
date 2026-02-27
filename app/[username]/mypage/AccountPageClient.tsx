@@ -35,8 +35,9 @@ import { UnconnectedMyPage } from "@/components/mypage/UnconnectedMyPage";
 import { MyPageFooter } from "@/components/MyPageFooter";
 import { BridgeWithWormholeOrManualButton } from "@/components/bridge/BridgeWithWormholeOrManualButton";
 import { ProjectSection } from "@/components/mypage/ProjectSection";
-import { ProjectSettlementPanel } from "@/components/mypage/ProjectSettlementPanel";
+import { CurrencyGoalSettlementPanel } from "@/components/mypage/CurrencyGoalSettlementPanel";
 import { PromoCreatorFounding } from "@/components/promo/PromoCreatorFounding";
+import { AiOfficePanel } from "@/components/mypage/AiOfficePanel";
 
 const SHOW_SUMMARY_ACTIONS = false;
 
@@ -49,6 +50,7 @@ type SummaryProject = {
   title: string;
   description: string | null;
   status: string;
+  currency?: "JPYC" | "USDC";
   purposeMode: string;
   ownerAddress: string | null;
   creatorProfileId: string | null;
@@ -60,13 +62,22 @@ type SummaryProject = {
 
 type SummaryGoal = {
   id: string;
+  unitCurrency?: CurrencyCode;
+  targetAmount?: number;
   targetAmountJpyc: number;
   achievedAt: string | null;
   deadline: string | null;
 } | null;
 
 type SummaryProgress = {
+  currency?: CurrencyCode;
   confirmedJpyc: number;
+  confirmedTotal?: number;
+  confirmedByCurrency?: {
+    JPYC: number;
+    USDC: number;
+  };
+  targetAmount?: number | null;
   targetJpyc: number | null;
   progressPct: number;
   totals: {
@@ -113,6 +124,29 @@ type SummaryResponseErr = {
 type SummaryResponse = SummaryResponseOk | SummaryResponseErr;
 
 type UiMsg = { kind: "info" | "error" | "success"; text: string };
+type CurrencyCode = "JPYC" | "USDC";
+type GoalDraft = {
+  targetInput: string;
+  deadlineInput: string;
+  msg: string | null;
+};
+type GoalDraftByCurrency = Record<CurrencyCode, GoalDraft>;
+
+function formatAmountByCurrency(
+  amount: number,
+  currency: CurrencyCode
+): string {
+  if (!Number.isFinite(amount)) {
+    return currency === "USDC" ? "0.00" : "0";
+  }
+  if (currency === "USDC") {
+    return amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  return Math.floor(amount).toLocaleString();
+}
 
 /* =========================
    Guards (no any)
@@ -240,13 +274,19 @@ export default function AccountPageClient({ username }: Props) {
   }, [address]);
 
   const [localProjectId, setLocalProjectId] = useState<string | null>(null);
+  const [projectIdsByCurrency, setProjectIdsByCurrency] = useState<{
+    JPYC: string | null;
+    USDC: string | null;
+  }>({ JPYC: null, USDC: null });
 
   // ============================
   // Goal upsert（ProjectのGoalテーブル：①の入力）
   // ============================
-  const [goalTargetInput, setGoalTargetInput] = useState<string>("");
-  const [goalDeadlineInput, setGoalDeadlineInput] = useState<string>(""); // yyyy-mm-dd
-  const [goalMsg, setGoalMsg] = useState<string | null>(null);
+  const [goalDraftByCurrency, setGoalDraftByCurrency] =
+    useState<GoalDraftByCurrency>({
+      JPYC: { targetInput: "", deadlineInput: "", msg: null },
+      USDC: { targetInput: "", deadlineInput: "", msg: null },
+    });
   const [goalSaving, setGoalSaving] = useState<boolean>(false);
 
   // ============================
@@ -258,9 +298,32 @@ export default function AccountPageClient({ username }: Props) {
 
   const [planText, setPlanText] = useState<string>("");
   const [txHashesText, setTxHashesText] = useState<string>("[]");
-  const [currency, setCurrency] = useState<"JPYC" | "USDC">("JPYC");
+  const [currency, setCurrency] = useState<CurrencyCode>("JPYC");
   const [distChainId, setDistChainId] = useState<number>(43114);
   const [note, setNote] = useState<string>("");
+  const goalDraft = goalDraftByCurrency[currency];
+
+  const setGoalDraftPatch = useCallback(
+    (patch: Partial<GoalDraft>): void => {
+      setGoalDraftByCurrency((prev) => ({
+        ...prev,
+        [currency]: { ...prev[currency], ...patch },
+      }));
+    },
+    [currency]
+  );
+
+  const pickProjectIdForCurrency = useCallback(
+    (data: MeStatus): string | null => {
+      const m = data.projectIdsByCurrency;
+      if (m) {
+        const v = m[currency];
+        if (typeof v === "string" && v) return v;
+      }
+      return typeof data.projectId === "string" ? data.projectId : null;
+    },
+    [currency]
+  );
 
   const ownerLower = useMemo(() => {
     if (!summary?.project.ownerAddress) return null;
@@ -285,8 +348,10 @@ export default function AccountPageClient({ username }: Props) {
     isOwner &&
     goalIsSet &&
     !goalAchieved &&
-    (summary?.progress.targetJpyc ?? null) != null &&
-    summary.progress.confirmedJpyc >= (summary.progress.targetJpyc ?? 0);
+    (summary?.progress.targetAmount ?? summary?.progress.targetJpyc ?? null) !=
+      null &&
+    (summary.progress.confirmedTotal ?? summary.progress.confirmedJpyc) >=
+      (summary.progress.targetAmount ?? summary.progress.targetJpyc ?? 0);
 
   const canBridge =
     isOwner && goalAchieved && summary?.project.status !== "DISTRIBUTED";
@@ -298,6 +363,11 @@ export default function AccountPageClient({ username }: Props) {
     if (!localProjectId) return null;
     return `/api/projects/${encodeURIComponent(localProjectId)}/summary`;
   }, [localProjectId]);
+
+  useEffect(() => {
+    const next = projectIdsByCurrency[currency] ?? null;
+    if (next !== localProjectId) setLocalProjectId(next);
+  }, [currency, projectIdsByCurrency, localProjectId]);
 
   const refreshSummary = useCallback(async () => {
     if (!summaryUrl) {
@@ -332,10 +402,17 @@ export default function AccountPageClient({ username }: Props) {
         }
 
         if (ok.goal) {
-          setGoalTargetInput(String(ok.goal.targetAmountJpyc));
-          setGoalDeadlineInput(
-            ok.goal.deadline ? ok.goal.deadline.slice(0, 10) : ""
-          );
+          const c: CurrencyCode =
+            ok.project.currency === "USDC" ? "USDC" : "JPYC";
+          const goal = ok.goal;
+          setGoalDraftByCurrency((prev) => ({
+            ...prev,
+            [c]: {
+              ...prev[c],
+              targetInput: String(goal.targetAmount ?? goal.targetAmountJpyc),
+              deadlineInput: goal.deadline ? goal.deadline.slice(0, 10) : "",
+            },
+          }));
         }
 
         return;
@@ -387,9 +464,11 @@ export default function AccountPageClient({ username }: Props) {
       const data = res.data;
       setMe(data);
 
-      const apiProjectId =
-        typeof data.projectId === "string" ? data.projectId : null;
-      if (apiProjectId) setLocalProjectId(apiProjectId);
+      if (data.projectIdsByCurrency) {
+        setProjectIdsByCurrency(data.projectIdsByCurrency);
+      }
+      const apiProjectId = pickProjectIdForCurrency(data);
+      setLocalProjectId(apiProjectId);
 
       if (!data.hasUser) {
         setStatus("noUser");
@@ -451,7 +530,7 @@ export default function AccountPageClient({ username }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [API_BASE, isConnected, address, username]);
+  }, [API_BASE, isConnected, address, username, pickProjectIdForCurrency]);
 
   // /api/user
   async function handleSaveUser(e: React.FormEvent): Promise<void> {
@@ -525,9 +604,10 @@ export default function AccountPageClient({ username }: Props) {
 
       if (typed.hasUser && typed.hasCreator) {
         setStatus("creatorReady");
-        if (typeof typed.projectId === "string" && typed.projectId) {
-          setLocalProjectId(typed.projectId);
+        if (typed.projectIdsByCurrency) {
+          setProjectIdsByCurrency(typed.projectIdsByCurrency);
         }
+        setLocalProjectId(pickProjectIdForCurrency(typed));
       }
     } catch (err: unknown) {
       setError(
@@ -594,9 +674,10 @@ export default function AccountPageClient({ username }: Props) {
         const data = refreshed.data;
         setMe(data);
 
-        const apiProjectId =
-          typeof data.projectId === "string" ? data.projectId : null;
-        setLocalProjectId(apiProjectId);
+        if (data.projectIdsByCurrency) {
+          setProjectIdsByCurrency(data.projectIdsByCurrency);
+        }
+        setLocalProjectId(pickProjectIdForCurrency(data));
 
         if (!data.hasUser) setStatus("noUser");
         else if (data.hasUser && !data.hasCreator) setStatus("userOnly");
@@ -643,6 +724,7 @@ export default function AccountPageClient({ username }: Props) {
           title,
           description: projectDescription.trim() || null,
           purposeMode: projectPurposeMode,
+          currency,
           ownerAddress: addr,
           address: addr,
         },
@@ -656,7 +738,10 @@ export default function AccountPageClient({ username }: Props) {
       }
 
       const createdId = result.id;
-      if (createdId) setLocalProjectId(createdId);
+      if (createdId) {
+        setProjectIdsByCurrency((prev) => ({ ...prev, [currency]: createdId }));
+        setLocalProjectId(createdId);
+      }
 
       setProjectCreateMsg(
         createdId
@@ -670,7 +755,7 @@ export default function AccountPageClient({ username }: Props) {
 
       setSummary(null);
       setMsg(null);
-      setGoalMsg(null);
+      setGoalDraftPatch({ msg: null });
 
       if (createdId) {
         setTimeout(() => {
@@ -689,25 +774,25 @@ export default function AccountPageClient({ username }: Props) {
   // Goal upsert（Project Goal table：①の保存）
   // ============================
   const saveGoal = useCallback(async () => {
-    setGoalMsg(null);
+    setGoalDraftPatch({ msg: null });
     if (!localProjectId) {
-      setGoalMsg("PROJECT_ID_MISSING");
+      setGoalDraftPatch({ msg: "PROJECT_ID_MISSING" });
       return;
     }
     if (!address) {
-      setGoalMsg("WALLET_NOT_CONNECTED");
+      setGoalDraftPatch({ msg: "WALLET_NOT_CONNECTED" });
       return;
     }
 
-    const t = goalTargetInput.trim();
+    const t = goalDraft.targetInput.trim();
     const n = Number(t);
     if (!t || !Number.isFinite(n) || n <= 0) {
-      setGoalMsg("GOAL_TARGET_INVALID");
+      setGoalDraftPatch({ msg: "GOAL_TARGET_INVALID" });
       return;
     }
-    const targetAmountJpyc = Math.floor(n);
+    const targetAmount = Math.floor(n);
 
-    const deadlineText = goalDeadlineInput.trim();
+    const deadlineText = goalDraft.deadlineInput.trim();
     const deadline =
       deadlineText.length > 0 ? `${deadlineText}T00:00:00.000Z` : null;
 
@@ -720,7 +805,8 @@ export default function AccountPageClient({ username }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             address,
-            targetAmountJpyc,
+            targetAmount,
+            targetAmountJpyc: targetAmount,
             deadline,
           }),
         }
@@ -732,23 +818,24 @@ export default function AccountPageClient({ username }: Props) {
           isRecord(json) && typeof json.error === "string"
             ? json.error
             : `HTTP_${res.status}`;
-        setGoalMsg(code);
+        setGoalDraftPatch({ msg: code });
         return;
       }
 
-      setGoalMsg("GOAL_SAVED");
+      setGoalDraftPatch({ msg: "GOAL_SAVED" });
       await refreshSummary();
     } catch {
-      setGoalMsg("GOAL_SAVE_FAILED");
+      setGoalDraftPatch({ msg: "GOAL_SAVE_FAILED" });
     } finally {
       setGoalSaving(false);
     }
   }, [
     address,
-    goalDeadlineInput,
-    goalTargetInput,
+    goalDraft.deadlineInput,
+    goalDraft.targetInput,
     localProjectId,
     refreshSummary,
+    setGoalDraftPatch,
   ]);
 
   // ============================
@@ -783,12 +870,12 @@ export default function AccountPageClient({ username }: Props) {
   const doAchieve = useCallback(async () => {
     if (!localProjectId) return;
     if (!address) {
-      setGoalMsg("WALLET_NOT_CONNECTED");
+      setGoalDraftPatch({ msg: "WALLET_NOT_CONNECTED" });
       return;
     }
     setSummaryLoading(true);
     setMsg(null);
-    setGoalMsg(null);
+    setGoalDraftPatch({ msg: null });
     try {
       const url = `/api/projects/${encodeURIComponent(
         localProjectId
@@ -800,7 +887,7 @@ export default function AccountPageClient({ username }: Props) {
           isRecord(json) && typeof json.error === "string"
             ? json.error
             : `HTTP_${res.status}`;
-        setGoalMsg(code);
+        setGoalDraftPatch({ msg: code });
         return;
       }
 
@@ -820,15 +907,22 @@ export default function AccountPageClient({ username }: Props) {
 
       setMsg({ kind: "success", text: "GOAL_ACHIEVED_SET" });
       await refreshSummary();
-      setGoalMsg(
+      setGoalDraftPatch({
+        msg:
         `目標達成を確定しました（status: GOAL_ACHIEVED, achievedAt: ${achievedAt}）`
-      );
+      });
     } catch {
-      setGoalMsg("GOAL_ACHIEVE_FAILED");
+      setGoalDraftPatch({ msg: "GOAL_ACHIEVE_FAILED" });
     } finally {
       setSummaryLoading(false);
     }
-  }, [address, localProjectId, postJson, refreshSummary]);
+  }, [
+    address,
+    localProjectId,
+    postJson,
+    refreshSummary,
+    setGoalDraftPatch,
+  ]);
 
   const doSavePlan = useCallback(async () => {
     if (!localProjectId) return;
@@ -1147,18 +1241,45 @@ export default function AccountPageClient({ username }: Props) {
             baseUrl={eventBaseUrl}
             extraSections={
               <div className="space-y-4">
-                {/* -------- ① Project -------- */}
-                <ProjectSection
-                  ownerAddress={address?.toLowerCase() ?? ""}
-                  activeProjectId={localProjectId}
-                  featureHideSummaryActions={!SHOW_SUMMARY_ACTIONS}
-                  onActiveProjectIdChange={(pid) => {
-                    setLocalProjectId(pid);
-                    // ついでに summary の対象も切り替わるのでクリア
-                    setSummary(null);
-                    setMsg(null);
-                    setGoalMsg(null);
-                  }}
+                {/* -------- ① Project / Goal / Settlement（JPYC, USDC 完全分離） -------- */}
+                {(["JPYC", "USDC"] as const).map((cur) => (
+                  <div key={cur} className="space-y-2">
+                    <div className="text-xs font-semibold text-gray-500">
+                      {cur} 用
+                    </div>
+                    <ProjectSection
+                      ownerAddress={address?.toLowerCase() ?? ""}
+                      activeProjectId={projectIdsByCurrency[cur]}
+                      currency={cur}
+                      featureHideSummaryActions={!SHOW_SUMMARY_ACTIONS}
+                      onActiveProjectIdChange={(pid, changedCur) => {
+                        setProjectIdsByCurrency((prev) => ({
+                          ...prev,
+                          [changedCur]: pid,
+                        }));
+                        setLocalProjectId(pid);
+                        setSummary(null);
+                        setMsg(null);
+                        setGoalDraftByCurrency((prev) => ({
+                          ...prev,
+                          [changedCur]: { ...prev[changedCur], msg: null },
+                        }));
+                      }}
+                      integratedGoalPanel={
+                        <CurrencyGoalSettlementPanel
+                          currency={cur}
+                          projectId={projectIdsByCurrency[cur]}
+                          address={address ?? null}
+                          isConnected={isConnected}
+                        />
+                      }
+                    />
+                  </div>
+                ))}
+                <AiOfficePanel
+                  walletAddress={address ?? null}
+                  projectId={localProjectId}
+                  isConnected={isConnected}
                 />
                 {/* <div className="rounded-xl border bg-white p-4 space-y-3">
                 <div className="font-semibold">Project</div>
@@ -1183,144 +1304,6 @@ export default function AccountPageClient({ username }: Props) {
                   </div>
                 )}
               </div> */}
-
-                {/* -------- ① Goal (Project Goal table) -------- */}
-                <div className="rounded-xl border bg-white p-4 space-y-3">
-                  <div className="font-semibold">Goal（Project）</div>
-
-                  {!localProjectId ? (
-                    <div className="text-sm text-gray-600">
-                      先に Project を作成してください（上の Project カード）。
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <div className="text-xs text-gray-500">
-                            Target JPYC
-                          </div>
-                          <input
-                            className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
-                            value={goalTargetInput}
-                            onChange={(e) => setGoalTargetInput(e.target.value)}
-                            placeholder="例: 1000"
-                            disabled={goalSaving || summaryLoading}
-                            inputMode="numeric"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="text-xs text-gray-500">
-                            Deadline (optional)
-                          </div>
-                          <input
-                            className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
-                            type="date"
-                            value={goalDeadlineInput}
-                            onChange={(e) =>
-                              setGoalDeadlineInput(e.target.value)
-                            }
-                            disabled={goalSaving || summaryLoading}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
-                          onClick={() => void saveGoal()}
-                          disabled={!isConnected || !address || goalSaving}
-                          title={!isConnected ? "ウォレット接続が必要です" : ""}
-                          type="button"
-                        >
-                          {goalSaving ? "Saving..." : "Goal を保存"}
-                        </button>
-
-                        <button
-                          className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40"
-                          onClick={() => void refreshSummary()}
-                          disabled={!localProjectId || summaryLoading}
-                          type="button"
-                        >
-                          {summaryLoading ? "Loading..." : "Summary更新"}
-                        </button>
-
-                        {goalMsg ? (
-                          <span className="text-xs text-gray-600">
-                            {goalMsg}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 space-y-2">
-                        <div className="text-sm font-medium">
-                          目標達成確定（myPageオーナーのみ）
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          目標に到達したあと、プロジェクトオーナー本人が
-                          「目標達成を確定」できます。
-                        </div>
-                        <div className="text-xs text-gray-700">
-                          進捗:{" "}
-                          {summary
-                            ? `${summary.progress.confirmedJpyc.toLocaleString()} / ${
-                                summary.progress.targetJpyc != null
-                                  ? summary.progress.targetJpyc.toLocaleString()
-                                  : "—"
-                              } JPYC`
-                            : "—"}
-                        </div>
-                        <div className="text-xs text-gray-700">
-                          Goal状態:{" "}
-                          {goalAchieved
-                            ? `達成確定済み (${summary?.goal?.achievedAt ?? "-"})`
-                            : "未確定"}
-                        </div>
-                        <div className="text-xs text-gray-700">
-                          Project status: {summary?.project.status ?? "—"}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40"
-                            onClick={() => void doAchieve()}
-                            disabled={!canAchieve || summaryLoading}
-                            title={
-                              !isConnected
-                                ? "ウォレット接続が必要です"
-                                : !isOwner
-                                ? "プロジェクトオーナーのみ確定できます"
-                                : !goalIsSet
-                                ? "先にGoalを設定してください"
-                                : goalAchieved
-                                ? "すでに達成確定済みです"
-                                : !summary
-                                ? "Summaryを更新してください"
-                                : "達成条件を満たしていません"
-                            }
-                            type="button"
-                          >
-                            {summaryLoading
-                              ? "Loading..."
-                              : goalAchieved
-                              ? "達成確定済み"
-                              : "目標達成を確定"}
-                          </button>
-                          {!isOwner ? (
-                            <span className="text-xs text-amber-700">
-                              現在接続中のウォレットはオーナーではありません
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <ProjectSettlementPanel
-                  projectId={localProjectId}
-                  walletAddress={address ?? null}
-                  isConnected={isConnected}
-                />
 
                 {/* -------- ① Summary + Actions -------- */}
                 {SHOW_SUMMARY_ACTIONS ? (
@@ -1374,15 +1357,29 @@ export default function AccountPageClient({ username }: Props) {
                               Progress
                             </div>
                             <div className="text-sm">
-                              {summary
-                                ? `${summary.progress.confirmedJpyc.toLocaleString()} / ${
-                                    summary.progress.targetJpyc != null
-                                      ? summary.progress.targetJpyc.toLocaleString()
+                              {summary ? (
+                                (() => {
+                                  const unit = summary.project.currency ?? "JPYC";
+                                  const current =
+                                    summary.progress.confirmedTotal ??
+                                    summary.progress.confirmedJpyc;
+                                  const target =
+                                    summary.progress.targetAmount ??
+                                    summary.progress.targetJpyc;
+                                  return `${formatAmountByCurrency(
+                                    current,
+                                    unit
+                                  )} / ${
+                                    target != null
+                                      ? formatAmountByCurrency(target, unit)
                                       : "—"
-                                  } JPYC (${Math.floor(
+                                  } ${unit} (${Math.floor(
                                     summary.progress.progressPct
-                                  )}%)`
-                                : "—"}
+                                  )}%)`;
+                                })()
+                              ) : (
+                                "—"
+                              )}
                             </div>
                           </div>
                         </div>

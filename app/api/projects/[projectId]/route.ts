@@ -64,6 +64,7 @@ export async function GET(
         title: project.title,
         description: project.description ?? null,
         status: project.status,
+        currency: project.currency,
         purposeMode: project.purposeMode,
         ownerAddress: project.ownerAddress ?? null,
         creatorProfileId: project.creatorProfileId
@@ -176,6 +177,7 @@ export async function PUT(
         title: true,
         description: true,
         status: true,
+        currency: true,
         purposeMode: true,
         updatedAt: true,
       },
@@ -187,6 +189,7 @@ export async function PUT(
         title: updated.title,
         description: updated.description ?? null,
         status: updated.status,
+        currency: updated.currency,
         purposeMode: updated.purposeMode,
         updatedAt: updated.updatedAt.toISOString(),
       },

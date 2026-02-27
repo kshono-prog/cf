@@ -36,6 +36,10 @@ export type CreatorProfile = {
 // creators API が projectId を返す場合だけ拾う
 type CreatorWithProject = CreatorProfile & {
   projectId?: string | null;
+  projectIdsByCurrency?: {
+    JPYC: string | null;
+    USDC: string | null;
+  } | null;
 };
 
 const API_BASE = "";
@@ -121,6 +125,12 @@ function parseCreatorApiToCreatorProfile(raw: unknown): CreatorWithProject {
 
   // projectId は creators API が返せるなら拾う（無ければ null）
   const projectId = toNullOrString(raw.projectId);
+  const projectIdsByCurrency = isRecord(raw.projectIdsByCurrency)
+    ? {
+        JPYC: toNullOrString(raw.projectIdsByCurrency.JPYC),
+        USDC: toNullOrString(raw.projectIdsByCurrency.USDC),
+      }
+    : null;
 
   return {
     username,
@@ -136,6 +146,7 @@ function parseCreatorApiToCreatorProfile(raw: unknown): CreatorWithProject {
     socials,
     youtubeVideos,
     projectId,
+    projectIdsByCurrency,
   };
 }
 
@@ -146,6 +157,10 @@ export default function ProfileClientWrapper({
 }) {
   const [creator, setCreator] = useState<CreatorWithProject | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectIdsByCurrency, setProjectIdsByCurrency] = useState<{
+    JPYC: string | null;
+    USDC: string | null;
+  } | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -178,12 +193,14 @@ export default function ProfileClientWrapper({
         if (!cancelled) {
           setCreator(parsed);
           setProjectId(parsed.projectId ?? null);
+          setProjectIdsByCurrency(parsed.projectIdsByCurrency ?? null);
         }
       } catch (e: unknown) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "network");
           setCreator(null);
           setProjectId(null);
+          setProjectIdsByCurrency(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -222,6 +239,7 @@ export default function ProfileClientWrapper({
       username={username}
       creator={creator}
       projectId={projectId}
+      projectIdsByCurrency={projectIdsByCurrency}
     />
   );
 }

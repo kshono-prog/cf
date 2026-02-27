@@ -16,6 +16,10 @@ export type TokenDefinition = Readonly<{
   byChainId: Readonly<Partial<Record<SupportedChainId, TokenOnChain>>>;
 }>;
 
+// Circle native USDC on Polygon mainnet
+const DEFAULT_USDC_ADDRESS_POLYGON =
+  "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359" as Address;
+
 /**
  * NOTE:
  * - ここは “設定レイヤ” なので、将来チェーンが増えたら byChainId に追記するだけ。
@@ -53,11 +57,24 @@ export const TOKENS: Readonly<Record<TokenKey, TokenDefinition>> = {
     key: "USDC",
     displayName: "USDC",
     byChainId: {
-      // 必要になったら mainnet only の範囲で環境変数を追加
-      // 例:
-      // 1:   { address: process.env.NEXT_PUBLIC_USDC_ADDRESS_ETHEREUM as Address, decimals: 6 }
-      // 137: { address: process.env.NEXT_PUBLIC_USDC_ADDRESS_POLYGON as Address, decimals: 6 }
-      // 43114: { address: process.env.NEXT_PUBLIC_USDC_ADDRESS_AVAX as Address, decimals: 6 }
+      137: (() => {
+        const a =
+          process.env.NEXT_PUBLIC_USDC_ADDRESS_POLYGON ??
+          DEFAULT_USDC_ADDRESS_POLYGON;
+        return { address: a as Address, decimals: 6 } as const;
+      })(),
+      43114: (() => {
+        const a = process.env.NEXT_PUBLIC_USDC_ADDRESS_AVAX;
+        return a
+          ? ({ address: a as Address, decimals: 6 } as const)
+          : undefined;
+      })(),
+      1: (() => {
+        const a = process.env.NEXT_PUBLIC_USDC_ADDRESS_ETHEREUM;
+        return a
+          ? ({ address: a as Address, decimals: 6 } as const)
+          : undefined;
+      })(),
     },
   },
 } as const;

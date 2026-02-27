@@ -52,6 +52,8 @@ type CreatorProfileRecord = {
   username: string;
   walletAddress: string | null;
   activeProjectId: string | null;
+  activeProjectIdJpyc: string | null;
+  activeProjectIdUsdc: string | null;
 };
 
 const getCreatorProfileByUsernameCached = unstable_cache(
@@ -79,6 +81,8 @@ const getCreatorProfileByUsernameCached = unstable_cache(
       username: profile.username,
       walletAddress: profile.walletAddress,
       activeProjectId: profile.activeProjectId?.toString() ?? null,
+      activeProjectIdJpyc: profile.activeProjectIdJpyc?.toString() ?? null,
+      activeProjectIdUsdc: profile.activeProjectIdUsdc?.toString() ?? null,
     };
 
     return {

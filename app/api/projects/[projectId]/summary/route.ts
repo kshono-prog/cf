@@ -10,13 +10,25 @@ export const dynamic = "force-dynamic";
 type Params = { projectId: string };
 type Currency = "JPYC" | "USDC";
 
+function toCurrency(v: string): Currency | null {
+  return v === "JPYC" || v === "USDC" ? v : null;
+}
+
 function decToString(d: Prisma.Decimal | null | undefined): string | null {
   if (d == null) return null;
   return d.toString();
 }
 
-function decimalToJpycIntFloor(amountDecimal: Prisma.Decimal | null): number {
+function decimalToAmountByCurrency(
+  currency: Currency,
+  amountDecimal: Prisma.Decimal | null
+): number {
   if (!amountDecimal) return 0;
+  if (currency === "USDC") {
+    const n = Number(amountDecimal.toString());
+    if (!Number.isFinite(n)) return 0;
+    return Number(n.toFixed(2));
+  }
   const s = amountDecimal.toString();
   const [i] = s.split(".");
   const n = Number(i || "0");
@@ -42,6 +54,8 @@ export async function GET(
     });
 
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+    const projectCurrency = toCurrency(project.currency);
+    if (!projectCurrency) return errJson("PROJECT_CURRENCY_INVALID", 400);
 
     const sumByCurrency = await prisma.contribution.groupBy({
       by: ["currency"],
@@ -60,12 +74,15 @@ export async function GET(
       if (cur === "JPYC" || cur === "USDC") totalConfirmed[cur] = s;
     }
 
-    const confirmedJpycInt = decimalToJpycIntFloor(totalConfirmed.JPYC);
+    const confirmedCurrencyInt = decimalToAmountByCurrency(
+      projectCurrency,
+      totalConfirmed[projectCurrency]
+    );
     const targetJpyc = project.goal?.targetAmountJpyc ?? null;
 
     const progressPct =
       targetJpyc && targetJpyc > 0
-        ? Math.min(100, (confirmedJpycInt / targetJpyc) * 100)
+        ? Math.min(100, (confirmedCurrencyInt / targetJpyc) * 100)
         : 0;
 
     return okJson({
@@ -74,6 +91,7 @@ export async function GET(
         title: project.title,
         description: project.description ?? null,
         status: project.status,
+        currency: project.currency,
         purposeMode: project.purposeMode,
         ownerAddress: project.ownerAddress ?? null,
         creatorProfileId: project.creatorProfileId?.toString() ?? null,
@@ -85,6 +103,8 @@ export async function GET(
         ? {
             id: project.goal.id.toString(),
             projectId: project.goal.projectId.toString(),
+            unitCurrency: projectCurrency,
+            targetAmount: project.goal.targetAmountJpyc,
             targetAmountJpyc: project.goal.targetAmountJpyc,
             achievedAt: project.goal.achievedAt
               ? project.goal.achievedAt.toISOString()
@@ -95,7 +115,14 @@ export async function GET(
           }
         : null,
       progress: {
-        confirmedJpyc: confirmedJpycInt,
+        currency: projectCurrency,
+        confirmedJpyc: confirmedCurrencyInt,
+        confirmedTotal: confirmedCurrencyInt,
+        confirmedByCurrency: {
+          JPYC: projectCurrency === "JPYC" ? confirmedCurrencyInt : 0,
+          USDC: projectCurrency === "USDC" ? confirmedCurrencyInt : 0,
+        },
+        targetAmount: targetJpyc,
         targetJpyc,
         progressPct,
         totals: {

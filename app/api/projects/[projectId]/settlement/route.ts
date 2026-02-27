@@ -72,6 +72,10 @@ export async function GET(
               },
             },
           },
+          cctpBridgeJobs: {
+            orderBy: [{ createdAt: "desc" }],
+            take: 20,
+          },
         },
       });
 
@@ -148,6 +152,27 @@ export async function GET(
             createdAt: i.createdAt.toISOString(),
           })),
         })),
+        cctpJobs: data.cctpBridgeJobs.map((j) => ({
+          id: j.id,
+          currency: j.currency,
+          sourceChain: j.sourceChain,
+          destinationChain: j.destinationChain,
+          status: j.status,
+          idempotencyKey: j.idempotencyKey,
+          goalAchievedAt: j.goalAchievedAt.toISOString(),
+          burnAmountAtomic: j.burnAmountAtomic?.toString() ?? null,
+          burnTxHash: j.burnTxHash,
+          burnMessageHash: j.burnMessageHash,
+          attestation: j.attestation,
+          attestationFetchedAt: j.attestationFetchedAt?.toISOString() ?? null,
+          mintTxHash: j.mintTxHash,
+          failureReason: j.failureReason,
+          attempts: j.attempts,
+          maxAttempts: j.maxAttempts,
+          nextRetryAt: j.nextRetryAt?.toISOString() ?? null,
+          createdAt: j.createdAt.toISOString(),
+          updatedAt: j.updatedAt.toISOString(),
+        })),
       });
     } catch (e) {
       if (!isSettlementSchemaMissingError(e)) throw e;
@@ -191,6 +216,7 @@ export async function GET(
         bridgeSteps: [],
         distributionEntries: [],
         recentExecutions: [],
+        cctpJobs: [],
         warning: "SETTLEMENT_SCHEMA_NOT_MIGRATED",
       });
     }

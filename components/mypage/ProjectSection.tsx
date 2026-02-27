@@ -39,14 +39,18 @@ function toUiErrorMessage(json: unknown, fallback: string): string {
 export function ProjectSection(props: {
   ownerAddress: string; // walletAddress (lower 0x..)
   activeProjectId: string | null;
+  currency?: "JPYC" | "USDC";
   featureHideSummaryActions?: boolean; // feature flag
-  onActiveProjectIdChange?: (projectId: string) => void;
+  onActiveProjectIdChange?: (projectId: string, currency: "JPYC" | "USDC") => void;
+  integratedGoalPanel?: React.ReactNode;
 }) {
   const {
     ownerAddress,
     activeProjectId,
+    currency = "JPYC",
     onActiveProjectIdChange,
     featureHideSummaryActions,
+    integratedGoalPanel,
   } = props;
 
   // initial mode (activeあり→VIEW, なし→CREATE)
@@ -125,7 +129,6 @@ export function ProjectSection(props: {
       return;
     }
     void fetchActiveProjectSafe(activeProjectId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProjectId]);
 
   async function onCreate(): Promise<void> {
@@ -144,25 +147,28 @@ export function ProjectSection(props: {
           title,
           description: description.trim().length > 0 ? description : null,
           purposeMode,
+          currency,
         }),
       });
 
       const json: unknown = await res.json().catch(() => null);
 
-      // ✅ あなたの POST /api/projects は { id: "..." } を返す (ok は返さない)
+      // /api/projects は { activeProjectId, project:{id,...} } を返す
       if (!res.ok || !isRecord(json)) {
         setMsg(toUiErrorMessage(json, `作成に失敗しました (${res.status})`));
         return;
       }
 
-      const newId = asNonEmptyString(json.id);
+      const newId =
+        asNonEmptyString(json.activeProjectId) ??
+        (isRecord(json.project) ? asNonEmptyString(json.project.id) : null);
       if (!newId) {
         setMsg("作成は成功しましたが projectId(id) が返りませんでした");
         return;
       }
 
       // 親へ通知（mypage側の creator.activeProjectId state を更新）
-      onActiveProjectIdChange?.(newId);
+      onActiveProjectIdChange?.(newId, currency);
 
       // 注意メッセージ（仕様）
       setMsg(
@@ -424,6 +430,12 @@ export function ProjectSection(props: {
           }}
         />
       )}
+
+      {integratedGoalPanel ? (
+        <div className="mt-2 border-t border-gray-200 pt-3">
+          {integratedGoalPanel}
+        </div>
+      ) : null}
     </div>
   );
 }

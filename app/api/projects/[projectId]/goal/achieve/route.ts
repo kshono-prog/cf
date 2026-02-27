@@ -14,10 +14,16 @@ import {
   isSettlementSchemaMissingError,
   recomputeProjectSettlement,
 } from "@/lib/projectSettlement";
+import { ensureCctpJobForGoalAchieved } from "@/lib/cctpBridgeJobs";
 
 export const dynamic = "force-dynamic";
 
 type Params = { projectId: string };
+type Currency = "JPYC" | "USDC";
+
+function toCurrency(v: string): Currency | null {
+  return v === "JPYC" || v === "USDC" ? v : null;
+}
 
 function decimalToJpycIntFloor(amountDecimal: Prisma.Decimal | null): number {
   if (!amountDecimal) return 0;
@@ -44,6 +50,8 @@ export async function POST(
       include: { goal: true },
     });
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+    const projectCurrency = toCurrency(project.currency);
+    if (!projectCurrency) return errJson("PROJECT_CURRENCY_INVALID", 400);
 
     const owner = lowerOrNull(project.ownerAddress);
     if (!owner || owner !== addr.toLowerCase()) {
@@ -61,7 +69,11 @@ export async function POST(
     }
 
     const sum = await prisma.contribution.aggregate({
-      where: { projectId, status: "CONFIRMED", currency: "JPYC" },
+      where: {
+        projectId,
+        status: "CONFIRMED",
+        currency: projectCurrency,
+      },
       _sum: { amountDecimal: true },
     });
 
@@ -85,6 +97,13 @@ export async function POST(
       await tx.project.update({
         where: { id: projectId },
         data: { status: "GOAL_ACHIEVED", updatedAt: now },
+      });
+
+      await ensureCctpJobForGoalAchieved(tx, {
+        id: projectId,
+        currency: project.currency,
+        eventFundingChainId: project.eventFundingChainId ?? null,
+        goal: { achievedAt: now },
       });
 
       return g;

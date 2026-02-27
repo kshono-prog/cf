@@ -2,6 +2,7 @@
 import type { Eip1193Provider } from "ethers";
 import { createPublicClient, http, parseAbiItem } from "viem";
 import { getChainConfig } from "@/lib/chainConfig";
+import { getClientRpcUrl } from "@/lib/clientRpc";
 
 const LAST_TX_KEY = "cf:lastTx:v1";
 
@@ -124,7 +125,7 @@ function parseLastTx(v: unknown): LastTx | null {
 export function getPublicClientForChain(chainId: number) {
   const cfg = getChainConfig(chainId);
   if (!cfg) return null;
-  const rpc = cfg.viemChain.rpcUrls.default.http[0];
+  const rpc = getClientRpcUrl(cfg.id) ?? cfg.viemChain.rpcUrls.default.http[0];
   if (!rpc) return null;
   return createPublicClient({
     chain: cfg.viemChain,

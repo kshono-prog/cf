@@ -1,13 +1,16 @@
 // app/api/projects/[projectId]/goal/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { Goal } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+type Currency = "JPYC" | "USDC";
 
 type GoalPayload = {
   id: string;
   projectId: string;
+  unitCurrency: Currency;
+  targetAmount: number;
   targetAmountJpyc: number;
   deadline: string | null;
   achievedAt: string | null;
@@ -34,6 +37,9 @@ function toOptionalString(v: unknown): string | null {
 function toOptionalNumber(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
+function toCurrency(v: string): Currency | null {
+  return v === "JPYC" || v === "USDC" ? v : null;
+}
 
 function lower(v: string): string {
   return v.toLowerCase();
@@ -49,10 +55,12 @@ function serializeGoal(goal: {
   achievedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-}): GoalPayload {
+}, unitCurrency: Currency): GoalPayload {
   return {
     id: goal.id.toString(),
     projectId: goal.projectId.toString(),
+    unitCurrency,
+    targetAmount: goal.targetAmountJpyc,
     targetAmountJpyc: goal.targetAmountJpyc,
     deadline: goal.deadline ? goal.deadline.toISOString() : null,
     achievedAt: goal.achievedAt ? goal.achievedAt.toISOString() : null,
@@ -65,6 +73,23 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
   try {
     const { projectId } = await ctx.params;
     const pid = toBigIntOrThrow(projectId, "PROJECT_ID_INVALID");
+    const project = await prisma.project.findUnique({
+      where: { id: pid },
+      select: { id: true, currency: true },
+    });
+    if (!project) {
+      return NextResponse.json(
+        { ok: false, error: "PROJECT_NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+    const unitCurrency = toCurrency(project.currency);
+    if (!unitCurrency) {
+      return NextResponse.json(
+        { ok: false, error: "PROJECT_CURRENCY_INVALID" },
+        { status: 400 }
+      );
+    }
 
     const goal = await prisma.goal.findUnique({
       where: { projectId: pid },
@@ -82,7 +107,7 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
 
     return NextResponse.json({
       ok: true,
-      goal: goal ? serializeGoal(goal) : null,
+      goal: goal ? serializeGoal(goal, unitCurrency) : null,
     });
   } catch (e) {
     return NextResponse.json(
@@ -106,7 +131,9 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
     }
 
     const address = toOptionalString(body.address);
-    const targetAmountJpyc = toOptionalNumber(body.targetAmountJpyc);
+    const targetAmount =
+      toOptionalNumber(body.targetAmount) ??
+      toOptionalNumber(body.targetAmountJpyc);
     const deadline = toOptionalString(body.deadline); // ISO string or null
 
     if (!address) {
@@ -115,7 +142,7 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
         { status: 400 }
       );
     }
-    if (targetAmountJpyc == null || targetAmountJpyc <= 0) {
+    if (targetAmount == null || targetAmount <= 0) {
       return NextResponse.json(
         { ok: false, error: "TARGET_INVALID" },
         { status: 400 }
@@ -124,7 +151,7 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
 
     const project = await prisma.project.findUnique({
       where: { id: pid },
-      select: { id: true, ownerAddress: true },
+      select: { id: true, ownerAddress: true, currency: true },
     });
     if (!project) {
       return NextResponse.json(
@@ -140,6 +167,13 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
         { status: 403 }
       );
     }
+    const unitCurrency = toCurrency(project.currency);
+    if (!unitCurrency) {
+      return NextResponse.json(
+        { ok: false, error: "PROJECT_CURRENCY_INVALID" },
+        { status: 400 }
+      );
+    }
 
     const deadlineDate =
       deadline && typeof deadline === "string" ? new Date(deadline) : null;
@@ -148,12 +182,12 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
       where: { projectId: pid },
       create: {
         projectId: pid,
-        targetAmountJpyc: Math.floor(targetAmountJpyc),
+        targetAmountJpyc: Math.floor(targetAmount),
         deadline: deadlineDate,
         settlementPolicy: {},
       },
       update: {
-        targetAmountJpyc: Math.floor(targetAmountJpyc),
+        targetAmountJpyc: Math.floor(targetAmount),
         deadline: deadlineDate,
       },
       select: {
@@ -168,7 +202,7 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
       },
     });
 
-    return NextResponse.json({ ok: true, goal: serializeGoal(saved) });
+    return NextResponse.json({ ok: true, goal: serializeGoal(saved, unitCurrency) });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: "GOAL_SAVE_FAILED" },

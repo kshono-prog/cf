@@ -149,6 +149,7 @@ export async function createProject(args: {
     title: string;
     description: string | null;
     purposeMode: string;
+    currency?: "JPYC" | "USDC";
     ownerAddress: Address;
     address: Address; // API が address 必須でも通す保険、同じ値を入れる想定
   };
