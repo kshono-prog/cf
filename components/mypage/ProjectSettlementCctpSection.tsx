@@ -2,7 +2,9 @@
 
 import React from "react";
 
+import { WorkspaceEmptyState } from "@/components/mypage/WorkspaceFeedback";
 import type { ProjectSettlementData } from "@/lib/projectSettlementView";
+import { getCctpStatusLabel } from "@/lib/uxCopy";
 
 type CctpJob = ProjectSettlementData["cctpJobs"][number];
 type CctpAction =
@@ -29,7 +31,7 @@ export function ProjectSettlementCctpSection(
   return (
     <div className="rounded-lg border p-3 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-medium">CCTP Bridge Jobs (USDC)</div>
+        <div className="text-sm font-medium">USDC ブリッジ管理（CCTP）</div>
         <button
           type="button"
           className="rounded border px-3 py-1.5 text-xs disabled:opacity-40"
@@ -41,9 +43,11 @@ export function ProjectSettlementCctpSection(
       </div>
 
       {cctpJobs.length === 0 ? (
-        <div className="text-xs text-gray-500">
-          CCTPジョブはまだありません（Goal達成後に生成されます）
-        </div>
+        <WorkspaceEmptyState
+          compact
+          title="CCTP ジョブはまだありません"
+          description="USDC の目標達成後にジョブが生成されると、ここで状態を管理できます。"
+        />
       ) : (
         <div className="space-y-2">
           {cctpJobs.map((job) => (
@@ -51,25 +55,25 @@ export function ProjectSettlementCctpSection(
               <summary className="cursor-pointer text-xs flex flex-wrap items-center gap-2">
                 <span className="font-mono">{job.id.slice(0, 10)}...</span>
                 <span className="px-2 py-0.5 rounded bg-gray-100">
-                  {job.status}
+                  {getCctpStatusLabel(job.status)}
                 </span>
                 <span>
                   {job.sourceChain} → {job.destinationChain}
                 </span>
                 <span>
-                  attempts: {job.attempts}/{job.maxAttempts}
+                  試行回数: {job.attempts}/{job.maxAttempts}
                 </span>
               </summary>
               <div className="mt-2 space-y-1 text-xs">
-                <div>burnTx: {job.burnTxHash ?? "N/A"}</div>
-                <div>messageHash: {job.burnMessageHash ?? "N/A"}</div>
+                <div>Burn Tx: {job.burnTxHash ?? "N/A"}</div>
+                <div>Message Hash: {job.burnMessageHash ?? "N/A"}</div>
                 <div>
-                  attestation:{" "}
+                  Attestation:{" "}
                   {job.attestation ? `${job.attestation.slice(0, 18)}...` : "N/A"}
                 </div>
-                <div>mintTx: {job.mintTxHash ?? "N/A"}</div>
+                <div>Mint Tx: {job.mintTxHash ?? "N/A"}</div>
                 {job.failureReason ? (
-                  <div className="text-rose-700">error: {job.failureReason}</div>
+                  <div className="text-rose-700">失敗理由: {job.failureReason}</div>
                 ) : null}
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <button
@@ -77,17 +81,17 @@ export function ProjectSettlementCctpSection(
                     className="rounded border px-2 py-1"
                     onClick={() => {
                       const burnTxHash = window.prompt(
-                        "burn tx hash",
+                        "Burn Tx Hash を入力してください",
                         job.burnTxHash ?? ""
                       );
                       if (!burnTxHash) return;
                       const burnAmountAtomic = window.prompt(
-                        "burn amount atomic",
+                        "Burn 金額（atomic 単位）を入力してください",
                         job.burnAmountAtomic ?? "0"
                       );
                       if (!burnAmountAtomic) return;
                       const burnMessageHash = window.prompt(
-                        "burn message hash (0x...)",
+                        "Burn Message Hash（0x...）を入力してください",
                         job.burnMessageHash ?? ""
                       );
                       void onRunAction("MARK_BURN_SUBMITTED", {
@@ -120,7 +124,7 @@ export function ProjectSettlementCctpSection(
                     className="rounded border px-2 py-1"
                     onClick={() => {
                       const mintTxHash = window.prompt(
-                        "mint tx hash",
+                        "Mint Tx Hash を入力してください",
                         job.mintTxHash ?? ""
                       );
                       if (!mintTxHash) return;
@@ -151,7 +155,7 @@ export function ProjectSettlementCctpSection(
                     className="rounded border px-2 py-1"
                     onClick={() => {
                       const reason = window.prompt(
-                        "failure reason",
+                        "失敗理由を入力してください",
                         job.failureReason ?? "MANUAL_FAILED"
                       );
                       void onRunAction("FAIL", {

@@ -2,61 +2,28 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { AgentTaskOutput } from "@/components/mypage/AgentTaskOutputViews";
+import { AiOfficeCreateSection } from "@/components/mypage/AiOfficeCreateSection";
+import { AiOfficeStatusNotice } from "@/components/mypage/AiOfficeFeedback";
+import { AiOfficeInboxSection } from "@/components/mypage/AiOfficeInboxSection";
+import { AiOfficeOverviewSection } from "@/components/mypage/AiOfficeOverviewSection";
+import type {
+  AgentTaskView,
+  AiOfficeView,
+  AnnouncementChannel,
+  DraftTone,
+  MetricSnapshotView,
+  MetricTrendDayView,
+  Platform,
+  SocialConnectionView,
+  SupporterMessagePurpose,
+  TaskFilter,
+  TranslationLang,
+} from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
-
-type Platform = "YOUTUBE" | "X" | "INSTAGRAM" | "TIKTOK";
-type TaskFilter = "ALL" | "WAITING_APPROVAL";
-type TranslationLang = "ja" | "en" | "ko" | "zh";
-type DraftTone = "warm" | "formal" | "casual";
-type AnnouncementChannel = "SUPPORTERS" | "GENERAL";
-type SupporterMessagePurpose = "THANK_YOU" | "REENGAGEMENT";
-
-type SocialConnectionView = {
-  id: string;
-  platform: string;
-  accountHandle: string;
-  status: string;
-  createdAt: string;
-};
-
-type AgentTaskView = {
-  id: string;
-  projectId: string | null;
-  taskType: string;
-  status: string;
-  approvedBy: string | null;
-  approvedAt: string | null;
-  createdAt: string;
-  output: unknown;
-  auditLogs: Array<{
-    id: string;
-    action: string;
-    actorAddress: string | null;
-    createdAt: string;
-    note: string | null;
-  }>;
-};
-
-type MetricSnapshotView = {
-  id: string;
-  platform: string;
-  capturedAt: string;
-  views: number | null;
-  likes: number | null;
-  comments: number | null;
-  shares: number | null;
-};
-
-type MetricTrendDayView = {
-  date: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  interactionRate: number;
-  topPlatform: { platform: string; rate: number; count: number } | null;
-};
+import {
+  getAgentTaskTypeCopy,
+  getAiOfficeMessageState,
+} from "@/lib/uxCopy";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -321,15 +288,27 @@ export function AiOfficePanel(props: {
   const [translationResult, setTranslationResult] = useState<string>("");
   const [approvalNote, setApprovalNote] = useState<string>("");
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [activeView, setActiveView] = useState<AiOfficeView>("OVERVIEW");
   const BULK_CONFIRM_THRESHOLD = 5;
 
   const canUse = isConnected && !!walletAddress;
+  const currentTaskTypeCopy = useMemo(
+    () => getAgentTaskTypeCopy(taskType),
+    [taskType]
+  );
+  const visibleMessage = useMemo(
+    () => getAiOfficeMessageState(message),
+    [message]
+  );
   const waitingApprovalCount = useMemo(
     () => tasks.filter((task) => task.status === "WAITING_APPROVAL").length,
     [tasks]
   );
   const waitingTaskIds = useMemo(
-    () => tasks.filter((task) => task.status === "WAITING_APPROVAL").map((task) => task.id),
+    () =>
+      tasks
+        .filter((task) => task.status === "WAITING_APPROVAL")
+        .map((task) => task.id),
     [tasks]
   );
 
@@ -349,8 +328,6 @@ export function AiOfficePanel(props: {
       const dashboardRes = await fetch(
         `/api/ai-office/dashboard?address=${encodeURIComponent(walletAddress)}${
           projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""
-        }${
-          taskFilter === "WAITING_APPROVAL" ? "&status=WAITING_APPROVAL" : ""
         }&metricLimit=20&trendDays=7&taskLimit=30`,
         { cache: "no-store" }
       );
@@ -373,7 +350,7 @@ export function AiOfficePanel(props: {
     } finally {
       setLoading(false);
     }
-  }, [walletAddress, taskFilter, projectId]);
+  }, [walletAddress, projectId]);
 
   useEffect(() => {
     void refresh();
@@ -661,10 +638,37 @@ export function AiOfficePanel(props: {
     }
   }
 
+  const aiOfficeViews: Array<{
+    id: AiOfficeView;
+    label: string;
+    helper: string;
+  }> = [
+    {
+      id: "OVERVIEW",
+      label: "状況",
+      helper: "今日見るべき数値と承認待ちを確認する",
+    },
+    {
+      id: "CREATE",
+      label: "作成",
+      helper: "SNS 連携、指標更新、下書き作成を進める",
+    },
+    {
+      id: "INBOX",
+      label: "Inbox",
+      helper: "承認待ちや最近の AI タスクを確認する",
+    },
+  ];
+
   return (
     <div className="rounded-xl border bg-white p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">AI事務所（Phase1）</h3>
+        <div>
+          <h3 className="font-semibold">AI事務所 beta</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            指標の確認、下書き作成、承認待ちの確認をここでまとめて行います。
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <span className="rounded border px-2 py-1 text-[11px] text-gray-700">
             承認待ち: {waitingApprovalCount}
@@ -679,483 +683,150 @@ export function AiOfficePanel(props: {
           </button>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className={`rounded border px-2 py-1 text-xs ${
-            taskFilter === "ALL" ? "bg-gray-100" : ""
-          }`}
-          onClick={() => setTaskFilter("ALL")}
-          disabled={loading}
-        >
-          全件
-        </button>
-        <button
-          type="button"
-          className={`rounded border px-2 py-1 text-xs ${
-            taskFilter === "WAITING_APPROVAL" ? "bg-gray-100" : ""
-          }`}
-          onClick={() => setTaskFilter("WAITING_APPROVAL")}
-          disabled={loading}
-        >
-          承認待ち
-        </button>
-      </div>
 
       {!canUse ? (
         <p className="text-sm text-gray-600">ウォレット接続後に利用できます。</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <select
-              className="rounded border px-2 py-2 text-sm"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value as Platform)}
-              disabled={loading}
-            >
-              <option value="YOUTUBE">YOUTUBE</option>
-              <option value="X">X</option>
-              <option value="INSTAGRAM">INSTAGRAM</option>
-              <option value="TIKTOK">TIKTOK</option>
-            </select>
-            <input
-              className="rounded border px-2 py-2 text-sm"
-              value={accountHandle}
-              onChange={(e) => setAccountHandle(e.target.value)}
-              placeholder="account handle"
-              disabled={loading}
-            />
-            <button
-              type="button"
-              className="rounded bg-black px-3 py-2 text-sm text-white disabled:opacity-40"
-              onClick={() => void addConnection()}
-              disabled={loading}
-            >
-              SNS連携を保存
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="rounded border px-3 py-2 text-sm disabled:opacity-40"
-              onClick={() => void collectMetrics()}
-              disabled={loading}
-            >
-              metrics収集
-            </button>
-            <select
-              className="rounded border px-2 py-2 text-sm"
-              value={taskType}
-              onChange={(e) => setTaskType(e.target.value as TaskType)}
-              disabled={loading}
-            >
-              <option value="PROPOSE">PROPOSE</option>
-              <option value="ANALYZE">ANALYZE</option>
-              <option value="TRANSLATE">TRANSLATE</option>
-              <option value="WEEKLY_REPORT">WEEKLY_REPORT</option>
-              <option value="ANNOUNCEMENT_DRAFT">ANNOUNCEMENT_DRAFT</option>
-              <option value="SUPPORTER_MESSAGE_DRAFT">SUPPORTER_MESSAGE_DRAFT</option>
-            </select>
-            <label className="inline-flex items-center gap-1 text-xs text-gray-700">
-              <input
-                type="checkbox"
-                checked={requiresApproval}
-                onChange={(e) => setRequiresApproval(e.target.checked)}
+          <div className="grid gap-2 md:grid-cols-3">
+            {aiOfficeViews.map((view) => (
+              <button
+                key={view.id}
+                type="button"
+                className={`rounded-2xl border px-4 py-3 text-left transition ${
+                  activeView === view.id
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-gray-200 bg-white text-gray-900"
+                }`}
+                onClick={() => setActiveView(view.id)}
                 disabled={loading}
-              />
-              承認必要
-            </label>
-            <button
-              type="button"
-              className="rounded bg-black px-3 py-2 text-sm text-white disabled:opacity-40"
-              onClick={() => void createTask()}
-              disabled={loading}
-            >
-              AIタスク作成
-            </button>
-          </div>
-          <div className="rounded border p-3 space-y-3">
-            <div className="text-xs text-gray-500">Task Input</div>
-            {taskType === "TRANSLATE" ? (
-              <>
-                <textarea
-                  className="w-full rounded border px-2 py-2 text-sm"
-                  value={translationInput}
-                  onChange={(e) => setTranslationInput(e.target.value)}
-                  placeholder="翻訳したい文章"
-                  disabled={loading}
-                />
-                <select
-                  className="rounded border px-2 py-2 text-sm"
-                  value={translationLang}
-                  onChange={(e) => setTranslationLang(e.target.value as TranslationLang)}
-                  disabled={loading}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">{view.label}</span>
+                  {view.id === "INBOX" && waitingApprovalCount > 0 ? (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] ${
+                        activeView === view.id
+                          ? "bg-white/15 text-white"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {waitingApprovalCount}
+                    </span>
+                  ) : null}
+                </div>
+                <div
+                  className={`mt-1 text-xs ${
+                    activeView === view.id ? "text-white/80" : "text-gray-500"
+                  }`}
                 >
-                  <option value="ja">ja</option>
-                  <option value="en">en</option>
-                  <option value="ko">ko</option>
-                  <option value="zh">zh</option>
-                </select>
-              </>
-            ) : null}
-            {taskType === "WEEKLY_REPORT" ? (
-              <label className="grid gap-1 text-xs text-gray-700">
-                <span>reporting window days</span>
-                <input
-                  className="rounded border px-2 py-2 text-sm"
-                  type="number"
-                  min={1}
-                  max={31}
-                  value={reportingWindowDays}
-                  onChange={(e) =>
-                    setReportingWindowDays(Math.max(1, Math.min(31, Number(e.target.value) || 7)))
-                  }
-                  disabled={loading}
-                />
-              </label>
-            ) : null}
-            {taskType === "ANNOUNCEMENT_DRAFT" ? (
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <label className="grid gap-1 text-xs text-gray-700">
-                  <span>channel</span>
-                  <select
-                    className="rounded border px-2 py-2 text-sm"
-                    value={announcementChannel}
-                    onChange={(e) =>
-                      setAnnouncementChannel(e.target.value as AnnouncementChannel)
-                    }
-                    disabled={loading}
-                  >
-                    <option value="SUPPORTERS">SUPPORTERS</option>
-                    <option value="GENERAL">GENERAL</option>
-                  </select>
-                </label>
-                <label className="grid gap-1 text-xs text-gray-700">
-                  <span>tone</span>
-                  <select
-                    className="rounded border px-2 py-2 text-sm"
-                    value={draftTone}
-                    onChange={(e) => setDraftTone(e.target.value as DraftTone)}
-                    disabled={loading}
-                  >
-                    <option value="warm">warm</option>
-                    <option value="formal">formal</option>
-                    <option value="casual">casual</option>
-                  </select>
-                </label>
-                <label className="grid gap-1 text-xs text-gray-700">
-                  <span>reporting window days</span>
-                  <input
-                    className="rounded border px-2 py-2 text-sm"
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={reportingWindowDays}
-                    onChange={(e) =>
-                      setReportingWindowDays(Math.max(1, Math.min(31, Number(e.target.value) || 7)))
-                    }
-                    disabled={loading}
-                  />
-                </label>
-                <div className="flex flex-col justify-end gap-2 text-xs text-gray-700">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={includeMetricsSummary}
-                      onChange={(e) => setIncludeMetricsSummary(e.target.checked)}
-                      disabled={loading}
-                    />
-                    include metrics summary
-                  </label>
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={includeSupportSummary}
-                      onChange={(e) => setIncludeSupportSummary(e.target.checked)}
-                      disabled={loading}
-                    />
-                    include support summary
-                  </label>
+                  {view.helper}
                 </div>
-              </div>
-            ) : null}
-            {taskType === "SUPPORTER_MESSAGE_DRAFT" ? (
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <label className="grid gap-1 text-xs text-gray-700">
-                  <span>purpose</span>
-                  <select
-                    className="rounded border px-2 py-2 text-sm"
-                    value={supporterMessagePurpose}
-                    onChange={(e) =>
-                      setSupporterMessagePurpose(
-                        e.target.value as SupporterMessagePurpose
-                      )
-                    }
-                    disabled={loading}
-                  >
-                    <option value="THANK_YOU">THANK_YOU</option>
-                    <option value="REENGAGEMENT">REENGAGEMENT</option>
-                  </select>
-                </label>
-                <label className="grid gap-1 text-xs text-gray-700">
-                  <span>tone</span>
-                  <select
-                    className="rounded border px-2 py-2 text-sm"
-                    value={draftTone}
-                    onChange={(e) => setDraftTone(e.target.value as DraftTone)}
-                    disabled={loading}
-                  >
-                    <option value="warm">warm</option>
-                    <option value="formal">formal</option>
-                    <option value="casual">casual</option>
-                  </select>
-                </label>
-                <label className="grid gap-1 text-xs text-gray-700">
-                  <span>reporting window days</span>
-                  <input
-                    className="rounded border px-2 py-2 text-sm"
-                    type="number"
-                    min={1}
-                    max={90}
-                    value={reportingWindowDays}
-                    onChange={(e) =>
-                      setReportingWindowDays(Math.max(1, Math.min(90, Number(e.target.value) || 30)))
-                    }
-                    disabled={loading}
-                  />
-                </label>
-                <div className="flex flex-col justify-end gap-2 text-xs text-gray-700">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={includeMetricsSummary}
-                      onChange={(e) => setIncludeMetricsSummary(e.target.checked)}
-                      disabled={loading}
-                    />
-                    include metrics summary
-                  </label>
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={includeSupportSummary}
-                      onChange={(e) => setIncludeSupportSummary(e.target.checked)}
-                      disabled={loading}
-                    />
-                    include support summary
-                  </label>
-                </div>
-              </div>
-            ) : null}
-            {taskType === "ANALYZE" || taskType === "PROPOSE" ? (
-              <div className="text-xs text-gray-600">
-                この task は現在の project / metrics コンテキストを使って自動生成します。
-              </div>
-            ) : null}
+              </button>
+            ))}
           </div>
-          <div className="rounded border p-3 space-y-2">
-            <div className="text-xs text-gray-500">承認メモ（承認/却下時に監査ログへ保存）</div>
-            <input
-              className="w-full rounded border px-2 py-2 text-sm"
-              value={approvalNote}
-              onChange={(e) => setApprovalNote(e.target.value)}
-              maxLength={300}
-              placeholder="例: 数値が安定しているため承認"
-              disabled={loading}
+
+          {visibleMessage ? (
+            <AiOfficeStatusNotice
+              tone={visibleMessage.tone}
+              title={visibleMessage.title}
+              description={visibleMessage.description}
             />
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-gray-600">
-                選択中: {selectedTaskIds.length} / 承認待ち: {waitingApprovalCount}
-              </span>
+          ) : null}
+
+          {waitingApprovalCount > 0 && activeView !== "INBOX" ? (
+            <AiOfficeStatusNotice
+              tone="attention"
+              title={`承認待ちの下書きが ${waitingApprovalCount} 件あります`}
+              description="新しい作成を増やす前に、Inbox で内容を確認すると運営が止まりません。"
+            >
               <button
                 type="button"
-                className="rounded border px-2 py-1 text-xs disabled:opacity-40"
-                onClick={selectAllWaitingTasks}
-                disabled={loading || waitingTaskIds.length === 0}
-              >
-                承認待ちを全選択
-              </button>
-              <button
-                type="button"
-                className="rounded border px-2 py-1 text-xs disabled:opacity-40"
-                onClick={clearSelectedTasks}
-                disabled={loading || selectedTaskIds.length === 0}
-              >
-                選択解除
-              </button>
-              <button
-                type="button"
-                className="rounded border px-2 py-1 text-xs disabled:opacity-40"
-                onClick={() => void approveTasks(selectedTaskIds, "APPROVE")}
-                disabled={loading || selectedTaskIds.length === 0}
-              >
-                選択を一括承認
-              </button>
-              <button
-                type="button"
-                className="rounded border px-2 py-1 text-xs disabled:opacity-40"
-                onClick={() => void approveTasks(selectedTaskIds, "REJECT")}
-                disabled={loading || selectedTaskIds.length === 0}
-              >
-                選択を一括却下
-              </button>
-            </div>
-          </div>
-          <div className="rounded border p-3 space-y-2">
-            <div className="text-xs text-gray-500">翻訳APIテスト</div>
-            <textarea
-              className="w-full rounded border px-2 py-2 text-sm"
-              value={translationInput}
-              onChange={(e) => setTranslationInput(e.target.value)}
-              placeholder="翻訳したい文章"
-              disabled={loading}
-            />
-            <div className="flex items-center gap-2">
-              <select
-                className="rounded border px-2 py-2 text-sm"
-                value={translationLang}
-                onChange={(e) =>
-                  setTranslationLang(e.target.value as TranslationLang)
-                }
+                className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 disabled:opacity-40"
+                onClick={() => setActiveView("INBOX")}
                 disabled={loading}
               >
-                <option value="ja">ja</option>
-                <option value="en">en</option>
-                <option value="ko">ko</option>
-                <option value="zh">zh</option>
-              </select>
-              <button
-                type="button"
-                className="rounded border px-3 py-2 text-sm disabled:opacity-40"
-                onClick={() => void translateText()}
-                disabled={loading}
-              >
-                翻訳
+                Inbox を開く
               </button>
-            </div>
-            {translationResult ? (
-              <pre className="whitespace-pre-wrap rounded bg-gray-50 p-2 text-xs">
-                {translationResult}
-              </pre>
-            ) : null}
-          </div>
+            </AiOfficeStatusNotice>
+          ) : null}
 
-          {message ? <p className="text-xs text-gray-700">{message}</p> : null}
+          {activeView === "OVERVIEW" ? (
+            <AiOfficeOverviewSection
+              loading={loading}
+              waitingApprovalCount={waitingApprovalCount}
+              tasks={tasks}
+              connections={connections}
+              metricsTotals={metricsTotals}
+              metricsSnapshots={metricsSnapshots}
+              metricTrends={metricTrends}
+              onOpenCreate={() => setActiveView("CREATE")}
+              onOpenInbox={() => setActiveView("INBOX")}
+              onCollectMetrics={() => void collectMetrics()}
+            />
+          ) : null}
 
-          <div className="rounded border p-3">
-            <div className="text-xs text-gray-500 mb-2">Metrics Summary</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-              <div className="rounded bg-gray-50 p-2">views: {metricsTotals.views}</div>
-              <div className="rounded bg-gray-50 p-2">likes: {metricsTotals.likes}</div>
-              <div className="rounded bg-gray-50 p-2">comments: {metricsTotals.comments}</div>
-              <div className="rounded bg-gray-50 p-2">shares: {metricsTotals.shares}</div>
-            </div>
-            <div className="mt-2 space-y-1 max-h-32 overflow-auto text-[11px] text-gray-700">
-              {metricsSnapshots.length === 0 ? (
-                <div>snapshots なし</div>
-              ) : (
-                metricsSnapshots.slice(0, 5).map((item) => (
-                  <div key={item.id} className="rounded bg-gray-50 px-2 py-1">
-                    {item.platform} v:{item.views ?? 0} l:{item.likes ?? 0} c:{item.comments ?? 0}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-          <div className="rounded border p-3">
-            <div className="text-xs text-gray-500 mb-2">Metrics Trend (7 days)</div>
-            <div className="max-h-36 overflow-auto text-[11px] text-gray-700 space-y-1">
-              {metricTrends.length === 0 ? (
-                <div>trend なし</div>
-              ) : (
-                metricTrends.map((day) => (
-                  <div key={day.date} className="rounded bg-gray-50 px-2 py-1">
-                    {day.date} v:{day.views} i:
-                    {day.likes + day.comments + day.shares} rate:
-                    {(day.interactionRate * 100).toFixed(2)}%
-                    {day.topPlatform
-                      ? ` top:${day.topPlatform.platform}(${(
-                          day.topPlatform.rate * 100
-                        ).toFixed(1)}%)`
-                      : ""}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          {activeView === "CREATE" ? (
+            <AiOfficeCreateSection
+              loading={loading}
+              waitingApprovalCount={waitingApprovalCount}
+              platform={platform}
+              accountHandle={accountHandle}
+              taskType={taskType}
+              taskTypeCopy={currentTaskTypeCopy}
+              requiresApproval={requiresApproval}
+              translationInput={translationInput}
+              translationLang={translationLang}
+              reportingWindowDays={reportingWindowDays}
+              draftTone={draftTone}
+              announcementChannel={announcementChannel}
+              includeMetricsSummary={includeMetricsSummary}
+              includeSupportSummary={includeSupportSummary}
+              supporterMessagePurpose={supporterMessagePurpose}
+              translationResult={translationResult}
+              onPlatformChange={setPlatform}
+              onAccountHandleChange={setAccountHandle}
+              onTaskTypeChange={setTaskType}
+              onRequiresApprovalChange={setRequiresApproval}
+              onTranslationInputChange={setTranslationInput}
+              onTranslationLangChange={setTranslationLang}
+              onReportingWindowDaysChange={setReportingWindowDays}
+              onDraftToneChange={setDraftTone}
+              onAnnouncementChannelChange={setAnnouncementChannel}
+              onIncludeMetricsSummaryChange={setIncludeMetricsSummary}
+              onIncludeSupportSummaryChange={setIncludeSupportSummary}
+              onSupporterMessagePurposeChange={setSupporterMessagePurpose}
+              onAddConnection={() => void addConnection()}
+              onCollectMetrics={() => void collectMetrics()}
+              onOpenInbox={() => setActiveView("INBOX")}
+              onCreateTask={() => void createTask()}
+              onTranslateText={() => void translateText()}
+            />
+          ) : null}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="rounded border p-3">
-              <div className="text-xs text-gray-500 mb-2">SNS Connections</div>
-              <div className="space-y-1 max-h-40 overflow-auto">
-                {connections.length === 0 ? (
-                  <p className="text-sm text-gray-600">未登録</p>
-                ) : (
-                  connections.map((conn) => (
-                    <div key={conn.id} className="text-xs text-gray-700">
-                      {conn.platform} / @{conn.accountHandle} ({conn.status})
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="rounded border p-3">
-              <div className="text-xs text-gray-500 mb-2">Latest AI Tasks</div>
-              <div className="space-y-2 max-h-40 overflow-auto">
-                {tasks.length === 0 ? (
-                  <p className="text-sm text-gray-600">タスクなし</p>
-                ) : (
-                  tasks.slice(0, 5).map((task) => (
-                    <details key={task.id} className="text-xs text-gray-700">
-                      <summary>{task.taskType} / {task.status}</summary>
-                      {task.status === "WAITING_APPROVAL" ? (
-                        <div className="mt-1 flex items-center gap-2">
-                          <label className="inline-flex items-center gap-1 text-[11px]">
-                            <input
-                              type="checkbox"
-                              checked={selectedTaskIds.includes(task.id)}
-                              onChange={() => toggleTaskSelection(task.id)}
-                              disabled={loading}
-                            />
-                            選択
-                          </label>
-                          <button
-                            type="button"
-                            className="rounded border px-2 py-1 text-[11px] disabled:opacity-40"
-                            onClick={() => void approveTasks([task.id], "APPROVE")}
-                            disabled={loading}
-                          >
-                            承認
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded border px-2 py-1 text-[11px] disabled:opacity-40"
-                            onClick={() => void approveTasks([task.id], "REJECT")}
-                            disabled={loading}
-                          >
-                            却下
-                          </button>
-                        </div>
-                      ) : null}
-                      <AgentTaskOutput taskType={task.taskType} output={task.output} />
-                      {task.auditLogs.length > 0 ? (
-                        <div className="mt-1 rounded bg-gray-50 p-2 text-[11px]">
-                          {task.auditLogs.map((log) => (
-                            <div key={log.id}>
-                              {log.action}
-                              {log.actorAddress ? ` (${log.actorAddress})` : ""}
-                              {log.note ? ` - ${log.note}` : ""}
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-                    </details>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+          {activeView === "INBOX" ? (
+            <AiOfficeInboxSection
+              loading={loading}
+              taskFilter={taskFilter}
+              tasks={tasks}
+              waitingApprovalCount={waitingApprovalCount}
+              selectedTaskIds={selectedTaskIds}
+              approvalNote={approvalNote}
+              onTaskFilterChange={setTaskFilter}
+              onApprovalNoteChange={setApprovalNote}
+              onSelectAllWaitingTasks={selectAllWaitingTasks}
+              onClearSelectedTasks={clearSelectedTasks}
+              onApproveSelectedTasks={() =>
+                void approveTasks(selectedTaskIds, "APPROVE")
+              }
+              onRejectSelectedTasks={() =>
+                void approveTasks(selectedTaskIds, "REJECT")
+              }
+              onToggleTaskSelection={toggleTaskSelection}
+              onApproveOne={(taskId) => void approveTasks([taskId], "APPROVE")}
+              onRejectOne={(taskId) => void approveTasks([taskId], "REJECT")}
+            />
+          ) : null}
         </>
       )}
     </div>

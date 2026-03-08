@@ -2,23 +2,23 @@
 
 ## Now
 
-- `AccountPageClient` の責務分割 Phase 2
-- `AiOfficePanel` の task type 入力UI整理
-- warning 残件のうち未使用コードの削減
-- metrics と `WEEKLY_REPORT` / `ANNOUNCEMENT_DRAFT` / `SUPPORTER_MESSAGE_DRAFT` の仕様整理
+- `Phase 0 UX`: 主要画面の役割、primary CTA、情報優先順位を固定する
+- `Phase 0 UX`: 内部用語変換と status / message 基準を他画面へ広げる
+- `Phase 1 UX`: `NoUser -> UserOnly -> creatorReady` の導線改善を手動確認して微調整する
+- `Phase 1 UX`: `creatorReady` の入口改善を踏まえて section label / CTA hierarchy を揃える
+- `Phase 2 UX`: advanced 扱いへ落とした `settlement` controls を手動確認して、通常フローとの境界を微調整する
 
 ## Next
 
-- metrics 表示整理
-- 承認待ちタスク UI 強化
-- output schema を使う UI 表示の整理
-- `PROFILE_UPDATE_PROPOSAL` task の追加
+- `Phase 2 UX`: `AI Office` の guided flow をさらに強めるか手動確認で判断する
+- `Phase 2 UX`: 公開プロフィールの primary CTA を fold 上に上げる
+- `Phase 2 UX`: `settlement` の mobile 情報密度と advanced section の見え方を整える
 
 ## Later
 
+- message / error / success 表示の共通 UI system 化
+- mobile 優先の情報密度調整
 - 条件付き自動 task 起票
-- 低リスク task の限定自動実行
-- creator ごとの運営ポリシー管理
 - beta 機能の UI 分離
 - settlement / bridge / distribution の安全性強化
 

@@ -4,6 +4,7 @@
 import React from "react";
 import { PromoJpycEx } from "@/components/promo/PromoJpycEx";
 import type { OpenSections } from "@/components/mypage/MyPageAccordion";
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 
 type UnconnectedMyPageProps = {
   error: string | null;
@@ -23,9 +24,7 @@ export function UnconnectedMyPage({
       <h1 className="text-lg font-semibold mb-2">このアプリの使い方</h1>
 
       {error && (
-        <div className="alert-warn">
-          <p className="text-xs">{error}</p>
-        </div>
+        <WorkspaceStatusNotice tone="error" title={error} />
       )}
 
       {/* 使い方マニュアル（アコーディオン） */}

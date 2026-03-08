@@ -2,7 +2,12 @@
 
 import React from "react";
 
+import { WorkspaceEmptyState } from "@/components/mypage/WorkspaceFeedback";
 import type { ProjectSettlementData } from "@/lib/projectSettlementView";
+import {
+  getDistributionEntryStatusLabel,
+  getDistributionRuntimeStatusLabel,
+} from "@/lib/uxCopy";
 
 type DistributionEntry = ProjectSettlementData["distributionEntries"][number];
 
@@ -27,7 +32,11 @@ export function ProjectSettlementManualResultSection(
     <div className="rounded-lg border p-3 space-y-2">
       <div className="text-sm font-medium">送信結果の記録（行単位）</div>
       {entries.length === 0 ? (
-        <div className="text-xs text-gray-500">まだ配分行がありません。</div>
+        <WorkspaceEmptyState
+          compact
+          title="まだ配分行がありません"
+          description="下書きを保存すると、各送金先の結果をここで記録できます。"
+        />
       ) : (
         <div className="space-y-2">
           {entries.map((entry) => (
@@ -38,16 +47,17 @@ export function ProjectSettlementManualResultSection(
               <span className="font-mono">{entry.recipientAddressChecksum}</span>
               <span>{entry.amountAtomic}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100">
-                {entry.status}
+                {getDistributionEntryStatusLabel(entry.status)}
               </span>
               {props.runtimeRowStatus[entry.id] ? (
                 <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
-                  runtime:{props.runtimeRowStatus[entry.id]}
+                  実行中の状態:
+                  {getDistributionRuntimeStatusLabel(props.runtimeRowStatus[entry.id])}
                 </span>
               ) : null}
               {props.activeEntryId === entry.id && props.isDistributing ? (
                 <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
-                  sending...
+                  送信中...
                 </span>
               ) : null}
               <button
@@ -58,7 +68,7 @@ export function ProjectSettlementManualResultSection(
                   props.loading || props.isDistributing || entry.status === "SENT"
                 }
               >
-                SENT
+                送信済みにする
               </button>
               <button
                 type="button"
@@ -66,7 +76,7 @@ export function ProjectSettlementManualResultSection(
                 onClick={() => void props.markEntryResult(entry, "FAILED")}
                 disabled={props.loading || props.isDistributing}
               >
-                FAILED
+                失敗にする
               </button>
             </div>
           ))}

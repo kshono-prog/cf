@@ -39,6 +39,9 @@ export function UserRegistrationForm({
             {withBaseUrl(usernameInput || "your-id")}
           </span>
         </p>
+        <p className="text-[11px] text-gray-500 mb-2">
+          公開ページのURLになります。あとから変更しにくい前提で決めるのが安全です。
+        </p>
         <input
           type="text"
           className="input"
@@ -54,6 +57,9 @@ export function UserRegistrationForm({
         <label className="block text-xs font-medium mb-1">
           表示名 <span className="text-red-500">*</span>
         </label>
+        <p className="text-[11px] text-gray-500 mb-2">
+          支援ページやマイページで最初に見える名前です。
+        </p>
         <input
           type="text"
           className="input"
@@ -67,6 +73,9 @@ export function UserRegistrationForm({
 
       <div>
         <label className="block text-xs font-medium mb-1">プロフィール</label>
+        <p className="text-[11px] text-gray-500 mb-2">
+          活動内容を一言でも入れておくと、次の申請や公開準備が進めやすくなります。
+        </p>
         <textarea
           className="input min-h-[80px]"
           placeholder="簡単な自己紹介や活動内容を入力してください。"
@@ -77,7 +86,7 @@ export function UserRegistrationForm({
       </div>
 
       <button type="submit" className="btn w-full" disabled={saving}>
-        {saving ? "保存中..." : "ユーザー登録する"}
+        {saving ? "保存中..." : "登録して次へ進む"}
       </button>
     </form>
   );

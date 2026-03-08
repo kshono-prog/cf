@@ -38,7 +38,12 @@ export function ProjectSettlementDistributionDraftSection(
   return (
     <div className="rounded-lg border p-3 space-y-3">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium">Distribution entries</div>
+        <div>
+          <div className="text-sm font-medium">配分の下書き</div>
+          <div className="mt-1 text-xs text-gray-500">
+            送金先と金額を先に整えてから、実行前チェックへ進みます。
+          </div>
+        </div>
         <button
           type="button"
           className="rounded border px-3 py-1.5 text-xs"
@@ -68,7 +73,7 @@ export function ProjectSettlementDistributionDraftSection(
           >
             <input
               className="md:col-span-4 rounded border px-2 py-1.5 text-xs font-mono"
-              placeholder="recipientAddress"
+              placeholder="送金先アドレス"
               value={row.recipientAddress}
               onChange={(e) =>
                 props.updateDraft(index, { recipientAddress: e.target.value })
@@ -76,7 +81,7 @@ export function ProjectSettlementDistributionDraftSection(
             />
             <input
               className="md:col-span-2 rounded border px-2 py-1.5 text-xs"
-              placeholder="amountAtomic"
+              placeholder="金額（atomic）"
               value={row.amountAtomic}
               onChange={(e) =>
                 props.updateDraft(index, { amountAtomic: e.target.value })
@@ -94,7 +99,7 @@ export function ProjectSettlementDistributionDraftSection(
             </select>
             <input
               className="md:col-span-3 rounded border px-2 py-1.5 text-xs"
-              placeholder="memo"
+              placeholder="メモ"
               value={row.memo}
               onChange={(e) => props.updateDraft(index, { memo: e.target.value })}
             />
@@ -117,7 +122,7 @@ export function ProjectSettlementDistributionDraftSection(
         }}
         disabled={props.loading || !props.walletAddress || props.totals.exceeds}
       >
-        Distribution下書きを保存
+        配分下書きを保存
       </button>
     </div>
   );

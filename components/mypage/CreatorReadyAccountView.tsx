@@ -21,8 +21,10 @@ import { MyPageAccordion } from "@/components/mypage/MyPageAccordion";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import { CreatorPublicLinkSection } from "@/components/mypage/CreatorPublicLinkSection";
 import { CreatorProjectManagementSection } from "@/components/mypage/CreatorProjectManagementSection";
+import { CreatorReadyWorkspaceOverview } from "@/components/mypage/CreatorReadyWorkspaceOverview";
 import { GasSupportTabs } from "@/components/mypage/GasSupportTabs";
 import type { SummaryActionsSectionProps } from "@/components/mypage/SummaryActionsSection";
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 
 type Props = {
   meCreatorUsername: string;
@@ -86,6 +88,25 @@ type Props = {
 
 export function CreatorReadyAccountView(props: Props) {
   const promoHeaderColor = props.themeColor || "#005bbb";
+  const projectSectionRef = React.useRef<HTMLDivElement | null>(null);
+  const flowSectionRef = React.useRef<HTMLDivElement | null>(null);
+  const gasSectionRef = React.useRef<HTMLDivElement | null>(null);
+
+  const openAndScrollToSection = (
+    sectionKey: SectionKey,
+    targetRef: React.RefObject<HTMLDivElement | null>
+  ) => {
+    if (!props.openSections[sectionKey]) {
+      props.onToggleSection(sectionKey);
+    }
+
+    window.requestAnimationFrame(() => {
+      targetRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
   const summaryActionsProps: SummaryActionsSectionProps = {
     localProjectId: props.localProjectId,
     summary: props.summary,
@@ -116,71 +137,86 @@ export function CreatorReadyAccountView(props: Props) {
       <div className="container-narrow space-y-4">
         <h1 className="text-lg font-semibold mb-2">クリエイター管理</h1>
         {props.error && (
-          <div className="alert-warn">
-            <p className="text-xs">{props.error}</p>
-          </div>
+          <WorkspaceStatusNotice tone="error" title={props.error} />
         )}
 
-        <MyPageAccordion
-          open={props.openSections}
-          onToggle={props.onToggleSection}
-          sectionKey="flow"
-          title="リンク"
-        >
-          <CreatorPublicLinkSection
-            username={props.meCreatorUsername}
-            localProjectId={props.localProjectId}
-          />
-        </MyPageAccordion>
+        <CreatorReadyWorkspaceOverview
+          username={props.meCreatorUsername}
+          projectDashboardsByCurrency={props.projectDashboardsByCurrency}
+          onOpenProjectWorkspace={() =>
+            openAndScrollToSection("project", projectSectionRef)
+          }
+          onOpenPublicPage={() => openAndScrollToSection("flow", flowSectionRef)}
+          onOpenGasSupport={() => openAndScrollToSection("gas", gasSectionRef)}
+        />
 
-        <MyPageAccordion
-          open={props.openSections}
-          onToggle={props.onToggleSection}
-          sectionKey="gas"
-          title="ガス代支援"
-        >
-          <GasSupportTabs />
-        </MyPageAccordion>
+        <div ref={projectSectionRef} className="scroll-mt-24">
+          <MyPageAccordion
+            open={props.openSections}
+            onToggle={props.onToggleSection}
+            sectionKey="project"
+            title="日々の運営ワークスペース"
+          >
+            <CreatorProjectManagementSection
+              meCreatorUsername={props.meCreatorUsername}
+              eventBaseUrl={props.eventBaseUrl}
+              editingProfile={props.editingProfile}
+              onStartEditProfile={props.onStartEditProfile}
+              onCancelEditProfile={props.onCancelEditProfile}
+              displayName={props.displayName}
+              profile={props.profile}
+              avatarUrl={props.avatarUrl}
+              themeColorValue={props.themeColorValue}
+              socials={props.socials}
+              youtubeVideos={props.youtubeVideos}
+              avatarFile={props.avatarFile}
+              avatarPreview={props.avatarPreview}
+              setDisplayName={props.setDisplayName}
+              setProfile={props.setProfile}
+              setThemeColor={props.setThemeColor}
+              setSocials={props.setSocials}
+              setYoutubeVideos={props.setYoutubeVideos}
+              setAvatarFile={props.setAvatarFile}
+              setAvatarPreview={props.setAvatarPreview}
+              saving={props.saving}
+              onSubmitProfile={props.onSubmitProfile}
+              address={props.address}
+              isConnected={props.isConnected}
+              localProjectId={props.localProjectId}
+              projectIdsByCurrency={props.projectIdsByCurrency}
+              projectDashboardsByCurrency={props.projectDashboardsByCurrency}
+              onActiveProjectIdChange={props.onActiveProjectIdChange}
+              showSummaryActions={props.showSummaryActions}
+              summaryActionsProps={summaryActionsProps}
+            />
+          </MyPageAccordion>
+        </div>
 
-        <MyPageAccordion
-          open={props.openSections}
-          onToggle={props.onToggleSection}
-          sectionKey="project"
-          title="プロフィール・目標の編集（Project / Goal / Summary 統合）"
-        >
-          <CreatorProjectManagementSection
-            meCreatorUsername={props.meCreatorUsername}
-            eventBaseUrl={props.eventBaseUrl}
-            editingProfile={props.editingProfile}
-            onStartEditProfile={props.onStartEditProfile}
-            onCancelEditProfile={props.onCancelEditProfile}
-            displayName={props.displayName}
-            profile={props.profile}
-            avatarUrl={props.avatarUrl}
-            themeColorValue={props.themeColorValue}
-            socials={props.socials}
-            youtubeVideos={props.youtubeVideos}
-            avatarFile={props.avatarFile}
-            avatarPreview={props.avatarPreview}
-            setDisplayName={props.setDisplayName}
-            setProfile={props.setProfile}
-            setThemeColor={props.setThemeColor}
-            setSocials={props.setSocials}
-            setYoutubeVideos={props.setYoutubeVideos}
-            setAvatarFile={props.setAvatarFile}
-            setAvatarPreview={props.setAvatarPreview}
-            saving={props.saving}
-            onSubmitProfile={props.onSubmitProfile}
-            address={props.address}
-            isConnected={props.isConnected}
-            localProjectId={props.localProjectId}
-            projectIdsByCurrency={props.projectIdsByCurrency}
-            projectDashboardsByCurrency={props.projectDashboardsByCurrency}
-            onActiveProjectIdChange={props.onActiveProjectIdChange}
-            showSummaryActions={props.showSummaryActions}
-            summaryActionsProps={summaryActionsProps}
-          />
-        </MyPageAccordion>
+        <div ref={flowSectionRef} className="scroll-mt-24">
+          <MyPageAccordion
+            open={props.openSections}
+            onToggle={props.onToggleSection}
+            sectionKey="flow"
+            title="公開ページとリンク"
+          >
+            <CreatorPublicLinkSection
+              username={props.meCreatorUsername}
+              localProjectId={props.localProjectId}
+            />
+          </MyPageAccordion>
+        </div>
+
+        <div ref={gasSectionRef} className="scroll-mt-24">
+          <MyPageAccordion
+            open={props.openSections}
+            onToggle={props.onToggleSection}
+            sectionKey="gas"
+            title="ガス代支援"
+          >
+            <GasSupportTabs />
+          </MyPageAccordion>
+        </div>
+
       </div>
     </MyPageShell>
   );

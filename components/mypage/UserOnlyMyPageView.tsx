@@ -8,8 +8,10 @@ import {
   type OpenSections,
   type SectionKey,
 } from "@/components/mypage/MyPageAccordion";
+import { MyPageOnboardingProgress } from "@/components/mypage/MyPageOnboardingProgress";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import { UserUpdateForm } from "@/components/mypage/UserUpdateForm";
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 
 type Props = {
   headerColor: string;
@@ -33,10 +35,16 @@ export function UserOnlyMyPageView(props: Props) {
       <div className="container-narrow space-y-4">
         <h1 className="text-lg font-semibold mb-2">マイページ</h1>
 
+        <MyPageOnboardingProgress
+          currentStep="APPLY"
+          title="ユーザー登録は完了しています"
+          description="次は公開前のプロフィールを確認して、クリエイターとして申請します。申請後に Project や AI Office を使えるようになります。"
+          nextActionTitle="プロフィールを確認してから申請する"
+          nextActionBody="表示名と自己紹介を整えたあとで申請すると、公開ページや管理画面の初期状態が分かりやすくなります。"
+        />
+
         {props.error && (
-          <div className="alert-warn">
-            <p className="text-xs">{props.error}</p>
-          </div>
+          <WorkspaceStatusNotice tone="error" title={props.error} />
         )}
 
         <MyPageAccordion
@@ -71,12 +79,17 @@ export function UserOnlyMyPageView(props: Props) {
           />
         </MyPageAccordion>
 
-        <hr className="border-gray-200" />
-
-        <CreatorApplyCard
-          saving={props.saving}
-          onApply={props.onApply}
-        />
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold text-gray-900">
+              Step 3. クリエイター申請
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-gray-700">
+              申請後は、プロフィール編集、Project 管理、AI事務所、Settlement などのクリエイター向け機能が利用可能になります。
+            </p>
+          </div>
+          <CreatorApplyCard saving={props.saving} onApply={props.onApply} />
+        </div>
       </div>
     </MyPageShell>
   );

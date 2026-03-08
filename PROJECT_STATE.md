@@ -74,6 +74,17 @@
 - `ProjectSettlementPanel` の section props を dedicated presenter hook に集約
 - `ProjectSettlementPanel` の presenter hook を `bridge / distribution / execution` 単位に分割
 - `useProjectSettlementPanel` を `bridge / distribution / execution` の state/action hook と runtime helper に分割
+- `NoUser` / `UserOnly` に onboarding progress shell を追加し、登録から申請までの導線を step ベースに整理
+- `creatorReady` に daily-work entry overview を追加し、first view を `今日やること / project health / quick shortcuts` に整理
+- `AI Office` と `settlement` の internal label / status / message を user-facing copy に整理
+- `AI Office` を `Overview / Create / Inbox` 構成に分割し、`AiOfficePanel` を orchestration layer に整理
+- `AI Office` の task type select を action card に置き換え、`何をしたいか` ベースで選べる UI に整理
+- `AI Office` Inbox を `承認待ちキュー -> 一括操作 -> 最近の履歴` の hierarchy に整理
+- `AI Office` の `Overview / Create / Inbox` で success / empty / error 表示パターンを共通化
+- `AI Office` の承認待ち導線を `Overview / Create / Inbox` をまたいで可視化
+- shared feedback pattern を `settlement` と主要 `mypage` view に広げた
+- `settlement` を guided `Bridge -> Draft -> Preflight -> Execute -> Review` flow に整理
+- `settlement` の `CCTP` と `manual result` を advanced controls に寄せ、通常 review は実行ログ中心に整理
 
 ## 進行中の重点課題
 
@@ -121,10 +132,10 @@ AIが自動で進めてよい:
 
 ## 次に着手するタスク
 
-1. `mypage` の API fan-out を減らし、Supabase 接続圧迫を下げる
-2. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
-3. `useProjectSettlementPanel` の data fetch / recompute / loading-message orchestration を dedicated hook に切るか判断する
-4. warning 残件のうち未使用コードを減らす
+1. guided `settlement` と advanced controls 境界を手動確認して微調整する
+2. `AI Office` の guided flow をさらに強めるか、現状で十分かを手動確認で判断する
+3. `creatorReady` の first view 追加後の section label / CTA hierarchy を手動確認して詰める
+4. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
 5. Issue / PR / Codex workflow の試運転対象を1つ決める
 
 直近完了:
@@ -136,6 +147,17 @@ AIが自動で進めてよい:
 - GitHub Issue / PR / workflow scaffolding を追加
 - AI Office の read API を `dashboard service` に集約
 - mypage の read API を `dashboard service` に集約
+- onboarding progress shell と `NoUser / UserOnly` 導線改善を追加
+- `creatorReady` の first view を daily-work entry に寄せた
+- `AI Office` と `settlement` の user-facing copy を導入
+- `AI Office` を `Overview / Create / Inbox` に分割
+- `AI Office` の task type select を action card に置き換えた
+- `AI Office` Inbox を `承認待ちキュー / 一括操作 / 最近の履歴` に整理した
+- `AI Office` の notice / empty state 表示を `Overview / Create / Inbox` で共通化した
+- `AI Office` の承認待ちを `Overview / Create / Inbox` のどこからでも見つけやすくした
+- shared notice / empty-state pattern を `settlement` と主要 `mypage` view に広げた
+- `settlement` を guided `Bridge / Draft / Preflight / Execute / Review` 順に並べ、current step notice と step overview を追加した
+- `settlement` の `CCTP` と `manual result` を Advanced へ落とし、main flow を軽くした
 
 ## 4週間の実行計画
 

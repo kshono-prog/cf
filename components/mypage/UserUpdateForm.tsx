@@ -23,6 +23,9 @@ export function UserUpdateForm({
 }: Props) {
   return (
     <form className="space-y-3" onSubmit={onSubmit}>
+      <p className="text-[11px] leading-relaxed text-gray-500">
+        申請前に、公開してもよい表示名と自己紹介になっているかを確認します。
+      </p>
       <div>
         <label className="block text-xs font-medium mb-1">表示名</label>
         <input
@@ -45,7 +48,7 @@ export function UserUpdateForm({
       </div>
 
       <button type="submit" className="btn-secondary w-full" disabled={saving}>
-        {saving ? "更新中..." : "ユーザー情報を更新する"}
+        {saving ? "更新中..." : "登録情報を保存する"}
       </button>
     </form>
   );

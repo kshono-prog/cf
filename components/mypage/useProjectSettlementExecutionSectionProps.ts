@@ -6,6 +6,7 @@ import type { ProjectSettlementCctpSectionProps } from "@/components/mypage/Proj
 import type { ProjectSettlementDistributionExecutionSectionProps } from "@/components/mypage/ProjectSettlementDistributionExecutionSection";
 import type { ProjectSettlementExecutionLogsSectionProps } from "@/components/mypage/ProjectSettlementExecutionLogsSection";
 import type { ProjectSettlementManualResultSectionProps } from "@/components/mypage/ProjectSettlementManualResultSection";
+import type { ProjectSettlementPreflightSectionProps } from "@/components/mypage/ProjectSettlementPreflightSection";
 import { useProjectSettlementPanel } from "@/components/mypage/useProjectSettlementPanel";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 
@@ -19,6 +20,7 @@ type UseProjectSettlementExecutionSectionPropsArgs = {
 };
 
 export type ProjectSettlementExecutionSectionProps = {
+  preflight: ProjectSettlementPreflightSectionProps;
   distributionExecution: ProjectSettlementDistributionExecutionSectionProps;
   executionLogs: ProjectSettlementExecutionLogsSectionProps;
   cctp: ProjectSettlementCctpSectionProps | null;
@@ -32,16 +34,19 @@ export function useProjectSettlementExecutionSectionProps(
 
   return useMemo(
     () => ({
-      distributionExecution: {
+      preflight: {
         loading: panel.loading,
         walletAddress,
         isConnected,
-        canDistribute: panel.canDistribute,
+        preflight: panel.preflight,
         hasPreflightFailure: panel.hasPreflightFailure,
+        checkBalances: panel.checkBalances,
+      },
+      distributionExecution: {
+        canDistribute: panel.canDistribute,
+        hasCheckedPreflight: panel.preflight.length > 0,
         isDistributing: panel.isDistributing,
         entries: panel.entries,
-        preflight: panel.preflight,
-        checkBalances: panel.checkBalances,
         executeDistribution: panel.executeDistribution,
       },
       executionLogs: {

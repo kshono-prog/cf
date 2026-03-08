@@ -2,6 +2,8 @@
 
 import React from "react";
 
+import { getBridgeStepStatusLabel, getSettlementMessage } from "@/lib/uxCopy";
+
 type BridgeSourceChain = "POLYGON" | "ETHEREUM";
 
 type BridgeCardProps = {
@@ -29,19 +31,21 @@ function BridgeCard(props: BridgeCardProps) {
         rel="noreferrer"
         className="text-xs text-blue-600 underline"
       >
-        Open recommended bridge (Wormhole)
+        推奨ブリッジを開く（Wormhole）
       </a>
-      <div className="text-xs">状態: {props.done ? "COMPLETED" : "PENDING"}</div>
+      <div className="text-xs">
+        状態: {getBridgeStepStatusLabel(props.done ? "COMPLETED" : "PENDING")}
+      </div>
       <input
         className="w-full rounded border px-2 py-1.5 text-xs"
-        placeholder="bridgedAmountAtomic"
+        placeholder="ブリッジ済み金額（atomic 単位）"
         value={props.amount}
         onChange={(e) => props.onChangeAmount(e.target.value)}
         inputMode="numeric"
       />
       <input
         className="w-full rounded border px-2 py-1.5 text-xs font-mono"
-        placeholder="txHash (optional)"
+        placeholder="txHash（任意）"
         value={props.txHash}
         onChange={(e) => props.onChangeTxHash(e.target.value)}
       />
@@ -59,11 +63,11 @@ function BridgeCard(props: BridgeCardProps) {
         onClick={props.onRunNow}
         disabled={props.loading || !props.walletAddress || props.bridgeNowBusy}
       >
-        {props.bridgeNowBusy ? "Bridge now..." : "Bridge now (wallet)"}
+        {props.bridgeNowBusy ? "ウォレットで実行中..." : "ウォレットで実行する"}
       </button>
       {props.bridgeNowStatus ? (
         <div className="text-[11px] text-gray-600 break-all">
-          {props.bridgeNowStatus}
+          {getSettlementMessage(props.bridgeNowStatus)}
         </div>
       ) : null}
     </div>
