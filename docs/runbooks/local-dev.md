@@ -26,9 +26,13 @@ npm run build
 3. 対象画面の手動確認
 4. 対象 API の正常系確認
 
+AI Office を触るとき:
+
+1. `docs/specs/creator-ai-office/task-output-contracts.md` を確認する
+2. `docs/runbooks/ai-office-manual-check.md` の対象 task を手動確認する
+
 ## 注意
 
 - migration や schema 変更は勝手に進めない
 - 送金系や bridge 系は UI だけでなく API 側も確認する
 - env var を前提にした変更は docs に記録する
-

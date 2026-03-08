@@ -1,12 +1,10 @@
 // app/api/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { withPrismaRetry } from "@/lib/prismaRetry";
-import type {
-  CreatorProfile,
-  SocialLinks,
-  YoutubeVideo,
-} from "@/types/creator";
+import { getMeStatusByAddress } from "@/lib/mypageMe";
+import {
+  type MyPageMePayload,
+  normalizeMyPageMePayload,
+} from "@/lib/mypageApiResponses";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,43 +15,11 @@ export const dynamic = "force-dynamic";
 
 type MeOk = {
   ok: true;
-  hasUser: boolean;
-  hasCreator: boolean;
-  user: { displayName: string; profile: string | null } | null;
-  creator: CreatorProfile | null;
-  projectId: string | null;
-  projectIdsByCurrency: {
-    JPYC: string | null;
-    USDC: string | null;
-  };
-};
+} & MyPageMePayload;
 
 type MeErr = { ok: false; error: string; detail?: string };
 
 type MeRes = MeOk | MeErr;
-
-/* =========================
-   Social types
-========================= */
-
-const allowedSocialTypes = [
-  "twitter",
-  "instagram",
-  "youtube",
-  "facebook",
-  "tiktok",
-  "website",
-] as const;
-
-type AllowedSocialType = (typeof allowedSocialTypes)[number];
-
-function isAllowedSocialType(value: string): value is AllowedSocialType {
-  return (allowedSocialTypes as readonly string[]).includes(value);
-}
-
-function normalizeAddress(input: string): string {
-  return input.trim().toLowerCase();
-}
 
 function okEmpty(): NextResponse<MeOk> {
   return NextResponse.json({
@@ -86,99 +52,12 @@ export async function GET(req: NextRequest): Promise<NextResponse<MeRes>> {
   // “未接続”はエラーにしない（UI側が扱いやすい）
   if (!addressRaw) return okEmpty();
 
-  const walletAddress = normalizeAddress(addressRaw);
-  if (!walletAddress) return okEmpty();
-
   try {
-    const profile = await withPrismaRetry(() =>
-      prisma.creatorProfile.findUnique({
-        where: { walletAddress },
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          profileText: true,
-          avatarUrl: true,
-          qrcodeUrl: true,
-          externalUrl: true,
-          themeColor: true,
-          walletAddress: true,
-          activeProjectId: true,
-          activeProjectIdJpyc: true,
-          activeProjectIdUsdc: true,
-          status: true,
-        },
-      })
-    );
-
-    if (!profile) return okEmpty();
-
-    const hasCreator = profile.status === "PUBLISHED";
-
-    const [socialRows, youtubeRows] = await withPrismaRetry(() =>
-      Promise.all([
-        prisma.creatorSocialLink.findMany({
-          where: { profileId: profile.id },
-          select: { type: true, url: true },
-          orderBy: { createdAt: "asc" },
-        }),
-        prisma.creatorYoutubeVideo.findMany({
-          where: { profileId: profile.id },
-          select: { url: true, title: true, description: true },
-          orderBy: { createdAt: "asc" },
-        }),
-      ])
-    );
-
-    const socialsResult: SocialLinks = {};
-    for (const row of socialRows) {
-      if (isAllowedSocialType(row.type) && row.url) {
-        socialsResult[row.type] = row.url;
-      }
-    }
-
-    const youtubeResult: YoutubeVideo[] = youtubeRows.map((v) => ({
-      url: v.url,
-      title: v.title ?? "",
-      description: v.description ?? "",
-    }));
-
-    const creator: CreatorProfile = {
-      username: profile.username,
-      address: profile.walletAddress ?? undefined,
-      displayName: profile.displayName,
-      avatarUrl: profile.avatarUrl,
-      profile: profile.profileText,
-      qrcode: profile.qrcodeUrl,
-      url: profile.externalUrl,
-      themeColor: profile.themeColor,
-      socials: socialsResult,
-      youtubeVideos: youtubeResult,
-    };
-
-    const projectIdsByCurrency = {
-      JPYC: profile.activeProjectIdJpyc
-        ? profile.activeProjectIdJpyc.toString()
-        : null,
-      USDC: profile.activeProjectIdUsdc
-        ? profile.activeProjectIdUsdc.toString()
-        : null,
-    };
-
+    const me = await getMeStatusByAddress(addressRaw);
+    if (!me.hasUser) return okEmpty();
     return NextResponse.json({
       ok: true,
-      hasUser: true,
-      hasCreator,
-      user: {
-        displayName: profile.displayName,
-        profile: profile.profileText,
-      },
-      // hasCreator=false のときは creator を null にする（現行UIロジックに合わせる）
-      creator: hasCreator ? creator : null,
-      projectId: profile.activeProjectId
-        ? profile.activeProjectId.toString()
-        : projectIdsByCurrency.JPYC,
-      projectIdsByCurrency,
+      ...normalizeMyPageMePayload(me),
     });
   } catch (e: unknown) {
     console.error("ME_PRISMA_ERROR", e);

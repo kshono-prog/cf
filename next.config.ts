@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname),
   env: {
     POLYGON_RPC_URL: process.env.POLYGON_RPC_URL,
     NEXT_PUBLIC_POLYGON_RPC_URL: process.env.NEXT_PUBLIC_POLYGON_RPC_URL ?? process.env.POLYGON_RPC_URL,
@@ -20,10 +21,16 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/storage/v1/object/public/avataricon/**",
       },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+        port: "",
+        pathname: "/vi/**",
+      },
     ],
   },
 
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // Reown AppKit / WalletConnect 関連で不要な依存を除外
     config.externals = config.externals || [];
     config.externals.push("pino-pretty", "lokijs", "encoding");

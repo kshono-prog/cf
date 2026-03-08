@@ -4,149 +4,36 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import type { Address } from "viem";
 
-import { withBaseUrl } from "@/utils/baseUrl";
-
-import type {
-  CreatorProfile,
-  SocialLinks,
-  YoutubeVideo,
-} from "@/types/creator";
+import type { CreatorProfile } from "@/types/creator";
 
 import type { MeStatus, Status } from "@/lib/mypage/types";
-import {
-  generateRandomId,
-  getErrorFromApiJson,
-  isRecord,
-} from "@/lib/mypage/helpers";
+import type {
+  CurrencyCode,
+  GoalDraftByCurrency,
+  SummaryResponseOk,
+  SummaryViewData,
+  UiMsg,
+} from "@/lib/mypage/accountPageTypes";
+import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
+import { generateRandomId } from "@/lib/mypage/helpers";
 
-import { createProject, fetchMe } from "@/lib/mypage/api";
-
 import {
-  type OpenSections,
-  type SectionKey,
-} from "@/components/mypage/MyPageAccordion";
-import { CreatorProfileSection } from "@/components/mypage/CreatorProfileSection";
-import { UserRegistrationForm } from "@/components/mypage/UserRegistrationForm";
-import { UserUpdateForm } from "@/components/mypage/UserUpdateForm";
-import { CreatorApplyCard } from "@/components/mypage/CreatorApplyCard";
-import { GasSupportTabs } from "@/components/mypage/GasSupportTabs";
-import { MyPageAccordion } from "@/components/mypage/MyPageAccordion";
-import { UnconnectedMyPage } from "@/components/mypage/UnconnectedMyPage";
-import { MyPageFooter } from "@/components/MyPageFooter";
-import { BridgeWithWormholeOrManualButton } from "@/components/bridge/BridgeWithWormholeOrManualButton";
-import { ProjectSection } from "@/components/mypage/ProjectSection";
-import { CurrencyGoalSettlementPanel } from "@/components/mypage/CurrencyGoalSettlementPanel";
-import { PromoCreatorFounding } from "@/components/promo/PromoCreatorFounding";
-import { AiOfficePanel } from "@/components/mypage/AiOfficePanel";
+  fetchMyPageDashboard,
+  requestCreatorApply,
+  saveMyPageUser,
+  updateMyPageCreatorProfile,
+} from "@/lib/mypage/api";
+
+import { CreatorReadyAccountView } from "@/components/mypage/CreatorReadyAccountView";
+import { LoadingMyPageView } from "@/components/mypage/LoadingMyPageView";
+import { NoUserMyPageView } from "@/components/mypage/NoUserMyPageView";
+import { UnconnectedMyPageView } from "@/components/mypage/UnconnectedMyPageView";
+import { UserOnlyMyPageView } from "@/components/mypage/UserOnlyMyPageView";
+import { useMyPageSummaryActions } from "@/components/mypage/useMyPageSummaryActions";
+import { useMyPageProfileState } from "@/components/mypage/useMyPageProfileState";
+import { useMyPageShellState } from "@/components/mypage/useMyPageShellState";
 
 const SHOW_SUMMARY_ACTIONS = false;
-
-/* =========================
-   Types (summary / no any)
-========================= */
-
-type SummaryProject = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  currency?: "JPYC" | "USDC";
-  purposeMode: string;
-  ownerAddress: string | null;
-  creatorProfileId: string | null;
-  bridgedAt: string | null;
-  distributedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type SummaryGoal = {
-  id: string;
-  unitCurrency?: CurrencyCode;
-  targetAmount?: number;
-  targetAmountJpyc: number;
-  achievedAt: string | null;
-  deadline: string | null;
-} | null;
-
-type SummaryProgress = {
-  currency?: CurrencyCode;
-  confirmedJpyc: number;
-  confirmedTotal?: number;
-  confirmedByCurrency?: {
-    JPYC: number;
-    USDC: number;
-  };
-  targetAmount?: number | null;
-  targetJpyc: number | null;
-  progressPct: number;
-  totals: {
-    JPYC: string | null;
-    USDC: string | null;
-  };
-};
-
-type BridgeRunLite = {
-  id: string;
-  mode: string;
-  currency: string;
-  dryRun: boolean;
-  force: boolean;
-  createdAt: string;
-  dbConfirmedTotalAmountDecimal: string | null;
-};
-
-type DistributionRunLite = {
-  id: string;
-  mode: string;
-  chainId: number;
-  currency: string;
-  dryRun: boolean;
-  createdAt: string;
-  txHashes: unknown; // Json (string[] expected)
-};
-
-type SummaryResponseOk = {
-  ok: true;
-  project: SummaryProject;
-  goal: SummaryGoal;
-  progress: SummaryProgress;
-  distributionPlan: unknown; // Json
-  lastBridgeRuns: BridgeRunLite[];
-  lastDistributionRuns: DistributionRunLite[];
-};
-
-type SummaryResponseErr = {
-  ok: false;
-  error: string;
-};
-
-type SummaryResponse = SummaryResponseOk | SummaryResponseErr;
-
-type UiMsg = { kind: "info" | "error" | "success"; text: string };
-type CurrencyCode = "JPYC" | "USDC";
-type GoalDraft = {
-  targetInput: string;
-  deadlineInput: string;
-  msg: string | null;
-};
-type GoalDraftByCurrency = Record<CurrencyCode, GoalDraft>;
-
-function formatAmountByCurrency(
-  amount: number,
-  currency: CurrencyCode
-): string {
-  if (!Number.isFinite(amount)) {
-    return currency === "USDC" ? "0.00" : "0";
-  }
-  if (currency === "USDC") {
-    return amount.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  }
-  return Math.floor(amount).toLocaleString();
-}
 
 /* =========================
    Guards (no any)
@@ -158,46 +45,6 @@ function safeJsonStringify(v: unknown): string {
   } catch {
     return "";
   }
-}
-
-function parseJsonObjectOrArray(text: string): unknown | null {
-  try {
-    const v: unknown = JSON.parse(text);
-    if (Array.isArray(v)) return v;
-    if (isRecord(v)) return v;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function parseTxHashesText(text: string): string[] | null {
-  const trimmed = text.trim();
-  if (!trimmed) return [];
-
-  if (trimmed.startsWith("[")) {
-    try {
-      const v: unknown = JSON.parse(trimmed);
-      if (!Array.isArray(v)) return null;
-      const out: string[] = [];
-      for (const x of v) {
-        if (typeof x !== "string") return null;
-        const s = x.trim();
-        if (!s) return null;
-        out.push(s);
-      }
-      return out;
-    } catch {
-      return null;
-    }
-  }
-
-  const lines = trimmed
-    .split("\n")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-
-  return lines;
 }
 
 type Props = {
@@ -212,82 +59,61 @@ export default function AccountPageClient({ username }: Props) {
   const [status, setStatus] = useState<Status>("loading");
   const [me, setMe] = useState<MeStatus | null>(null);
 
-  // ユーザー/プロフィール
-  const [displayName, setDisplayName] = useState<string>("");
-  const [profile, setProfile] = useState<string>("");
-
-  // 目標（プロフィールに紐づく従来のgoal：最終的に廃止予定）
-  // const [goalTitle, setGoalTitle] = useState<string>("");
-  // const [goalTargetJpyc, setGoalTargetJpyc] = useState<string>("");
-
-  // 見た目系
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
-  const [themeColor, setThemeColor] = useState<string>("");
-
-  // アップロード用
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
-  // SNS & YouTube
-  const [socials, setSocials] = useState<SocialLinks>({});
-  const [youtubeVideos, setYoutubeVideos] = useState<YoutubeVideo[]>([
-    { url: "", title: "", description: "" },
-  ]);
-
-  // 編集モード（CreatorProfileSection）
-  const [editingProfile, setEditingProfile] = useState<boolean>(false);
-
-  // 初期値 user_xxx
-  const [usernameInput, setUsernameInput] = useState<string>(
-    `user_${generateRandomId()}`
-  );
-
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
-  // アコーディオン（統合：project セクションに全入力を集約）
-  const [openSections, setOpenSections] = useState<OpenSections>({
-    about: true,
-    wallet: true,
-    jpyc: true,
-    flow: true,
-    gas: true,
-    project: true,
-  });
-
-  const toggleSection = (key: SectionKey) => {
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // ============================
-  // Project Create（①の入力）
-  // ============================
-  const [projectTitle, setProjectTitle] = useState<string>("");
-  const [projectDescription, setProjectDescription] = useState<string>("");
-  const [projectPurposeMode, setProjectPurposeMode] =
-    useState<string>("OPTIONAL");
-  const [projectCreating, setProjectCreating] = useState<boolean>(false);
-  const [projectCreateMsg, setProjectCreateMsg] = useState<string | null>(null);
-
-  const creatorWalletAddress: Address | null = useMemo(() => {
-    return address ?? null;
-  }, [address]);
+  const generatedUsername = useMemo(
+    () => `user_${generateRandomId()}`,
+    []
+  );
+  const {
+    openSections,
+    setOpenSections,
+    toggleSection,
+  } = useMyPageShellState();
+  const {
+    displayName,
+    setDisplayName,
+    profile,
+    setProfile,
+    avatarUrl,
+    themeColor,
+    setThemeColor,
+    avatarFile,
+    setAvatarFile,
+    avatarPreview,
+    setAvatarPreview,
+    socials,
+    setSocials,
+    youtubeVideos,
+    setYoutubeVideos,
+    editingProfile,
+    startEditingProfile,
+    cancelEditingProfile,
+    usernameInput,
+    setUsernameInput,
+    resetProfileState,
+    applyUserOnly,
+    applyCreatorProfile,
+  } = useMyPageProfileState(generatedUsername);
 
   const [localProjectId, setLocalProjectId] = useState<string | null>(null);
   const [projectIdsByCurrency, setProjectIdsByCurrency] = useState<{
     JPYC: string | null;
     USDC: string | null;
   }>({ JPYC: null, USDC: null });
+  const [projectDashboardsByCurrency, setProjectDashboardsByCurrency] = useState<{
+    JPYC: MyPageProjectDashboard | null;
+    USDC: MyPageProjectDashboard | null;
+  }>({ JPYC: null, USDC: null });
 
   // ============================
   // Goal upsert（ProjectのGoalテーブル：①の入力）
   // ============================
-  const [goalDraftByCurrency, setGoalDraftByCurrency] =
+  const [, setGoalDraftByCurrency] =
     useState<GoalDraftByCurrency>({
       JPYC: { targetInput: "", deadlineInput: "", msg: null },
       USDC: { targetInput: "", deadlineInput: "", msg: null },
     });
-  const [goalSaving, setGoalSaving] = useState<boolean>(false);
 
   // ============================
   // Summary + actions（①の入力）
@@ -301,16 +127,57 @@ export default function AccountPageClient({ username }: Props) {
   const [currency, setCurrency] = useState<CurrencyCode>("JPYC");
   const [distChainId, setDistChainId] = useState<number>(43114);
   const [note, setNote] = useState<string>("");
-  const goalDraft = goalDraftByCurrency[currency];
 
-  const setGoalDraftPatch = useCallback(
-    (patch: Partial<GoalDraft>): void => {
-      setGoalDraftByCurrency((prev) => ({
-        ...prev,
-        [currency]: { ...prev[currency], ...patch },
-      }));
+  const applySummaryState = useCallback(
+    (
+      view: SummaryViewData | null,
+      options?: { preserveDraftInputs?: boolean }
+    ) => {
+      if (!view) {
+        setSummary(null);
+        setMsg(null);
+        if (!options?.preserveDraftInputs) {
+          setPlanText("");
+          setTxHashesText("[]");
+        }
+        return;
+      }
+
+      const ok: SummaryResponseOk = { ok: true, ...view };
+      setSummary(ok);
+      setMsg(null);
+
+      const planStr = safeJsonStringify(ok.distributionPlan ?? {});
+      if (options?.preserveDraftInputs) {
+        setPlanText((prev) => (prev.trim() ? prev : planStr));
+      } else {
+        setPlanText(planStr);
+      }
+
+      const last = ok.lastDistributionRuns?.[0];
+      const txStr = last ? safeJsonStringify(last.txHashes ?? []) : "[]";
+      if (options?.preserveDraftInputs) {
+        setTxHashesText((prev) => (prev.trim() ? prev : txStr));
+      } else {
+        setTxHashesText(txStr);
+      }
+
+      if (ok.goal) {
+        const goalCurrency: CurrencyCode =
+          ok.project.currency === "USDC" ? "USDC" : "JPYC";
+        setGoalDraftByCurrency((prev) => ({
+          ...prev,
+          [goalCurrency]: {
+            ...prev[goalCurrency],
+            targetInput: String(ok.goal?.targetAmount ?? ok.goal?.targetAmountJpyc),
+            deadlineInput: ok.goal?.deadline
+              ? ok.goal.deadline.slice(0, 10)
+              : "",
+          },
+        }));
+      }
     },
-    [currency]
+    []
   );
 
   const pickProjectIdForCurrency = useCallback(
@@ -339,19 +206,9 @@ export default function AccountPageClient({ username }: Props) {
     return ownerLower === connectedLower;
   }, [ownerLower, connectedLower]);
 
-  const goalIsSet = !!summary?.goal;
   const goalAchieved = !!summary?.goal?.achievedAt;
   const bridgeDone =
     summary?.project.status === "BRIDGED" && !!summary.project.bridgedAt;
-
-  const canAchieve =
-    isOwner &&
-    goalIsSet &&
-    !goalAchieved &&
-    (summary?.progress.targetAmount ?? summary?.progress.targetJpyc ?? null) !=
-      null &&
-    (summary.progress.confirmedTotal ?? summary.progress.confirmedJpyc) >=
-      (summary.progress.targetAmount ?? summary.progress.targetJpyc ?? 0);
 
   const canBridge =
     isOwner && goalAchieved && summary?.project.status !== "DISTRIBUTED";
@@ -359,80 +216,104 @@ export default function AccountPageClient({ username }: Props) {
   const canSavePlan = isOwner;
   const canSaveDistResult = isOwner && bridgeDone;
 
-  const summaryUrl = useMemo(() => {
-    if (!localProjectId) return null;
-    return `/api/projects/${encodeURIComponent(localProjectId)}/summary`;
-  }, [localProjectId]);
-
   useEffect(() => {
     const next = projectIdsByCurrency[currency] ?? null;
     if (next !== localProjectId) setLocalProjectId(next);
   }, [currency, projectIdsByCurrency, localProjectId]);
 
-  const refreshSummary = useCallback(async () => {
-    if (!summaryUrl) {
-      setSummary(null);
-      return;
-    }
-    setSummaryLoading(true);
-    setMsg(null);
+  const applyDashboardData = useCallback(
+    (data: {
+      me: MeStatus;
+      selectedProjectId: string | null;
+      projectsByCurrency: {
+        JPYC: MyPageProjectDashboard | null;
+        USDC: MyPageProjectDashboard | null;
+      };
+    }) => {
+      const meData = data.me;
+      setMe(meData);
+      setProjectDashboardsByCurrency(data.projectsByCurrency);
+      const nextProjectIds =
+        meData.projectIdsByCurrency ?? { JPYC: null, USDC: null };
+      setProjectIdsByCurrency(nextProjectIds);
 
-    try {
-      const res = await fetch(summaryUrl, { cache: "no-store" });
-      const json: unknown = await res.json().catch(() => null);
+      const nextSelectedProjectId =
+        data.selectedProjectId ?? pickProjectIdForCurrency(meData);
+      setLocalProjectId(nextSelectedProjectId);
 
-      if (!json || typeof json !== "object") {
-        setSummary(null);
-        setMsg({ kind: "error", text: "SUMMARY_INVALID_RESPONSE" });
+      const selectedDashboard =
+        data.projectsByCurrency.JPYC?.projectId === nextSelectedProjectId
+          ? data.projectsByCurrency.JPYC
+          : data.projectsByCurrency.USDC?.projectId === nextSelectedProjectId
+            ? data.projectsByCurrency.USDC
+            : null;
+      applySummaryState(selectedDashboard?.summary ?? null);
+
+      if (!meData.hasUser) {
+        setStatus("noUser");
+        resetProfileState(username);
         return;
       }
 
-      const r = json as Partial<SummaryResponse>;
-      if (r.ok === true && isRecord(r.project) && isRecord(r.progress)) {
-        const ok = json as SummaryResponseOk;
-        setSummary(ok);
-
-        const planStr = safeJsonStringify(ok.distributionPlan ?? {});
-        setPlanText((prev) => (prev.trim() ? prev : planStr));
-
-        const last = ok.lastDistributionRuns?.[0];
-        if (last && typeof last === "object") {
-          const txStr = safeJsonStringify(last.txHashes ?? []);
-          setTxHashesText((prev) => (prev.trim() ? prev : txStr));
-        }
-
-        if (ok.goal) {
-          const c: CurrencyCode =
-            ok.project.currency === "USDC" ? "USDC" : "JPYC";
-          const goal = ok.goal;
-          setGoalDraftByCurrency((prev) => ({
-            ...prev,
-            [c]: {
-              ...prev[c],
-              targetInput: String(goal.targetAmount ?? goal.targetAmountJpyc),
-              deadlineInput: goal.deadline ? goal.deadline.slice(0, 10) : "",
-            },
-          }));
-        }
-
+      if (meData.hasUser && !meData.hasCreator) {
+        setStatus("userOnly");
+        applyUserOnly(meData.user, username);
         return;
       }
 
-      if (r.ok === false && typeof r.error === "string") {
-        setSummary(null);
-        setMsg({ kind: "error", text: r.error });
+      setStatus("creatorReady");
+
+      const cp = meData.creator as CreatorProfile | null;
+      if (!cp) {
+        setStatus("userOnly");
+        applyUserOnly(meData.user, username);
         return;
       }
+      applyCreatorProfile(cp, meData.user, username);
+    },
+    [
+      applyCreatorProfile,
+      applySummaryState,
+      applyUserOnly,
+      pickProjectIdForCurrency,
+      resetProfileState,
+      username,
+    ]
+  );
 
-      setSummary(null);
-      setMsg({ kind: "error", text: "SUMMARY_UNEXPECTED_SHAPE" });
-    } catch {
-      setSummary(null);
-      setMsg({ kind: "error", text: "SUMMARY_FETCH_FAILED" });
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [summaryUrl]);
+  const loadDashboard = useCallback(
+    async (addr: Address): Promise<boolean> => {
+      const result = await fetchMyPageDashboard({
+        apiBase: API_BASE,
+        address: addr,
+      });
+
+      if (!result.ok) {
+        setError(
+          "サーバーエラーが発生しました。時間をおいて再度お試しください。"
+        );
+        return false;
+      }
+
+      applyDashboardData(result.data);
+      return true;
+    },
+    [API_BASE, applyDashboardData]
+  );
+
+  const { refreshSummary, doSavePlan, doSaveDistributionResult } =
+    useMyPageSummaryActions({
+      projectId: localProjectId,
+      address,
+      planText,
+      txHashesText,
+      currency,
+      distChainId,
+      note,
+      applySummaryState,
+      setSummaryLoading,
+      setMsg,
+    });
 
   // /api/me から projectId + creator profile をstateへ
   useEffect(() => {
@@ -440,6 +321,10 @@ export default function AccountPageClient({ username }: Props) {
       setStatus("unconnected");
       setMe(null);
       setLocalProjectId(null);
+      setProjectIdsByCurrency({ JPYC: null, USDC: null });
+      setProjectDashboardsByCurrency({ JPYC: null, USDC: null });
+      applySummaryState(null);
+      resetProfileState(username);
       return;
     }
 
@@ -449,88 +334,16 @@ export default function AccountPageClient({ username }: Props) {
     async function run(): Promise<void> {
       setStatus("loading");
       setError(null);
-
-      const res = await fetchMe({ apiBase: API_BASE, address: addr });
-      if (cancelled) return;
-
-      if (!res.ok) {
-        setStatus("loading");
-        setError(
-          "サーバーエラーが発生しました。時間をおいて再度お試しください。"
-        );
-        return;
-      }
-
-      const data = res.data;
-      setMe(data);
-
-      if (data.projectIdsByCurrency) {
-        setProjectIdsByCurrency(data.projectIdsByCurrency);
-      }
-      const apiProjectId = pickProjectIdForCurrency(data);
-      setLocalProjectId(apiProjectId);
-
-      if (!data.hasUser) {
-        setStatus("noUser");
-        setDisplayName("");
-        setProfile("");
-        // setGoalTitle("");
-        // setGoalTargetJpyc("");
-        setAvatarUrl("");
-        setThemeColor("");
-        setSocials({});
-        setYoutubeVideos([{ url: "", title: "", description: "" }]);
-        setUsernameInput(username);
-        return;
-      }
-
-      if (data.hasUser && !data.hasCreator) {
-        setStatus("userOnly");
-        setDisplayName(data.user?.displayName ?? "");
-        setProfile(data.user?.profile ?? "");
-        // setGoalTitle("");
-        // setGoalTargetJpyc("");
-        setAvatarUrl("");
-        setThemeColor("");
-        setSocials({});
-        setYoutubeVideos([{ url: "", title: "", description: "" }]);
-        setUsernameInput(username);
-        return;
-      }
-
-      // creatorReady
-      setStatus("creatorReady");
-
-      const cp = data.creator as CreatorProfile;
-
-      setDisplayName(cp.displayName ?? data.user?.displayName ?? "");
-      setProfile(cp.profile ?? data.user?.profile ?? "");
-
-      // 旧Goal（最終的に廃止予定だが、今はUIに残る）
-      // setGoalTitle(cp.goalTitle ?? "");
-      // setGoalTargetJpyc(
-      //   cp.goalTargetJpyc != null ? String(cp.goalTargetJpyc) : ""
-      // );
-
-      setAvatarUrl(cp.avatarUrl ?? "");
-      setThemeColor(cp.themeColor ?? "");
-      setSocials(cp.socials ?? {});
-      setYoutubeVideos(
-        cp.youtubeVideos && cp.youtubeVideos.length > 0
-          ? cp.youtubeVideos
-          : [{ url: "", title: "", description: "" }]
-      );
-      setUsernameInput(cp.username ?? username);
-
-      setAvatarFile(null);
-      setAvatarPreview(null);
+      const ok = await loadDashboard(addr);
+      if (cancelled || ok) return;
+      setStatus("loading");
     }
 
     void run();
     return () => {
       cancelled = true;
     };
-  }, [API_BASE, isConnected, address, username, pickProjectIdForCurrency]);
+  }, [isConnected, address, loadDashboard, applySummaryState, resetProfileState, username]);
 
   // /api/user
   async function handleSaveUser(e: React.FormEvent): Promise<void> {
@@ -544,29 +357,19 @@ export default function AccountPageClient({ username }: Props) {
 
     try {
       const slug = usernameInput.trim() || username;
-
-      const res = await fetch(`${API_BASE}/api/user`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: addr,
-          username: slug,
-          displayName: displayName.trim(),
-          profile: profile.trim(),
-        }),
+      const result = await saveMyPageUser({
+        apiBase: API_BASE,
+        address: addr,
+        username: slug,
+        displayName: displayName.trim(),
+        profile: profile.trim(),
       });
 
-      const data: unknown = await res.json().catch(() => null);
-      if (!res.ok) {
-        const apiError = getErrorFromApiJson(data);
-        throw new Error(apiError ?? "保存に失敗しました");
+      if (!result.ok) {
+        throw new Error(result.error);
       }
 
-      const typed = data as MeStatus;
-      setMe(typed);
-
-      if (typed.hasUser && !typed.hasCreator) setStatus("userOnly");
-      if (typed.hasUser && typed.hasCreator) setStatus("creatorReady");
+      await loadDashboard(addr);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -587,28 +390,15 @@ export default function AccountPageClient({ username }: Props) {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/creator/apply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: addr }),
+      const result = await requestCreatorApply({
+        apiBase: API_BASE,
+        address: addr,
       });
-
-      const data: unknown = await res.json().catch(() => null);
-      if (!res.ok) {
-        const apiError = getErrorFromApiJson(data);
-        throw new Error(apiError ?? "申請に失敗しました");
+      if (!result.ok) {
+        throw new Error(result.error);
       }
 
-      const typed = data as MeStatus;
-      setMe(typed);
-
-      if (typed.hasUser && typed.hasCreator) {
-        setStatus("creatorReady");
-        if (typed.projectIdsByCurrency) {
-          setProjectIdsByCurrency(typed.projectIdsByCurrency);
-        }
-        setLocalProjectId(pickProjectIdForCurrency(typed));
-      }
+      await loadDashboard(addr);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "クリエイター申請に失敗しました。"
@@ -629,62 +419,23 @@ export default function AccountPageClient({ username }: Props) {
     setError(null);
 
     try {
-      // goalTargetJpyc: string -> number|null
-      // const goalTargetTrim = goalTargetJpyc.trim();
-      // const goalTargetNum =
-      //   goalTargetTrim === "" ? null : Number(goalTargetTrim);
-      // const goalTargetValue =
-      //   goalTargetNum == null ||
-      //   !Number.isFinite(goalTargetNum) ||
-      //   goalTargetNum < 0
-      //     ? null
-      //     : Math.floor(goalTargetNum);
-
-      // ★重要：youtubeVideos を必ず送る（undefined で送らない）
-      const payload = {
-        address, // viem Address
+      const result = await updateMyPageCreatorProfile({
         displayName: displayName.trim(),
         profile: profile.trim(),
-        // goalTitle: goalTitle.trim() || null,
-        // goalTargetJpyc: goalTargetValue,
-        avatarUrl: avatarUrl || null,
-        themeColor: themeColor.trim() || null,
+        address,
+        avatarUrl,
+        themeColor,
         socials,
-        youtubeVideos: youtubeVideos.map((v) => ({
-          url: v.url.trim(),
-          title: v.title.trim(),
-          description: v.description.trim(),
-        })),
-      };
-
-      const res = await fetch(`/api/creator`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        youtubeVideos,
       });
 
-      const json: unknown = await res.json().catch(() => null);
-      if (!res.ok) {
-        const apiError = getErrorFromApiJson(json);
-        throw new Error(apiError ?? "CREATOR_UPDATE_FAILED");
+      if (!result.ok) {
+        throw new Error(result.error);
       }
 
-      const refreshed = await fetchMe({ apiBase: API_BASE, address: address });
-      if (refreshed.ok) {
-        const data = refreshed.data;
-        setMe(data);
+      await loadDashboard(address);
 
-        if (data.projectIdsByCurrency) {
-          setProjectIdsByCurrency(data.projectIdsByCurrency);
-        }
-        setLocalProjectId(pickProjectIdForCurrency(data));
-
-        if (!data.hasUser) setStatus("noUser");
-        else if (data.hasUser && !data.hasCreator) setStatus("userOnly");
-        else setStatus("creatorReady");
-      }
-
-      setEditingProfile(false);
+      cancelEditingProfile();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "CREATOR_UPDATE_FAILED");
     } finally {
@@ -692,461 +443,68 @@ export default function AccountPageClient({ username }: Props) {
     }
   }
 
-  // ============================
-  // Project Create（①の保存）
-  // ============================
-  async function handleCreateProject(): Promise<void> {
-    setProjectCreateMsg(null);
-    setError(null);
-
-    if (status !== "creatorReady") {
-      setError("クリエイター登録が完了していません。");
-      return;
-    }
-
-    const addr = creatorWalletAddress;
-    if (!addr) {
-      setError("ウォレットアドレスが取得できません。");
-      return;
-    }
-
-    const title = projectTitle.trim();
-    if (!title) {
-      setError("Project タイトルを入力してください。");
-      return;
-    }
-
-    setProjectCreating(true);
-    try {
-      const result = await createProject({
-        apiBase: API_BASE,
-        payload: {
-          title,
-          description: projectDescription.trim() || null,
-          purposeMode: projectPurposeMode,
-          currency,
-          ownerAddress: addr,
-          address: addr,
-        },
-      });
-
-      if (!result.ok) {
-        setError(
-          `Project の作成に失敗しました: ${result.error}（HTTP ${result.httpStatus}）`
-        );
-        return;
-      }
-
-      const createdId = result.id;
-      if (createdId) {
-        setProjectIdsByCurrency((prev) => ({ ...prev, [currency]: createdId }));
-        setLocalProjectId(createdId);
-      }
-
-      setProjectCreateMsg(
-        createdId
-          ? `Project を作成しました（id=${createdId}）。このページ内で即時反映しました。`
-          : "Project を作成しました。"
-      );
-
-      setProjectTitle("");
-      setProjectDescription("");
-      setProjectPurposeMode("OPTIONAL");
-
-      setSummary(null);
-      setMsg(null);
-      setGoalDraftPatch({ msg: null });
-
-      if (createdId) {
-        setTimeout(() => {
-          void refreshSummary();
-        }, 0);
-      }
-    } catch (e: unknown) {
-      const m = e instanceof Error ? e.message : String(e);
-      setError(`Project の作成に失敗しました: ${m}`);
-    } finally {
-      setProjectCreating(false);
-    }
-  }
-
-  // ============================
-  // Goal upsert（Project Goal table：①の保存）
-  // ============================
-  const saveGoal = useCallback(async () => {
-    setGoalDraftPatch({ msg: null });
-    if (!localProjectId) {
-      setGoalDraftPatch({ msg: "PROJECT_ID_MISSING" });
-      return;
-    }
-    if (!address) {
-      setGoalDraftPatch({ msg: "WALLET_NOT_CONNECTED" });
-      return;
-    }
-
-    const t = goalDraft.targetInput.trim();
-    const n = Number(t);
-    if (!t || !Number.isFinite(n) || n <= 0) {
-      setGoalDraftPatch({ msg: "GOAL_TARGET_INVALID" });
-      return;
-    }
-    const targetAmount = Math.floor(n);
-
-    const deadlineText = goalDraft.deadlineInput.trim();
-    const deadline =
-      deadlineText.length > 0 ? `${deadlineText}T00:00:00.000Z` : null;
-
-    setGoalSaving(true);
-    try {
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(localProjectId)}/goal`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            address,
-            targetAmount,
-            targetAmountJpyc: targetAmount,
-            deadline,
-          }),
-        }
-      );
-
-      const json: unknown = await res.json().catch(() => null);
-      if (!res.ok) {
-        const code =
-          isRecord(json) && typeof json.error === "string"
-            ? json.error
-            : `HTTP_${res.status}`;
-        setGoalDraftPatch({ msg: code });
-        return;
-      }
-
-      setGoalDraftPatch({ msg: "GOAL_SAVED" });
-      await refreshSummary();
-    } catch {
-      setGoalDraftPatch({ msg: "GOAL_SAVE_FAILED" });
-    } finally {
-      setGoalSaving(false);
-    }
-  }, [
-    address,
-    goalDraft.deadlineInput,
-    goalDraft.targetInput,
-    localProjectId,
-    refreshSummary,
-    setGoalDraftPatch,
-  ]);
-
-  // ============================
-  // Summary actions（①の保存/実行）
-  // ============================
-  const postJson = useCallback(
-    async (url: string, body: Record<string, unknown>) => {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const json: unknown = await res.json().catch(() => null);
-      return { res, json };
-    },
-    []
-  );
-
-  const putJson = useCallback(
-    async (url: string, body: Record<string, unknown>) => {
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const json: unknown = await res.json().catch(() => null);
-      return { res, json };
-    },
-    []
-  );
-
-  const doAchieve = useCallback(async () => {
-    if (!localProjectId) return;
-    if (!address) {
-      setGoalDraftPatch({ msg: "WALLET_NOT_CONNECTED" });
-      return;
-    }
-    setSummaryLoading(true);
-    setMsg(null);
-    setGoalDraftPatch({ msg: null });
-    try {
-      const url = `/api/projects/${encodeURIComponent(
-        localProjectId
-      )}/goal/achieve`;
-      const { res, json } = await postJson(url, { address });
-
-      if (!res.ok) {
-        const code =
-          isRecord(json) && typeof json.error === "string"
-            ? json.error
-            : `HTTP_${res.status}`;
-        setGoalDraftPatch({ msg: code });
-        return;
-      }
-
-      const achievedAt =
-        isRecord(json) && typeof json.achievedAt === "string"
-          ? json.achievedAt
-          : new Date().toISOString();
-
-      setSummary((prev) => {
-        if (!prev || !prev.goal) return prev;
-        return {
-          ...prev,
-          project: { ...prev.project, status: "GOAL_ACHIEVED" },
-          goal: { ...prev.goal, achievedAt },
-        };
-      });
-
-      setMsg({ kind: "success", text: "GOAL_ACHIEVED_SET" });
-      await refreshSummary();
-      setGoalDraftPatch({
-        msg:
-        `目標達成を確定しました（status: GOAL_ACHIEVED, achievedAt: ${achievedAt}）`
-      });
-    } catch {
-      setGoalDraftPatch({ msg: "GOAL_ACHIEVE_FAILED" });
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [
-    address,
-    localProjectId,
-    postJson,
-    refreshSummary,
-    setGoalDraftPatch,
-  ]);
-
-  const doSavePlan = useCallback(async () => {
-    if (!localProjectId) return;
-    if (!address) {
-      setMsg({ kind: "error", text: "WALLET_NOT_CONNECTED" });
-      return;
-    }
-    const parsed = parseJsonObjectOrArray(planText);
-    if (!parsed) {
-      setMsg({ kind: "error", text: "PLAN_INVALID_JSON_OBJECT_OR_ARRAY" });
-      return;
-    }
-
-    setSummaryLoading(true);
-    setMsg(null);
-    try {
-      const url = `/api/projects/${encodeURIComponent(
-        localProjectId
-      )}/distribution/plan`;
-      const { res, json } = await putJson(url, { address, plan: parsed });
-
-      if (!res.ok) {
-        const code =
-          isRecord(json) && typeof json.error === "string"
-            ? json.error
-            : `HTTP_${res.status}`;
-        setMsg({ kind: "error", text: code });
-        return;
-      }
-
-      setMsg({ kind: "success", text: "PLAN_SAVED" });
-      await refreshSummary();
-    } catch {
-      setMsg({ kind: "error", text: "PLAN_SAVE_FAILED" });
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [address, localProjectId, planText, putJson, refreshSummary]);
-
-  const doSaveDistributionResult = useCallback(async () => {
-    if (!localProjectId) return;
-    if (!address) {
-      setMsg({ kind: "error", text: "WALLET_NOT_CONNECTED" });
-      return;
-    }
-    const txHashes = parseTxHashesText(txHashesText);
-    if (!txHashes) {
-      setMsg({ kind: "error", text: "TX_HASHES_INVALID" });
-      return;
-    }
-
-    setSummaryLoading(true);
-    setMsg(null);
-    try {
-      const url = `/api/projects/${encodeURIComponent(
-        localProjectId
-      )}/distribution/execute`;
-      const { res, json } = await postJson(url, {
-        address,
-        chainId: distChainId,
-        currency,
-        txHashes,
-        dryRun: false,
-        note: note.trim() ? note.trim() : undefined,
-      });
-
-      if (!res.ok) {
-        const code =
-          isRecord(json) && typeof json.error === "string"
-            ? json.error
-            : `HTTP_${res.status}`;
-        setMsg({ kind: "error", text: code });
-        return;
-      }
-
-      setMsg({ kind: "success", text: "DISTRIBUTION_RESULT_SAVED" });
-      await refreshSummary();
-    } catch {
-      setMsg({ kind: "error", text: "DISTRIBUTION_SAVE_FAILED" });
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [
-    address,
-    currency,
-    distChainId,
-    localProjectId,
-    note,
-    postJson,
-    refreshSummary,
-    txHashesText,
-  ]);
-
   // creatorReady になって、projectId があるなら summary を自動取得
   useEffect(() => {
     if (status !== "creatorReady") return;
     if (!localProjectId) return;
+    if (summary?.project.id === localProjectId) return;
     void refreshSummary();
-  }, [status, localProjectId, refreshSummary]);
+  }, [status, localProjectId, refreshSummary, summary?.project.id]);
 
   // ==================================================
   // UI
   // ==================================================
   const promoHeaderColor = themeColor || "#005bbb";
-  const myPageHeader = (
-    <div className="container-narrow">
-      <PromoCreatorFounding headerColor={promoHeaderColor} />
-    </div>
-  );
-  const promoFooter = (
-    <div className="container-narrow space-y-4">
-      <MyPageFooter />
-    </div>
-  );
 
   if (status === "loading") {
-    return (
-      <>
-        {myPageHeader}
-        <div className="container-narrow">
-          <p className="text-sm text-gray-500">読み込み中です…</p>
-        </div>
-        {promoFooter}
-      </>
-    );
+    return <LoadingMyPageView headerColor={promoHeaderColor} />;
   }
 
   if (status === "unconnected") {
     return (
-      <>
-        {myPageHeader}
-        <UnconnectedMyPage
-          error={error}
-          open={openSections}
-          setOpen={setOpenSections}
-        />
-        {promoFooter}
-      </>
+      <UnconnectedMyPageView
+        headerColor={promoHeaderColor}
+        error={error}
+        openSections={openSections}
+        setOpenSections={setOpenSections}
+      />
     );
   }
 
   if (status === "noUser") {
     return (
-      <>
-        {myPageHeader}
-        <div className="container-narrow space-y-4">
-          <h1 className="text-lg font-semibold mb-2">ユーザー登録</h1>
-
-          {error && (
-            <div className="alert-warn">
-              <p className="text-xs">{error}</p>
-            </div>
-          )}
-
-          <UserRegistrationForm
-            usernameInput={usernameInput}
-            displayName={displayName}
-            profile={profile}
-            setUsernameInput={setUsernameInput}
-            setDisplayName={setDisplayName}
-            setProfile={setProfile}
-            saving={saving}
-            onSubmit={handleSaveUser}
-          />
-        </div>
-        {promoFooter}
-      </>
+      <NoUserMyPageView
+        headerColor={promoHeaderColor}
+        error={error}
+        usernameInput={usernameInput}
+        displayName={displayName}
+        profile={profile}
+        setUsernameInput={setUsernameInput}
+        setDisplayName={setDisplayName}
+        setProfile={setProfile}
+        saving={saving}
+        onSubmit={handleSaveUser}
+      />
     );
   }
 
   if (status === "userOnly") {
     return (
-      <>
-        {myPageHeader}
-        <div className="container-narrow space-y-4">
-          <h1 className="text-lg font-semibold mb-2">マイページ</h1>
-
-          {error && (
-            <div className="alert-warn">
-              <p className="text-xs">{error}</p>
-            </div>
-          )}
-
-          <MyPageAccordion
-            open={openSections}
-            onToggle={toggleSection}
-            sectionKey="about"
-            title="現在の登録情報"
-          >
-            <div className="space-y-2">
-              <p className="text-sm">
-                表示名：{me?.user?.displayName ?? "（未設定）"}
-              </p>
-              <p className="text-xs text-gray-500 whitespace-pre-wrap">
-                プロフィール：{me?.user?.profile ?? "（未設定）"}
-              </p>
-            </div>
-          </MyPageAccordion>
-
-          <MyPageAccordion
-            open={openSections}
-            onToggle={toggleSection}
-            sectionKey="wallet"
-            title="ユーザー情報の更新"
-          >
-            <UserUpdateForm
-              displayName={displayName}
-              profile={profile}
-              setDisplayName={setDisplayName}
-              setProfile={setProfile}
-              saving={saving}
-              onSubmit={handleSaveUser}
-            />
-          </MyPageAccordion>
-
-          <hr className="border-gray-200" />
-
-          <CreatorApplyCard
-            saving={saving}
-            onApply={() => void handleApplyCreator()}
-          />
-        </div>
-        {promoFooter}
-      </>
+      <UserOnlyMyPageView
+        headerColor={promoHeaderColor}
+        error={error}
+        openSections={openSections}
+        onToggleSection={toggleSection}
+        userDisplayName={me?.user?.displayName}
+        userProfile={me?.user?.profile}
+        displayName={displayName}
+        profile={profile}
+        setDisplayName={setDisplayName}
+        setProfile={setProfile}
+        saving={saving}
+        onSubmit={handleSaveUser}
+        onApply={() => void handleApplyCreator()}
+      />
     );
   }
 
@@ -1158,363 +516,78 @@ export default function AccountPageClient({ username }: Props) {
   );
 
   return (
-    <>
-      {myPageHeader}
-      <div className="container-narrow space-y-4">
-        <h1 className="text-lg font-semibold mb-2">クリエイター管理</h1>
-        {error && (
-          <div className="alert-warn">
-            <p className="text-xs">{error}</p>
-          </div>
-        )}
-
-        <MyPageAccordion
-          open={openSections}
-          onToggle={toggleSection}
-          sectionKey="flow"
-          title="リンク"
-        >
-          <div className="card p-0 bg-transparent space-y-2">
-            <p className="text-xs text-gray-500">あなたの投げ銭ページ</p>
-
-            <a
-              href={withBaseUrl(creatorUsername)}
-              className="text-sm font-mono text-blue-600 underline break-all"
-            >
-              {withBaseUrl(creatorUsername)}
-            </a>
-
-            {localProjectId && (
-              <p className="text-[11px] text-gray-500 mt-2">
-                現在の projectId：
-                <span className="font-mono">{localProjectId}</span>
-              </p>
-            )}
-          </div>
-        </MyPageAccordion>
-
-        <MyPageAccordion
-          open={openSections}
-          onToggle={toggleSection}
-          sectionKey="gas"
-          title="ガス代支援"
-        >
-          <GasSupportTabs />
-        </MyPageAccordion>
-
-        {/* ======================================================
-          ★統合セクション（① Project/Goal/Summary + ② Profile）
-          - ①の入力UIを②の中に追加（この中が「入力の唯一の場所」）
-        ====================================================== */}
-        <MyPageAccordion
-          open={openSections}
-          onToggle={toggleSection}
-          sectionKey="project"
-          title="プロフィール・目標の編集（Project / Goal / Summary 統合）"
-        >
-          <CreatorProfileSection
-            username={creatorUsername}
-            editing={editingProfile}
-            onStartEdit={() => setEditingProfile(true)}
-            onCancelEdit={() => setEditingProfile(false)}
-            displayName={displayName}
-            profile={profile}
-            // goalTitle={goalTitle}
-            // goalTargetJpyc={goalTargetJpyc}
-            avatarUrl={avatarUrl}
-            themeColor={themeColor}
-            socials={socials}
-            youtubeVideos={youtubeVideos}
-            avatarFile={avatarFile}
-            avatarPreview={avatarPreview}
-            setDisplayName={setDisplayName}
-            setProfile={setProfile}
-            // setGoalTitle={setGoalTitle}
-            // setGoalTargetJpyc={setGoalTargetJpyc}
-            setThemeColor={setThemeColor}
-            setSocials={setSocials}
-            setYoutubeVideos={setYoutubeVideos}
-            setAvatarFile={setAvatarFile}
-            setAvatarPreview={setAvatarPreview}
-            saving={saving}
-            onSubmit={(e) => void handleSaveCreatorProfile(e)}
-            baseUrl={eventBaseUrl}
-            extraSections={
-              <div className="space-y-4">
-                {/* -------- ① Project / Goal / Settlement（JPYC, USDC 完全分離） -------- */}
-                {(["JPYC", "USDC"] as const).map((cur) => (
-                  <div key={cur} className="space-y-2">
-                    <div className="text-xs font-semibold text-gray-500">
-                      {cur} 用
-                    </div>
-                    <ProjectSection
-                      ownerAddress={address?.toLowerCase() ?? ""}
-                      activeProjectId={projectIdsByCurrency[cur]}
-                      currency={cur}
-                      featureHideSummaryActions={!SHOW_SUMMARY_ACTIONS}
-                      onActiveProjectIdChange={(pid, changedCur) => {
-                        setProjectIdsByCurrency((prev) => ({
-                          ...prev,
-                          [changedCur]: pid,
-                        }));
-                        setLocalProjectId(pid);
-                        setSummary(null);
-                        setMsg(null);
-                        setGoalDraftByCurrency((prev) => ({
-                          ...prev,
-                          [changedCur]: { ...prev[changedCur], msg: null },
-                        }));
-                      }}
-                      integratedGoalPanel={
-                        <CurrencyGoalSettlementPanel
-                          currency={cur}
-                          projectId={projectIdsByCurrency[cur]}
-                          address={address ?? null}
-                          isConnected={isConnected}
-                        />
-                      }
-                    />
-                  </div>
-                ))}
-                <AiOfficePanel
-                  walletAddress={address ?? null}
-                  projectId={localProjectId}
-                  isConnected={isConnected}
-                />
-                {/* <div className="rounded-xl border bg-white p-4 space-y-3">
-                <div className="font-semibold">Project</div>
-
-                <ProjectCreateCard
-                  enabled={status === "creatorReady"}
-                  projectTitle={projectTitle}
-                  projectDescription={projectDescription}
-                  projectPurposeMode={projectPurposeMode}
-                  projectCreating={projectCreating}
-                  projectCreateMsg={projectCreateMsg}
-                  onChangeTitle={setProjectTitle}
-                  onChangeDescription={setProjectDescription}
-                  onChangePurposeMode={setProjectPurposeMode}
-                  onSubmit={() => void handleCreateProject()}
-                />
-
-                {localProjectId && (
-                  <div className="text-[11px] text-gray-500">
-                    Summary / Goal / 分配はこの projectId を対象に実行します：
-                    <span className="ml-1 font-mono">{localProjectId}</span>
-                  </div>
-                )}
-              </div> */}
-
-                {/* -------- ① Summary + Actions -------- */}
-                {SHOW_SUMMARY_ACTIONS ? (
-                  <div className="rounded-xl border bg-white p-4 space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-semibold">Summary / Actions</div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-40"
-                          onClick={() => void refreshSummary()}
-                          disabled={!localProjectId || summaryLoading}
-                          type="button"
-                        >
-                          {summaryLoading ? "Loading..." : "Refresh"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {!localProjectId ? (
-                      <div className="text-sm text-gray-600">
-                        Project 作成後に Summary を利用できます。
-                      </div>
-                    ) : (
-                      <>
-                        {msg && (
-                          <div
-                            className={`text-xs rounded-lg px-3 py-2 border ${
-                              msg.kind === "error"
-                                ? "border-rose-200 bg-rose-50 text-rose-800"
-                                : msg.kind === "success"
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                : "border-gray-200 bg-gray-50 text-gray-700"
-                            }`}
-                          >
-                            {msg.text}
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <div className="text-xs text-gray-500">
-                              Project status
-                            </div>
-                            <div className="text-sm">
-                              {summary?.project.status ?? "—"}
-                            </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="text-xs text-gray-500">
-                              Progress
-                            </div>
-                            <div className="text-sm">
-                              {summary ? (
-                                (() => {
-                                  const unit = summary.project.currency ?? "JPYC";
-                                  const current =
-                                    summary.progress.confirmedTotal ??
-                                    summary.progress.confirmedJpyc;
-                                  const target =
-                                    summary.progress.targetAmount ??
-                                    summary.progress.targetJpyc;
-                                  return `${formatAmountByCurrency(
-                                    current,
-                                    unit
-                                  )} / ${
-                                    target != null
-                                      ? formatAmountByCurrency(target, unit)
-                                      : "—"
-                                  } ${unit} (${Math.floor(
-                                    summary.progress.progressPct
-                                  )}%)`;
-                                })()
-                              ) : (
-                                "—"
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <div className="text-xs text-gray-500">
-                              Distribution plan (JSON)
-                            </div>
-                            <textarea
-                              className="w-full min-h-[140px] rounded-lg border px-3 py-2 font-mono text-[12px]"
-                              value={planText}
-                              onChange={(e) => setPlanText(e.target.value)}
-                              disabled={!canSavePlan || summaryLoading}
-                              placeholder='{"recipients":[...]}'
-                            />
-                            <button
-                              className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
-                              onClick={() => void doSavePlan()}
-                              disabled={!canSavePlan || summaryLoading}
-                              title={!isOwner ? "owner のみ保存できます" : ""}
-                              type="button"
-                            >
-                              Plan を保存
-                            </button>
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="text-xs text-gray-500">
-                              Distribution result txHashes (JSON or lines)
-                            </div>
-                            <textarea
-                              className="w-full min-h-[140px] rounded-lg border px-3 py-2 font-mono text-[12px]"
-                              value={txHashesText}
-                              onChange={(e) => setTxHashesText(e.target.value)}
-                              disabled={!canSaveDistResult || summaryLoading}
-                              placeholder='["0x...","0x..."]'
-                            />
-
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="space-y-1">
-                                <div className="text-xs text-gray-500">
-                                  currency
-                                </div>
-                                <select
-                                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                                  value={currency}
-                                  onChange={(e) =>
-                                    setCurrency(
-                                      e.target.value as "JPYC" | "USDC"
-                                    )
-                                  }
-                                  disabled={
-                                    !canSaveDistResult || summaryLoading
-                                  }
-                                >
-                                  <option value="JPYC">JPYC</option>
-                                  <option value="USDC">USDC</option>
-                                </select>
-                              </div>
-
-                              <div className="space-y-1">
-                                <div className="text-xs text-gray-500">
-                                  chainId
-                                </div>
-                                <input
-                                  className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
-                                  value={String(distChainId)}
-                                  onChange={(e) => {
-                                    const n = Number(e.target.value);
-                                    if (Number.isFinite(n)) setDistChainId(n);
-                                  }}
-                                  disabled={
-                                    !canSaveDistResult || summaryLoading
-                                  }
-                                  inputMode="numeric"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="text-xs text-gray-500">
-                                note (optional)
-                              </div>
-                              <input
-                                className="w-full rounded-lg border px-3 py-2 text-sm"
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                disabled={!canSaveDistResult || summaryLoading}
-                              />
-                            </div>
-
-                            <button
-                              className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
-                              onClick={() => void doSaveDistributionResult()}
-                              disabled={!canSaveDistResult || summaryLoading}
-                              title={!isOwner ? "owner のみ保存できます" : ""}
-                              type="button"
-                            >
-                              Distribution 結果を保存
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 pt-2">
-                          <div className="ml-auto">
-                            {localProjectId ? (
-                              <BridgeWithWormholeOrManualButton
-                                projectId={localProjectId}
-                                currency={currency}
-                                disabled={!canBridge}
-                                onBridged={() => void refreshSummary()}
-                              />
-                            ) : null}
-                          </div>
-                        </div>
-
-                        {summary?.goal?.achievedAt && (
-                          <div className="text-[11px] text-emerald-700">
-                            achievedAt:{" "}
-                            <span className="font-mono">
-                              {summary.goal.achievedAt}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            }
-          />
-        </MyPageAccordion>
-      </div>
-      {promoFooter}
-    </>
+    <CreatorReadyAccountView
+      meCreatorUsername={creatorUsername}
+      eventBaseUrl={eventBaseUrl}
+      themeColor={themeColor}
+      error={error}
+      openSections={openSections}
+      onToggleSection={toggleSection}
+      localProjectId={localProjectId}
+      address={address}
+      isConnected={isConnected}
+      editingProfile={editingProfile}
+      onStartEditProfile={startEditingProfile}
+      onCancelEditProfile={cancelEditingProfile}
+      displayName={displayName}
+      profile={profile}
+      avatarUrl={avatarUrl}
+      themeColorValue={themeColor}
+      socials={socials}
+      youtubeVideos={youtubeVideos}
+      avatarFile={avatarFile}
+      avatarPreview={avatarPreview}
+      setDisplayName={setDisplayName}
+      setProfile={setProfile}
+      setThemeColor={setThemeColor}
+      setSocials={setSocials}
+      setYoutubeVideos={setYoutubeVideos}
+      setAvatarFile={setAvatarFile}
+      setAvatarPreview={setAvatarPreview}
+      saving={saving}
+      onSubmitProfile={(e) => void handleSaveCreatorProfile(e)}
+      projectIdsByCurrency={projectIdsByCurrency}
+      onActiveProjectIdChange={(pid, changedCur) => {
+        setProjectIdsByCurrency((prev) => ({
+          ...prev,
+          [changedCur]: pid,
+        }));
+        setProjectDashboardsByCurrency((prev) => ({
+          ...prev,
+          [changedCur]: null,
+        }));
+        setCurrency(changedCur);
+        setLocalProjectId(pid);
+        applySummaryState(null);
+        setMsg(null);
+        setGoalDraftByCurrency((prev) => ({
+          ...prev,
+          [changedCur]: { ...prev[changedCur], msg: null },
+        }));
+      }}
+      projectDashboardsByCurrency={projectDashboardsByCurrency}
+      summary={summary}
+      summaryLoading={summaryLoading}
+      msg={msg}
+      showSummaryActions={SHOW_SUMMARY_ACTIONS}
+      refreshSummary={refreshSummary}
+      planText={planText}
+      setPlanText={setPlanText}
+      txHashesText={txHashesText}
+      setTxHashesText={setTxHashesText}
+      currency={currency}
+      setCurrency={setCurrency}
+      distChainId={distChainId}
+      setDistChainId={setDistChainId}
+      note={note}
+      setNote={setNote}
+      canSavePlan={canSavePlan}
+      canSaveDistResult={canSaveDistResult}
+      canBridge={canBridge}
+      isOwner={isOwner}
+      doSavePlan={doSavePlan}
+      doSaveDistributionResult={doSaveDistributionResult}
+      onBridged={refreshSummary}
+    />
   );
 }

@@ -10,21 +10,12 @@ import {
   lowerOrNull,
   toNonEmptyString,
   toBool,
-  toNumberOrNull,
 } from "@/lib/api/guards";
 
 export const dynamic = "force-dynamic";
 
 type Params = { projectId: string };
 type Currency = "JPYC" | "USDC";
-
-type Body = {
-  address?: unknown; // ownerチェック用（接続アドレス）
-  currency?: unknown; // "JPYC" | "USDC"
-  dryRun?: unknown;
-  force?: unknown;
-  note?: unknown;
-};
 
 function toCurrency(v: unknown): Currency | null {
   return v === "JPYC" || v === "USDC" ? v : null;

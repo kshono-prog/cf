@@ -24,12 +24,12 @@
 - `ANALYZE`
 - `PROPOSE`
 - `TRANSLATE`
-- 週次レポート候補
-- 告知文案候補
+- `WEEKLY_REPORT`
+- `ANNOUNCEMENT_DRAFT`
+- `SUPPORTER_MESSAGE_DRAFT`
 
 ## v1 の対象外
 
 - 完全自動投稿
 - 金銭移動の自動決定
 - 外部サービスへの全面自動連携
-

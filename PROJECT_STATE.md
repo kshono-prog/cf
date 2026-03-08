@@ -1,25 +1,27 @@
 # Project State
 
-最終更新: 2026-03-07
+最終更新: 2026-03-08
 
 ## 現在のテーマ
 
 - 中核プロダクトを `クリエイター向けAI事務所` に寄せる
 - ただし当面の提供価値は `承認付き半自動運営` に限定する
 - 開発運用も同じ思想で、`監督付き半自動開発` に揃える
+- 次の1か月は `整理 70% / 新機能 30%` で進める
 
 ## 現在のプロダクト定義
 
 このプロジェクトは、クリエイターの活動・支援・運営タスクをまとめて扱う基盤である。
 
-現在の本命領域:
+現在のMVP領域:
 
 - Creator profile / public page
 - Project / Goal / Contribution
 - Settlement / Distribution
-- AI task (`ANALYZE`, `PROPOSE`, `TRANSLATE`)
+- AI task (`ANALYZE`, `PROPOSE`, `TRANSLATE`, `WEEKLY_REPORT`, `ANNOUNCEMENT_DRAFT`)
+- AI task 基盤の拡張 (`validator / schema / executor registry`)
 
-現在の実験領域:
+現在のBeta領域:
 
 - AI Office の拡張
 - Metrics 収集と分析
@@ -27,26 +29,69 @@
 - Event 機能
 - Bridge / CCTP の運用強化
 
-## 直近2週間の目標
+## 現在の開発方針
 
-1. AIエージェント開発運用のための文書基盤を整える
-2. `AgentTask` を AI事務所の中核モデルとして明確化する
-3. `app/[username]/mypage/AccountPageClient.tsx` の責務を分割する
-4. lint error を解消し、最低限の静的チェックを通す
+優先順:
+
+1. MVP を明文化し、beta 機能と分離する
+2. 画面と API の責務を整理する
+3. lint / type / build を安定化する
+4. 新しい AgentTask を1つ追加して拡張性を検証する
+
+今月は、機能追加より `構造整理と開発基盤の安定化` を優先する。
+
+## 直近4週間の目標
+
+1. MVP / beta 機能境界を固定する
+2. `AccountPageClient` の責務分割に着手する
+3. lint error を解消し、最低限の静的チェックを安定化する
+4. 新しい `AgentTask` を1つ追加できる基盤にする
+
+完了した項目:
+
+- README / roadmap / project state の同期
+- `AccountPageClient` の Phase 1 分割
+- lint error 解消と build 安定化
+- `WEEKLY_REPORT` task の追加と UI 反映
+- `ANNOUNCEMENT_DRAFT` task の追加と output renderer registry 化
+- `SUPPORTER_MESSAGE_DRAFT` の追加
+- `AiOfficePanel` の task type ごとの入力UI整理
+- repo 内の `AGENTS.md` / `TASKS.md` / `.github` scaffolding 追加
+- `AiOfficePanel` の read-side を aggregated dashboard endpoint に整理
+- `mypage` の `me / summary / settlement` 読み出しを aggregated dashboard endpoint に整理
+- `AccountPageClient` の write-side を `mypage api client + summary action hook` に整理
+- `AccountPageClient` の profile/shell UI state を dedicated hook に整理
+- `user save / creator apply / creator profile save` の API 契約を `ok + me` に整理
+- `AccountPageClient` の status 別画面を dedicated container に整理
+- `creatorReady` 内の `links / project management / summary actions` を section container に整理
+- `CreatorProjectManagementSection` の中で `per-currency project block` と `AI Office block` を分離
+- `ProjectSection` の create/edit/fetch を dedicated service hook と shared API helper に整理
+- `CurrencyGoalSettlementPanel` の summary/goal save/goal achieve を dedicated hook と shared API helper に整理
+- `ProjectSettlementPanel` の bridge/distribution write-side を dedicated hook と shared API helper に整理
+- `ProjectSettlementPanel` の execution logs / CCTP jobs を section container に整理
+- `ProjectSettlementPanel` の bridge form block / distribution draft block を section container に整理
+- `ProjectSettlementPanel` の distribution execution block / manual result block を section container に整理
+- `ProjectSettlementPanel` の section props を dedicated presenter hook に集約
+- `ProjectSettlementPanel` の presenter hook を `bridge / distribution / execution` 単位に分割
+- `useProjectSettlementPanel` を `bridge / distribution / execution` の state/action hook と runtime helper に分割
 
 ## 進行中の重点課題
 
 - 画面責務が `AccountPageClient` に集中している
 - API と UI の仕様が文書化されていない
-- 機能は広いが、本命機能と実験機能の境界が薄い
+- 機能は広いが、MVP 機能と beta 機能の境界が薄い
 - Git 上で未追跡の実装が多く、レビュー単位が粗い
 
 ## 既知の技術的負債
 
-- `scripts/importSocialsAndVideos.cjs` が lint error の原因になっている
 - 未使用変数と `<img>` 警告が多い
-- `AgentTask` の task type が route 内分岐に寄っていて拡張しにくい
+- `AgentTask` の output 表示が `AiOfficePanel` に寄っていて今後増えると散らかりやすい
 - settlement / bridge / distribution まわりの責務分離がまだ弱い
+- `AccountPageClient` 自体の state 責務はまだ重く、write-side action が集まっている
+- `creator apply / user save / creator profile save` 以外の旧 route には契約のばらつきが残る
+- `ProjectSection` は整理できたが、`CurrencyGoalSettlementPanel` 側の write-side はまだ局所 state が残る
+- `ProjectSection` と `CurrencyGoalSettlementPanel` は整理できたが、`ProjectSettlementPanel` 側は依然として state と action が重い
+- `ProjectSettlementPanel` はかなり整理できたが、`useProjectSettlementPanel` には fetch/recompute/loading/message orchestration がまだ残っている
 
 ## 承認境界
 
@@ -76,10 +121,52 @@ AIが自動で進めてよい:
 
 ## 次に着手するタスク
 
-1. `docs/specs/creator-ai-office/agent-task-model.md` に沿って `AgentTask` の責務を整理
-2. `docs/tasks/todo/2026-03-agent-task-refactor.md` を起点に task 分解
-3. `docs/tasks/todo/2026-03-account-page-split.md` を起点に mypage 分割
-4. lint error 解消タスクを切り出す
+1. `mypage` の API fan-out を減らし、Supabase 接続圧迫を下げる
+2. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
+3. `useProjectSettlementPanel` の data fetch / recompute / loading-message orchestration を dedicated hook に切るか判断する
+4. warning 残件のうち未使用コードを減らす
+5. Issue / PR / Codex workflow の試運転対象を1つ決める
+
+直近完了:
+
+- `SUPPORTER_MESSAGE_DRAFT` を追加
+- `AiOfficePanel` の task type ごとの入力UIを整理
+- AI Office の手動確認 runbook を追加
+- task output / metrics 接続仕様を docs に反映
+- GitHub Issue / PR / workflow scaffolding を追加
+- AI Office の read API を `dashboard service` に集約
+- mypage の read API を `dashboard service` に集約
+
+## 4週間の実行計画
+
+### Week 1
+
+- MVP 機能と beta 機能を固定する
+- 画面導線の優先順位を整理する
+- README / roadmap / project state を同期する
+
+### Week 2
+
+- `AccountPageClient` の state と責務を分割する
+- profile / project / ai office / settlement の境界を明確化する
+
+### Week 3
+
+- lint error を解消する
+- warning のうち、構造整理に効くものを減らす
+- build / type check を安定化する
+
+### Week 4
+
+- `WEEKLY_REPORT` か同等の新 task type を1つ追加する
+- validator / output schema / executor / UI 表示まで通す
+- AgentTask 追加フローの型を確立する
+
+結果:
+
+- `WEEKLY_REPORT` を registry ベースで追加済み
+- mypage から起票と表示できるコード経路を追加済み
+- `lint / tsc / build` を通過
 
 ## 検証ポリシー
 
@@ -93,4 +180,3 @@ AIが自動で進めてよい:
 - `npm run build`
 - 変更対象画面の手動確認
 - 変更対象 API の正常系 / 異常系確認
-

@@ -1,6 +1,8 @@
 // components/promo/PromoJpycEx.tsx
 "use client";
 
+import Image from "next/image";
+
 import { PromoCard } from "./PromoCard";
 
 type Props = {
@@ -21,9 +23,11 @@ export function PromoJpycEx({ headerColor }: Props) {
           rel="noopener noreferrer"
           className="flex justify-center mb-3"
         >
-          <img
+          <Image
             src="/icon/jpycex-logo-normal-blue.svg"
             alt="JPYC EX Logo"
+            width={180}
+            height={48}
             className="h-12 w-auto opacity-90 hover:opacity-100 transition"
           />
         </a>

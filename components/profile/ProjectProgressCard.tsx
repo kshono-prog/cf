@@ -81,7 +81,6 @@ function chainColor(chainId: number): string {
 
 export function ProjectProgressCard(props: ProjectProgressCardProps) {
   const {
-    headerColor,
     projectTitle,
     projectStatus,
     profileAddressUrl,
@@ -96,9 +95,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
     supportedJpycChainIds,
     byChainJpyc,
     achieving,
-    showManualAchieveButton,
     onRefresh,
-    onAchieve,
   } = props;
 
   const currentYen = progressTotalYen ?? 0;
@@ -181,11 +178,6 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
   }, [byChainJpyc, supportedJpycChainIds, canShowBar, targetYen, rowAmount]);
 
   const totalPct = canShowBar ? clampPct((currentYen / targetYen) * 100) : 0;
-
-  const chainsText =
-    supportedJpycChainIds.length > 0
-      ? supportedJpycChainIds.map(chainLabel).join(" / ")
-      : "—";
 
   const reachedText = goalAchievedAt
     ? "達成確定済み"

@@ -15,12 +15,6 @@ export const dynamic = "force-dynamic";
 
 type Params = { projectId: string };
 
-type Body = {
-  address?: unknown; // owner
-  bridgeRunId?: unknown; // UUID
-  bridgeTxHash?: unknown; // 0x... （DESTINATION: Avalanche 側の txHash を貼る）
-};
-
 export async function POST(
   req: NextRequest,
   ctx: { params: Promise<Params> }

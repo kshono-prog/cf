@@ -1,12 +1,16 @@
 // app/api/user/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  errMyPageMutationResponse,
+  okMyPageMutationResponse,
+} from "@/lib/mypageApiResponses";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
     if (!body) {
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+      return errMyPageMutationResponse("INVALID_JSON", 400);
     }
 
     const {
@@ -22,10 +26,7 @@ export async function POST(req: NextRequest) {
     };
 
     if (!rawAddress || !username || !displayName) {
-      return NextResponse.json(
-        { error: "address, username, displayName は必須です" },
-        { status: 400 }
-      );
+      return errMyPageMutationResponse("USER_INPUT_REQUIRED", 400);
     }
 
     const walletAddress = rawAddress.toLowerCase().trim();
@@ -40,22 +41,20 @@ export async function POST(req: NextRequest) {
       where: { username },
     });
 
-    let profileRow;
-
     if (byWallet) {
       // === A: このウォレットは既にプロフィールを持っている ===
       // 例：kazu のウォレットで /kazu/mypage にアクセス → byWallet は kazu レコード
 
       // 他人の username を奪ってないか確認
       if (byName && byName.id !== byWallet.id) {
-        return NextResponse.json(
-          { error: "このユーザー名は既に別のウォレットが使用しています。" },
-          { status: 409 }
+        return errMyPageMutationResponse(
+          "USERNAME_ALREADY_USED_BY_OTHER_WALLET",
+          409
         );
       }
 
       // 自分のプロフィールを上書き（username変更も許可）
-      profileRow = await prisma.creatorProfile.update({
+      await prisma.creatorProfile.update({
         where: { id: byWallet.id },
         data: {
           username,
@@ -69,44 +68,28 @@ export async function POST(req: NextRequest) {
 
       // その username が既に他人に使われていたらNG
       if (byName) {
-        return NextResponse.json(
-          { error: "このユーザー名は既に使用されています。" },
-          { status: 409 }
-        );
+        return errMyPageMutationResponse("USERNAME_ALREADY_USED", 409);
       }
 
       // 新規プロフィールを作成
-      profileRow = await prisma.creatorProfile.create({
+      await prisma.creatorProfile.create({
         data: {
           username,
           walletAddress,
           displayName,
           profileText: profile ?? null,
-          status: "PUBLISHED",
+          status: "DRAFT",
         },
       });
     }
 
-    return NextResponse.json({
-      hasUser: true,
-      hasCreator: true,
-      user: {
-        displayName: profileRow.displayName,
-        profile: profileRow.profileText,
-      },
-      creator: {
-        username: profileRow.username,
-      },
-    });
+    return okMyPageMutationResponse(walletAddress);
   } catch (e: unknown) {
     console.error("USER_SAVE_ERROR", e);
-    return NextResponse.json(
-      {
-        error: "USER_SAVE_FAILED",
-        detail: e instanceof Error ? e.message : String(e),
-        raw: JSON.stringify(e, Object.getOwnPropertyNames(e)),
-      },
-      { status: 500 }
+    return errMyPageMutationResponse(
+      "USER_SAVE_FAILED",
+      500,
+      e instanceof Error ? e.message : String(e)
     );
   }
 }

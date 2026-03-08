@@ -40,6 +40,23 @@ AIがやること:
 - Project / Goal / Contribution
 - Settlement / Distribution
 - AI task による運営補助
+- AgentTask 基盤による承認付き task 運用
+
+## 現時点のMVP
+
+- Public profile
+- Project / Goal / Contribution
+- Settlement / Distribution
+- `ANALYZE`, `PROPOSE`, `TRANSLATE`
+- AgentTask 基盤の拡張
+
+## 現時点のBeta
+
+- AI Office の拡張
+- metrics 収集と分析
+- Gas support
+- Event 機能
+- 高度な bridge / CCTP 運用
 
 ## 現時点でまだ本命にしないもの
 
@@ -47,4 +64,4 @@ AIがやること:
 - 完全自動意思決定
 - オンチェーン自動執行の拡張
 - 多業種展開
-
+- beta 機能の本命導線への過剰な混在

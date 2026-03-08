@@ -2,9 +2,15 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AgentTaskOutput } from "@/components/mypage/AgentTaskOutputViews";
+import type { TaskType } from "@/lib/agentTaskParsers";
+
 type Platform = "YOUTUBE" | "X" | "INSTAGRAM" | "TIKTOK";
-type TaskType = "ANALYZE" | "PROPOSE" | "TRANSLATE";
 type TaskFilter = "ALL" | "WAITING_APPROVAL";
+type TranslationLang = "ja" | "en" | "ko" | "zh";
+type DraftTone = "warm" | "formal" | "casual";
+type AnnouncementChannel = "SUPPORTERS" | "GENERAL";
+type SupporterMessagePurpose = "THANK_YOU" | "REENGAGEMENT";
 
 type SocialConnectionView = {
   id: string;
@@ -216,289 +222,56 @@ function parseMetricTrends(json: unknown): MetricTrendDayView[] {
   return out;
 }
 
-function stringifyOutput(v: unknown): string {
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return "{}";
-  }
-}
-
-type AnalyzeOutputView = {
-  summary: string;
-  keyInsights: string[];
-  nextActions: string[];
-  totals: {
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-  } | null;
-  topPlatform: string | null;
-  topRateText: string | null;
-  trendPoints: Array<{
-    date: string;
-    views: number;
-    interactionRate: number;
-  }>;
-  viewsDeltaPct: number | null;
-  rateDeltaPct: number | null;
-};
-
-function parseAnalyzeOutput(v: unknown): AnalyzeOutputView | null {
-  if (!isRecord(v)) return null;
-  const summary = asStringOrNull(v.summary);
-  if (!summary) return null;
-
-  const keyInsights = asArray(v.keyInsights)
-    .map(asStringOrNull)
-    .filter((x): x is string => !!x);
-  const nextActions = asArray(v.nextActions)
-    .map(asStringOrNull)
-    .filter((x): x is string => !!x);
-
-  const metrics = isRecord(v.metrics) ? v.metrics : null;
-  const totalsRaw = metrics && isRecord(metrics.totals) ? metrics.totals : null;
-  const totals = totalsRaw
-    ? {
-        views: asNumberOrNull(totalsRaw.views) ?? 0,
-        likes: asNumberOrNull(totalsRaw.likes) ?? 0,
-        comments: asNumberOrNull(totalsRaw.comments) ?? 0,
-        shares: asNumberOrNull(totalsRaw.shares) ?? 0,
-      }
-    : null;
-
-  const byPlatform = metrics ? asArray(metrics.byPlatform) : [];
-  let topPlatform: string | null = null;
-  let topRateText: string | null = null;
-  const first = byPlatform[0];
-  if (isRecord(first)) {
-    topPlatform = asStringOrNull(first.platform);
-    const rate = asNumberOrNull(first.interactionRate);
-    if (typeof rate === "number") {
-      topRateText = `${(rate * 100).toFixed(2)}%`;
-    }
-  }
-
-  const trendRaw = metrics && isRecord(metrics.trend) ? metrics.trend : null;
-  const trendPointsRaw = trendRaw ? asArray(trendRaw.points) : [];
-  const trendPoints: Array<{
-    date: string;
-    views: number;
-    interactionRate: number;
-  }> = [];
-  for (const point of trendPointsRaw) {
-    if (!isRecord(point)) continue;
-    const date = asStringOrNull(point.date);
-    if (!date) continue;
-    trendPoints.push({
-      date,
-      views: asNumberOrNull(point.views) ?? 0,
-      interactionRate: asNumberOrNull(point.interactionRate) ?? 0,
-    });
-  }
-  const viewsDeltaPct = trendRaw ? asNumberOrNull(trendRaw.viewsDeltaPct) : null;
-  const rateDeltaPct = trendRaw ? asNumberOrNull(trendRaw.rateDeltaPct) : null;
-
-  return {
-    summary,
-    keyInsights,
-    nextActions,
-    totals,
-    topPlatform,
-    topRateText,
-    trendPoints,
-    viewsDeltaPct,
-    rateDeltaPct,
+function buildTaskInput(params: {
+  taskType: TaskType;
+  translationInput: string;
+  translationLang: TranslationLang;
+  reportingWindowDays: number;
+  draftTone: DraftTone;
+  announcementChannel: AnnouncementChannel;
+  includeMetricsSummary: boolean;
+  includeSupportSummary: boolean;
+  supporterMessagePurpose: SupporterMessagePurpose;
+}): Record<string, unknown> {
+  const common = {
+    source: "mypage",
+    requestedAt: new Date().toISOString(),
   };
-}
 
-function AnalyzeOutputCard(props: { output: AnalyzeOutputView }) {
-  const { output } = props;
-  const points = output.trendPoints.slice(-5);
-  const viewsDeltaText =
-    output.viewsDeltaPct == null
-      ? null
-      : `${output.viewsDeltaPct >= 0 ? "+" : ""}${(
-          output.viewsDeltaPct * 100
-        ).toFixed(1)}%`;
-  const rateDeltaText =
-    output.rateDeltaPct == null
-      ? null
-      : `${output.rateDeltaPct >= 0 ? "+" : ""}${(
-          output.rateDeltaPct * 100
-        ).toFixed(1)}%`;
-  return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
-      {output.totals ? (
-        <div className="grid grid-cols-2 gap-1">
-          <div>views: {output.totals.views}</div>
-          <div>likes: {output.totals.likes}</div>
-          <div>comments: {output.totals.comments}</div>
-          <div>shares: {output.totals.shares}</div>
-        </div>
-      ) : null}
-      {output.topPlatform ? (
-        <div>
-          top: {output.topPlatform}
-          {output.topRateText ? ` (${output.topRateText})` : ""}
-        </div>
-      ) : null}
-      {viewsDeltaText || rateDeltaText ? (
-        <div>
-          delta
-          {viewsDeltaText ? ` views:${viewsDeltaText}` : ""}
-          {rateDeltaText ? ` rate:${rateDeltaText}` : ""}
-        </div>
-      ) : null}
-      {points.length > 0 ? (
-        <div className="rounded border bg-white p-1">
-          {points.map((point) => (
-            <div key={point.date} className="text-[10px] text-gray-700">
-              {point.date} v:{point.views} r:{(point.interactionRate * 100).toFixed(1)}%
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {output.keyInsights.length > 0 ? (
-        <ul className="list-disc pl-4">
-          {output.keyInsights.slice(0, 2).map((insight, idx) => (
-            <li key={`${insight}:${idx.toString()}`}>{insight}</li>
-          ))}
-        </ul>
-      ) : null}
-      {output.nextActions.length > 0 ? (
-        <ul className="list-disc pl-4">
-          {output.nextActions.slice(0, 2).map((action, idx) => (
-            <li key={`${action}:${idx.toString()}`}>{action}</li>
-          ))}
-        </ul>
-      ) : null}
-    </div>
-  );
-}
-
-type ProposeOutputView = {
-  summary: string;
-  proposals: string[];
-  metricsHint: Array<{
-    platform: string;
-    posts: number;
-    interactionRate: number;
-    interactions: number;
-    views: number;
-  }>;
-};
-
-function parseProposeOutput(v: unknown): ProposeOutputView | null {
-  if (!isRecord(v)) return null;
-  const summary = asStringOrNull(v.summary);
-  if (!summary) return null;
-  const proposals = asArray(v.proposals)
-    .map(asStringOrNull)
-    .filter((x): x is string => !!x);
-  if (proposals.length === 0) return null;
-  const hintRows = asArray(v.metricsHint);
-  const metricsHint: Array<{
-    platform: string;
-    posts: number;
-    interactionRate: number;
-    interactions: number;
-    views: number;
-  }> = [];
-  for (const row of hintRows) {
-    if (!isRecord(row)) continue;
-    const platform = asStringOrNull(row.platform);
-    if (!platform) continue;
-    metricsHint.push({
-      platform,
-      posts: asNumberOrNull(row.posts) ?? 0,
-      interactionRate: asNumberOrNull(row.interactionRate) ?? 0,
-      interactions: asNumberOrNull(row.interactions) ?? 0,
-      views: asNumberOrNull(row.views) ?? 0,
-    });
+  switch (params.taskType) {
+    case "TRANSLATE":
+      return {
+        ...common,
+        text: params.translationInput.trim(),
+        from: "auto",
+        to: [params.translationLang],
+      };
+    case "WEEKLY_REPORT":
+      return {
+        ...common,
+        reportingWindowDays: params.reportingWindowDays,
+      };
+    case "ANNOUNCEMENT_DRAFT":
+      return {
+        ...common,
+        channel: params.announcementChannel,
+        tone: params.draftTone,
+        reportingWindowDays: params.reportingWindowDays,
+        includeMetricsSummary: params.includeMetricsSummary,
+        includeSupportSummary: params.includeSupportSummary,
+      };
+    case "SUPPORTER_MESSAGE_DRAFT":
+      return {
+        ...common,
+        purpose: params.supporterMessagePurpose,
+        tone: params.draftTone,
+        reportingWindowDays: params.reportingWindowDays,
+        includeMetricsSummary: params.includeMetricsSummary,
+        includeSupportSummary: params.includeSupportSummary,
+      };
+    default:
+      return common;
   }
-  return { summary, proposals, metricsHint };
-}
-
-function ProposeOutputCard(props: { output: ProposeOutputView }) {
-  const { output } = props;
-  return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
-      {output.metricsHint.length > 0 ? (
-        <div className="rounded border bg-white p-1">
-          {output.metricsHint.slice(0, 3).map((item) => (
-            <div
-              key={item.platform}
-              className="text-[10px] text-gray-700"
-            >
-              {item.platform} posts:{item.posts} rate:
-              {(item.interactionRate * 100).toFixed(1)}% (
-              {item.interactions}/{item.views})
-            </div>
-          ))}
-        </div>
-      ) : null}
-      <div className="grid gap-1">
-        {output.proposals.slice(0, 3).map((proposal, idx) => (
-          <div
-            key={`${proposal}:${idx.toString()}`}
-            className="rounded border bg-white px-2 py-1 text-gray-800"
-          >
-            {idx + 1}. {proposal}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-type TranslateOutputView = {
-  summary: string;
-  translations: Array<{
-    lang: string;
-    text: string;
-  }>;
-};
-
-function parseTranslateOutput(v: unknown): TranslateOutputView | null {
-  if (!isRecord(v)) return null;
-  const summary = asStringOrNull(v.summary);
-  if (!summary) return null;
-
-  const rows = asArray(v.translations);
-  const translations: Array<{ lang: string; text: string }> = [];
-  for (const row of rows) {
-    if (!isRecord(row)) continue;
-    const lang = asStringOrNull(row.lang);
-    const text = asStringOrNull(row.text);
-    if (!lang || !text) continue;
-    translations.push({ lang, text });
-  }
-  if (translations.length === 0) return null;
-  return { summary, translations };
-}
-
-function TranslateOutputCard(props: { output: TranslateOutputView }) {
-  const { output } = props;
-  return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
-      <div className="grid gap-1">
-        {output.translations.slice(0, 4).map((item, idx) => (
-          <div
-            key={`${item.lang}:${idx.toString()}`}
-            className="rounded border bg-white px-2 py-1 text-gray-800"
-          >
-            <div className="text-[10px] text-gray-500">{item.lang}</div>
-            <div className="whitespace-pre-wrap">{item.text}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export function AiOfficePanel(props: {
@@ -534,7 +307,17 @@ export function AiOfficePanel(props: {
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("ALL");
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [translationInput, setTranslationInput] = useState<string>("");
-  const [translationLang, setTranslationLang] = useState<"ja" | "en" | "ko" | "zh">("en");
+  const [translationLang, setTranslationLang] = useState<TranslationLang>("en");
+  const [reportingWindowDays, setReportingWindowDays] = useState<number>(7);
+  const [draftTone, setDraftTone] = useState<DraftTone>("warm");
+  const [announcementChannel, setAnnouncementChannel] =
+    useState<AnnouncementChannel>("SUPPORTERS");
+  const [includeMetricsSummary, setIncludeMetricsSummary] =
+    useState<boolean>(true);
+  const [includeSupportSummary, setIncludeSupportSummary] =
+    useState<boolean>(true);
+  const [supporterMessagePurpose, setSupporterMessagePurpose] =
+    useState<SupporterMessagePurpose>("THANK_YOU");
   const [translationResult, setTranslationResult] = useState<string>("");
   const [approvalNote, setApprovalNote] = useState<string>("");
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -563,49 +346,28 @@ export function AiOfficePanel(props: {
     setMessage(null);
 
     try {
-      const [connRes, taskRes] = await Promise.all([
-        fetch(`/api/social/connections?address=${encodeURIComponent(walletAddress)}`, {
-          cache: "no-store",
-        }),
-        fetch(
-          `/api/agent/tasks?address=${encodeURIComponent(walletAddress)}${
-            taskFilter === "WAITING_APPROVAL" ? "&status=WAITING_APPROVAL" : ""
-          }`,
-          { cache: "no-store" }
-        ),
-      ]);
-      const metricsRes = await fetch(
-        `/api/metrics/snapshots?address=${encodeURIComponent(walletAddress)}${
+      const dashboardRes = await fetch(
+        `/api/ai-office/dashboard?address=${encodeURIComponent(walletAddress)}${
           projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""
-        }&limit=20`,
+        }${
+          taskFilter === "WAITING_APPROVAL" ? "&status=WAITING_APPROVAL" : ""
+        }&metricLimit=20&trendDays=7&taskLimit=30`,
         { cache: "no-store" }
       );
-      const trendsRes = await fetch(
-        `/api/metrics/trends?address=${encodeURIComponent(walletAddress)}${
-          projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""
-        }&days=7`,
-        { cache: "no-store" }
-      );
+      const dashboardJson: unknown = await dashboardRes.json().catch(() => null);
 
-      const connJson: unknown = await connRes.json().catch(() => null);
-      const taskJson: unknown = await taskRes.json().catch(() => null);
-      const metricsJson: unknown = await metricsRes.json().catch(() => null);
-      const trendsJson: unknown = await trendsRes.json().catch(() => null);
-
-      if (connRes.ok) setConnections(parseConnections(connJson));
-      if (taskRes.ok) setTasks(parseTasks(taskJson));
-      if (metricsRes.ok) {
-        const parsed = parseMetrics(metricsJson);
-        setMetricsTotals(parsed.totals);
-        setMetricsSnapshots(parsed.snapshots);
-      }
-      if (trendsRes.ok) {
-        setMetricTrends(parseMetricTrends(trendsJson));
+      if (!dashboardRes.ok || !isRecord(dashboardJson)) {
+        setMessage("AI事務所データの取得に失敗しました。");
+        return;
       }
 
-      if (!connRes.ok || !taskRes.ok || !metricsRes.ok || !trendsRes.ok) {
-        setMessage("一部データの取得に失敗しました。");
-      }
+      setConnections(parseConnections({ connections: dashboardJson.connections }));
+      setTasks(parseTasks({ tasks: dashboardJson.tasks }));
+
+      const parsedMetrics = parseMetrics(dashboardJson.metrics);
+      setMetricsTotals(parsedMetrics.totals);
+      setMetricsSnapshots(parsedMetrics.snapshots);
+      setMetricTrends(parseMetricTrends(dashboardJson.trends));
     } catch {
       setMessage("AI事務所データの取得に失敗しました。");
     } finally {
@@ -620,6 +382,29 @@ export function AiOfficePanel(props: {
   useEffect(() => {
     setSelectedTaskIds((prev) => prev.filter((id) => waitingTaskIds.includes(id)));
   }, [waitingTaskIds]);
+
+  useEffect(() => {
+    if (taskType === "WEEKLY_REPORT" && reportingWindowDays !== 7) {
+      setReportingWindowDays(7);
+    }
+    if (taskType === "ANNOUNCEMENT_DRAFT") {
+      if (reportingWindowDays !== 7) setReportingWindowDays(7);
+      if (announcementChannel !== "SUPPORTERS") setAnnouncementChannel("SUPPORTERS");
+      if (!includeMetricsSummary) setIncludeMetricsSummary(true);
+      if (!includeSupportSummary) setIncludeSupportSummary(true);
+    }
+    if (taskType === "SUPPORTER_MESSAGE_DRAFT") {
+      if (reportingWindowDays !== 30) setReportingWindowDays(30);
+      if (includeMetricsSummary) setIncludeMetricsSummary(false);
+      if (!includeSupportSummary) setIncludeSupportSummary(true);
+    }
+  }, [
+    announcementChannel,
+    includeMetricsSummary,
+    includeSupportSummary,
+    reportingWindowDays,
+    taskType,
+  ]);
 
   async function addConnection(): Promise<void> {
     if (!walletAddress) return;
@@ -699,17 +484,17 @@ export function AiOfficePanel(props: {
     setLoading(true);
     setMessage(null);
 
-    const taskInput: Record<string, unknown> =
-      taskType === "TRANSLATE"
-        ? {
-            text: translationInput.trim(),
-            from: "auto",
-            to: [translationLang],
-          }
-        : {
-            source: "mypage",
-            requestedAt: new Date().toISOString(),
-          };
+    const taskInput = buildTaskInput({
+      taskType,
+      translationInput,
+      translationLang,
+      reportingWindowDays,
+      draftTone,
+      announcementChannel,
+      includeMetricsSummary,
+      includeSupportSummary,
+      supporterMessagePurpose,
+    });
 
     if (
       taskType === "TRANSLATE" &&
@@ -968,6 +753,9 @@ export function AiOfficePanel(props: {
               <option value="PROPOSE">PROPOSE</option>
               <option value="ANALYZE">ANALYZE</option>
               <option value="TRANSLATE">TRANSLATE</option>
+              <option value="WEEKLY_REPORT">WEEKLY_REPORT</option>
+              <option value="ANNOUNCEMENT_DRAFT">ANNOUNCEMENT_DRAFT</option>
+              <option value="SUPPORTER_MESSAGE_DRAFT">SUPPORTER_MESSAGE_DRAFT</option>
             </select>
             <label className="inline-flex items-center gap-1 text-xs text-gray-700">
               <input
@@ -986,6 +774,184 @@ export function AiOfficePanel(props: {
             >
               AIタスク作成
             </button>
+          </div>
+          <div className="rounded border p-3 space-y-3">
+            <div className="text-xs text-gray-500">Task Input</div>
+            {taskType === "TRANSLATE" ? (
+              <>
+                <textarea
+                  className="w-full rounded border px-2 py-2 text-sm"
+                  value={translationInput}
+                  onChange={(e) => setTranslationInput(e.target.value)}
+                  placeholder="翻訳したい文章"
+                  disabled={loading}
+                />
+                <select
+                  className="rounded border px-2 py-2 text-sm"
+                  value={translationLang}
+                  onChange={(e) => setTranslationLang(e.target.value as TranslationLang)}
+                  disabled={loading}
+                >
+                  <option value="ja">ja</option>
+                  <option value="en">en</option>
+                  <option value="ko">ko</option>
+                  <option value="zh">zh</option>
+                </select>
+              </>
+            ) : null}
+            {taskType === "WEEKLY_REPORT" ? (
+              <label className="grid gap-1 text-xs text-gray-700">
+                <span>reporting window days</span>
+                <input
+                  className="rounded border px-2 py-2 text-sm"
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={reportingWindowDays}
+                  onChange={(e) =>
+                    setReportingWindowDays(Math.max(1, Math.min(31, Number(e.target.value) || 7)))
+                  }
+                  disabled={loading}
+                />
+              </label>
+            ) : null}
+            {taskType === "ANNOUNCEMENT_DRAFT" ? (
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <label className="grid gap-1 text-xs text-gray-700">
+                  <span>channel</span>
+                  <select
+                    className="rounded border px-2 py-2 text-sm"
+                    value={announcementChannel}
+                    onChange={(e) =>
+                      setAnnouncementChannel(e.target.value as AnnouncementChannel)
+                    }
+                    disabled={loading}
+                  >
+                    <option value="SUPPORTERS">SUPPORTERS</option>
+                    <option value="GENERAL">GENERAL</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs text-gray-700">
+                  <span>tone</span>
+                  <select
+                    className="rounded border px-2 py-2 text-sm"
+                    value={draftTone}
+                    onChange={(e) => setDraftTone(e.target.value as DraftTone)}
+                    disabled={loading}
+                  >
+                    <option value="warm">warm</option>
+                    <option value="formal">formal</option>
+                    <option value="casual">casual</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs text-gray-700">
+                  <span>reporting window days</span>
+                  <input
+                    className="rounded border px-2 py-2 text-sm"
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={reportingWindowDays}
+                    onChange={(e) =>
+                      setReportingWindowDays(Math.max(1, Math.min(31, Number(e.target.value) || 7)))
+                    }
+                    disabled={loading}
+                  />
+                </label>
+                <div className="flex flex-col justify-end gap-2 text-xs text-gray-700">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={includeMetricsSummary}
+                      onChange={(e) => setIncludeMetricsSummary(e.target.checked)}
+                      disabled={loading}
+                    />
+                    include metrics summary
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={includeSupportSummary}
+                      onChange={(e) => setIncludeSupportSummary(e.target.checked)}
+                      disabled={loading}
+                    />
+                    include support summary
+                  </label>
+                </div>
+              </div>
+            ) : null}
+            {taskType === "SUPPORTER_MESSAGE_DRAFT" ? (
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <label className="grid gap-1 text-xs text-gray-700">
+                  <span>purpose</span>
+                  <select
+                    className="rounded border px-2 py-2 text-sm"
+                    value={supporterMessagePurpose}
+                    onChange={(e) =>
+                      setSupporterMessagePurpose(
+                        e.target.value as SupporterMessagePurpose
+                      )
+                    }
+                    disabled={loading}
+                  >
+                    <option value="THANK_YOU">THANK_YOU</option>
+                    <option value="REENGAGEMENT">REENGAGEMENT</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs text-gray-700">
+                  <span>tone</span>
+                  <select
+                    className="rounded border px-2 py-2 text-sm"
+                    value={draftTone}
+                    onChange={(e) => setDraftTone(e.target.value as DraftTone)}
+                    disabled={loading}
+                  >
+                    <option value="warm">warm</option>
+                    <option value="formal">formal</option>
+                    <option value="casual">casual</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs text-gray-700">
+                  <span>reporting window days</span>
+                  <input
+                    className="rounded border px-2 py-2 text-sm"
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={reportingWindowDays}
+                    onChange={(e) =>
+                      setReportingWindowDays(Math.max(1, Math.min(90, Number(e.target.value) || 30)))
+                    }
+                    disabled={loading}
+                  />
+                </label>
+                <div className="flex flex-col justify-end gap-2 text-xs text-gray-700">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={includeMetricsSummary}
+                      onChange={(e) => setIncludeMetricsSummary(e.target.checked)}
+                      disabled={loading}
+                    />
+                    include metrics summary
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={includeSupportSummary}
+                      onChange={(e) => setIncludeSupportSummary(e.target.checked)}
+                      disabled={loading}
+                    />
+                    include support summary
+                  </label>
+                </div>
+              </div>
+            ) : null}
+            {taskType === "ANALYZE" || taskType === "PROPOSE" ? (
+              <div className="text-xs text-gray-600">
+                この task は現在の project / metrics コンテキストを使って自動生成します。
+              </div>
+            ) : null}
           </div>
           <div className="rounded border p-3 space-y-2">
             <div className="text-xs text-gray-500">承認メモ（承認/却下時に監査ログへ保存）</div>
@@ -1049,7 +1015,7 @@ export function AiOfficePanel(props: {
                 className="rounded border px-2 py-2 text-sm"
                 value={translationLang}
                 onChange={(e) =>
-                  setTranslationLang(e.target.value as "ja" | "en" | "ko" | "zh")
+                  setTranslationLang(e.target.value as TranslationLang)
                 }
                 disabled={loading}
               >
@@ -1172,31 +1138,7 @@ export function AiOfficePanel(props: {
                           </button>
                         </div>
                       ) : null}
-                      {(() => {
-                        const analyze = task.taskType === "ANALYZE"
-                          ? parseAnalyzeOutput(task.output)
-                          : null;
-                        if (analyze) {
-                          return <AnalyzeOutputCard output={analyze} />;
-                        }
-                        const propose = task.taskType === "PROPOSE"
-                          ? parseProposeOutput(task.output)
-                          : null;
-                        if (propose) {
-                          return <ProposeOutputCard output={propose} />;
-                        }
-                        const translate = task.taskType === "TRANSLATE"
-                          ? parseTranslateOutput(task.output)
-                          : null;
-                        if (translate) {
-                          return <TranslateOutputCard output={translate} />;
-                        }
-                        return (
-                          <pre className="mt-1 whitespace-pre-wrap rounded bg-gray-50 p-2 text-[11px]">
-                            {stringifyOutput(task.output)}
-                          </pre>
-                        );
-                      })()}
+                      <AgentTaskOutput taskType={task.taskType} output={task.output} />
                       {task.auditLogs.length > 0 ? (
                         <div className="mt-1 rounded bg-gray-50 p-2 text-[11px]">
                           {task.auditLogs.map((log) => (

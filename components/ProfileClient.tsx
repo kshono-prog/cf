@@ -1,6 +1,7 @@
 /* components/ProfileClient.tsx */
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useChainId } from "wagmi";
@@ -301,8 +302,6 @@ export default function ProfileClient({
       USDC: [],
     });
   const [byChainJpyc, setByChainJpyc] = useState<ProgressByChainRow[]>([]);
-  const [totalsAllChains, setTotalsAllChains] =
-    useState<ProgressTotalsAllChains | null>(null);
 
   // “自動達成” 実行中フラグ（連打防止）
   const [achieving, setAchieving] = useState(false);
@@ -501,19 +500,6 @@ export default function ProfileClient({
         : [];
 
       setByChainJpyc(bc);
-
-      const tac = typed.progress.totalsAllChains as unknown;
-      if (
-        isRecord(tac) &&
-        "JPYC" in tac &&
-        "USDC" in tac &&
-        (typeof tac.JPYC === "string" || tac.JPYC === null) &&
-        (typeof tac.USDC === "string" || tac.USDC === null)
-      ) {
-        setTotalsAllChains({ JPYC: tac.JPYC, USDC: tac.USDC });
-      } else {
-        setTotalsAllChains(null);
-      }
 
       // ---- 既存：progress / goal ----
       const confirmed = Number(
@@ -1026,11 +1012,14 @@ export default function ProfileClient({
                 rel="noopener noreferrer"
                 className="block"
               >
-                <img
+                <Image
                   src={`https://img.youtube.com/vi/${extractYouTubeId(
                     v.url
                   )}/hqdefault.jpg`}
                   alt={v.title}
+                  width={1280}
+                  height={720}
+                  sizes="(min-width: 768px) 768px, 100vw"
                   className="rounded-xl w-full mb-2 shadow-sm hover:opacity-90 transition"
                 />
               </a>
@@ -1078,9 +1067,11 @@ export default function ProfileClient({
         }}
       >
         <div className="flex justify-center mb-2">
-          <img
+          <Image
             src="/icon/creator_founding_white.svg"
             alt="creator founding logo"
+            width={170}
+            height={48}
             className="w-[170px] h-auto opacity-90"
           />
         </div>

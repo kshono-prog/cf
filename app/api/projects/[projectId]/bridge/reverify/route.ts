@@ -27,11 +27,6 @@ const TRANSFER_EVENT = parseAbiItem(
 
 type Params = { projectId: string };
 
-type Body = {
-  address?: unknown; // owner
-  bridgeRunId?: unknown; // optional: 特定 run を指定したい場合
-};
-
 function getAvalancheChain(chainId: number) {
   if (chainId === 43114) return avalanche;
   if (chainId === 43113) return avalancheFuji;

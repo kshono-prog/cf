@@ -9,12 +9,12 @@
 - `ANALYZE`
 - `PROPOSE`
 - `TRANSLATE`
-
-## 将来追加候補
-
 - `WEEKLY_REPORT`
 - `ANNOUNCEMENT_DRAFT`
 - `SUPPORTER_MESSAGE_DRAFT`
+
+## 将来追加候補
+
 - `PROFILE_UPDATE_PROPOSAL`
 
 ## 期待する責務
@@ -89,4 +89,3 @@
 6. UI 起票導線
 7. 履歴表示
 8. spec 更新
-

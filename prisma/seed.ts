@@ -7,14 +7,6 @@ function normalizeAddress(input: string): string {
   return input.trim().toLowerCase();
 }
 
-function mustEnv(name: string): string {
-  const v = process.env[name];
-  if (!v || v.trim().length === 0) {
-    throw new Error(`Missing env: ${name}`);
-  }
-  return v.trim();
-}
-
 function optionalEnv(name: string): string | null {
   const v = process.env[name];
   return v && v.trim().length > 0 ? v.trim() : null;
@@ -137,11 +129,9 @@ async function main(): Promise<void> {
 main()
   .then(async () => {
     await prisma.$disconnect();
-    // eslint-disable-next-line no-console
     console.log("Seed completed.");
   })
   .catch(async (e: unknown) => {
-    // eslint-disable-next-line no-console
     console.error("Seed failed:", e);
     await prisma.$disconnect();
     process.exit(1);

@@ -31,24 +31,6 @@ export default function SwipeNavigationArea({
       : "favorite"
   ) as NavItem;
 
-  const hrefByItem: Record<NavItem, string> = {
-    calendar: `/${username}/events`,
-    favorite: `/${username}`,
-    profile: `/${username}/mypage`,
-  };
-
-  const swipeNextMap: Record<NavItem, NavItem | null> = {
-    calendar: "favorite",
-    favorite: "profile",
-    profile: null,
-  };
-
-  const swipePrevMap: Record<NavItem, NavItem | null> = {
-    calendar: null,
-    favorite: "calendar",
-    profile: "favorite",
-  };
-
   const resetToCenter = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = scrollRef.current;
     if (!el) return;
@@ -57,25 +39,43 @@ export default function SwipeNavigationArea({
     el.scrollTo({ left: width, behavior });
   }, []);
 
-  const handleSwipeNavigate = (direction: "next" | "prev") => {
-    const targetId =
-      direction === "next"
-        ? swipeNextMap[resolvedActive]
-        : swipePrevMap[resolvedActive];
-    if (!targetId) {
-      resetToCenter();
-      return;
-    }
-    const targetHref = hrefByItem[targetId];
-    window.sessionStorage.setItem(navDirectionKey, direction);
-    startTransition(() => {
-      if (pathname !== targetHref) {
-        router.push(targetHref);
-      } else {
-        router.refresh();
+  const handleSwipeNavigate = useCallback(
+    (direction: "next" | "prev") => {
+      const targetHref =
+        resolvedActive === "calendar"
+          ? direction === "next"
+            ? `/${username}`
+            : null
+          : resolvedActive === "favorite"
+          ? direction === "next"
+            ? `/${username}/mypage`
+            : `/${username}/events`
+          : direction === "prev"
+          ? `/${username}`
+          : null;
+      if (!targetHref) {
+        resetToCenter();
+        return;
       }
-    });
-  };
+      window.sessionStorage.setItem(navDirectionKey, direction);
+      startTransition(() => {
+        if (pathname !== targetHref) {
+          router.push(targetHref);
+        } else {
+          router.refresh();
+        }
+      });
+    },
+    [
+      navDirectionKey,
+      pathname,
+      resolvedActive,
+      resetToCenter,
+      router,
+      startTransition,
+      username,
+    ]
+  );
 
   const handleScroll = useCallback(() => {
     if (scrollTimerRef.current) {

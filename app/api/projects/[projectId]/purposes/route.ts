@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Project, Goal, Purpose } from "@prisma/client";
-import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +13,6 @@ function toBigIntOrThrow(v: string): bigint {
   } catch {
     throw new Error("PROJECT_ID_INVALID");
   }
-}
-
-function decToString(d: Prisma.Decimal | null): string | null {
-  return d ? d.toString() : null;
 }
 
 function serializeProject(p: Project) {

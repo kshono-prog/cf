@@ -64,11 +64,6 @@ function normalizeNullIfEmpty(s: string | null): string | null {
   return t === "" ? null : t;
 }
 
-function normalizeLowerHexOrNull(s: string | null): string | null {
-  const t = normalizeNullIfEmpty(s);
-  return t === null ? null : t.toLowerCase();
-}
-
 function normalizeAddressOrThrow(
   s: string | null,
   code: string

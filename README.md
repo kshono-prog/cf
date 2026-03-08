@@ -1,7 +1,10 @@
 # Creator Founding
 
-Creator Founding は、JPYC / USDC を用いてクリエイターを直接応援できる  
-**非 custodial（ノンカストディアル）型の投げ銭 UI プロジェクト**です。
+Creator Founding は、クリエイターの活動・支援・運営タスクをまとめて扱う  
+**クリエイター向け AI事務所の土台**です。
+
+現時点では、JPYC / USDC を使った支援体験と、Project / Goal / Settlement、  
+AI task による運営補助を MVP として扱います。
 
 送金はすべてユーザー自身のウォレットで実行され、本サービスは  
 資金の保管・仲介・代理送金を一切行いません。
@@ -13,10 +16,31 @@ Creator Founding は、JPYC / USDC を用いてクリエイターを直接応援
 - 応援は「支払い」ではなく「継続を支える行為」
 - 1 円・即時・国境を越える
 - クリエイターの活動を **Project 単位**で可視化する
+- 将来的には **承認付き半自動運営の AI事務所** に育てる
 
 ---
 
-## 主な機能
+## 現在の提供範囲
+
+### MVP
+
+- クリエイタープロフィール公開
+- Project / Goal / Contribution 管理
+- Settlement / Distribution の基盤
+- AI task（`ANALYZE`, `PROPOSE`, `TRANSLATE`）
+- AI task 基盤（validator / output schema / executor registry）
+
+### Beta
+
+- AI Office の拡張
+- metrics 収集と分析
+- Gas support
+- Event 機能
+- 高度な bridge / CCTP 運用
+
+---
+
+## 主なMVP機能
 
 ### 1. クリエイタープロフィール
 
@@ -81,7 +105,24 @@ Project は「目標・内訳・進捗」を束ねる最小単位です。
 
 ---
 
-### 5. Reverify（復帰・自動検証）
+### 5. Settlement / Distribution 基盤
+
+- Goal 達成後の settlement 状態管理
+- 配分 plan / 実行結果の保存
+- bridge / distribution の監査用状態保持
+
+---
+
+### 6. AI task（運営補助）
+
+- `ANALYZE`: metrics を元に活動分析
+- `PROPOSE`: 次の企画や投稿方針を提案
+- `TRANSLATE`: 翻訳案を生成
+- `AgentTask` による承認前提の task 運用
+
+---
+
+### 7. Reverify（復帰・自動検証）
 
 - iOS / アプリ内ブラウザでの遷移対策
 - PENDING tx の自動再検証
@@ -95,8 +136,8 @@ Project は「目標・内訳・進捗」を束ねる最小単位です。
 | パス                 | 内容                                 |
 | -------------------- | ------------------------------------ |
 | `/[username]`        | クリエイター公開ページ               |
-| `/[username]/mypage` | プロフィール / Project 管理          |
-| `/api/*`             | Creator / Project / Contribution API |
+| `/[username]/mypage` | プロフィール / Project / AI task 管理 |
+| `/api/*`             | Creator / Project / Contribution / AgentTask API |
 
 ---
 
@@ -158,6 +199,7 @@ Project は「目標・内訳・進捗」を束ねる最小単位です。
 - 送金・資金管理・返金処理は行いません
 - JPYC / USDC の発行主体とは無関係です
 - 投げ銭は **無償の応援**であり、金銭的・物品的な対価は発生しません
+- 完全自動運営ではなく、当面は **承認付き半自動** を前提にします
 
 ---
 
@@ -169,13 +211,12 @@ Project は「目標・内訳・進捗」を束ねる最小単位です。
 
 ---
 
-## 今後の予定（Roadmap）
+## 直近の開発方針
 
-- Allocation（分配）API
-- Avalanche ICTT / ICM を用いた L1 連携
-- Event / Purpose 単位の支援可視化
-- Creator Map（支援関係の可視化）
-- ハッカソン / PoC 向け最小構成化
+- MVP と beta 機能境界を明確にする
+- `AccountPageClient` の責務を分割する
+- lint / type / build を安定化する
+- 新しい AI task を1つ追加して、AgentTask 拡張フローを検証する
 
 ---
 

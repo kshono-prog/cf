@@ -20,18 +20,6 @@ type Currency = "JPYC" | "USDC";
 
 type Provider = "WORMHOLE_UI" | "MANUAL";
 
-type Body = {
-  address?: unknown; // ownerチェック用（接続アドレス）
-  currency?: unknown; // "JPYC" | "USDC"
-  provider?: unknown; // "WORMHOLE_UI" | "MANUAL"
-  dryRun?: unknown;
-  force?: unknown;
-  note?: unknown;
-
-  // 任意: Wormhole UI の prefill に使いたい場合（なくてもOK）
-  // amountHuman?: unknown;
-};
-
 function toCurrency(v: unknown): Currency | null {
   return v === "JPYC" || v === "USDC" ? v : null;
 }
@@ -46,11 +34,7 @@ function toAddressStrict(v: unknown): Address | null {
   return getAddress(v);
 }
 
-function buildWormholeBridgeUrl(params: {
-  // 最低限チェーン同士だけでもOK。トークンやamountはUI側で選べる
-  fromChainId: number; // Polygon=137
-  toChainId: number; // Avalanche=43114 or Fuji=43113
-}): string {
+function buildWormholeBridgeUrl(): string {
   // Wormhole Portal (Token Bridge) の一般的な URL
   // チェーン prefill は仕様変動がありうるため「固定URL + 誘導文」を基本にする
   // 必要なら将来クエリを確定させて組み立てる
@@ -185,10 +169,7 @@ export async function POST(
 
     const now = new Date();
 
-    const wormholeUrl = buildWormholeBridgeUrl({
-      fromChainId: eventFundingChainId,
-      toChainId: liquidityChainId,
-    });
+    const wormholeUrl = buildWormholeBridgeUrl();
 
     const instruction =
       provider === "WORMHOLE_UI"

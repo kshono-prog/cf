@@ -90,10 +90,6 @@ function toOptionalString(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
-function toOptionalNumber(v: unknown): number | undefined {
-  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
-}
-
 function toOptionalBalanceView(v: unknown): BalanceView | null {
   if (!isRecord(v)) return null;
   const raw = toOptionalString(v.raw);
@@ -205,24 +201,6 @@ export function buildAuditCardView(params: {
 // ---------------------------
 // UI building blocks
 // ---------------------------
-function SectionTitle(props: {
-  title: string;
-  description?: string;
-  note?: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="text-lg font-semibold">{props.title}</div>
-      {props.description ? (
-        <div className="text-sm text-gray-600">{props.description}</div>
-      ) : null}
-      {props.note ? (
-        <div className="text-xs text-gray-500">{props.note}</div>
-      ) : null}
-    </div>
-  );
-}
-
 function KeyValueRow(props: {
   label: string;
   value: React.ReactNode;

@@ -109,7 +109,7 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
       ok: true,
       goal: goal ? serializeGoal(goal, unitCurrency) : null,
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json(
       { ok: false, error: "GOAL_GET_FAILED" },
       { status: 500 }
@@ -203,7 +203,7 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
     });
 
     return NextResponse.json({ ok: true, goal: serializeGoal(saved, unitCurrency) });
-  } catch (e) {
+  } catch {
     return NextResponse.json(
       { ok: false, error: "GOAL_SAVE_FAILED" },
       { status: 500 }

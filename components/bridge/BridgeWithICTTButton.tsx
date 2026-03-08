@@ -145,12 +145,6 @@ function toString(v: unknown): string | null {
 function toNumber(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
-function toAddress(v: unknown): Address | null {
-  const s = toString(v);
-  if (!s) return null;
-  if (!isAddress(s)) return null;
-  return s as Address;
-}
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
-import { isRecord, toBigIntOrThrow } from "@/lib/api/guards";
+import { toBigIntOrThrow } from "@/lib/api/guards";
 
 export const dynamic = "force-dynamic";
 

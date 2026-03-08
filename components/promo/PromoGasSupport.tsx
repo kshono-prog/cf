@@ -1,6 +1,8 @@
 // components/promo/PromoGasSupport.tsx
 "use client";
 
+import Image from "next/image";
+
 import { PromoCard } from "./PromoCard";
 
 type Props = {
@@ -11,9 +13,11 @@ export function PromoGasSupport({ headerColor }: Props) {
   return (
     <PromoCard headerColor={headerColor}>
       <div className="flex justify-center mb-4">
-        <img
+        <Image
           src="/icon/gasfaucet.png"
           alt="JPYCユーザーのガス代支援"
+          width={64}
+          height={64}
           className="w-16 h-16 rounded-xl shadow-sm opacity-95"
         />
       </div>

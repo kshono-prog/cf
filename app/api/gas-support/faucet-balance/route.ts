@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getRpcUrls } from "@/app/api/_lib/chain";
 import { buildProvider, filterWorkingRpcUrls } from "@/app/api/_lib/rpc";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const chainId = Number(process.env.CHAIN_ID ?? 137);
     const chainConfig = getChainConfig(chainId);

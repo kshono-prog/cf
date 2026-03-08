@@ -7,6 +7,10 @@ import type {
   SocialLinks,
   YoutubeVideo,
 } from "@/types/creator";
+import {
+  errMyPageMutationResponse,
+  okMyPageMutationResponse,
+} from "@/lib/mypageApiResponses";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +18,7 @@ export const dynamic = "force-dynamic";
    Types
 ========================= */
 
-type ApiOk = { ok: true; creator: CreatorProfile };
 type ApiErr = { ok: false; error: string; detail?: string };
-type ApiRes = ApiOk | ApiErr;
 
 /* =========================
    Constants
@@ -55,16 +57,12 @@ function toOptionalNullableString(v: unknown): string | null | undefined {
   return undefined;
 }
 
-function toOptionalUnknownArray(v: unknown): unknown[] | undefined {
-  return Array.isArray(v) ? v : undefined;
-}
-
 function jsonErr(
   error: string,
   status: number,
   detail?: string
 ): NextResponse<ApiErr> {
-  return NextResponse.json({ ok: false, error, detail }, { status });
+  return errMyPageMutationResponse(error, status, detail);
 }
 
 function normalizeAddress(raw: string): string {
@@ -131,7 +129,7 @@ function assertNoLegacyGoalFields(body: Record<string, unknown>): void {
    PATCH /api/creator
 ========================= */
 
-export async function PATCH(req: NextRequest): Promise<NextResponse<ApiRes>> {
+export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const json: unknown = await req.json().catch(() => null);
     if (!isRecord(json)) {
@@ -281,7 +279,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse<ApiRes>> {
       youtubeVideos: youtubeResult,
     };
 
-    return NextResponse.json({ ok: true, creator: responseCreator });
+    return okMyPageMutationResponse(walletAddress, { creator: responseCreator });
   } catch (e: unknown) {
     console.error("CREATOR_UPDATE_ERROR", e);
     return jsonErr(

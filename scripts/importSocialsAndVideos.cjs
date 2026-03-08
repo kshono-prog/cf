@@ -1,6 +1,6 @@
 // scripts/importSocialsAndVideos.cjs
 
-/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { PrismaClient } = require("@prisma/client");
 const path = require("path");
 

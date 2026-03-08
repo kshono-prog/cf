@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import {
   SOCIAL_ICON_CONFIG,
   type CreatorProfile,
@@ -42,14 +44,13 @@ export function ProfileSummaryServer({
         <div className="relative">
           <div className="rounded-full ring-4 ring-white bg-white p-1">
             {creator.avatarUrl ? (
-              <img
+              <Image
                 src={creator.avatarUrl}
                 alt={`${displayName} のアイコン / Avatar`}
                 width={96}
                 height={96}
-                loading="eager"
-                decoding="async"
                 className="rounded-full object-cover ring-2 ring-indigo-500/30 bg-gray-100 dark:bg-gray-800"
+                priority
               />
             ) : (
               <div
@@ -89,7 +90,7 @@ export function ProfileSummaryServer({
                   aria-label={label}
                   className="text-gray-600 hover:text-gray-900 transition"
                 >
-                  <img src={icon} alt={label} width={22} height={22} />
+                  <Image src={icon} alt={label} width={22} height={22} />
                 </a>
               );
             })}
