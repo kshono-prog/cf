@@ -185,6 +185,17 @@ type GoalAchievePost = {
   progress?: unknown;
 };
 
+function formatSupportAmount(value: number, currency: Currency): string {
+  if (!Number.isFinite(value)) return currency === "USDC" ? "0.00" : "0";
+  if (currency === "USDC") {
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  return Math.floor(value).toLocaleString();
+}
+
 /* ========== メインコンポーネント ========== */
 
 export default function ProfileClient({
@@ -885,122 +896,288 @@ export default function ProfileClient({
       ? hasLegacyOnchainGoal
       : false;
 
+  const displayName = creator.displayName || username;
+  const supportTitle =
+    projectTitle ||
+    creator.goalTitle ||
+    `${displayName}の活動を支援してください`;
+  const supportDescription =
+    creator.profile?.trim() ||
+    "いま進めている活動や制作に必要な支援を、このページから直接送れます。";
+
+  const supportOverview = (() => {
+    if (
+      showDbCard &&
+      resolvedTargetYen != null &&
+      progressTotalYen != null &&
+      resolvedTargetYen > 0
+    ) {
+      return {
+        source: "db" as const,
+        current: progressTotalYen,
+        target: resolvedTargetYen,
+        progressPct: clampPct((progressTotalYen / resolvedTargetYen) * 100),
+        achievedAt: goalAchievedAt,
+        deadline: null,
+      };
+    }
+
+    if (
+      showPublicCard &&
+      publicSummaryState?.progress &&
+      publicSummaryState?.goal?.targetAmountJpyc
+    ) {
+      return {
+        source: "public" as const,
+        current: publicSummaryState.progress.confirmedJpyc,
+        target: publicSummaryState.goal.targetAmountJpyc,
+        progressPct: clampPct(publicSummaryState.progress.progressPct),
+        achievedAt: publicSummaryState.goal.achievedAt,
+        deadline: publicSummaryState.goal.deadline,
+      };
+    }
+
+    if (showLegacyCard && creator.goalTargetJpyc) {
+      const target = creator.goalTargetJpyc;
+      return {
+        source: "legacy" as const,
+        current: 0,
+        target,
+        progressPct: 0,
+        achievedAt: null,
+        deadline: null,
+      };
+    }
+
+    return null;
+  })();
+
+  const supportStatusLabel = supportOverview?.achievedAt
+    ? "目標達成済み"
+    : supportOverview && supportOverview.progressPct >= 100
+      ? "達成圏内"
+      : "支援受付中";
+  const supportMetaLabel = supportOverview?.deadline
+    ? `期限: ${supportOverview.deadline.slice(0, 10)}`
+    : supportOverview
+      ? `${Math.floor(supportOverview.progressPct)}% 達成`
+      : hasProject
+        ? "このページから支援できます"
+        : "支援ページを準備中です";
+
+  function scrollToElement(ref: React.RefObject<HTMLDivElement | null>) {
+    if (typeof window === "undefined") return;
+    window.requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function focusWalletSection() {
+    setLoadWalletSection(true);
+    scrollToElement(walletSectionRef);
+  }
+
   const content = (
     <>
-      <div className="mt-4 flex items-center gap-2">
-        <span className="text-xs text-gray-500">表示通貨</span>
-        {(["JPYC", "USDC"] as const).map((cur) => {
-          const active = viewCurrency === cur;
-          const disabled = !resolvedProjectIdsByCurrency[cur];
-          return (
-            <button
-              key={cur}
-              type="button"
-              onClick={() => setViewCurrency(cur)}
-              disabled={disabled}
-              className={`rounded-full border px-3 py-1 text-xs ${
-                active
-                  ? "border-black bg-black text-white"
-                  : "border-gray-300 bg-white text-gray-700"
-              } disabled:opacity-40`}
-            >
-              {cur}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ========== 1) Phase1: Project Progress（DB集計） 主表示 ========== */}
-      {showDbCard && (
-        <ProjectProgressCard
-          headerColor={headerColor}
-          projectTitle={projectTitle}
-          projectStatus={projectStatus}
-          profileAddressUrl={profileAddressUrl}
-          progressLoading={progressLoading}
-          progressError={progressError}
-          progressTotalYen={progressTotalYen}
-          resolvedTargetYen={resolvedTargetYen}
-          // progressPercent={progressPercent}
-          progressConfirmedCount={progressConfirmedCount}
-          goalAchievedAt={goalAchievedAt}
-          progressReached={progressReached}
-          currencyLabel={viewCurrency}
-          supportedJpycChainIds={supportedJpycChainIds}
-          byChainJpyc={byChainJpyc}
-          // totalsAllChains={totalsAllChains}
-          achieving={achieving}
-          showManualAchieveButton={showManualAchieveButton}
-          onRefresh={() => {
-            void fetchProjectStatusSafe();
-            void fetchProjectProgressSafe();
-          }}
-          onAchieve={() => {
-            void achieveGoalSafe();
-          }}
-        />
-      )}
-
-      {/* ========== 2) Public Summary Goal（/api/public/creator の要約） 代替表示 ========== */}
-      {showPublicCard ? (
-        <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 dark:border-gray-300 bg-white/95 dark:bg-white/95 shadow-sm">
-          <div className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-900">
-                Goal
+      <section className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
+        <div className="space-y-4 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                Creator support
               </div>
-              {publicSummaryState?.goal?.achievedAt ? (
-                <span className="text-[11px] text-emerald-700">達成済み</span>
-              ) : null}
+              <h3 className="mt-2 text-xl font-semibold leading-tight text-gray-900 sm:text-2xl">
+                {supportTitle}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                {supportDescription}
+              </p>
             </div>
-
-            <div className="text-xs text-gray-500 dark:text-gray-600">
-              目標:{" "}
-              {publicSummaryState?.goal
-                ? formatJpyc(publicSummaryState.goal.targetAmountJpyc)
-                : "-"}{" "}
-              JPYC
-              {publicSummaryState?.goal?.deadline ? (
-                <span className="ml-2">
-                  期限: {publicSummaryState.goal.deadline.slice(0, 10)}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="text-sm text-gray-800 dark:text-gray-900">
-              現在:{" "}
-              {publicSummary?.progress
-                ? formatJpyc(publicSummary.progress.confirmedJpyc)
-                : "-"}{" "}
-              JPYC
-            </div>
-
-            <div className="h-2 w-full rounded bg-gray-200 overflow-hidden">
-              <div
-                className="h-2"
-                style={{
-                  backgroundColor: headerColor,
-                  width: `${clampPct(
-                    publicSummaryState?.progress?.progressPct ?? 0
-                  )}%`,
-                }}
-              />
-            </div>
-
-            <div className="text-[11px] text-gray-500 dark:text-gray-600">
-              {Math.floor(
-                clampPct(publicSummaryState?.progress?.progressPct ?? 0)
-              )}
-              % 達成
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                {supportStatusLabel}
+              </span>
+              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600">
+                {supportMetaLabel}
+              </span>
             </div>
           </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
+                いま集まっている支援
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-gray-900">
+                {supportOverview
+                  ? formatSupportAmount(supportOverview.current, viewCurrency)
+                  : "-"}
+              </div>
+              <div className="mt-1 text-xs text-gray-500">{viewCurrency}</div>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
+                目標
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-gray-900">
+                {supportOverview
+                  ? formatSupportAmount(supportOverview.target, viewCurrency)
+                  : creator.goalTargetJpyc
+                    ? formatSupportAmount(creator.goalTargetJpyc, "JPYC")
+                    : "-"}
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                {supportOverview ? viewCurrency : "JPYC"}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
+                進捗
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-gray-900">
+                {supportOverview ? `${Math.floor(supportOverview.progressPct)}%` : "-"}
+              </div>
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{
+                    width: `${supportOverview ? supportOverview.progressPct : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <button
+              type="button"
+              onClick={focusWalletSection}
+              className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
+            >
+              この目標を支援する
+            </button>
+            <div className="text-xs leading-5 text-gray-500">
+              送金は接続したあなたのウォレットから直接実行されます。
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
+            <span className="text-xs text-gray-500">表示通貨</span>
+            {(["JPYC", "USDC"] as const).map((cur) => {
+              const active = viewCurrency === cur;
+              const disabled = !resolvedProjectIdsByCurrency[cur];
+              return (
+                <button
+                  key={cur}
+                  type="button"
+                  onClick={() => setViewCurrency(cur)}
+                  disabled={disabled}
+                  className={`rounded-full border px-3 py-1 text-xs ${
+                    active
+                      ? "border-slate-950 bg-slate-950 text-white"
+                      : "border-gray-200 bg-white text-gray-700"
+                  } disabled:opacity-40`}
+                >
+                  {cur}
+                </button>
+              );
+            })}
+          </div>
+          <div className="border-t border-gray-200 pt-4">
+            {showDbCard ? (
+              <ProjectProgressCard
+                headerColor={headerColor}
+                projectTitle={projectTitle}
+                projectStatus={projectStatus}
+                profileAddressUrl={profileAddressUrl}
+                progressLoading={progressLoading}
+                progressError={progressError}
+                progressTotalYen={progressTotalYen}
+                resolvedTargetYen={resolvedTargetYen}
+                progressConfirmedCount={progressConfirmedCount}
+                goalAchievedAt={goalAchievedAt}
+                progressReached={progressReached}
+                currencyLabel={viewCurrency}
+                supportedJpycChainIds={supportedJpycChainIds}
+                byChainJpyc={byChainJpyc}
+                achieving={achieving}
+                showManualAchieveButton={showManualAchieveButton}
+                embedded
+                onRefresh={() => {
+                  void fetchProjectStatusSafe();
+                  void fetchProjectProgressSafe();
+                }}
+                onAchieve={() => {
+                  void achieveGoalSafe();
+                }}
+              />
+            ) : null}
+            {!showDbCard && showPublicCard ? (
+              <div className="overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
+                <div className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+                      Goal progress
+                    </div>
+                    {publicSummaryState?.goal?.achievedAt ? (
+                      <span className="text-[11px] text-emerald-700">達成済み</span>
+                    ) : null}
+                  </div>
+
+                  <div className="text-sm font-semibold text-gray-900">
+                    {supportTitle}
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    目標:{" "}
+                    {publicSummaryState?.goal
+                      ? formatJpyc(publicSummaryState.goal.targetAmountJpyc)
+                      : "-"}{" "}
+                    JPYC
+                    {publicSummaryState?.goal?.deadline ? (
+                      <span className="ml-2">
+                        期限: {publicSummaryState.goal.deadline.slice(0, 10)}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="text-sm text-gray-800">
+                    現在:{" "}
+                    {publicSummary?.progress
+                      ? formatJpyc(publicSummary.progress.confirmedJpyc)
+                      : "-"}{" "}
+                    JPYC
+                  </div>
+
+                  <div className="h-2 w-full overflow-hidden rounded bg-gray-200">
+                    <div
+                      className="h-2"
+                      style={{
+                        backgroundColor: headerColor,
+                        width: `${clampPct(
+                          publicSummaryState?.progress?.progressPct ?? 0
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="text-[11px] text-gray-500">
+                    {Math.floor(
+                      clampPct(publicSummaryState?.progress?.progressPct ?? 0)
+                    )}
+                    % 達成
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
-      ) : null}
+      </section>
 
       {/* YouTube 動画ブロック */}
       {creator.youtubeVideos && creator.youtubeVideos.length > 0 && (
-        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-50 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-300">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-900 mb-2">
+        <div className="mt-6 rounded-3xl border border-gray-200/80 bg-gray-50 p-5 shadow-sm">
+          <h3 className="mb-2 text-sm font-semibold text-gray-800">
             🎬 紹介動画 / Featured Videos
           </h3>
 
@@ -1024,11 +1201,11 @@ export default function ProfileClient({
                 />
               </a>
 
-              <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-900 mb-2 mt-4">
+              <h4 className="mb-2 mt-4 text-sm font-semibold text-gray-800">
                 {v.title}
               </h4>
 
-              <p className="text-sm text-gray-600 dark:text-gray-700 leading-relaxed mb-3">
+              <p className="mb-3 text-sm leading-relaxed text-gray-600">
                 {v.description}
               </p>
             </div>
@@ -1099,15 +1276,14 @@ export default function ProfileClient({
   /* ========== 表示部分 ========== */
   return (
     <div className="container-narrow py-8 force-light-theme">
-      <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
         {/* プロフィールヘッダー */}
         <ProfileHeader
           username={username}
           creator={creator}
           headerColor={headerColor}
         />
-
-        <div className="px-4">{content}</div>
+        <div className="bg-stone-50/70 px-4 pb-4">{content}</div>
       </div>
       <MyPageFooter />
     </div>

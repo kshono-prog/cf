@@ -23,7 +23,7 @@ type BridgeCardProps = {
 
 function BridgeCard(props: BridgeCardProps) {
   return (
-    <div className="rounded-lg border p-3 space-y-2">
+    <div className="space-y-3 rounded-lg border p-3">
       <div className="text-sm font-medium">{props.title}</div>
       <a
         href="https://portalbridge.com/"
@@ -33,40 +33,44 @@ function BridgeCard(props: BridgeCardProps) {
       >
         推奨ブリッジを開く（Wormhole）
       </a>
-      <div className="text-xs">
+      <div className="text-[11px] text-gray-600 sm:text-xs">
         状態: {getBridgeStepStatusLabel(props.done ? "COMPLETED" : "PENDING")}
       </div>
       <input
-        className="w-full rounded border px-2 py-1.5 text-xs"
+        className="w-full rounded border px-3 py-2 text-sm sm:px-2 sm:py-1.5 sm:text-xs"
         placeholder="ブリッジ済み金額（atomic 単位）"
         value={props.amount}
         onChange={(e) => props.onChangeAmount(e.target.value)}
         inputMode="numeric"
       />
       <input
-        className="w-full rounded border px-2 py-1.5 text-xs font-mono"
+        className="w-full rounded border px-3 py-2 text-sm font-mono sm:px-2 sm:py-1.5 sm:text-xs"
         placeholder="txHash（任意）"
         value={props.txHash}
         onChange={(e) => props.onChangeTxHash(e.target.value)}
       />
-      <button
-        type="button"
-        className="rounded bg-black text-white px-3 py-1.5 text-xs disabled:opacity-40"
-        onClick={props.onRecord}
-        disabled={props.loading || !props.walletAddress}
-      >
-        完了を記録
-      </button>
-      <button
-        type="button"
-        className="rounded border px-3 py-1.5 text-xs disabled:opacity-40"
-        onClick={props.onRunNow}
-        disabled={props.loading || !props.walletAddress || props.bridgeNowBusy}
-      >
-        {props.bridgeNowBusy ? "ウォレットで実行中..." : "ウォレットで実行する"}
-      </button>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          className="w-full rounded bg-black px-3 py-2 text-sm text-white disabled:opacity-40 sm:py-1.5 sm:text-xs"
+          onClick={props.onRecord}
+          disabled={props.loading || !props.walletAddress}
+        >
+          完了を記録
+        </button>
+        <button
+          type="button"
+          className="w-full rounded border px-3 py-2 text-sm disabled:opacity-40 sm:py-1.5 sm:text-xs"
+          onClick={props.onRunNow}
+          disabled={
+            props.loading || !props.walletAddress || props.bridgeNowBusy
+          }
+        >
+          {props.bridgeNowBusy ? "ウォレットで実行中..." : "ウォレットで実行する"}
+        </button>
+      </div>
       {props.bridgeNowStatus ? (
-        <div className="text-[11px] text-gray-600 break-all">
+        <div className="break-all text-[11px] leading-5 text-gray-600">
           {getSettlementMessage(props.bridgeNowStatus)}
         </div>
       ) : null}
@@ -97,7 +101,7 @@ export function ProjectSettlementBridgeSection(
   props: ProjectSettlementBridgeSectionProps
 ) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       <BridgeCard
         title="Polygon → Avalanche"
         done={props.polygonDone}

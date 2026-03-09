@@ -85,6 +85,13 @@
 - shared feedback pattern を `settlement` と主要 `mypage` view に広げた
 - `settlement` を guided `Bridge -> Draft -> Preflight -> Execute -> Review` flow に整理
 - `settlement` の `CCTP` と `manual result` を advanced controls に寄せ、通常 review は実行ログ中心に整理
+- `settlement` の mobile 情報密度を下げ、step cards と各 section の主要操作を縦積み中心に整理
+- 公開プロフィールの fold 上に support hero を追加し、`何を支援するか -> 進捗 -> すぐ支援` の順に整理
+- 公開プロフィールをライトモードに統一し、支援前後の安心感を上げる文言を hero と wallet 導線へ追加
+- 公開プロフィールの情報優先順位を再調整し、進捗詳細を wallet より上へ戻して安心文言を簡潔化
+- 公開プロフィールの wallet section を `接続 -> ネットワーク -> 通貨 -> 金額 -> 送金` の順に整理し、動画の後に配置
+- 公開プロフィールの header / goal / video / wallet / footer の surface tone を揃え、全体をライト基調で統一
+- 公開プロフィールの `Creator support` と `Goal/進捗` を同じ surface にまとめ、footer は元の見え方へ戻した
 
 ## 進行中の重点課題
 
@@ -132,11 +139,11 @@ AIが自動で進めてよい:
 
 ## 次に着手するタスク
 
-1. guided `settlement` と advanced controls 境界を手動確認して微調整する
-2. `AI Office` の guided flow をさらに強めるか、現状で十分かを手動確認で判断する
-3. `creatorReady` の first view 追加後の section label / CTA hierarchy を手動確認して詰める
-4. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
-5. Issue / PR / Codex workflow の試運転対象を1つ決める
+1. 公開プロフィールの視覚トーン統一後の見え方と wallet 入力導線を手動確認して微調整する
+2. guided `settlement` と mobile 密度調整後の見え方を手動確認して微調整する
+3. `AI Office` の guided flow をさらに強めるか、現状で十分かを手動確認で判断する
+4. `creatorReady` の first view 追加後の section label / CTA hierarchy を手動確認して詰める
+5. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
 
 直近完了:
 
@@ -158,6 +165,8 @@ AIが自動で進めてよい:
 - shared notice / empty-state pattern を `settlement` と主要 `mypage` view に広げた
 - `settlement` を guided `Bridge / Draft / Preflight / Execute / Review` 順に並べ、current step notice と step overview を追加した
 - `settlement` の `CCTP` と `manual result` を Advanced へ落とし、main flow を軽くした
+- `settlement` の mobile で step cards と各操作行が詰まりすぎないようにレイアウトを調整した
+- 公開プロフィールで支援 CTA を fold 上に移し、wallet section を動画より前に配置した
 
 ## 4週間の実行計画
 

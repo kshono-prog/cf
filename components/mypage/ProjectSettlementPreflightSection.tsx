@@ -26,16 +26,16 @@ export function ProjectSettlementPreflightSection(
 ) {
   return (
     <div className="rounded-lg border p-3 space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
         <div>
           <div className="text-sm font-medium">送信前チェック</div>
-          <div className="mt-1 text-xs text-gray-500">
+          <div className="mt-1 text-[11px] leading-5 text-gray-500 sm:text-xs">
             必要な残高とトークン設定を確認してから、配分実行へ進みます。
           </div>
         </div>
         <button
           type="button"
-          className="rounded border px-4 py-2 text-sm disabled:opacity-40"
+          className="w-full rounded border px-4 py-2 text-sm disabled:opacity-40 sm:w-auto"
           onClick={() => void props.checkBalances("ALL")}
           disabled={props.loading || !props.walletAddress || !props.isConnected}
         >
@@ -49,9 +49,12 @@ export function ProjectSettlementPreflightSection(
           description="配分の下書きを保存したあとでチェックを行うと、必要残高や設定不足をまとめて確認できます。"
         />
       ) : (
-        <div className="rounded border bg-gray-50 p-2 text-xs space-y-1">
+        <div className="space-y-2 rounded border bg-gray-50 p-3 text-[11px] leading-5 sm:p-2 sm:text-xs">
           {props.preflight.map((item) => (
-            <div key={item.token} className="flex flex-wrap items-center gap-2">
+            <div
+              key={item.token}
+              className="flex flex-col gap-1 rounded border border-gray-200 bg-white p-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
+            >
               <span className="font-semibold">{item.token}</span>
               <span>必要額: {item.requiredAtomic.toString()}</span>
               <span>
@@ -61,7 +64,7 @@ export function ProjectSettlementPreflightSection(
                   : item.walletBalanceAtomic.toString()}
               </span>
               <span
-                className={`px-2 py-0.5 rounded border ${
+                className={`w-fit rounded border px-2 py-0.5 ${
                   item.sufficient
                     ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                     : "bg-rose-50 text-rose-700 border-rose-100"

@@ -41,6 +41,7 @@ export type ProjectProgressCardProps = {
   // ボタン制御
   achieving: boolean;
   showManualAchieveButton: boolean;
+  embedded?: boolean;
 
   // Actions（ロジックは親）
   onRefresh: () => void;
@@ -96,6 +97,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
     byChainJpyc,
     achieving,
     onRefresh,
+    embedded = false,
   } = props;
 
   const currentYen = progressTotalYen ?? 0;
@@ -188,21 +190,25 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
     : "—";
 
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div
+      className={`overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm ${
+        embedded ? "" : "mt-4"
+      }`}
+    >
       <div className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs font-semibold text-gray-500">
-              Project progress (DB / CONFIRMED)
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+              Goal progress
             </div>
 
-            <div className="mt-0.5 text-sm font-semibold text-gray-900 break-words">
+            <div className="mt-1 text-sm font-semibold text-gray-900 break-words">
               {projectTitle ?? "プロジェクト"}
             </div>
 
-            <div className="mt-0.5 text-xs text-gray-600">
-              {projectStatus ? `Status: ${projectStatus}` : "Status: -"}
+            <div className="mt-1 text-xs text-gray-600">
+              {projectStatus ? `状態: ${projectStatus}` : "状態: -"}
             </div>
           </div>
 
@@ -287,7 +293,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
           <div className="text-[11px] text-gray-600 space-y-1">
             <div className="flex items-center gap-2">
               <span>
-                CONFIRMED tx:{" "}
+                確認済み tx:{" "}
                 <span className="font-mono text-gray-900">
                   {progressConfirmedCount != null
                     ? progressConfirmedCount
@@ -314,7 +320,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
         </div>
 
         {/* Details (optional) */}
-        <details className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+        <details className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3">
           <summary className="cursor-pointer text-[11px] font-semibold text-gray-700 select-none">
             チェーン別内訳（{currencyLabel} / CONFIRMED）
           </summary>

@@ -35,16 +35,16 @@ export function ProfileHeader({
     <>
       {/* ヘッダー背景 */}
       <div
-        className="h-20 sm:h-28 w-full"
+        className="h-24 w-full sm:h-32"
         style={{
           backgroundColor: headerColor,
           backgroundImage:
-            "linear-gradient(135deg, rgba(255,255,255,0.18), transparent 40%)",
+            "linear-gradient(135deg, rgba(255,255,255,0.30), transparent 45%)",
         }}
       />
 
       {/* メインヘッダー */}
-      <div className="px-6 pb-5 -mt-10 flex flex-col items-center text-center">
+      <div className="-mt-10 flex flex-col items-center px-6 pb-5 text-center sm:-mt-12">
         {/* Avatar */}
         <div className="relative">
           <div className="rounded-full ring-4 ring-white bg-white p-1">
@@ -58,20 +58,20 @@ export function ProfileHeader({
         </div>
 
         {/* 名前 */}
-        <h2 className="mt-3 text-lg sm:text-xl font-semibold text-gray-900">
+        <h2 className="mt-3 text-lg font-semibold text-gray-900 sm:text-2xl">
           {displayName}
         </h2>
 
         {/* プロフィール文 */}
         {creator.profile && (
-          <p className="mt-1 text-sm text-gray-600 leading-snug max-w-[28rem]">
+          <p className="mt-2 max-w-[32rem] text-sm leading-6 text-gray-600">
             {creator.profile}
           </p>
         )}
 
         {/* SNS アイコン */}
         {creator.socials && (
-          <div className="mt-3 flex items-center gap-4 justify-center">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             {SOCIAL_ICON_CONFIG.map(({ key, icon, label }) => {
               const socialKey: SocialKey = key;
               const url = creator.socials?.[socialKey];
@@ -84,7 +84,7 @@ export function ProfileHeader({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="text-gray-600 hover:text-gray-900 transition"
+                  className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 transition hover:border-gray-300 hover:text-gray-900"
                 >
                   <Image src={icon} alt={label} width={22} height={22} />
                 </a>

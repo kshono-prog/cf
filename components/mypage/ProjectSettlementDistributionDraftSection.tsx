@@ -37,16 +37,16 @@ export function ProjectSettlementDistributionDraftSection(
 ) {
   return (
     <div className="rounded-lg border p-3 space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-sm font-medium">配分の下書き</div>
-          <div className="mt-1 text-xs text-gray-500">
+          <div className="mt-1 text-[11px] leading-5 text-gray-500 sm:text-xs">
             送金先と金額を先に整えてから、実行前チェックへ進みます。
           </div>
         </div>
         <button
           type="button"
-          className="rounded border px-3 py-1.5 text-xs"
+          className="w-full rounded border px-3 py-2 text-sm sm:w-auto sm:py-1.5 sm:text-xs"
           onClick={props.addDraftRow}
           disabled={props.loading}
         >
@@ -54,7 +54,7 @@ export function ProjectSettlementDistributionDraftSection(
         </button>
       </div>
 
-      <div className="text-xs text-gray-600">
+      <div className="space-y-1 text-[11px] leading-5 text-gray-600 sm:text-xs">
         合計: {formatBigIntGrouped(props.totals.planned)} / Bridge済み:{" "}
         {formatBigIntGrouped(props.totals.bridged)}
         {props.totals.exceeds ? (
@@ -69,10 +69,10 @@ export function ProjectSettlementDistributionDraftSection(
         {props.rows.map((row, index) => (
           <div
             key={`${row.id ?? "new"}-${index}`}
-            className="grid grid-cols-1 md:grid-cols-12 gap-2 border rounded p-2"
+            className="grid grid-cols-1 gap-2 rounded border p-3 md:grid-cols-12 md:p-2"
           >
             <input
-              className="md:col-span-4 rounded border px-2 py-1.5 text-xs font-mono"
+              className="rounded border px-3 py-2 text-sm font-mono md:col-span-4 md:px-2 md:py-1.5 md:text-xs"
               placeholder="送金先アドレス"
               value={row.recipientAddress}
               onChange={(e) =>
@@ -80,7 +80,7 @@ export function ProjectSettlementDistributionDraftSection(
               }
             />
             <input
-              className="md:col-span-2 rounded border px-2 py-1.5 text-xs"
+              className="rounded border px-3 py-2 text-sm md:col-span-2 md:px-2 md:py-1.5 md:text-xs"
               placeholder="金額（atomic）"
               value={row.amountAtomic}
               onChange={(e) =>
@@ -89,7 +89,7 @@ export function ProjectSettlementDistributionDraftSection(
               inputMode="numeric"
             />
             <select
-              className="md:col-span-2 rounded border px-2 py-1.5 text-xs bg-gray-50"
+              className="rounded border bg-gray-50 px-3 py-2 text-sm md:col-span-2 md:px-2 md:py-1.5 md:text-xs"
               value={row.token}
               disabled
               aria-label="token"
@@ -98,14 +98,14 @@ export function ProjectSettlementDistributionDraftSection(
               <option value="USDC">USDC</option>
             </select>
             <input
-              className="md:col-span-3 rounded border px-2 py-1.5 text-xs"
+              className="rounded border px-3 py-2 text-sm md:col-span-3 md:px-2 md:py-1.5 md:text-xs"
               placeholder="メモ"
               value={row.memo}
               onChange={(e) => props.updateDraft(index, { memo: e.target.value })}
             />
             <button
               type="button"
-              className="md:col-span-1 rounded border px-2 py-1.5 text-xs"
+              className="rounded border px-3 py-2 text-sm md:col-span-1 md:px-2 md:py-1.5 md:text-xs"
               onClick={() => props.removeDraftRow(index)}
             >
               削除
@@ -116,7 +116,7 @@ export function ProjectSettlementDistributionDraftSection(
 
       <button
         type="button"
-        className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+        className="w-full rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40 sm:w-auto"
         onClick={() => {
           void props.saveDistributions();
         }}

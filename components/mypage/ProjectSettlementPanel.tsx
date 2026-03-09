@@ -269,19 +269,19 @@ export function ProjectSettlementPanel(props: Props) {
   };
 
   return (
-    <div className="rounded-xl border bg-white p-4 space-y-4">
-      <div className="flex flex-wrap items-center gap-2 justify-between">
+    <div className="space-y-4 rounded-xl border bg-white p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <div className="font-semibold">
             精算と配分の進行 [{projectCurrency}]
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="mt-1 text-[11px] leading-5 text-gray-500 sm:text-xs">
             本UIは資金を保管しません。送金・ブリッジは必ずユーザー自身のウォレットで実行されます。
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <span
-            className={`text-xs border px-2 py-1 rounded ${statusBadgeClass(
+            className={`w-fit rounded border px-2 py-1 text-xs ${statusBadgeClass(
               panel.settlement?.status ?? "NOT_READY"
             )}`}
           >
@@ -289,7 +289,7 @@ export function ProjectSettlementPanel(props: Props) {
           </span>
           <button
             type="button"
-            className="rounded border px-3 py-1.5 text-xs"
+            className="w-full rounded border px-3 py-2 text-sm sm:w-auto sm:py-1.5 sm:text-xs"
             onClick={() => void panel.recompute()}
             disabled={panel.loading}
           >
@@ -298,7 +298,7 @@ export function ProjectSettlementPanel(props: Props) {
         </div>
       </div>
 
-      <div className="text-xs text-gray-500 -mt-2">
+      <div className="-mt-1 text-[11px] leading-5 text-gray-500 sm:-mt-2 sm:text-xs">
         {panel.settlement ? settlementStatusCopy.helper : emptyStatusCopy.helper}
       </div>
 
@@ -330,7 +330,7 @@ export function ProjectSettlementPanel(props: Props) {
       >
         <button
           type="button"
-          className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 disabled:opacity-40"
+          className="w-full rounded-full border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-900 disabled:opacity-40 sm:w-auto sm:py-1.5 sm:text-xs"
           onClick={() => scrollToStep(currentStep)}
           disabled={panel.loading}
         >

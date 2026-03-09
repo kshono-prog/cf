@@ -4,6 +4,8 @@
 
 - Lock Phase 0 UX information architecture before adding more operator-facing UI
 - Apply the new UX language and primary CTA rules across existing surfaces
+- Strengthen the public profile so first-time visitors can understand and support quickly
+- Keep the public profile in a consistent light theme and explain why supporting here is safe
 - Refine `AI Office` after the new `Overview / Create / Inbox` split
 - Keep AI Office and settlement changes aligned with user-facing language, not internal task names
 - Continue using small Issue-sized tasks so Codex can implement UX changes safely
@@ -15,13 +17,19 @@
 - define screen purpose and primary CTA for public page, mypage, AI Office, and settlement
 - completed: terminology and status-copy rules now exist in docs and are applied to AI Office / settlement
 - completed: shared notice / empty-state pattern now reaches `AI Office`, `settlement`, and key `mypage` views
+- completed: public profile now puts a support hero and wallet CTA above supporting content
+- completed: public profile now shows detailed goal/progress before the wallet section again, while keeping the fold focused
+- completed: wallet section now explains the support flow in steps and prioritizes network, currency, amount, then send
+- completed: public profile now uses a more consistent light-tone surface system across header, goal, video, wallet, and footer
+- completed: support hero and goal/progress now live in one surface, and the footer styling has been restored
 - keep docs/specs as the source of truth before UI refactors
 
 ### Settlement UX
 
 - completed: `settlement` now follows a guided `Bridge -> Draft -> Preflight -> Execute -> Review` structure
 - completed: `CCTP` and `manual result` are now treated as advanced controls, while `execution logs` remain in the main review flow
-- next: hand-check whether the new guided flow feels natural in real creator operations
+- completed: `settlement` now reduces mobile density by stacking step cards, form actions, and review rows on small screens
+- next: hand-check whether the new guided flow feels natural in real creator operations, especially on mobile
 
 ### AI Office
 

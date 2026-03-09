@@ -20,17 +20,17 @@ export function ProjectSettlementDistributionExecutionSection(
   const { entries } = props;
 
   return (
-    <div className="rounded-lg border p-3 space-y-2">
-      <div className="flex flex-wrap items-center gap-2 justify-between">
+    <div className="rounded-lg border p-3 space-y-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
         <div className="text-sm font-medium">配分の実行</div>
-        <div className="text-xs text-gray-500">
+        <div className="text-[11px] leading-5 text-gray-500 sm:text-xs">
           送金は接続ウォレットの署名で1件ずつ実行されます
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         <button
           type="button"
-          className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+          className="w-full rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40"
           onClick={() => void props.executeDistribution("ALL")}
           disabled={!props.canDistribute}
         >
@@ -38,7 +38,7 @@ export function ProjectSettlementDistributionExecutionSection(
         </button>
         <button
           type="button"
-          className="rounded border px-4 py-2 text-sm disabled:opacity-40"
+          className="w-full rounded border px-4 py-2 text-sm disabled:opacity-40"
           onClick={() => void props.executeDistribution("FAILED_ONLY")}
           disabled={
             !props.canDistribute || !entries.some((entry) => entry.status === "FAILED")
@@ -47,7 +47,7 @@ export function ProjectSettlementDistributionExecutionSection(
           失敗分のみ再送
         </button>
       </div>
-      <div className="text-xs text-gray-500">
+      <div className="text-[11px] leading-5 text-gray-500 sm:text-xs">
         {props.hasCheckedPreflight
           ? "送信前チェック完了後に、接続ウォレットの署名で1件ずつ送金します。"
           : "先に Step 3 の送信前チェックを行ってから配分を開始します。"}

@@ -677,18 +677,18 @@ export function ProfileWalletClient({
   return (
     <>
       {showLegacyCard && (
-        <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 dark:border-gray-300 bg-white/95 dark:bg-white/95 shadow-sm">
+        <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
           <div className="p-4">
             <div className="flex justify-between items-baseline mb-2">
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
+                <p className="text-xs font-semibold text-gray-500">
                   目標 / Goal (on-chain balance)
                 </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-900">
+                <p className="text-sm font-medium text-gray-800">
                   {creator.goalTitle}
                 </p>
               </div>
-              <div className="text-right text-xs text-gray-600 dark:text-gray-700">
+              <div className="text-right text-xs text-gray-600">
                 {goalCurrentJpyc != null ? (
                   <>
                     <span className="font-mono">
@@ -724,7 +724,7 @@ export function ProfileWalletClient({
               />
             </div>
 
-            <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-600 leading-relaxed">
+            <div className="mt-2 text-[11px] leading-relaxed text-gray-500">
               <p>
                 Explorer:&nbsp;
                 <a
@@ -806,10 +806,7 @@ export function ProfileWalletClient({
           </div>
         )}
 
-      <p
-        className="mt-4 text-sm text-center text-gray-700 dark:text-gray-800 min-h-6"
-        aria-live="polite"
-      >
+      <p className="mt-4 min-h-6 text-center text-sm text-gray-700" aria-live="polite">
         {status}
       </p>
     </>

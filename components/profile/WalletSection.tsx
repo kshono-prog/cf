@@ -115,18 +115,21 @@ export function WalletSection(props: WalletSectionProps) {
   const requiredChainConfig = getChainConfig(selectedChainId);
 
   return (
-    <div className="mt-6 w-full rounded-2xl border border-gray-200 dark:border-gray-300 bg-white/95 dark:bg-white/95 backdrop-blur p-4 sm:p-5 space-y-3">
+    <div className="mt-6 w-full space-y-4 rounded-3xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
       <div className="text-center">
-        <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-500">
-          Wallet
+        <p className="text-xs uppercase tracking-wide text-gray-500">
+          Support wallet
         </p>
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-900">
+        <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
           {connected
             ? `${walletLabel} に接続済み`
             : isWalletConnecting
             ? "ウォレットに接続中…"
             : "ウォレットに接続して投げ銭する"}
         </h3>
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          接続確認のあとに、ネットワーク、通貨、金額の順で入力します。
+        </p>
       </div>
 
       <div className="grid place-items-center">
@@ -146,6 +149,11 @@ export function WalletSection(props: WalletSectionProps) {
               {isWalletConnecting && (
                 <div className="text-[11px] text-gray-500">接続処理中…</div>
               )}
+              {!isWalletConnecting ? (
+                <div className="text-[11px] text-gray-500">
+                  接続すると、この下に送金手順が表示されます。
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
@@ -170,7 +178,7 @@ export function WalletSection(props: WalletSectionProps) {
 
       {inApp && !connected && (
         <>
-          <p className="mt-2 text-[11px] text-center text-amber-700 dark:text-amber-700 leading-relaxed">
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-amber-700">
             アプリ内ブラウザではウォレットアプリが起動しない場合があります。
             「ブラウザで開く」または「MetaMaskアプリで開く」からアクセスしてください。
           </p>
@@ -190,18 +198,7 @@ export function WalletSection(props: WalletSectionProps) {
       <div className="mt-2 text-center">
         {connected ? (
           <>
-            <div
-              className="
-                mt-3 px-5 py-4
-                border border-gray-200
-                rounded-2xl
-                bg-white
-                shadow-sm
-                inline-block
-                text-left
-                w-[300px]
-              "
-            >
+            <div className="mt-3 inline-block w-full max-w-md rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-left">
               <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 ウォレット残高
               </p>
@@ -292,7 +289,7 @@ export function WalletSection(props: WalletSectionProps) {
               <div className="mt-3 flex justify-end">
                 <button
                   type="button"
-                  className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-600 hover:bg-gray-100"
                   onClick={onRefreshBalances}
                   disabled={walletBalancesLoading}
                 >
@@ -301,7 +298,7 @@ export function WalletSection(props: WalletSectionProps) {
               </div>
             </div>
 
-            <div className="mt-3 flex flex-col items-center gap-1 text-xs text-gray-500 dark:text-gray-600">
+            <div className="mt-3 flex flex-col items-center gap-1 text-xs text-gray-500">
               <div>
                 接続中ネットワーク:{" "}
                 <span className="font-medium">
@@ -311,76 +308,93 @@ export function WalletSection(props: WalletSectionProps) {
                     : "未接続"}
                 </span>
               </div>
+              <div>このあと、送金に使うネットワークと通貨を選びます。</div>
             </div>
 
             {/* 送金UI（ネットワーク一致時のみ） */}
             {showSendUI && (
-              <>
-                <div className="mt-6 mb-2 text-center">
+              <div className="mx-auto mt-6 w-full max-w-2xl rounded-3xl border border-gray-200 bg-gray-50 p-5 text-left">
+                <div className="mb-4 text-center">
                   <h3
-                    className="text-base sm:text-lg font-semibold"
+                    className="text-base font-semibold sm:text-lg"
                     style={{ color: headerColor }}
                   >
                     {creatorDisplayName} さんへの投げ銭
                   </h3>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    下の順番で入力すると、そのまま送金まで進めます。
+                  </p>
                 </div>
 
-                {/* チェーン選択 */}
-                <div className="mt-6">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-800">
-                    ネットワーク / Network
-                  </label>
-                  <div className="mt-1">
-                    <select
-                      className="input w-52 px-2 py-2 text-sm"
-                      value={String(selectedChainId)}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        onChangeChain(v as SupportedChainId);
-                      }}
-                    >
-                      {selectableChainIds.map((id) => {
-                        const cfg = getChainConfig(id);
-                        return (
-                          <option key={String(id)} value={String(id)}>
-                            {cfg?.name ?? `Chain(${id})`}
-                          </option>
-                        );
-                      })}
-                    </select>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                      Step 1
+                    </div>
+                    <label className="mt-1 block text-sm font-medium text-gray-700">
+                      ネットワークを選ぶ
+                    </label>
+                    <div className="mt-2">
+                      <select
+                        className="input w-full px-2 py-2 text-sm"
+                        value={String(selectedChainId)}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          onChangeChain(v as SupportedChainId);
+                        }}
+                      >
+                        {selectableChainIds.map((id) => {
+                          const cfg = getChainConfig(id);
+                          return (
+                            <option key={String(id)} value={String(id)}>
+                              {cfg?.name ?? `Chain(${id})`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                    <div className="mt-2 text-[11px] leading-5 text-gray-500">
+                      ウォレット側のネットワークも同じものに切り替えてください。
+                    </div>
                   </div>
-                  <div className="mt-1 text-[11px] text-gray-500">
-                    ※
-                    この「送金ネットワーク」に合わせてウォレット側も切り替えてください
+
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                      Step 2
+                    </div>
+                    <label className="mt-1 block text-sm font-medium text-gray-700">
+                      通貨を選ぶ
+                    </label>
+                    <div className="mt-2">
+                      <select
+                        className="input w-full px-2 py-2 text-sm"
+                        value={currency}
+                        onChange={(e) =>
+                          onChangeCurrency(e.target.value as Currency)
+                        }
+                      >
+                        <option value="JPYC">JPYC</option>
+                        <option value="USDC">USDC</option>
+                      </select>
+                    </div>
+                    <div className="mt-2 text-[11px] leading-5 text-gray-500">
+                      金額の表示単位も、ここで選んだ通貨に合わせて変わります。
+                    </div>
                   </div>
                 </div>
 
-                {/* 通貨 */}
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-800">
-                    通貨 / Currency
-                  </label>
-                  <div className="mt-1">
-                    <select
-                      className="input w-28 px-2 py-2 text-sm"
-                      value={currency}
-                      onChange={(e) =>
-                        onChangeCurrency(e.target.value as Currency)
-                      }
-                    >
-                      <option value="JPYC">JPYC</option>
-                      <option value="USDC">USDC</option>
-                    </select>
+                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                    Step 3
                   </div>
-                </div>
-
-                {/* 金額 */}
-                <div className="mt-4 space-y-3">
-                  <label className="block text-sm text-gray-700 dark:text-gray-800">
-                    送金金額 / Amount to send
+                  <label className="mt-1 block text-sm font-medium text-gray-700">
+                    金額を入力する
                   </label>
+                  <div className="mt-2 text-[11px] leading-5 text-gray-500">
+                    よく使う金額を選ぶか、直接入力してから送金します。
+                  </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                     <input
                       type="text"
                       className="input flex-1 px-3 py-2"
@@ -394,33 +408,17 @@ export function WalletSection(props: WalletSectionProps) {
                       }}
                     />
 
-                    <span className="text-sm text-gray-500 dark:text-gray-700">
+                    <span className="text-sm text-gray-500">
                       {currency === "JPYC" ? "円 / JPYC" : "USD"}
                     </span>
-
-                    <button
-                      style={{
-                        backgroundColor: headerColor,
-                        color: "#fff",
-                        padding: "0.5rem 1rem",
-                        borderRadius: "0.75rem",
-                        fontWeight: 600,
-                        transition: "0.2s",
-                      }}
-                      onClick={onSend}
-                      disabled={sending || !amount}
-                    >
-                      投げ銭 / Send
-                    </button>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     {incrementButtons.map((b) => (
                       <button
                         key={b.key}
                         type="button"
                         style={{
-                          flex: 1,
                           minHeight: "48px",
                           backgroundColor: headerColor,
                           color: "white",
@@ -436,22 +434,47 @@ export function WalletSection(props: WalletSectionProps) {
                     ))}
                   </div>
 
-                  <div className="mt-6 mb-2 text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-600 mt-1">
+                  <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                      Step 4
+                    </div>
+                    <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs leading-5 text-gray-500">
+                        送金先と金額を確認してから、ウォレットで承認します。
+                      </p>
+                      <button
+                        style={{
+                          backgroundColor: headerColor,
+                          color: "#fff",
+                          padding: "0.75rem 1rem",
+                          borderRadius: "0.75rem",
+                          fontWeight: 600,
+                          transition: "0.2s",
+                        }}
+                        onClick={onSend}
+                        disabled={sending || !amount}
+                      >
+                        投げ銭 / Send
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 text-center">
+                    <p className="mt-1 text-xs text-gray-500">
                       送金先を間違えないようご確認ください
                     </p>
                   </div>
                 </div>
-              </>
+              </div>
             )}
 
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-600 mt-2">
+            <div className="mt-2 flex items-center justify-center gap-2 text-xs text-gray-500">
               <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               <span>接続中</span>
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-600">
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
             <span className="inline-flex h-2 w-2 rounded-full bg-gray-400" />
             <span>未接続</span>
           </div>
@@ -460,7 +483,7 @@ export function WalletSection(props: WalletSectionProps) {
 
       {/* ネットワーク警告 */}
       {connected && onWrongChain && (
-        <div className="mt-3 rounded-xl border border-amber-300/60 bg-amber-50/80 dark:border-amber-300/80 dark:bg-amber-50/80 p-3 text-amber-800">
+        <div className="mt-3 rounded-xl border border-amber-300/60 bg-amber-50/80 p-3 text-amber-800">
           <div className="flex items-start justify-between gap-3">
             <div className="text-xs sm:text-sm">
               ネットワークが違います。選択中のネットワークに切り替えてください。
