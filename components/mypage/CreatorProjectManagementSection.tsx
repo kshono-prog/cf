@@ -6,13 +6,8 @@ import type { Address } from "viem";
 import type { SocialLinks, YoutubeVideo } from "@/types/creator";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
-import { AiOfficeManagementSection } from "@/components/mypage/AiOfficeManagementSection";
 import { CreatorProfileSection } from "@/components/mypage/CreatorProfileSection";
 import { CurrencyProjectManagementBlock } from "@/components/mypage/CurrencyProjectManagementBlock";
-import {
-  SummaryActionsSection,
-  type SummaryActionsSectionProps,
-} from "@/components/mypage/SummaryActionsSection";
 
 type Props = {
   meCreatorUsername: string;
@@ -39,15 +34,12 @@ type Props = {
   onSubmitProfile: (e: React.FormEvent) => void;
   address: Address | undefined;
   isConnected: boolean;
-  localProjectId: string | null;
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
   projectDashboardsByCurrency: {
     JPYC: MyPageProjectDashboard | null;
     USDC: MyPageProjectDashboard | null;
   };
   onActiveProjectIdChange: (pid: string | null, changedCur: CurrencyCode) => void;
-  showSummaryActions: boolean;
-  summaryActionsProps: SummaryActionsSectionProps;
 };
 
 export function CreatorProjectManagementSection(props: Props) {
@@ -86,20 +78,9 @@ export function CreatorProjectManagementSection(props: Props) {
               initialDashboard={props.projectDashboardsByCurrency[cur]}
               walletAddress={props.address ?? null}
               isConnected={props.isConnected}
-              showSummaryActions={props.showSummaryActions}
               onActiveProjectIdChange={props.onActiveProjectIdChange}
             />
           ))}
-
-          <AiOfficeManagementSection
-            walletAddress={props.address ?? null}
-            projectId={props.localProjectId}
-            isConnected={props.isConnected}
-          />
-
-          {props.showSummaryActions ? (
-            <SummaryActionsSection {...props.summaryActionsProps} />
-          ) : null}
         </div>
       }
     />

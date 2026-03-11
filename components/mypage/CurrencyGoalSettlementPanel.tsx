@@ -2,13 +2,11 @@
 
 import React from "react";
 
-import { ProjectSettlementPanel } from "@/components/mypage/ProjectSettlementPanel";
 import { useCurrencyGoalSettlementPanel } from "@/components/mypage/useCurrencyGoalSettlementPanel";
 import {
   formatAmountByCurrency,
   type SummaryViewData,
 } from "@/lib/mypage/accountPageTypes";
-import type { ProjectSettlementData } from "@/lib/projectSettlementView";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 
 export function CurrencyGoalSettlementPanel(props: {
@@ -17,7 +15,6 @@ export function CurrencyGoalSettlementPanel(props: {
   address: string | null;
   isConnected: boolean;
   initialSummary?: SummaryViewData | null;
-  initialSettlementData?: ProjectSettlementData | null;
 }) {
   const {
     currency,
@@ -25,7 +22,6 @@ export function CurrencyGoalSettlementPanel(props: {
     address,
     isConnected,
     initialSummary = null,
-    initialSettlementData = null,
   } = props;
   const {
     summary,
@@ -172,16 +168,6 @@ export function CurrencyGoalSettlementPanel(props: {
                 </span>
               ) : null}
             </div>
-          </div>
-
-          <div className="pt-2">
-            <ProjectSettlementPanel
-              projectId={projectId}
-              walletAddress={address ?? null}
-              isConnected={isConnected}
-              projectCurrency={currency}
-              initialData={initialSettlementData}
-            />
           </div>
         </>
       )}

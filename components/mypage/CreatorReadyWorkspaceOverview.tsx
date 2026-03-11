@@ -2,12 +2,19 @@
 
 import React from "react";
 
-import { WorkspaceEmptyState } from "@/components/mypage/WorkspaceFeedback";
+import {
+  WorkspaceEmptyState,
+  WorkspaceStatusNotice,
+} from "@/components/mypage/WorkspaceFeedback";
 import {
   formatAmountByCurrency,
   type CurrencyCode,
 } from "@/lib/mypage/accountPageTypes";
-import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
+import {
+  hasProjectSummary,
+  type MyPageProjectDashboard,
+} from "@/lib/mypage/dashboardTypes";
+import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
 
 type QuickAction = {
   title: string;
@@ -16,16 +23,54 @@ type QuickAction = {
   onAction: () => void;
 };
 
+type HomeTaskPreview = {
+  id: string;
+  taskType: string;
+};
+
 type Props = {
   username: string;
+  walletAddress: string | null;
+  projectId: string | null;
+  isConnected: boolean;
   projectDashboardsByCurrency: {
     JPYC: MyPageProjectDashboard | null;
     USDC: MyPageProjectDashboard | null;
   };
-  onOpenProjectWorkspace: () => void;
+  onOpenSupportPage: () => void;
+  onOpenSupporterResponse: () => void;
   onOpenPublicPage: () => void;
-  onOpenGasSupport: () => void;
+  onOpenAdvancedSettings: () => void;
 };
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function asArray(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : [];
+}
+
+function asStringOrNull(v: unknown): string | null {
+  return typeof v === "string" ? v : null;
+}
+
+function parseWaitingTasks(json: unknown): HomeTaskPreview[] {
+  if (!isRecord(json)) return [];
+  const tasks = asArray(json.tasks);
+  const parsed: HomeTaskPreview[] = [];
+
+  for (const task of tasks) {
+    if (!isRecord(task)) continue;
+    const id = asStringOrNull(task.id);
+    const taskType = asStringOrNull(task.taskType);
+    const status = asStringOrNull(task.status);
+    if (!id || !taskType || status !== "WAITING_APPROVAL") continue;
+    parsed.push({ id, taskType });
+  }
+
+  return parsed;
+}
 
 function ProjectHealthCard({
   currency,
@@ -34,7 +79,7 @@ function ProjectHealthCard({
   currency: CurrencyCode;
   dashboard: MyPageProjectDashboard | null;
 }) {
-  if (!dashboard) {
+  if (!dashboard?.summary) {
     return (
       <WorkspaceEmptyState
         title={`${currency} の project はまだありません`}
@@ -102,91 +147,183 @@ function ProjectHealthCard({
 }
 
 function buildQuickActions(params: {
-  projectDashboardsByCurrency: Props["projectDashboardsByCurrency"];
-  onOpenProjectWorkspace: () => void;
+  activeDashboards: Array<MyPageProjectDashboard & {
+    summary: NonNullable<MyPageProjectDashboard["summary"]>;
+  }>;
+  waitingApprovalCount: number;
+  onOpenSupportPage: () => void;
+  onOpenSupporterResponse: () => void;
   onOpenPublicPage: () => void;
-  onOpenGasSupport: () => void;
 }): QuickAction[] {
-  const activeDashboards = (["JPYC", "USDC"] as const)
-    .map((currency) => params.projectDashboardsByCurrency[currency])
-    .filter((dashboard): dashboard is MyPageProjectDashboard => dashboard !== null);
-
-  const missingProject = activeDashboards.length === 0;
-  const missingGoal = activeDashboards.some((dashboard) => !dashboard.summary.goal);
-  const reachedGoal = activeDashboards.some(
-    (dashboard) => dashboard.summary.goal?.achievedAt
+  const missingProject = params.activeDashboards.length === 0;
+  const missingGoal = params.activeDashboards.some(
+    (dashboard) => !dashboard.summary.goal
   );
 
   const actions: QuickAction[] = [];
 
-  if (missingProject) {
+  if (params.waitingApprovalCount > 0) {
     actions.push({
-      title: "最初の project を準備する",
-      body: "支援を受ける通貨を決めて、まずは project を1つ作成します。",
-      actionLabel: "運営ワークスペースを開く",
-      onAction: params.onOpenProjectWorkspace,
+      title: "承認待ちを先に片づける",
+      body: "公開前に確認が必要な下書きがあります。まず承認待ちを処理すると、今週の運営が止まりません。",
+      actionLabel: "支援者対応を開く",
+      onAction: params.onOpenSupporterResponse,
+    });
+  } else if (missingProject) {
+    actions.push({
+      title: "最初の支援ページを準備する",
+      body: "支援を受ける通貨を決めて、まずは project と公開情報の土台を作ります。",
+      actionLabel: "支援ページを整える",
+      onAction: params.onOpenSupportPage,
     });
   } else if (missingGoal) {
     actions.push({
       title: "目標金額を設定する",
-      body: "支援ページで何を目指しているかが伝わるように、goal を先に固めます。",
-      actionLabel: "目標設定を開く",
-      onAction: params.onOpenProjectWorkspace,
-    });
-  } else if (reachedGoal) {
-    actions.push({
-      title: "精算と配分の確認を進める",
-      body: "目標達成済みの project があるので、distribution と settlement の状態を確認します。",
-      actionLabel: "運営ワークスペースを開く",
-      onAction: params.onOpenProjectWorkspace,
+      body: "何を目指しているかが伝わるように、goal を先に固めます。",
+      actionLabel: "支援ページを整える",
+      onAction: params.onOpenSupportPage,
     });
   } else {
     actions.push({
-      title: "今週の運営タスクを更新する",
-      body: "進捗に合わせて告知、支援導線、活動レポートを更新する段階です。",
-      actionLabel: "運営ワークスペースを開く",
-      onAction: params.onOpenProjectWorkspace,
+      title: "今週の告知やお礼を進める",
+      body: "今の支援状況を見ながら、支援者向けの下書きと告知を更新する段階です。",
+      actionLabel: "支援者対応を開く",
+      onAction: params.onOpenSupporterResponse,
     });
   }
 
   actions.push({
-    title: "公開ページを確認する",
-    body: "支援者から見える情報とリンクが最新かをすぐ確認できます。",
-    actionLabel: "公開リンクを見る",
-    onAction: params.onOpenPublicPage,
+    title: "支援ページを見直す",
+    body: "プロフィール、goal、公開情報が今の活動内容とずれていないか確認します。",
+    actionLabel: "支援ページを開く",
+    onAction: params.onOpenSupportPage,
   });
 
   actions.push({
-    title: "ガス代支援の状況を見る",
-    body: "必要なときだけ申請や確認を行い、日常作業とは分けて扱います。",
-    actionLabel: "ガス代支援を見る",
-    onAction: params.onOpenGasSupport,
+    title: "公開ページを支援者目線で確認する",
+    body: "支援前に見える情報とリンクが最新かをすぐ確認できます。",
+    actionLabel: "公開ページを確認する",
+    onAction: params.onOpenPublicPage,
   });
 
   return actions;
 }
 
 export function CreatorReadyWorkspaceOverview(props: Props) {
-  const quickActions = buildQuickActions({
-    projectDashboardsByCurrency: props.projectDashboardsByCurrency,
-    onOpenProjectWorkspace: props.onOpenProjectWorkspace,
-    onOpenPublicPage: props.onOpenPublicPage,
-    onOpenGasSupport: props.onOpenGasSupport,
-  });
+  const [loadingAiSummary, setLoadingAiSummary] = React.useState(false);
+  const [aiSummaryError, setAiSummaryError] = React.useState<string | null>(null);
+  const [waitingTasks, setWaitingTasks] = React.useState<HomeTaskPreview[]>([]);
+
+  const activeDashboards = React.useMemo(
+    () =>
+      (["JPYC", "USDC"] as const)
+        .map((currency) => props.projectDashboardsByCurrency[currency])
+        .filter(hasProjectSummary),
+    [props.projectDashboardsByCurrency]
+  );
+
+  const waitingApprovalCount = waitingTasks.length;
+  const settlementAttentionNeeded = React.useMemo(
+    () =>
+      activeDashboards.some((dashboard) => {
+        const status = dashboard.settlement?.settlement.status;
+        return (
+          Boolean(dashboard.summary.goal?.achievedAt) ||
+          status === "BRIDGING" ||
+          status === "READY_FOR_DISTRIBUTION"
+        );
+      }),
+    [activeDashboards]
+  );
+
+  const quickActions = React.useMemo(
+    () =>
+      buildQuickActions({
+        activeDashboards,
+        waitingApprovalCount,
+        onOpenSupportPage: props.onOpenSupportPage,
+        onOpenSupporterResponse: props.onOpenSupporterResponse,
+        onOpenPublicPage: props.onOpenPublicPage,
+      }),
+    [
+      activeDashboards,
+      waitingApprovalCount,
+      props.onOpenSupportPage,
+      props.onOpenSupporterResponse,
+      props.onOpenPublicPage,
+    ]
+  );
+
+  React.useEffect(() => {
+    if (!props.isConnected || !props.walletAddress) {
+      setWaitingTasks([]);
+      setAiSummaryError(null);
+      return;
+    }
+
+    const walletAddress = props.walletAddress;
+    let cancelled = false;
+
+    async function loadAiSummary(): Promise<void> {
+      setLoadingAiSummary(true);
+      setAiSummaryError(null);
+
+      try {
+        const response = await fetch(
+          `/api/ai-office/dashboard?address=${encodeURIComponent(
+            walletAddress
+          )}${
+            props.projectId
+              ? `&projectId=${encodeURIComponent(props.projectId)}`
+              : ""
+          }&taskLimit=20`,
+          { cache: "no-store" }
+        );
+        const json: unknown = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setAiSummaryError("支援者対応の状況を取得できませんでした。");
+            setWaitingTasks([]);
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setWaitingTasks(parseWaitingTasks(json));
+        }
+      } catch {
+        if (!cancelled) {
+          setAiSummaryError("支援者対応の状況を取得できませんでした。");
+          setWaitingTasks([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingAiSummary(false);
+        }
+      }
+    }
+
+    void loadAiSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [props.isConnected, props.projectId, props.walletAddress]);
 
   return (
     <section className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
           <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-700">
-            Creator Workspace
+            Weekly Home
           </div>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">
-            今日の運営で先に見るべきこと
+            今週の運営で先に進めること
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-700">
-            {props.username} の公開ページ、project の進捗、日々の運営タスクをここから確認します。
-            下のカードから次の行動を選び、詳細な設定は各セクションで進めます。
+            {props.username} の支援ページ、支援状況、承認待ちをここから確認します。
+            最初にやることを1つ決めて進み、詳細な設定は下の管理セクションで必要なときだけ開きます。
           </p>
         </div>
         <a
@@ -199,9 +336,41 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
         </a>
       </div>
 
+      {settlementAttentionNeeded ? (
+        <div className="mt-6">
+          <WorkspaceStatusNotice
+            tone="attention"
+            title="目標達成後の確認が必要な project があります"
+            description="配分や精算の準備が必要な project があるため、通常の運営と分けて確認します。"
+          >
+            <button
+              type="button"
+              className="inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 transition hover:border-amber-500"
+              onClick={props.onOpenAdvancedSettings}
+            >
+              詳細設定を開く
+            </button>
+          </WorkspaceStatusNotice>
+        </div>
+      ) : null}
+
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.25fr_1fr]">
         <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
-          <div className="text-sm font-semibold text-slate-950">今日やること</div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-950">今やること</div>
+              <div className="mt-1 text-xs leading-5 text-slate-600">
+                最初に1つだけ選んで進める前提で並べています。
+              </div>
+            </div>
+            <button
+              type="button"
+              className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:border-slate-900 hover:text-slate-950"
+              onClick={props.onOpenAdvancedSettings}
+            >
+              詳細設定
+            </button>
+          </div>
           <div className="mt-3 grid gap-3">
             {quickActions.map((action) => (
               <div
@@ -226,21 +395,80 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
-          <div className="text-sm font-semibold text-slate-950">
-            Project / Goal の状況
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+            <div className="text-sm font-semibold text-slate-950">支援者対応の状況</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              承認待ちと下書きの状態だけを先に見ます。
+            </p>
+            <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-semibold tracking-wide text-gray-500">
+                    承認待ち
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-gray-900">
+                    {waitingApprovalCount}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:border-slate-900 hover:text-slate-950"
+                  onClick={props.onOpenSupporterResponse}
+                >
+                  支援者対応を開く
+                </button>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-gray-600">
+                {waitingApprovalCount > 0
+                  ? "承認待ちが残っているので、まずここを処理すると運営が進めやすくなります。"
+                  : "今は承認待ちはありません。必要なら新しい下書きを作れます。"}
+              </p>
+              <div className="mt-3 space-y-2">
+                {loadingAiSummary ? (
+                  <div className="rounded-xl bg-gray-50 px-3 py-2 text-[11px] text-gray-600">
+                    支援者対応の状況を読み込んでいます。
+                  </div>
+                ) : aiSummaryError ? (
+                  <WorkspaceEmptyState
+                    compact
+                    title="支援者対応の状況を取得できませんでした"
+                    description={aiSummaryError}
+                  />
+                ) : waitingTasks.length === 0 ? (
+                  <WorkspaceEmptyState
+                    compact
+                    title="いまは承認待ちの下書きはありません"
+                    description="告知やお礼の下書きを作ると、ここからすぐ確認できます。"
+                  />
+                ) : (
+                  waitingTasks.slice(0, 3).map((task) => (
+                    <div
+                      key={task.id}
+                      className="rounded-xl bg-gray-50 px-3 py-2 text-[11px] text-gray-700"
+                    >
+                      {getAgentTaskTypeCopy(task.taskType).label}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
-          <p className="mt-1 text-xs leading-5 text-slate-600">
-            日常運営で先に見るのは、どの通貨の project が進んでいて、次に何を詰めるべきかです。
-          </p>
-          <div className="mt-4 grid gap-3">
-            {(["JPYC", "USDC"] as const).map((currency) => (
-              <ProjectHealthCard
-                key={currency}
-                currency={currency}
-                dashboard={props.projectDashboardsByCurrency[currency]}
-              />
-            ))}
+
+          <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+            <div className="text-sm font-semibold text-slate-950">支援状況</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              どの通貨の project が進んでいて、次に何を詰めるべきかを見ます。
+            </p>
+            <div className="mt-4 grid gap-3">
+              {(["JPYC", "USDC"] as const).map((currency) => (
+                <ProjectHealthCard
+                  key={currency}
+                  currency={currency}
+                  dashboard={props.projectDashboardsByCurrency[currency]}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

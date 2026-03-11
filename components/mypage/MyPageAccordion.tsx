@@ -9,7 +9,8 @@ export type SectionKey =
   | "jpyc"
   | "flow"
   | "gas"
-  | "project";
+  | "project"
+  | "supporter";
 
 export type OpenSections = Record<SectionKey, boolean>;
 

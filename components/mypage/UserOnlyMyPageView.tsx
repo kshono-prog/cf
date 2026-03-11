@@ -38,7 +38,7 @@ export function UserOnlyMyPageView(props: Props) {
         <MyPageOnboardingProgress
           currentStep="APPLY"
           title="ユーザー登録は完了しています"
-          description="次は公開前のプロフィールを確認して、クリエイターとして申請します。申請後に Project や AI Office を使えるようになります。"
+          description="次は公開前のプロフィールを確認して、クリエイターとして申請します。申請後に支援ページや支援者対応を使えるようになります。"
           nextActionTitle="プロフィールを確認してから申請する"
           nextActionBody="表示名と自己紹介を整えたあとで申請すると、公開ページや管理画面の初期状態が分かりやすくなります。"
         />
@@ -85,7 +85,7 @@ export function UserOnlyMyPageView(props: Props) {
               Step 3. クリエイター申請
             </h2>
             <p className="mt-1 text-xs leading-relaxed text-gray-700">
-              申請後は、プロフィール編集、Project 管理、AI事務所、Settlement などのクリエイター向け機能が利用可能になります。
+              申請後は、プロフィール編集、支援ページ管理、支援者対応、詳細設定などのクリエイター向け機能が利用可能になります。
             </p>
           </div>
           <CreatorApplyCard saving={props.saving} onApply={props.onApply} />

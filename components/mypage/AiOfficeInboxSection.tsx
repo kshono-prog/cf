@@ -130,7 +130,7 @@ export function AiOfficeInboxSection(props: Props) {
       <div className="rounded-2xl border border-gray-200 bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-gray-900">Inbox</div>
+            <div className="text-sm font-semibold text-gray-900">承認待ち</div>
             <div className="mt-1 text-xs text-gray-500">
               まず承認待ちを処理し、その後に最近の履歴を確認する流れに整理しています。
             </div>

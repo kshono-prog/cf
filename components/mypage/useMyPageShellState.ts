@@ -14,6 +14,7 @@ const DEFAULT_OPEN_SECTIONS: OpenSections = {
   flow: true,
   gas: true,
   project: true,
+  supporter: true,
 };
 
 export function useMyPageShellState() {

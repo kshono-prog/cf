@@ -29,7 +29,7 @@ const STEP_ITEMS: StepItem[] = [
   {
     key: "READY",
     label: "運営開始",
-    detail: "Project、AI Office、Settlement を使って運営します。",
+    detail: "支援ページ、支援者対応、詳細設定を使って運営します。",
   },
 ];
 

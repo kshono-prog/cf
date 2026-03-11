@@ -334,7 +334,7 @@ export function AiOfficePanel(props: {
       const dashboardJson: unknown = await dashboardRes.json().catch(() => null);
 
       if (!dashboardRes.ok || !isRecord(dashboardJson)) {
-        setMessage("AI事務所データの取得に失敗しました。");
+        setMessage("支援者対応の状況を取得できませんでした。");
         return;
       }
 
@@ -346,7 +346,7 @@ export function AiOfficePanel(props: {
       setMetricsSnapshots(parsedMetrics.snapshots);
       setMetricTrends(parseMetricTrends(dashboardJson.trends));
     } catch {
-      setMessage("AI事務所データの取得に失敗しました。");
+      setMessage("支援者対応の状況を取得できませんでした。");
     } finally {
       setLoading(false);
     }
@@ -650,13 +650,13 @@ export function AiOfficePanel(props: {
     },
     {
       id: "CREATE",
-      label: "作成",
+      label: "下書きを作る",
       helper: "SNS 連携、指標更新、下書き作成を進める",
     },
     {
       id: "INBOX",
-      label: "Inbox",
-      helper: "承認待ちや最近の AI タスクを確認する",
+      label: "承認待ち",
+      helper: "承認待ちや最近の下書きを確認する",
     },
   ];
 
@@ -664,9 +664,9 @@ export function AiOfficePanel(props: {
     <div className="rounded-xl border bg-white p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">AI事務所 beta</h3>
+          <h3 className="font-semibold">支援者対応</h3>
           <p className="text-xs text-gray-500 mt-1">
-            指標の確認、下書き作成、承認待ちの確認をここでまとめて行います。
+            告知やお礼の下書き作成、承認待ちの確認、指標の確認をここでまとめて進めます。
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -738,7 +738,7 @@ export function AiOfficePanel(props: {
             <AiOfficeStatusNotice
               tone="attention"
               title={`承認待ちの下書きが ${waitingApprovalCount} 件あります`}
-              description="新しい作成を増やす前に、Inbox で内容を確認すると運営が止まりません。"
+              description="新しい下書きを増やす前に、承認待ちで内容を確認すると運営が止まりません。"
             >
               <button
                 type="button"
@@ -746,7 +746,7 @@ export function AiOfficePanel(props: {
                 onClick={() => setActiveView("INBOX")}
                 disabled={loading}
               >
-                Inbox を開く
+                承認待ちを開く
               </button>
             </AiOfficeStatusNotice>
           ) : null}

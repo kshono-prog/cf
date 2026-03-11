@@ -14,7 +14,6 @@ type Props = {
   initialDashboard: MyPageProjectDashboard | null;
   walletAddress: string | null;
   isConnected: boolean;
-  showSummaryActions: boolean;
   onActiveProjectIdChange: (pid: string | null, changedCur: CurrencyCode) => void;
 };
 
@@ -27,9 +26,9 @@ export function CurrencyProjectManagementBlock(props: Props) {
       <ProjectSection
         ownerAddress={props.ownerAddress}
         activeProjectId={props.activeProjectId}
-        initialProject={props.initialDashboard?.summary.project ?? null}
+        initialProject={props.initialDashboard?.summary?.project ?? null}
         currency={props.currency}
-        featureHideSummaryActions={!props.showSummaryActions}
+        featureHideSummaryActions
         onActiveProjectIdChange={props.onActiveProjectIdChange}
         integratedGoalPanel={
           <CurrencyGoalSettlementPanel
@@ -38,7 +37,6 @@ export function CurrencyProjectManagementBlock(props: Props) {
             address={props.walletAddress}
             isConnected={props.isConnected}
             initialSummary={props.initialDashboard?.summary ?? null}
-            initialSettlementData={props.initialDashboard?.settlement ?? null}
           />
         }
       />

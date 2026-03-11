@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import type { Address } from "viem";
 
 import type {
@@ -8,31 +9,26 @@ import type {
   YoutubeVideo,
 } from "@/types/creator";
 import type {
-  SummaryResponseOk,
-  UiMsg,
   CurrencyCode,
 } from "@/lib/mypage/accountPageTypes";
-import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
-import type {
-  OpenSections,
-  SectionKey,
-} from "@/components/mypage/MyPageAccordion";
-import { MyPageAccordion } from "@/components/mypage/MyPageAccordion";
+import { CreatorReadyWorkspaceProvider } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
-import { CreatorPublicLinkSection } from "@/components/mypage/CreatorPublicLinkSection";
-import { CreatorProjectManagementSection } from "@/components/mypage/CreatorProjectManagementSection";
-import { CreatorReadyWorkspaceOverview } from "@/components/mypage/CreatorReadyWorkspaceOverview";
-import { GasSupportTabs } from "@/components/mypage/GasSupportTabs";
-import type { SummaryActionsSectionProps } from "@/components/mypage/SummaryActionsSection";
+import { CreatorReadyAdvancedRoute } from "@/components/mypage/CreatorReadyAdvancedRoute";
+import { CreatorReadyHomeRoute } from "@/components/mypage/CreatorReadyHomeRoute";
+import { CreatorReadyPublicRoute } from "@/components/mypage/CreatorReadyPublicRoute";
+import { CreatorReadySupportersRoute } from "@/components/mypage/CreatorReadySupportersRoute";
+import { CreatorReadySupportPageRoute } from "@/components/mypage/CreatorReadySupportPageRoute";
 import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { CREATOR_READY_WORKSPACE_VIEWS } from "@/components/mypage/creatorReadyWorkspaceConfig";
+import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
 type Props = {
+  initialWorkspaceView: WorkspaceView;
+  workspaceBasePath: string;
   meCreatorUsername: string;
   eventBaseUrl: string;
   themeColor: string;
   error: string | null;
-  openSections: OpenSections;
-  onToggleSection: (key: SectionKey) => void;
   localProjectId: string | null;
   address: Address | undefined;
   isConnected: boolean;
@@ -57,167 +53,156 @@ type Props = {
   saving: boolean;
   onSubmitProfile: (e: React.FormEvent) => void;
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
-  projectDashboardsByCurrency: {
-    JPYC: MyPageProjectDashboard | null;
-    USDC: MyPageProjectDashboard | null;
-  };
   onActiveProjectIdChange: (pid: string | null, changedCur: CurrencyCode) => void;
-  summary: SummaryResponseOk | null;
-  summaryLoading: boolean;
-  msg: UiMsg | null;
-  showSummaryActions: boolean;
-  refreshSummary: () => Promise<void>;
-  planText: string;
-  setPlanText: React.Dispatch<React.SetStateAction<string>>;
-  txHashesText: string;
-  setTxHashesText: React.Dispatch<React.SetStateAction<string>>;
-  currency: CurrencyCode;
-  setCurrency: React.Dispatch<React.SetStateAction<CurrencyCode>>;
-  distChainId: number;
-  setDistChainId: React.Dispatch<React.SetStateAction<number>>;
-  note: string;
-  setNote: React.Dispatch<React.SetStateAction<string>>;
-  canSavePlan: boolean;
-  canSaveDistResult: boolean;
-  canBridge: boolean;
-  isOwner: boolean;
-  doSavePlan: () => Promise<void>;
-  doSaveDistributionResult: () => Promise<void>;
-  onBridged: () => Promise<void>;
 };
 
 export function CreatorReadyAccountView(props: Props) {
+  const router = useRouter();
   const promoHeaderColor = props.themeColor || "#005bbb";
-  const projectSectionRef = React.useRef<HTMLDivElement | null>(null);
-  const flowSectionRef = React.useRef<HTMLDivElement | null>(null);
-  const gasSectionRef = React.useRef<HTMLDivElement | null>(null);
+  const activeView = props.initialWorkspaceView;
 
-  const openAndScrollToSection = (
-    sectionKey: SectionKey,
-    targetRef: React.RefObject<HTMLDivElement | null>
-  ) => {
-    if (!props.openSections[sectionKey]) {
-      props.onToggleSection(sectionKey);
-    }
+  const navigateToView = React.useCallback(
+    (view: WorkspaceView) => {
+      router.push(`${props.workspaceBasePath}/${view}`, { scroll: true });
+    },
+    [props.workspaceBasePath, router]
+  );
+  const workspaceState = React.useMemo(
+    () => ({
+      meCreatorUsername: props.meCreatorUsername,
+      eventBaseUrl: props.eventBaseUrl,
+      localProjectId: props.localProjectId,
+      address: props.address,
+      isConnected: props.isConnected,
+      editingProfile: props.editingProfile,
+      onStartEditProfile: props.onStartEditProfile,
+      onCancelEditProfile: props.onCancelEditProfile,
+      displayName: props.displayName,
+      profile: props.profile,
+      avatarUrl: props.avatarUrl,
+      themeColorValue: props.themeColorValue,
+      socials: props.socials,
+      youtubeVideos: props.youtubeVideos,
+      avatarFile: props.avatarFile,
+      avatarPreview: props.avatarPreview,
+      setDisplayName: props.setDisplayName,
+      setProfile: props.setProfile,
+      setThemeColor: props.setThemeColor,
+      setSocials: props.setSocials,
+      setYoutubeVideos: props.setYoutubeVideos,
+      setAvatarFile: props.setAvatarFile,
+      setAvatarPreview: props.setAvatarPreview,
+      saving: props.saving,
+      onSubmitProfile: props.onSubmitProfile,
+      projectIdsByCurrency: props.projectIdsByCurrency,
+      onActiveProjectIdChange: props.onActiveProjectIdChange,
+    }),
+    [
+      props.address,
+      props.avatarFile,
+      props.avatarPreview,
+      props.avatarUrl,
+      props.displayName,
+      props.editingProfile,
+      props.eventBaseUrl,
+      props.isConnected,
+      props.localProjectId,
+      props.meCreatorUsername,
+      props.onActiveProjectIdChange,
+      props.onCancelEditProfile,
+      props.onStartEditProfile,
+      props.onSubmitProfile,
+      props.profile,
+      props.projectIdsByCurrency,
+      props.saving,
+      props.setAvatarFile,
+      props.setAvatarPreview,
+      props.setDisplayName,
+      props.setProfile,
+      props.setSocials,
+      props.setThemeColor,
+      props.setYoutubeVideos,
+      props.socials,
+      props.themeColorValue,
+      props.youtubeVideos,
+    ]
+  );
 
-    window.requestAnimationFrame(() => {
-      targetRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
-  };
-  const summaryActionsProps: SummaryActionsSectionProps = {
-    localProjectId: props.localProjectId,
-    summary: props.summary,
-    summaryLoading: props.summaryLoading,
-    msg: props.msg,
-    refreshSummary: props.refreshSummary,
-    planText: props.planText,
-    setPlanText: props.setPlanText,
-    txHashesText: props.txHashesText,
-    setTxHashesText: props.setTxHashesText,
-    currency: props.currency,
-    setCurrency: props.setCurrency,
-    distChainId: props.distChainId,
-    setDistChainId: props.setDistChainId,
-    note: props.note,
-    setNote: props.setNote,
-    canSavePlan: props.canSavePlan,
-    canSaveDistResult: props.canSaveDistResult,
-    canBridge: props.canBridge,
-    isOwner: props.isOwner,
-    doSavePlan: props.doSavePlan,
-    doSaveDistributionResult: props.doSaveDistributionResult,
-    onBridged: props.onBridged,
-  };
+  const activeWorkspace = CREATOR_READY_WORKSPACE_VIEWS.find(
+    (view) => view.id === activeView
+  );
 
   return (
     <MyPageShell headerColor={promoHeaderColor}>
-      <div className="container-narrow space-y-4">
-        <h1 className="text-lg font-semibold mb-2">クリエイター管理</h1>
-        {props.error && (
-          <WorkspaceStatusNotice tone="error" title={props.error} />
-        )}
+      <CreatorReadyWorkspaceProvider value={workspaceState}>
+        <div className="container-narrow space-y-4">
+          <div className="flex flex-col gap-3">
+            <h1 className="text-lg font-semibold">
+              {activeWorkspace?.label ?? "今週の運営"}
+            </h1>
+            <div className="grid gap-2 md:grid-cols-5">
+              {CREATOR_READY_WORKSPACE_VIEWS.map((view) => (
+                <button
+                  key={view.id}
+                  type="button"
+                  className={`rounded-2xl border px-4 py-3 text-left transition ${
+                    activeView === view.id
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-gray-200 bg-white text-gray-900"
+                  }`}
+                  onClick={() => navigateToView(view.id)}
+                >
+                  <div className="text-sm font-semibold">{view.label}</div>
+                  <div
+                    className={`mt-1 text-xs ${
+                      activeView === view.id ? "text-white/80" : "text-gray-500"
+                    }`}
+                  >
+                    {view.description}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <CreatorReadyWorkspaceOverview
-          username={props.meCreatorUsername}
-          projectDashboardsByCurrency={props.projectDashboardsByCurrency}
-          onOpenProjectWorkspace={() =>
-            openAndScrollToSection("project", projectSectionRef)
-          }
-          onOpenPublicPage={() => openAndScrollToSection("flow", flowSectionRef)}
-          onOpenGasSupport={() => openAndScrollToSection("gas", gasSectionRef)}
-        />
+          {props.error && (
+            <WorkspaceStatusNotice tone="error" title={props.error} />
+          )}
 
-        <div ref={projectSectionRef} className="scroll-mt-24">
-          <MyPageAccordion
-            open={props.openSections}
-            onToggle={props.onToggleSection}
-            sectionKey="project"
-            title="日々の運営ワークスペース"
-          >
-            <CreatorProjectManagementSection
-              meCreatorUsername={props.meCreatorUsername}
-              eventBaseUrl={props.eventBaseUrl}
-              editingProfile={props.editingProfile}
-              onStartEditProfile={props.onStartEditProfile}
-              onCancelEditProfile={props.onCancelEditProfile}
-              displayName={props.displayName}
-              profile={props.profile}
-              avatarUrl={props.avatarUrl}
-              themeColorValue={props.themeColorValue}
-              socials={props.socials}
-              youtubeVideos={props.youtubeVideos}
-              avatarFile={props.avatarFile}
-              avatarPreview={props.avatarPreview}
-              setDisplayName={props.setDisplayName}
-              setProfile={props.setProfile}
-              setThemeColor={props.setThemeColor}
-              setSocials={props.setSocials}
-              setYoutubeVideos={props.setYoutubeVideos}
-              setAvatarFile={props.setAvatarFile}
-              setAvatarPreview={props.setAvatarPreview}
-              saving={props.saving}
-              onSubmitProfile={props.onSubmitProfile}
-              address={props.address}
-              isConnected={props.isConnected}
-              localProjectId={props.localProjectId}
-              projectIdsByCurrency={props.projectIdsByCurrency}
-              projectDashboardsByCurrency={props.projectDashboardsByCurrency}
-              onActiveProjectIdChange={props.onActiveProjectIdChange}
-              showSummaryActions={props.showSummaryActions}
-              summaryActionsProps={summaryActionsProps}
+          {activeView === "home" ? (
+            <CreatorReadyHomeRoute
+              onOpenSupportPage={() => navigateToView("support-page")}
+              onOpenSupporterResponse={() => navigateToView("supporters")}
+              onOpenPublicPage={() => navigateToView("public")}
+              onOpenAdvancedSettings={() => navigateToView("advanced")}
             />
-          </MyPageAccordion>
+          ) : (
+            <>
+              <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="text-sm text-gray-700">
+                  {`${props.workspaceBasePath}/${activeView}`} でこの面を直接開けます。
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800"
+                  onClick={() => navigateToView("home")}
+                >
+                  今週の運営へ戻る
+                </button>
+              </div>
+              {activeView === "support-page" ? (
+                <CreatorReadySupportPageRoute />
+              ) : activeView === "supporters" ? (
+                <CreatorReadySupportersRoute />
+              ) : activeView === "public" ? (
+                <CreatorReadyPublicRoute />
+              ) : activeView === "advanced" ? (
+                <CreatorReadyAdvancedRoute />
+              ) : null}
+            </>
+          )}
         </div>
-
-        <div ref={flowSectionRef} className="scroll-mt-24">
-          <MyPageAccordion
-            open={props.openSections}
-            onToggle={props.onToggleSection}
-            sectionKey="flow"
-            title="公開ページとリンク"
-          >
-            <CreatorPublicLinkSection
-              username={props.meCreatorUsername}
-              localProjectId={props.localProjectId}
-            />
-          </MyPageAccordion>
-        </div>
-
-        <div ref={gasSectionRef} className="scroll-mt-24">
-          <MyPageAccordion
-            open={props.openSections}
-            onToggle={props.onToggleSection}
-            sectionKey="gas"
-            title="ガス代支援"
-          >
-            <GasSupportTabs />
-          </MyPageAccordion>
-        </div>
-
-      </div>
+      </CreatorReadyWorkspaceProvider>
     </MyPageShell>
   );
 }

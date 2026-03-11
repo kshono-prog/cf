@@ -362,7 +362,7 @@ export function getAiOfficeMessageState(
   if (looksLikeCode(message)) {
     return {
       tone: "error",
-      title: "AI 事務所の処理に失敗しました。",
+      title: "支援者対応の処理に失敗しました。",
       description: "内容を確認して、もう一度お試しください。",
     };
   }

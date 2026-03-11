@@ -118,17 +118,17 @@ export function WalletSection(props: WalletSectionProps) {
     <div className="mt-6 w-full space-y-4 rounded-3xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
       <div className="text-center">
         <p className="text-xs uppercase tracking-wide text-gray-500">
-          Support wallet
+          Support
         </p>
         <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
           {connected
             ? `${walletLabel} に接続済み`
             : isWalletConnecting
             ? "ウォレットに接続中…"
-            : "ウォレットに接続して投げ銭する"}
+            : "ウォレットを接続して支援する"}
         </h3>
         <p className="mt-1 text-xs leading-5 text-gray-500">
-          接続確認のあとに、ネットワーク、通貨、金額の順で入力します。
+          接続したあとに、ネットワーク、通貨、金額の順で選びます。
         </p>
       </div>
 
@@ -169,18 +169,18 @@ export function WalletSection(props: WalletSectionProps) {
                 onClick={onDisconnect}
                 disabled={isWalletConnecting || sending || resumeBusy}
               >
-                切断 / Disconnect
+                ウォレットを切断
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {inApp && !connected && (
+          {inApp && !connected && (
         <>
           <p className="mt-2 text-center text-[11px] leading-relaxed text-amber-700">
-            アプリ内ブラウザではウォレットアプリが起動しない場合があります。
-            「ブラウザで開く」または「MetaMaskアプリで開く」からアクセスしてください。
+            アプリ内ブラウザではウォレットが開かないことがあります。
+            その場合は外部ブラウザか MetaMask アプリで開いてください。
           </p>
           <div className="mt-1 flex justify-center">
             <button
@@ -200,7 +200,7 @@ export function WalletSection(props: WalletSectionProps) {
           <>
             <div className="mt-3 inline-block w-full max-w-md rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-left">
               <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                ウォレット残高
+                支援に使う残高
               </p>
 
               {walletBalancesLoading && (
@@ -293,7 +293,7 @@ export function WalletSection(props: WalletSectionProps) {
                   onClick={onRefreshBalances}
                   disabled={walletBalancesLoading}
                 >
-                  残高を更新 / Refresh
+                  残高を更新
                 </button>
               </div>
             </div>
@@ -308,7 +308,7 @@ export function WalletSection(props: WalletSectionProps) {
                     : "未接続"}
                 </span>
               </div>
-              <div>このあと、送金に使うネットワークと通貨を選びます。</div>
+              <div>この下で支援内容を選べます。</div>
             </div>
 
             {/* 送金UI（ネットワーク一致時のみ） */}
@@ -319,10 +319,10 @@ export function WalletSection(props: WalletSectionProps) {
                     className="text-base font-semibold sm:text-lg"
                     style={{ color: headerColor }}
                   >
-                    {creatorDisplayName} さんへの投げ銭
+                    {creatorDisplayName} さんを支援する
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-gray-500">
-                    下の順番で入力すると、そのまま送金まで進めます。
+                    下から順に選ぶと、そのまま送金まで進めます。
                   </p>
                 </div>
 
@@ -354,7 +354,7 @@ export function WalletSection(props: WalletSectionProps) {
                       </select>
                     </div>
                     <div className="mt-2 text-[11px] leading-5 text-gray-500">
-                      ウォレット側のネットワークも同じものに切り替えてください。
+                      ウォレット側も同じネットワークに切り替えてください。
                     </div>
                   </div>
 
@@ -378,7 +378,7 @@ export function WalletSection(props: WalletSectionProps) {
                       </select>
                     </div>
                     <div className="mt-2 text-[11px] leading-5 text-gray-500">
-                      金額の表示単位も、ここで選んだ通貨に合わせて変わります。
+                      ここで選んだ通貨に合わせて金額表示も変わります。
                     </div>
                   </div>
                 </div>
@@ -391,7 +391,7 @@ export function WalletSection(props: WalletSectionProps) {
                     金額を入力する
                   </label>
                   <div className="mt-2 text-[11px] leading-5 text-gray-500">
-                    よく使う金額を選ぶか、直接入力してから送金します。
+                    よく使う金額を選ぶか、直接入力します。
                   </div>
 
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -454,14 +454,14 @@ export function WalletSection(props: WalletSectionProps) {
                         onClick={onSend}
                         disabled={sending || !amount}
                       >
-                        投げ銭 / Send
+                        支援を送る
                       </button>
                     </div>
                   </div>
 
                   <div className="mt-4 text-center">
                     <p className="mt-1 text-xs text-gray-500">
-                      送金先を間違えないようご確認ください
+                      送金先と金額を確認してから進んでください
                     </p>
                   </div>
                 </div>

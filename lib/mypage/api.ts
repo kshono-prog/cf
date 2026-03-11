@@ -14,6 +14,7 @@ import type {
   SummaryResponseOk,
 } from "../../lib/mypage/accountPageTypes";
 import type { ProjectSettlementData } from "../../lib/projectSettlementView";
+import type { WorkspaceView } from "../../lib/mypage/workspaceView";
 import type {
   MyPageCreatorMutationOk,
   MyPageMutationOk,
@@ -47,8 +48,12 @@ export async function fetchMe(args: {
 export async function fetchMyPageDashboard(args: {
   apiBase: string;
   address: Address;
+  view: WorkspaceView;
 }): Promise<{ ok: true; data: MyPageDashboardData } | { ok: false; error: string }> {
-  const params = new URLSearchParams({ address: args.address });
+  const params = new URLSearchParams({
+    address: args.address,
+    view: args.view,
+  });
   const res = await fetch(
     `${args.apiBase}/api/mypage/dashboard?${params.toString()}`,
     {

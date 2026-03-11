@@ -41,7 +41,7 @@ export default function BottomNav({
   // 移動先の判定
   const calendarHref = `/${username}/events`;
   const favoriteHref = `/${username}`;
-  const profileHref = `/${username}/mypage`;
+  const profileHref = `/${username}/mypage/home`;
 
   useEffect(() => {
     router.prefetch(calendarHref);

@@ -48,7 +48,7 @@ export default function SwipeNavigationArea({
             : null
           : resolvedActive === "favorite"
           ? direction === "next"
-            ? `/${username}/mypage`
+            ? `/${username}/mypage/home`
             : `/${username}/events`
           : direction === "prev"
           ? `/${username}`

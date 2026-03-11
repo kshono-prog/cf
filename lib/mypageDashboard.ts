@@ -1,21 +1,32 @@
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
-import type { MyPageDashboardData, MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
+import type {
+  MyPageDashboardData,
+  MyPageDashboardLoadOptions,
+  MyPageProjectDashboard,
+} from "@/lib/mypage/dashboardTypes";
+import { getMyPageDashboardLoadOptions } from "@/lib/mypage/dashboardTypes";
 import { getMeStatusByAddress } from "@/lib/mypageMe";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { getProjectSettlementView } from "@/lib/projectSettlementView";
+import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
 async function loadProjectDashboard(
-  projectId: string | null
+  projectId: string | null,
+  options: MyPageDashboardLoadOptions
 ): Promise<MyPageProjectDashboard | null> {
   if (!projectId) return null;
 
   const bigintProjectId = BigInt(projectId);
   const [summary, settlement] = await Promise.all([
-    getProjectSummaryView(bigintProjectId),
-    getProjectSettlementView(bigintProjectId),
+    options.includeSummary
+      ? getProjectSummaryView(bigintProjectId)
+      : Promise.resolve(null),
+    options.includeSettlement
+      ? getProjectSettlementView(bigintProjectId)
+      : Promise.resolve(null),
   ]);
 
-  if (!summary) return null;
+  if (!summary && !settlement) return null;
 
   return {
     projectId,
@@ -25,9 +36,11 @@ async function loadProjectDashboard(
 }
 
 export async function getMyPageDashboard(
-  address: string
+  address: string,
+  view: WorkspaceView
 ): Promise<MyPageDashboardData> {
   const me = await getMeStatusByAddress(address);
+  const options = getMyPageDashboardLoadOptions(view);
 
   const projectIdsByCurrency = me.projectIdsByCurrency ?? {
     JPYC: null,
@@ -35,8 +48,8 @@ export async function getMyPageDashboard(
   };
 
   const [jpyc, usdc] = await Promise.all([
-    loadProjectDashboard(projectIdsByCurrency.JPYC),
-    loadProjectDashboard(projectIdsByCurrency.USDC),
+    loadProjectDashboard(projectIdsByCurrency.JPYC, options),
+    loadProjectDashboard(projectIdsByCurrency.USDC, options),
   ]);
 
   return {

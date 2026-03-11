@@ -85,7 +85,7 @@ export function AiOfficeOverviewSection(props: Props) {
             onClick={props.onOpenCreate}
             disabled={props.loading}
           >
-            連携設定を開く
+            下書き作成を開く
           </button>
         </div>
 
@@ -172,7 +172,7 @@ export function AiOfficeOverviewSection(props: Props) {
           <div className="rounded-2xl border border-gray-200 bg-white p-4">
             <div className="text-sm font-semibold text-gray-900">承認待ちの下書き</div>
             <div className="mt-1 text-xs text-gray-500">
-              ここで内容をざっと確認して、必要なら Inbox で承認します。
+              ここで内容をざっと確認して、必要なら承認待ち画面で承認します。
             </div>
             <div className="mt-3 space-y-2">
               {pendingTasks.length === 0 ? (
@@ -199,7 +199,7 @@ export function AiOfficeOverviewSection(props: Props) {
                     onClick={props.onOpenInbox}
                     disabled={props.loading}
                   >
-                    Inbox でまとめて確認する
+                    承認待ちでまとめて確認する
                   </button>
                 </>
               )}
@@ -216,7 +216,7 @@ export function AiOfficeOverviewSection(props: Props) {
                 <AiOfficeEmptyState
                   compact
                   title="まだ SNS 連携がありません"
-                  description="Create で連携先を追加すると、ここで状態を確認できます。"
+                  description="下書き作成で連携先を追加すると、ここで状態を確認できます。"
                 />
               ) : (
                 props.connections.map((connection) => (
@@ -240,7 +240,7 @@ export function AiOfficeOverviewSection(props: Props) {
                 <AiOfficeEmptyState
                   compact
                   title="まだ AI タスクがありません"
-                  description="Create から最初の 1 件を作ると、ここに最近の履歴が並びます。"
+                  description="下書き作成から最初の 1 件を作ると、ここに最近の履歴が並びます。"
                 />
               ) : (
                 recentTasks.map((task) => (

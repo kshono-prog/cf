@@ -7,18 +7,10 @@ import type { Address } from "viem";
 import type { CreatorProfile } from "@/types/creator";
 
 import type { MeStatus, Status } from "@/lib/mypage/types";
-import type {
-  CurrencyCode,
-  GoalDraftByCurrency,
-  SummaryResponseOk,
-  SummaryViewData,
-  UiMsg,
-} from "@/lib/mypage/accountPageTypes";
-import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
 import { generateRandomId } from "@/lib/mypage/helpers";
 
 import {
-  fetchMyPageDashboard,
+  fetchMe,
   requestCreatorApply,
   saveMyPageUser,
   updateMyPageCreatorProfile,
@@ -29,29 +21,19 @@ import { LoadingMyPageView } from "@/components/mypage/LoadingMyPageView";
 import { NoUserMyPageView } from "@/components/mypage/NoUserMyPageView";
 import { UnconnectedMyPageView } from "@/components/mypage/UnconnectedMyPageView";
 import { UserOnlyMyPageView } from "@/components/mypage/UserOnlyMyPageView";
-import { useMyPageSummaryActions } from "@/components/mypage/useMyPageSummaryActions";
 import { useMyPageProfileState } from "@/components/mypage/useMyPageProfileState";
 import { useMyPageShellState } from "@/components/mypage/useMyPageShellState";
-
-const SHOW_SUMMARY_ACTIONS = false;
-
-/* =========================
-   Guards (no any)
-========================= */
-
-function safeJsonStringify(v: unknown): string {
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return "";
-  }
-}
+import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
 type Props = {
   username: string;
+  initialWorkspaceView: WorkspaceView;
 };
 
-export default function AccountPageClient({ username }: Props) {
+export default function AccountPageClient({
+  username,
+  initialWorkspaceView,
+}: Props) {
   const { address, isConnected } = useAccount();
 
   const API_BASE = "";
@@ -101,153 +83,22 @@ export default function AccountPageClient({ username }: Props) {
     JPYC: string | null;
     USDC: string | null;
   }>({ JPYC: null, USDC: null });
-  const [projectDashboardsByCurrency, setProjectDashboardsByCurrency] = useState<{
-    JPYC: MyPageProjectDashboard | null;
-    USDC: MyPageProjectDashboard | null;
-  }>({ JPYC: null, USDC: null });
+  const pickDefaultProjectId = useCallback((data: MeStatus): string | null => {
+    return (
+      data.projectId ??
+      data.projectIdsByCurrency?.JPYC ??
+      data.projectIdsByCurrency?.USDC ??
+      null
+    );
+  }, []);
 
-  // ============================
-  // Goal upsert（ProjectのGoalテーブル：①の入力）
-  // ============================
-  const [, setGoalDraftByCurrency] =
-    useState<GoalDraftByCurrency>({
-      JPYC: { targetInput: "", deadlineInput: "", msg: null },
-      USDC: { targetInput: "", deadlineInput: "", msg: null },
-    });
-
-  // ============================
-  // Summary + actions（①の入力）
-  // ============================
-  const [summary, setSummary] = useState<SummaryResponseOk | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
-  const [msg, setMsg] = useState<UiMsg | null>(null);
-
-  const [planText, setPlanText] = useState<string>("");
-  const [txHashesText, setTxHashesText] = useState<string>("[]");
-  const [currency, setCurrency] = useState<CurrencyCode>("JPYC");
-  const [distChainId, setDistChainId] = useState<number>(43114);
-  const [note, setNote] = useState<string>("");
-
-  const applySummaryState = useCallback(
-    (
-      view: SummaryViewData | null,
-      options?: { preserveDraftInputs?: boolean }
-    ) => {
-      if (!view) {
-        setSummary(null);
-        setMsg(null);
-        if (!options?.preserveDraftInputs) {
-          setPlanText("");
-          setTxHashesText("[]");
-        }
-        return;
-      }
-
-      const ok: SummaryResponseOk = { ok: true, ...view };
-      setSummary(ok);
-      setMsg(null);
-
-      const planStr = safeJsonStringify(ok.distributionPlan ?? {});
-      if (options?.preserveDraftInputs) {
-        setPlanText((prev) => (prev.trim() ? prev : planStr));
-      } else {
-        setPlanText(planStr);
-      }
-
-      const last = ok.lastDistributionRuns?.[0];
-      const txStr = last ? safeJsonStringify(last.txHashes ?? []) : "[]";
-      if (options?.preserveDraftInputs) {
-        setTxHashesText((prev) => (prev.trim() ? prev : txStr));
-      } else {
-        setTxHashesText(txStr);
-      }
-
-      if (ok.goal) {
-        const goalCurrency: CurrencyCode =
-          ok.project.currency === "USDC" ? "USDC" : "JPYC";
-        setGoalDraftByCurrency((prev) => ({
-          ...prev,
-          [goalCurrency]: {
-            ...prev[goalCurrency],
-            targetInput: String(ok.goal?.targetAmount ?? ok.goal?.targetAmountJpyc),
-            deadlineInput: ok.goal?.deadline
-              ? ok.goal.deadline.slice(0, 10)
-              : "",
-          },
-        }));
-      }
-    },
-    []
-  );
-
-  const pickProjectIdForCurrency = useCallback(
-    (data: MeStatus): string | null => {
-      const m = data.projectIdsByCurrency;
-      if (m) {
-        const v = m[currency];
-        if (typeof v === "string" && v) return v;
-      }
-      return typeof data.projectId === "string" ? data.projectId : null;
-    },
-    [currency]
-  );
-
-  const ownerLower = useMemo(() => {
-    if (!summary?.project.ownerAddress) return null;
-    return summary.project.ownerAddress.toLowerCase();
-  }, [summary?.project.ownerAddress]);
-
-  const connectedLower = useMemo(() => {
-    return address ? address.toLowerCase() : null;
-  }, [address]);
-
-  const isOwner = useMemo(() => {
-    if (!ownerLower || !connectedLower) return false;
-    return ownerLower === connectedLower;
-  }, [ownerLower, connectedLower]);
-
-  const goalAchieved = !!summary?.goal?.achievedAt;
-  const bridgeDone =
-    summary?.project.status === "BRIDGED" && !!summary.project.bridgedAt;
-
-  const canBridge =
-    isOwner && goalAchieved && summary?.project.status !== "DISTRIBUTED";
-
-  const canSavePlan = isOwner;
-  const canSaveDistResult = isOwner && bridgeDone;
-
-  useEffect(() => {
-    const next = projectIdsByCurrency[currency] ?? null;
-    if (next !== localProjectId) setLocalProjectId(next);
-  }, [currency, projectIdsByCurrency, localProjectId]);
-
-  const applyDashboardData = useCallback(
-    (data: {
-      me: MeStatus;
-      selectedProjectId: string | null;
-      projectsByCurrency: {
-        JPYC: MyPageProjectDashboard | null;
-        USDC: MyPageProjectDashboard | null;
-      };
-    }) => {
-      const meData = data.me;
+  const applyMeStatus = useCallback(
+    (meData: MeStatus) => {
       setMe(meData);
-      setProjectDashboardsByCurrency(data.projectsByCurrency);
       const nextProjectIds =
         meData.projectIdsByCurrency ?? { JPYC: null, USDC: null };
       setProjectIdsByCurrency(nextProjectIds);
-
-      const nextSelectedProjectId =
-        data.selectedProjectId ?? pickProjectIdForCurrency(meData);
-      setLocalProjectId(nextSelectedProjectId);
-
-      const selectedDashboard =
-        data.projectsByCurrency.JPYC?.projectId === nextSelectedProjectId
-          ? data.projectsByCurrency.JPYC
-          : data.projectsByCurrency.USDC?.projectId === nextSelectedProjectId
-            ? data.projectsByCurrency.USDC
-            : null;
-      applySummaryState(selectedDashboard?.summary ?? null);
+      setLocalProjectId(pickDefaultProjectId(meData));
 
       if (!meData.hasUser) {
         setStatus("noUser");
@@ -271,19 +122,12 @@ export default function AccountPageClient({ username }: Props) {
       }
       applyCreatorProfile(cp, meData.user, username);
     },
-    [
-      applyCreatorProfile,
-      applySummaryState,
-      applyUserOnly,
-      pickProjectIdForCurrency,
-      resetProfileState,
-      username,
-    ]
+    [applyCreatorProfile, applyUserOnly, pickDefaultProjectId, resetProfileState, username]
   );
 
-  const loadDashboard = useCallback(
+  const loadMeStatus = useCallback(
     async (addr: Address): Promise<boolean> => {
-      const result = await fetchMyPageDashboard({
+      const result = await fetchMe({
         apiBase: API_BASE,
         address: addr,
       });
@@ -295,25 +139,11 @@ export default function AccountPageClient({ username }: Props) {
         return false;
       }
 
-      applyDashboardData(result.data);
+      applyMeStatus(result.data);
       return true;
     },
-    [API_BASE, applyDashboardData]
+    [API_BASE, applyMeStatus]
   );
-
-  const { refreshSummary, doSavePlan, doSaveDistributionResult } =
-    useMyPageSummaryActions({
-      projectId: localProjectId,
-      address,
-      planText,
-      txHashesText,
-      currency,
-      distChainId,
-      note,
-      applySummaryState,
-      setSummaryLoading,
-      setMsg,
-    });
 
   // /api/me から projectId + creator profile をstateへ
   useEffect(() => {
@@ -322,8 +152,6 @@ export default function AccountPageClient({ username }: Props) {
       setMe(null);
       setLocalProjectId(null);
       setProjectIdsByCurrency({ JPYC: null, USDC: null });
-      setProjectDashboardsByCurrency({ JPYC: null, USDC: null });
-      applySummaryState(null);
       resetProfileState(username);
       return;
     }
@@ -334,7 +162,7 @@ export default function AccountPageClient({ username }: Props) {
     async function run(): Promise<void> {
       setStatus("loading");
       setError(null);
-      const ok = await loadDashboard(addr);
+      const ok = await loadMeStatus(addr);
       if (cancelled || ok) return;
       setStatus("loading");
     }
@@ -343,7 +171,7 @@ export default function AccountPageClient({ username }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [isConnected, address, loadDashboard, applySummaryState, resetProfileState, username]);
+  }, [isConnected, address, loadMeStatus, resetProfileState, username]);
 
   // /api/user
   async function handleSaveUser(e: React.FormEvent): Promise<void> {
@@ -369,7 +197,7 @@ export default function AccountPageClient({ username }: Props) {
         throw new Error(result.error);
       }
 
-      await loadDashboard(addr);
+      await loadMeStatus(addr);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -398,7 +226,7 @@ export default function AccountPageClient({ username }: Props) {
         throw new Error(result.error);
       }
 
-      await loadDashboard(addr);
+      await loadMeStatus(addr);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "クリエイター申請に失敗しました。"
@@ -433,7 +261,7 @@ export default function AccountPageClient({ username }: Props) {
         throw new Error(result.error);
       }
 
-      await loadDashboard(address);
+      await loadMeStatus(address);
 
       cancelEditingProfile();
     } catch (err: unknown) {
@@ -442,14 +270,6 @@ export default function AccountPageClient({ username }: Props) {
       setSaving(false);
     }
   }
-
-  // creatorReady になって、projectId があるなら summary を自動取得
-  useEffect(() => {
-    if (status !== "creatorReady") return;
-    if (!localProjectId) return;
-    if (summary?.project.id === localProjectId) return;
-    void refreshSummary();
-  }, [status, localProjectId, refreshSummary, summary?.project.id]);
 
   // ==================================================
   // UI
@@ -517,12 +337,12 @@ export default function AccountPageClient({ username }: Props) {
 
   return (
     <CreatorReadyAccountView
+      initialWorkspaceView={initialWorkspaceView}
+      workspaceBasePath={`/${username}/mypage`}
       meCreatorUsername={creatorUsername}
       eventBaseUrl={eventBaseUrl}
       themeColor={themeColor}
       error={error}
-      openSections={openSections}
-      onToggleSection={toggleSection}
       localProjectId={localProjectId}
       address={address}
       isConnected={isConnected}
@@ -552,42 +372,8 @@ export default function AccountPageClient({ username }: Props) {
           ...prev,
           [changedCur]: pid,
         }));
-        setProjectDashboardsByCurrency((prev) => ({
-          ...prev,
-          [changedCur]: null,
-        }));
-        setCurrency(changedCur);
         setLocalProjectId(pid);
-        applySummaryState(null);
-        setMsg(null);
-        setGoalDraftByCurrency((prev) => ({
-          ...prev,
-          [changedCur]: { ...prev[changedCur], msg: null },
-        }));
       }}
-      projectDashboardsByCurrency={projectDashboardsByCurrency}
-      summary={summary}
-      summaryLoading={summaryLoading}
-      msg={msg}
-      showSummaryActions={SHOW_SUMMARY_ACTIONS}
-      refreshSummary={refreshSummary}
-      planText={planText}
-      setPlanText={setPlanText}
-      txHashesText={txHashesText}
-      setTxHashesText={setTxHashesText}
-      currency={currency}
-      setCurrency={setCurrency}
-      distChainId={distChainId}
-      setDistChainId={setDistChainId}
-      note={note}
-      setNote={setNote}
-      canSavePlan={canSavePlan}
-      canSaveDistResult={canSaveDistResult}
-      canBridge={canBridge}
-      isOwner={isOwner}
-      doSavePlan={doSavePlan}
-      doSaveDistributionResult={doSaveDistributionResult}
-      onBridged={refreshSummary}
     />
   );
 }

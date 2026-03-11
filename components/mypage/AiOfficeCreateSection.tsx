@@ -150,7 +150,7 @@ export function AiOfficeCreateSection(props: Props) {
         {props.waitingApprovalCount > 0 ? (
           <AiOfficeEmptyState
             title={`先に確認したい承認待ちが ${props.waitingApprovalCount} 件あります`}
-            description="新しい下書きを増やす前に、Inbox で内容を確認しておくと運営が止まりません。"
+            description="新しい下書きを増やす前に、承認待ちで内容を確認しておくと運営が止まりません。"
           >
             <button
               type="button"
@@ -158,7 +158,7 @@ export function AiOfficeCreateSection(props: Props) {
               onClick={props.onOpenInbox}
               disabled={props.loading}
             >
-              Inbox を開く
+              承認待ちを開く
             </button>
           </AiOfficeEmptyState>
         ) : null}

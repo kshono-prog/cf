@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { errJson, okJson } from "@/lib/api/responses";
 import { toAddressOrNull } from "@/lib/api/guards";
 import { getMyPageDashboard } from "@/lib/mypageDashboard";
+import { resolveWorkspaceView } from "@/lib/mypage/workspaceView";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,8 +13,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(req.url);
     const address = toAddressOrNull(searchParams.get("address"));
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const view = resolveWorkspaceView(searchParams.get("view"));
 
-    const dashboard = await getMyPageDashboard(address);
+    const dashboard = await getMyPageDashboard(address, view);
     return okJson(dashboard);
   } catch (e) {
     console.error("MYPAGE_DASHBOARD_GET_FAILED", e);
