@@ -207,6 +207,8 @@ export async function updateMyPageCreatorProfile(args: {
   profile: string;
   avatarUrl: string;
   themeColor: string;
+  creatorType: CreatorProfile["creatorType"];
+  categories: CreatorProfile["categories"];
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
 }): Promise<
@@ -222,6 +224,8 @@ export async function updateMyPageCreatorProfile(args: {
       profile: args.profile,
       avatarUrl: args.avatarUrl || null,
       themeColor: args.themeColor.trim() || null,
+      creatorType: args.creatorType ?? null,
+      categories: args.categories ?? [],
       socials: args.socials,
       youtubeVideos: args.youtubeVideos.map((video) => ({
         url: video.url.trim(),

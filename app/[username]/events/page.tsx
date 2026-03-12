@@ -1,12 +1,20 @@
 // app/[username]/events/page.tsx
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { EventDateTime } from "@/components/EventDateTime";
 import { MyPageFooter } from "@/components/MyPageFooter";
 import type { CreatorProfile } from "@/lib/profileTypes";
+import {
+  CREATOR_CATEGORY_LABELS,
+  CREATOR_CATEGORY_OPTIONS,
+  CREATOR_TYPE_LABELS,
+  CREATOR_TYPE_OPTIONS,
+} from "@/lib/creatorTaxonomy";
 
 // このプロジェクトの PageProps に合わせて Promise にする
 type EventsPageProps = {
   params: Promise<{ username: string }>;
+  searchParams?: Promise<{ creatorType?: string; category?: string }>;
 };
 
 type EventDto = {
@@ -23,6 +31,8 @@ type PublicEventDto = EventDto & {
     displayName?: string | null;
     avatarUrl?: string | null;
     themeColor?: string | null;
+    creatorType?: string | null;
+    categories?: string[];
   };
 };
 
@@ -33,8 +43,14 @@ type RandomCreatorCard = {
   avatarUrl?: string | null;
 };
 
-export default async function EventsPage({ params }: EventsPageProps) {
+export default async function EventsPage({
+  params,
+  searchParams,
+}: EventsPageProps) {
   const { username } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const activeCreatorType = resolvedSearchParams.creatorType ?? "";
+  const activeCategory = resolvedSearchParams.category ?? "";
 
   const BASE_URL =
     process.env.NEXT_PUBLIC_BASE_URL || "https://nagesen-v2.vercel.app";
@@ -56,6 +72,18 @@ export default async function EventsPage({ params }: EventsPageProps) {
 
   const themeColor = creator.themeColor ?? "#005bbb";
   const displayName = creator.displayName ?? username;
+  const pageCategories = creator.categories ?? [];
+
+  function buildFilterHref(next: {
+    creatorType?: string;
+    category?: string;
+  }): string {
+    const params = new URLSearchParams();
+    if (next.creatorType) params.set("creatorType", next.creatorType);
+    if (next.category) params.set("category", next.category);
+    const query = params.toString();
+    return query ? `/${username}/events?${query}` : `/${username}/events`;
+  }
 
   // --- [username] の公開イベント一覧 ---
   let events: EventDto[] = [];
@@ -85,7 +113,13 @@ export default async function EventsPage({ params }: EventsPageProps) {
     const publicRes = await fetch(
       `${BASE_URL}/api/events/public?exclude=${encodeURIComponent(
         username
-      )}&limit=80`,
+      )}&limit=80${
+        activeCreatorType
+          ? `&creatorType=${encodeURIComponent(activeCreatorType)}`
+          : ""
+      }${
+        activeCategory ? `&category=${encodeURIComponent(activeCategory)}` : ""
+      }`,
       { next: { revalidate: 30 } }
     );
 
@@ -128,7 +162,34 @@ export default async function EventsPage({ params }: EventsPageProps) {
       <div className="container-narrow space-y-4">
         {/* ========== 上段：[username] の公開イベント一覧 ========== */}
         <div className="space-y-3 mb-10">
-          <h1 className="text-sm font-semibold">{displayName} のイベント</h1>
+          <div className="space-y-2">
+            <h1 className="text-sm font-semibold">{displayName} のイベント</h1>
+            {creator.creatorType || pageCategories.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {creator.creatorType ? (
+                  <span className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700">
+                    {
+                      CREATOR_TYPE_LABELS[
+                        creator.creatorType as keyof typeof CREATOR_TYPE_LABELS
+                      ]
+                    }
+                  </span>
+                ) : null}
+                {pageCategories.map((category) => (
+                  <span
+                    key={category}
+                    className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs text-gray-600"
+                  >
+                    {
+                      CREATOR_CATEGORY_LABELS[
+                        category as keyof typeof CREATOR_CATEGORY_LABELS
+                      ]
+                    }
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
 
           {events.length === 0 ? (
             <p className="text-xs text-gray-500">
@@ -182,15 +243,99 @@ export default async function EventsPage({ params }: EventsPageProps) {
         {/* ========== 下段：[username] 以外の全ユーザー公開イベント一覧 ========== */}
         <div className="space-y-3 mb-10">
           <div className="flex items-end justify-between">
-            <h2 className="text-sm font-semibold">みんなの公開イベント</h2>
+            <div className="space-y-1">
+              <h2 className="text-sm font-semibold">みんなの公開イベント</h2>
+              <p className="text-[11px] text-gray-500">
+                クリエイターの種類やカテゴリで絞り込めます。
+              </p>
+            </div>
             <p className="text-[11px] text-gray-500">
               {publicEvents.length} 件
             </p>
           </div>
 
+          <div className="space-y-2 rounded-2xl border border-gray-200 bg-white p-3">
+            <div className="text-xs font-semibold text-gray-700">
+              種類で絞り込み
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={buildFilterHref({ category: activeCategory || undefined })}
+                className={`rounded-full border px-3 py-1 text-xs ${
+                  !activeCreatorType
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-gray-300 bg-white text-gray-700"
+                }`}
+              >
+                すべて
+              </Link>
+              {CREATOR_TYPE_OPTIONS.map((option) => (
+                <Link
+                  key={option}
+                  href={buildFilterHref({
+                    creatorType: option,
+                    category: activeCategory || undefined,
+                  })}
+                  className={`rounded-full border px-3 py-1 text-xs ${
+                    activeCreatorType === option
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-gray-300 bg-white text-gray-700"
+                  }`}
+                >
+                  {CREATOR_TYPE_LABELS[option]}
+                </Link>
+              ))}
+            </div>
+
+            <div className="pt-1 text-xs font-semibold text-gray-700">
+              カテゴリで絞り込み
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={buildFilterHref({
+                  creatorType: activeCreatorType || undefined,
+                })}
+                className={`rounded-full border px-3 py-1 text-xs ${
+                  !activeCategory
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-gray-300 bg-white text-gray-700"
+                }`}
+              >
+                すべて
+              </Link>
+              {CREATOR_CATEGORY_OPTIONS.map((option) => (
+                <Link
+                  key={option}
+                  href={buildFilterHref({
+                    creatorType: activeCreatorType || undefined,
+                    category: option,
+                  })}
+                  className={`rounded-full border px-3 py-1 text-xs ${
+                    activeCategory === option
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-gray-300 bg-white text-gray-700"
+                  }`}
+                >
+                  {CREATOR_CATEGORY_LABELS[option]}
+                </Link>
+              ))}
+            </div>
+
+            {activeCreatorType || activeCategory ? (
+              <div className="pt-1">
+                <Link
+                  href={`/${username}/events`}
+                  className="text-xs text-slate-700 underline"
+                >
+                  絞り込みをクリア
+                </Link>
+              </div>
+            ) : null}
+          </div>
+
           {publicEvents.length === 0 ? (
             <p className="text-xs text-gray-500">
-              他のユーザーの公開イベントはまだありません。
+              条件に一致する公開イベントはまだありません。
             </p>
           ) : (
             publicEvents.map((ev) => (
@@ -227,6 +372,32 @@ export default async function EventsPage({ params }: EventsPageProps) {
                   <p className="text-[11px] text-gray-600 truncate">
                     {ev.creator.displayName || ev.creator.username}
                   </p>
+
+                  {ev.creator.creatorType || (ev.creator.categories?.length ?? 0) > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {ev.creator.creatorType ? (
+                        <span className="rounded-full border border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-700">
+                          {
+                            CREATOR_TYPE_LABELS[
+                              ev.creator.creatorType as keyof typeof CREATOR_TYPE_LABELS
+                            ]
+                          }
+                        </span>
+                      ) : null}
+                      {ev.creator.categories?.slice(0, 3).map((category) => (
+                        <span
+                          key={`${ev.id}-${category}`}
+                          className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-600"
+                        >
+                          {
+                            CREATOR_CATEGORY_LABELS[
+                              category as keyof typeof CREATOR_CATEGORY_LABELS
+                            ]
+                          }
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
 
                   {ev.date && (
                     <p className="text-[11px] text-gray-500">

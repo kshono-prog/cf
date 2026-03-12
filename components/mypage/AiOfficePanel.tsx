@@ -334,7 +334,7 @@ export function AiOfficePanel(props: {
       const dashboardJson: unknown = await dashboardRes.json().catch(() => null);
 
       if (!dashboardRes.ok || !isRecord(dashboardJson)) {
-        setMessage("支援者対応の状況を取得できませんでした。");
+        setMessage("下書きと承認の状況を取得できませんでした。");
         return;
       }
 
@@ -346,7 +346,7 @@ export function AiOfficePanel(props: {
       setMetricsSnapshots(parsedMetrics.snapshots);
       setMetricTrends(parseMetricTrends(dashboardJson.trends));
     } catch {
-      setMessage("支援者対応の状況を取得できませんでした。");
+      setMessage("下書きと承認の状況を取得できませんでした。");
     } finally {
       setLoading(false);
     }
@@ -664,7 +664,7 @@ export function AiOfficePanel(props: {
     <div className="rounded-xl border bg-white p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">支援者対応</h3>
+          <h3 className="font-semibold">下書きと承認</h3>
           <p className="text-xs text-gray-500 mt-1">
             告知やお礼の下書き作成、承認待ちの確認、指標の確認をここでまとめて進めます。
           </p>

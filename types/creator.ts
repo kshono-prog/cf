@@ -1,3 +1,8 @@
+import type {
+  CreatorCategory,
+  CreatorType,
+} from "@/lib/creatorTaxonomy";
+
 export type SocialLinks = Partial<
   Record<
     "twitter" | "instagram" | "youtube" | "facebook" | "tiktok" | "website",
@@ -19,10 +24,11 @@ export type CreatorProfile = {
   profile?: string | null;
   qrcode?: string | null;
   url?: string | null;
-  // 削除:
-  // goalTitle?: string | null;
-  // goalTargetJpyc?: number | null;
+  goalTitle?: string | null;
+  goalTargetJpyc?: number | null;
   themeColor?: string | null;
+  creatorType?: CreatorType | null;
+  categories?: CreatorCategory[];
   socials?: SocialLinks;
   youtubeVideos?: YoutubeVideo[];
 };

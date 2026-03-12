@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Address } from "viem";
 
 import type {
+  CreatorProfile,
   SocialLinks,
   YoutubeVideo,
 } from "@/types/creator";
@@ -39,6 +40,8 @@ type Props = {
   profile: string;
   avatarUrl: string;
   themeColorValue: string;
+  creatorType: CreatorProfile["creatorType"];
+  categories: CreatorProfile["categories"];
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   avatarFile: File | null;
@@ -46,6 +49,12 @@ type Props = {
   setDisplayName: React.Dispatch<React.SetStateAction<string>>;
   setProfile: React.Dispatch<React.SetStateAction<string>>;
   setThemeColor: React.Dispatch<React.SetStateAction<string>>;
+  setCreatorType: React.Dispatch<
+    React.SetStateAction<CreatorProfile["creatorType"]>
+  >;
+  setCategories: React.Dispatch<
+    React.SetStateAction<CreatorProfile["categories"]>
+  >;
   setSocials: React.Dispatch<React.SetStateAction<SocialLinks>>;
   setYoutubeVideos: React.Dispatch<React.SetStateAction<YoutubeVideo[]>>;
   setAvatarFile: React.Dispatch<React.SetStateAction<File | null>>;
@@ -81,6 +90,8 @@ export function CreatorReadyAccountView(props: Props) {
       profile: props.profile,
       avatarUrl: props.avatarUrl,
       themeColorValue: props.themeColorValue,
+      creatorType: props.creatorType,
+      categories: props.categories,
       socials: props.socials,
       youtubeVideos: props.youtubeVideos,
       avatarFile: props.avatarFile,
@@ -88,6 +99,8 @@ export function CreatorReadyAccountView(props: Props) {
       setDisplayName: props.setDisplayName,
       setProfile: props.setProfile,
       setThemeColor: props.setThemeColor,
+      setCreatorType: props.setCreatorType,
+      setCategories: props.setCategories,
       setSocials: props.setSocials,
       setYoutubeVideos: props.setYoutubeVideos,
       setAvatarFile: props.setAvatarFile,
@@ -102,6 +115,8 @@ export function CreatorReadyAccountView(props: Props) {
       props.avatarFile,
       props.avatarPreview,
       props.avatarUrl,
+      props.categories,
+      props.creatorType,
       props.displayName,
       props.editingProfile,
       props.eventBaseUrl,
@@ -119,6 +134,8 @@ export function CreatorReadyAccountView(props: Props) {
       props.setAvatarPreview,
       props.setDisplayName,
       props.setProfile,
+      props.setCategories,
+      props.setCreatorType,
       props.setSocials,
       props.setThemeColor,
       props.setYoutubeVideos,
@@ -138,7 +155,7 @@ export function CreatorReadyAccountView(props: Props) {
         <div className="container-narrow space-y-4">
           <div className="flex flex-col gap-3">
             <h1 className="text-lg font-semibold">
-              {activeWorkspace?.label ?? "今週の運営"}
+              {activeWorkspace?.label ?? "やること一覧"}
             </h1>
             <div className="grid gap-2 md:grid-cols-5">
               {CREATOR_READY_WORKSPACE_VIEWS.map((view) => (
@@ -187,7 +204,7 @@ export function CreatorReadyAccountView(props: Props) {
                   className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800"
                   onClick={() => navigateToView("home")}
                 >
-                  今週の運営へ戻る
+                  やること一覧へ戻る
                 </button>
               </div>
               {activeView === "support-page" ? (

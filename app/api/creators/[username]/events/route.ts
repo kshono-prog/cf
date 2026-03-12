@@ -15,6 +15,7 @@ type EventPostBody = {
   placeName?: string;
   placeUrl?: string;
   ticketUrl?: string;
+  isPublished?: boolean;
 };
 
 // 追記: 更新用の body 型
@@ -98,7 +99,7 @@ export async function POST(
       return NextResponse.json({ error: "INVALID_JSON" }, { status: 400 });
     }
 
-    const { title, description, date, goalAmount } = body;
+    const { title, description, date, goalAmount, isPublished } = body;
 
     if (!title || !date) {
       return NextResponse.json(
@@ -134,7 +135,8 @@ export async function POST(
           ticketUrl: null,
           goalAmountJpyc:
             typeof goalAmount === "number" ? Math.trunc(goalAmount) : null,
-          isPublished: true,
+          isPublished:
+            typeof isPublished === "boolean" ? isPublished : true,
         },
       })
     );
@@ -146,6 +148,7 @@ export async function POST(
       // レスポンスでは startAt を date として返す
       date: newEvent.startAt ? newEvent.startAt.toISOString() : null,
       goalAmount: serializeGoalAmount(newEvent.goalAmountJpyc),
+      isPublished: newEvent.isPublished,
     });
   } catch (error: unknown) {
     console.error("EVENT_CREATE_ERROR", error);

@@ -10,15 +10,25 @@ type Props = {
 };
 
 export function CreatorPublicLinkSection({ username, localProjectId }: Props) {
+  const publicProfileUrl = withBaseUrl(username);
+  const publicEventsUrl = withBaseUrl(`${username}/events`);
+
   return (
-    <div className="card p-0 bg-transparent space-y-2">
-      <p className="text-xs text-gray-500">あなたの投げ銭ページ</p>
+    <div className="card p-0 bg-transparent space-y-3">
+      <p className="text-xs text-gray-500">公開URL</p>
 
       <a
-        href={withBaseUrl(username)}
+        href={publicProfileUrl}
         className="text-sm font-mono text-blue-600 underline break-all"
       >
-        {withBaseUrl(username)}
+        {publicProfileUrl}
+      </a>
+
+      <a
+        href={publicEventsUrl}
+        className="text-sm font-mono text-blue-600 underline break-all"
+      >
+        {publicEventsUrl}
       </a>
 
       {localProjectId && (

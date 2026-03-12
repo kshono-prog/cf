@@ -20,7 +20,9 @@ export function CreatorReadyAdvancedRoute() {
   return (
     <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div>
-        <div className="text-sm font-semibold text-gray-900">詳細設定</div>
+        <div className="text-sm font-semibold text-gray-900">
+          精算と詳細設定
+        </div>
         <div className="mt-1 text-xs leading-5 text-gray-600">
           配分、精算、ガス代支援などの高リスク操作をここでまとめて扱います。
         </div>

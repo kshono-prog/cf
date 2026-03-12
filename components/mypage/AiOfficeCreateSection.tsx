@@ -83,7 +83,7 @@ const TASK_CHOICES: TaskChoice[] = [
   },
   {
     taskType: "SUPPORTER_MESSAGE_DRAFT",
-    eyebrow: "支援者対応",
+    eyebrow: "下書きと承認",
     whenToUse: "お礼や再案内のメッセージを作りたいとき",
   },
   {

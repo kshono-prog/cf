@@ -2,6 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
+import {
+  isCreatorCategory,
+  isCreatorType,
+} from "@/lib/creatorTaxonomy";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
@@ -18,14 +22,30 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       Math.max(Number(url.searchParams.get("limit") ?? 50), 1),
       200
     );
+    const creatorTypeRaw = url.searchParams.get("creatorType");
+    const categoryRaw = url.searchParams.get("category");
+    const creatorType =
+      typeof creatorTypeRaw === "string" && isCreatorType(creatorTypeRaw)
+        ? creatorTypeRaw
+        : null;
+    const category =
+      typeof categoryRaw === "string" && isCreatorCategory(categoryRaw)
+        ? categoryRaw
+        : null;
 
     const events = await withPrismaRetry(() =>
       prisma.event.findMany({
         where: {
           isPublished: true,
-          ...(excludeUsernames.length > 0
-            ? { creatorProfile: { username: { notIn: excludeUsernames } } }
-            : {}),
+          creatorProfile: {
+            is: {
+              ...(excludeUsernames.length > 0
+                ? { username: { notIn: excludeUsernames } }
+                : {}),
+              ...(creatorType ? { creatorType } : {}),
+              ...(category ? { creatorCategories: { has: category } } : {}),
+            },
+          },
         },
         orderBy: { startAt: "asc" },
         take: limit,
@@ -36,6 +56,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
               displayName: true,
               avatarUrl: true,
               themeColor: true,
+              creatorType: true,
+              creatorCategories: true,
             },
           },
         },
@@ -56,6 +78,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           displayName: e.creatorProfile.displayName,
           avatarUrl: e.creatorProfile.avatarUrl,
           themeColor: e.creatorProfile.themeColor,
+          creatorType: e.creatorProfile.creatorType,
+          categories: e.creatorProfile.creatorCategories,
         },
       })),
     });

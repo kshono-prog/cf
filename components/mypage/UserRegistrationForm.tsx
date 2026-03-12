@@ -58,7 +58,7 @@ export function UserRegistrationForm({
           表示名 <span className="text-red-500">*</span>
         </label>
         <p className="text-[11px] text-gray-500 mb-2">
-          支援ページやマイページで最初に見える名前です。
+          公開ページやマイページで最初に見える名前です。
         </p>
         <input
           type="text"

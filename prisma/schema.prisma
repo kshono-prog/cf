@@ -19,6 +19,8 @@ model CreatorProfile {
   goalTitle       String?
   goalTargetJpyc  Int?
   themeColor      String?
+  creatorType     String?
+  creatorCategories String[] @default([])
   walletAddress   String?               @unique
   email           String?               @unique
   status          String                @default("PUBLISHED")

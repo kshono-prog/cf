@@ -31,6 +31,11 @@ export function CreatorReadyHomeRoute(props: Props) {
       ) : null}
       <CreatorReadyWorkspaceOverview
         username={workspace.meCreatorUsername}
+        displayName={workspace.displayName}
+        profile={workspace.profile}
+        avatarUrl={workspace.avatarUrl}
+        creatorType={workspace.creatorType}
+        categories={workspace.categories}
         walletAddress={workspace.address?.toLowerCase() ?? null}
         projectId={workspace.localProjectId}
         isConnected={workspace.isConnected}

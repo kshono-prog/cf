@@ -12,15 +12,17 @@ function isNonEmptyString(v: unknown): v is string {
 
 type PublicOk = {
   ok: true;
-  creator: {
-    username: string;
-    displayName: string;
-    profileText: string | null;
-    avatarUrl: string | null;
-    themeColor: string | null;
-    qrcodeUrl: string | null;
-    externalUrl: string | null;
-  };
+    creator: {
+      username: string;
+      displayName: string;
+      profileText: string | null;
+      avatarUrl: string | null;
+      themeColor: string | null;
+      qrcodeUrl: string | null;
+      externalUrl: string | null;
+      creatorType: string | null;
+      creatorCategories: string[];
+    };
   activeProjectId: string | null;
   projectIdsByCurrency: {
     JPYC: string | null;
@@ -62,6 +64,8 @@ export async function GET(
           themeColor: true,
           qrcodeUrl: true,
           externalUrl: true,
+          creatorType: true,
+          creatorCategories: true,
           activeProjectId: true,
           activeProjectIdJpyc: true,
           activeProjectIdUsdc: true,
@@ -136,6 +140,8 @@ export async function GET(
         themeColor: creator.themeColor,
         qrcodeUrl: creator.qrcodeUrl,
         externalUrl: creator.externalUrl,
+        creatorType: creator.creatorType,
+        creatorCategories: creator.creatorCategories,
       },
       activeProjectId,
       projectIdsByCurrency,

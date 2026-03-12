@@ -3,7 +3,7 @@
 import React from "react";
 import type { Address } from "viem";
 
-import type { SocialLinks, YoutubeVideo } from "@/types/creator";
+import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
 import { CreatorProfileSection } from "@/components/mypage/CreatorProfileSection";
@@ -19,6 +19,8 @@ type Props = {
   profile: string;
   avatarUrl: string;
   themeColorValue: string;
+  creatorType: CreatorProfile["creatorType"];
+  categories: CreatorProfile["categories"];
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   avatarFile: File | null;
@@ -26,6 +28,12 @@ type Props = {
   setDisplayName: React.Dispatch<React.SetStateAction<string>>;
   setProfile: React.Dispatch<React.SetStateAction<string>>;
   setThemeColor: React.Dispatch<React.SetStateAction<string>>;
+  setCreatorType: React.Dispatch<
+    React.SetStateAction<CreatorProfile["creatorType"]>
+  >;
+  setCategories: React.Dispatch<
+    React.SetStateAction<CreatorProfile["categories"]>
+  >;
   setSocials: React.Dispatch<React.SetStateAction<SocialLinks>>;
   setYoutubeVideos: React.Dispatch<React.SetStateAction<YoutubeVideo[]>>;
   setAvatarFile: React.Dispatch<React.SetStateAction<File | null>>;
@@ -53,6 +61,8 @@ export function CreatorProjectManagementSection(props: Props) {
       profile={props.profile}
       avatarUrl={props.avatarUrl}
       themeColor={props.themeColorValue}
+      creatorType={props.creatorType}
+      categories={props.categories}
       socials={props.socials}
       youtubeVideos={props.youtubeVideos}
       avatarFile={props.avatarFile}
@@ -60,6 +70,8 @@ export function CreatorProjectManagementSection(props: Props) {
       setDisplayName={props.setDisplayName}
       setProfile={props.setProfile}
       setThemeColor={props.setThemeColor}
+      setCreatorType={props.setCreatorType}
+      setCategories={props.setCategories}
       setSocials={props.setSocials}
       setYoutubeVideos={props.setYoutubeVideos}
       setAvatarFile={props.setAvatarFile}

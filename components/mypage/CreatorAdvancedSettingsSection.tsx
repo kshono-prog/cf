@@ -102,7 +102,7 @@ export function CreatorAdvancedSettingsSection(props: Props) {
         ) : (
           <WorkspaceEmptyState
             title="まだ配分と精算を設定する project はありません"
-            description="先に支援ページで project と goal を整えると、必要なときにここから精算フローへ進めます。"
+            description="先にプロフィールと支援設定で project と goal を整えると、必要なときにここから精算フローへ進めます。"
           />
         )}
       </div>

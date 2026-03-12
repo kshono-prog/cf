@@ -7,27 +7,27 @@ export const CREATOR_READY_WORKSPACE_VIEWS: Array<{
 }> = [
   {
     id: "home",
-    label: "今週の運営",
-    description: "次にやることを決めます。",
+    label: "やること一覧",
+    description: "今やることを確認します。",
   },
   {
     id: "support-page",
-    label: "支援ページ",
-    description: "公開情報と goal を整えます。",
+    label: "プロフィールと支援設定",
+    description: "公開ページと目標を整えます。",
   },
   {
     id: "supporters",
-    label: "支援者対応",
-    description: "下書きと承認待ちを扱います。",
+    label: "下書きと承認",
+    description: "告知やお礼の下書きを進めます。",
   },
   {
     id: "public",
-    label: "公開確認",
+    label: "公開ページ確認",
     description: "支援者からの見え方を確認します。",
   },
   {
     id: "advanced",
-    label: "詳細設定",
-    description: "高リスク操作を扱います。",
+    label: "精算と詳細設定",
+    description: "精算や上級設定を扱います。",
   },
 ];

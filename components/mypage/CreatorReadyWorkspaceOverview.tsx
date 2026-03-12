@@ -6,6 +6,8 @@ import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import { PublicReadinessPanel } from "@/components/mypage/PublicReadinessPanel";
+import type { CreatorProfile } from "@/types/creator";
 import {
   formatAmountByCurrency,
   type CurrencyCode,
@@ -14,6 +16,7 @@ import {
   hasProjectSummary,
   type MyPageProjectDashboard,
 } from "@/lib/mypage/dashboardTypes";
+import { buildPublicReadiness } from "@/lib/mypage/publicReadiness";
 import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
 
 type QuickAction = {
@@ -30,6 +33,11 @@ type HomeTaskPreview = {
 
 type Props = {
   username: string;
+  displayName: string;
+  profile: string;
+  avatarUrl: string;
+  creatorType: CreatorProfile["creatorType"];
+  categories: CreatorProfile["categories"];
   walletAddress: string | null;
   projectId: string | null;
   isConnected: boolean;
@@ -165,37 +173,37 @@ function buildQuickActions(params: {
   if (params.waitingApprovalCount > 0) {
     actions.push({
       title: "承認待ちを先に片づける",
-      body: "公開前に確認が必要な下書きがあります。まず承認待ちを処理すると、今週の運営が止まりません。",
-      actionLabel: "支援者対応を開く",
+      body: "公開前に確認が必要な下書きがあります。まず承認待ちを処理すると、日々の運営が止まりません。",
+      actionLabel: "下書きと承認を開く",
       onAction: params.onOpenSupporterResponse,
     });
   } else if (missingProject) {
     actions.push({
-      title: "最初の支援ページを準備する",
+      title: "最初のプロフィールと支援設定を準備する",
       body: "支援を受ける通貨を決めて、まずは project と公開情報の土台を作ります。",
-      actionLabel: "支援ページを整える",
+      actionLabel: "プロフィールと支援設定を開く",
       onAction: params.onOpenSupportPage,
     });
   } else if (missingGoal) {
     actions.push({
       title: "目標金額を設定する",
       body: "何を目指しているかが伝わるように、goal を先に固めます。",
-      actionLabel: "支援ページを整える",
+      actionLabel: "プロフィールと支援設定を開く",
       onAction: params.onOpenSupportPage,
     });
   } else {
     actions.push({
       title: "今週の告知やお礼を進める",
       body: "今の支援状況を見ながら、支援者向けの下書きと告知を更新する段階です。",
-      actionLabel: "支援者対応を開く",
+      actionLabel: "下書きと承認を開く",
       onAction: params.onOpenSupporterResponse,
     });
   }
 
   actions.push({
-    title: "支援ページを見直す",
+    title: "プロフィールと支援設定を見直す",
     body: "プロフィール、goal、公開情報が今の活動内容とずれていないか確認します。",
-    actionLabel: "支援ページを開く",
+    actionLabel: "プロフィールと支援設定を開く",
     onAction: params.onOpenSupportPage,
   });
 
@@ -223,6 +231,25 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
   );
 
   const waitingApprovalCount = waitingTasks.length;
+  const publicReadiness = React.useMemo(
+    () =>
+      buildPublicReadiness({
+        displayName: props.displayName,
+        profile: props.profile,
+        avatarUrl: props.avatarUrl,
+        creatorType: props.creatorType ?? null,
+        categories: props.categories ?? [],
+        projectDashboardsByCurrency: props.projectDashboardsByCurrency,
+      }),
+    [
+      props.avatarUrl,
+      props.categories,
+      props.creatorType,
+      props.displayName,
+      props.profile,
+      props.projectDashboardsByCurrency,
+    ]
+  );
   const settlementAttentionNeeded = React.useMemo(
     () =>
       activeDashboards.some((dashboard) => {
@@ -283,7 +310,7 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
 
         if (!response.ok) {
           if (!cancelled) {
-            setAiSummaryError("支援者対応の状況を取得できませんでした。");
+            setAiSummaryError("下書きと承認の状況を取得できませんでした。");
             setWaitingTasks([]);
           }
           return;
@@ -294,7 +321,7 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
         }
       } catch {
         if (!cancelled) {
-          setAiSummaryError("支援者対応の状況を取得できませんでした。");
+          setAiSummaryError("下書きと承認の状況を取得できませんでした。");
           setWaitingTasks([]);
         }
       } finally {
@@ -319,10 +346,10 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
             Weekly Home
           </div>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">
-            今週の運営で先に進めること
+            今ここで進めること
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-700">
-            {props.username} の支援ページ、支援状況、承認待ちをここから確認します。
+            {props.username} のプロフィール、支援状況、承認待ちをここから確認します。
             最初にやることを1つ決めて進み、詳細な設定は下の管理セクションで必要なときだけ開きます。
           </p>
         </div>
@@ -348,11 +375,31 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
               className="inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 transition hover:border-amber-500"
               onClick={props.onOpenAdvancedSettings}
             >
-              詳細設定を開く
+              精算と詳細設定を開く
             </button>
           </WorkspaceStatusNotice>
         </div>
       ) : null}
+
+      <div className="mt-6">
+        <PublicReadinessPanel
+          compact
+          title="公開準備の進捗"
+          description="公開ページに必要な項目がどこまで揃っているかを確認します。"
+          readiness={publicReadiness}
+          actions={[
+            {
+              label: "プロフィールと支援設定を開く",
+              onClick: props.onOpenSupportPage,
+              tone: "primary",
+            },
+            {
+              label: "公開ページ確認を開く",
+              onClick: props.onOpenPublicPage,
+            },
+          ]}
+        />
+      </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.25fr_1fr]">
         <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
@@ -368,7 +415,7 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
               className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:border-slate-900 hover:text-slate-950"
               onClick={props.onOpenAdvancedSettings}
             >
-              詳細設定
+              精算と詳細設定
             </button>
           </div>
           <div className="mt-3 grid gap-3">
@@ -397,7 +444,7 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
 
         <div className="space-y-4">
           <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
-            <div className="text-sm font-semibold text-slate-950">支援者対応の状況</div>
+            <div className="text-sm font-semibold text-slate-950">下書きと承認の状況</div>
             <p className="mt-1 text-xs leading-5 text-slate-600">
               承認待ちと下書きの状態だけを先に見ます。
             </p>
@@ -416,7 +463,7 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
                   className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:border-slate-900 hover:text-slate-950"
                   onClick={props.onOpenSupporterResponse}
                 >
-                  支援者対応を開く
+                  下書きと承認を開く
                 </button>
               </div>
               <p className="mt-2 text-xs leading-5 text-gray-600">
@@ -427,12 +474,12 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
               <div className="mt-3 space-y-2">
                 {loadingAiSummary ? (
                   <div className="rounded-xl bg-gray-50 px-3 py-2 text-[11px] text-gray-600">
-                    支援者対応の状況を読み込んでいます。
+                    下書きと承認の状況を読み込んでいます。
                   </div>
                 ) : aiSummaryError ? (
                   <WorkspaceEmptyState
                     compact
-                    title="支援者対応の状況を取得できませんでした"
+                    title="下書きと承認の状況を取得できませんでした"
                     description={aiSummaryError}
                   />
                 ) : waitingTasks.length === 0 ? (

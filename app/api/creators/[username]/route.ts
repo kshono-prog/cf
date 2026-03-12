@@ -1,11 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
 
-export async function GET(req: NextRequest, context: any) {
-  const { username } = context.params as { username: string };
+type CreatorRouteContext = {
+  params: Promise<{ username: string }>;
+};
+
+export async function GET(
+  _req: NextRequest,
+  context: CreatorRouteContext
+): Promise<NextResponse> {
+  const { username } = await context.params;
 
   const profile = await withPrismaRetry(() =>
     prisma.creatorProfile.findUnique({
@@ -31,13 +36,17 @@ export async function GET(req: NextRequest, context: any) {
   return NextResponse.json({
     username: profile.username,
     displayName: profile.displayName,
+    profile: profile.profileText,
     profileText: profile.profileText,
+    avatarUrl: profile.avatarUrl,
     avatar: profile.avatarUrl,
     qrcode: profile.qrcodeUrl,
     url: profile.externalUrl,
     goalTitle: profile.goalTitle,
     goalTargetJpyc: profile.goalTargetJpyc,
     themeColor: profile.themeColor,
+    creatorType: profile.creatorType,
+    categories: profile.creatorCategories,
     address: profile.walletAddress, // CreatorProfile に統合したアドレス
     projectId: profile.activeProjectId ? profile.activeProjectId.toString() : null,
     projectIdsByCurrency: {
