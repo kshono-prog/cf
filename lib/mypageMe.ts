@@ -1,6 +1,6 @@
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import { prisma } from "@/lib/prisma";
-import { isCreatorCategory, isCreatorType } from "@/lib/creatorTaxonomy";
+import { isCreatorType } from "@/lib/creatorTaxonomy";
 import type {
   CreatorProfile,
   SocialLinks,
@@ -59,7 +59,6 @@ export async function getMeStatusByAddress(
         externalUrl: true,
         themeColor: true,
         creatorType: true,
-        creatorCategories: true,
         walletAddress: true,
         activeProjectId: true,
         activeProjectIdJpyc: true,
@@ -114,7 +113,6 @@ export async function getMeStatusByAddress(
       typeof profile.creatorType === "string" && isCreatorType(profile.creatorType)
         ? profile.creatorType
         : null,
-    categories: profile.creatorCategories.filter(isCreatorCategory),
     socials: socialsResult,
     youtubeVideos: youtubeResult,
   };

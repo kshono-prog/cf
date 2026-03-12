@@ -24,8 +24,6 @@ export function useMyPageProfileState(defaultUsername: string) {
   const [themeColor, setThemeColor] = useState<string>("");
   const [creatorType, setCreatorType] =
     useState<CreatorProfile["creatorType"]>(null);
-  const [categories, setCategories] =
-    useState<CreatorProfile["categories"]>([]);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [socials, setSocials] = useState<SocialLinks>({});
@@ -42,7 +40,6 @@ export function useMyPageProfileState(defaultUsername: string) {
       setAvatarUrl("");
       setThemeColor("");
       setCreatorType(null);
-      setCategories([]);
       setAvatarFile(null);
       setAvatarPreview(null);
       setSocials({});
@@ -60,7 +57,6 @@ export function useMyPageProfileState(defaultUsername: string) {
       setAvatarUrl("");
       setThemeColor("");
       setCreatorType(null);
-      setCategories([]);
       setAvatarFile(null);
       setAvatarPreview(null);
       setSocials({});
@@ -78,7 +74,6 @@ export function useMyPageProfileState(defaultUsername: string) {
       setAvatarUrl(creator.avatarUrl ?? "");
       setThemeColor(creator.themeColor ?? "");
       setCreatorType(creator.creatorType ?? null);
-      setCategories(creator.categories ?? []);
       setAvatarFile(null);
       setAvatarPreview(null);
       setSocials(creator.socials ?? {});
@@ -112,8 +107,6 @@ export function useMyPageProfileState(defaultUsername: string) {
     setThemeColor,
     creatorType,
     setCreatorType,
-    categories,
-    setCategories,
     avatarFile,
     setAvatarFile,
     avatarPreview,

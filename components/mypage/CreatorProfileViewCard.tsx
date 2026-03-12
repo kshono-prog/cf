@@ -3,10 +3,7 @@
 
 import React from "react";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
-import {
-  CREATOR_CATEGORY_LABELS,
-  CREATOR_TYPE_LABELS,
-} from "@/lib/creatorTaxonomy";
+import { CREATOR_TYPE_LABELS } from "@/lib/creatorTaxonomy";
 
 type Props = {
   displayName: string;
@@ -14,7 +11,6 @@ type Props = {
   avatarUrl: string;
   themeColor: string;
   creatorType: CreatorProfile["creatorType"];
-  categories: CreatorProfile["categories"];
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   onEdit: () => void;
@@ -26,7 +22,6 @@ export function CreatorProfileViewCard({
   avatarUrl,
   themeColor,
   creatorType,
-  categories,
   socials,
   youtubeVideos,
   onEdit,
@@ -70,25 +65,11 @@ export function CreatorProfileViewCard({
         </div>
       </div>
 
-      {creatorType || (categories?.length ?? 0) > 0 ? (
+      {creatorType ? (
         <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
-          {creatorType ? (
-            <div className="text-xs text-gray-700">
-              種類: {CREATOR_TYPE_LABELS[creatorType]}
-            </div>
-          ) : null}
-          {(categories?.length ?? 0) > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {categories?.map((category) => (
-                <span
-                  key={category}
-                  className="rounded-full border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700"
-                >
-                  {CREATOR_CATEGORY_LABELS[category]}
-                </span>
-              ))}
-            </div>
-          ) : null}
+          <div className="text-xs text-gray-700">
+            種類: {CREATOR_TYPE_LABELS[creatorType]}
+          </div>
         </div>
       ) : null}
 

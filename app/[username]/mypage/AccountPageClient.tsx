@@ -62,8 +62,6 @@ export default function AccountPageClient({
     setThemeColor,
     creatorType,
     setCreatorType,
-    categories,
-    setCategories,
     avatarFile,
     setAvatarFile,
     avatarPreview,
@@ -258,7 +256,6 @@ export default function AccountPageClient({
         avatarUrl,
         themeColor,
         creatorType,
-        categories,
         socials,
         youtubeVideos,
       });
@@ -360,7 +357,6 @@ export default function AccountPageClient({
       avatarUrl={avatarUrl}
       themeColorValue={themeColor}
       creatorType={creatorType}
-      categories={categories}
       socials={socials}
       youtubeVideos={youtubeVideos}
       avatarFile={avatarFile}
@@ -369,7 +365,6 @@ export default function AccountPageClient({
       setProfile={setProfile}
       setThemeColor={setThemeColor}
       setCreatorType={setCreatorType}
-      setCategories={setCategories}
       setSocials={setSocials}
       setYoutubeVideos={setYoutubeVideos}
       setAvatarFile={setAvatarFile}

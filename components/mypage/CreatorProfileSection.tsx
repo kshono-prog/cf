@@ -22,7 +22,6 @@ type Props = {
   avatarUrl: string;
   themeColor: string;
   creatorType: CreatorProfile["creatorType"];
-  categories: CreatorProfile["categories"];
 
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
@@ -33,7 +32,6 @@ type Props = {
   setDisplayName: (v: string) => void;
   setProfile: (v: string) => void;
   setCreatorType: (v: CreatorProfile["creatorType"]) => void;
-  setCategories: (v: CreatorProfile["categories"]) => void;
 
   // ✅ 旧goalは廃止したので削除
   // setGoalTitle: (v: string) => void;
@@ -70,7 +68,6 @@ export function CreatorProfileSection(props: Props) {
     avatarUrl,
     themeColor,
     creatorType,
-    categories,
 
     socials,
     youtubeVideos,
@@ -81,7 +78,6 @@ export function CreatorProfileSection(props: Props) {
     setDisplayName,
     setProfile,
     setCreatorType,
-    setCategories,
 
     // ✅ 削除
     // setGoalTitle,
@@ -109,7 +105,6 @@ export function CreatorProfileSection(props: Props) {
         avatarUrl={avatarUrl}
         themeColor={themeColor}
         creatorType={creatorType}
-        categories={categories}
         socials={socials}
         youtubeVideos={youtubeVideos}
         onEdit={onStartEdit}
@@ -125,7 +120,6 @@ export function CreatorProfileSection(props: Props) {
       avatarUrl={avatarUrl}
       themeColor={themeColor}
       creatorType={creatorType}
-      categories={categories}
       socials={socials}
       youtubeVideos={youtubeVideos}
       avatarFile={avatarFile}
@@ -133,7 +127,6 @@ export function CreatorProfileSection(props: Props) {
       setDisplayName={setDisplayName}
       setProfile={setProfile}
       setCreatorType={setCreatorType}
-      setCategories={setCategories}
       setThemeColor={setThemeColor}
       setSocials={setSocials}
       setYoutubeVideos={setYoutubeVideos}

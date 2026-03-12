@@ -1,6 +1,7 @@
 // app/api/creators/[username]/events/manage/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isEventCategory } from "@/lib/creatorTaxonomy";
 
 type Ctx = {
   params: Promise<{ username: string }>;
@@ -32,6 +33,7 @@ export async function GET(_req: NextRequest, ctx: Ctx): Promise<NextResponse> {
         description: e.description,
         date: e.startAt ? e.startAt.toISOString() : null,
         goalAmount: e.goalAmountJpyc,
+        categories: e.eventCategories.filter(isEventCategory),
         isPublished: e.isPublished,
       })),
     });

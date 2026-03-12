@@ -2,9 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  isCreatorCategory,
   isCreatorType,
-  type CreatorCategory,
   type CreatorType,
 } from "@/lib/creatorTaxonomy";
 
@@ -133,29 +131,6 @@ function parseCreatorTypeOrThrow(
   return v;
 }
 
-function parseCategoriesOrThrow(
-  v: unknown
-): CreatorCategory[] | undefined {
-  if (v === undefined) return undefined;
-  if (!Array.isArray(v)) throw new Error("CREATOR_CATEGORIES_INVALID");
-
-  const out: CreatorCategory[] = [];
-  for (const item of v) {
-    if (typeof item !== "string" || !isCreatorCategory(item)) {
-      throw new Error("CREATOR_CATEGORIES_INVALID");
-    }
-    if (!out.includes(item)) {
-      out.push(item);
-    }
-  }
-
-  if (out.length > 5) {
-    throw new Error("CREATOR_CATEGORIES_TOO_MANY");
-  }
-
-  return out;
-}
-
 /**
  * 旧Goal拒否（UIから外しているのに、APIが受けてしまうと混乱するため）
  */
@@ -199,7 +174,6 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const avatarUrl = toOptionalNullableString(json.avatarUrl);
     const themeColor = toOptionalNullableString(json.themeColor);
     const creatorType = parseCreatorTypeOrThrow(json.creatorType);
-    const categories = parseCategoriesOrThrow(json.categories);
 
     // “指定された場合のみ全入れ替え” を維持するため、
     // socials/youtubeVideos は undefined と “空オブジェクト/空配列” を区別する
@@ -237,8 +211,6 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         themeColor: themeColor === undefined ? creator.themeColor : themeColor,
         creatorType:
           creatorType === undefined ? creator.creatorType : creatorType,
-        creatorCategories:
-          categories === undefined ? creator.creatorCategories : categories,
       },
     });
 
@@ -325,7 +297,6 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         typeof result.creatorType === "string" && isCreatorType(result.creatorType)
           ? result.creatorType
           : null,
-      categories: result.creatorCategories.filter(isCreatorCategory),
       socials: socialsResult,
       youtubeVideos: youtubeResult,
     };
@@ -334,11 +305,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   } catch (e: unknown) {
     console.error("CREATOR_UPDATE_ERROR", e);
     if (e instanceof Error) {
-      if (
-        e.message === "CREATOR_TYPE_INVALID" ||
-        e.message === "CREATOR_CATEGORIES_INVALID" ||
-        e.message === "CREATOR_CATEGORIES_TOO_MANY"
-      ) {
+      if (e.message === "CREATOR_TYPE_INVALID") {
         return jsonErr(e.message, 400, e.message);
       }
     }

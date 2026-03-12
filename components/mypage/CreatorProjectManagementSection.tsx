@@ -20,7 +20,6 @@ type Props = {
   avatarUrl: string;
   themeColorValue: string;
   creatorType: CreatorProfile["creatorType"];
-  categories: CreatorProfile["categories"];
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   avatarFile: File | null;
@@ -30,9 +29,6 @@ type Props = {
   setThemeColor: React.Dispatch<React.SetStateAction<string>>;
   setCreatorType: React.Dispatch<
     React.SetStateAction<CreatorProfile["creatorType"]>
-  >;
-  setCategories: React.Dispatch<
-    React.SetStateAction<CreatorProfile["categories"]>
   >;
   setSocials: React.Dispatch<React.SetStateAction<SocialLinks>>;
   setYoutubeVideos: React.Dispatch<React.SetStateAction<YoutubeVideo[]>>;
@@ -62,7 +58,6 @@ export function CreatorProjectManagementSection(props: Props) {
       avatarUrl={props.avatarUrl}
       themeColor={props.themeColorValue}
       creatorType={props.creatorType}
-      categories={props.categories}
       socials={props.socials}
       youtubeVideos={props.youtubeVideos}
       avatarFile={props.avatarFile}
@@ -71,7 +66,6 @@ export function CreatorProjectManagementSection(props: Props) {
       setProfile={props.setProfile}
       setThemeColor={props.setThemeColor}
       setCreatorType={props.setCreatorType}
-      setCategories={props.setCategories}
       setSocials={props.setSocials}
       setYoutubeVideos={props.setYoutubeVideos}
       setAvatarFile={props.setAvatarFile}

@@ -26,13 +26,11 @@ export function CreatorReadyPublicRoute() {
         profile: workspace.profile,
         avatarUrl: workspace.avatarUrl,
         creatorType: workspace.creatorType,
-        categories: workspace.categories ?? [],
         projectDashboardsByCurrency,
       }),
     [
       projectDashboardsByCurrency,
       workspace.avatarUrl,
-      workspace.categories,
       workspace.creatorType,
       workspace.displayName,
       workspace.profile,

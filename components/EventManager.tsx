@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { EventDateTime } from "@/components/EventDateTime";
+import {
+  EVENT_CATEGORY_LABELS,
+  EVENT_CATEGORY_OPTIONS,
+  type EventCategory,
+} from "@/lib/creatorTaxonomy";
+
 type EventDto = {
   id: string;
   title: string;
   description?: string | null;
   date?: string | null; // ISO
   goalAmount?: number | null;
+  categories?: EventCategory[];
   isPublished?: boolean;
 };
 
@@ -55,6 +62,7 @@ export default function EventManager({
   const [createDescription, setCreateDescription] = useState("");
   const [createDate, setCreateDate] = useState(""); // datetime-local
   const [createGoal, setCreateGoal] = useState<string>("");
+  const [createCategories, setCreateCategories] = useState<EventCategory[]>([]);
   const [createPublished, setCreatePublished] = useState(true);
   const [creating, setCreating] = useState(false);
 
@@ -64,6 +72,7 @@ export default function EventManager({
   const [editDescription, setEditDescription] = useState("");
   const [editDate, setEditDate] = useState(""); // datetime-local
   const [editGoal, setEditGoal] = useState<string>("");
+  const [editCategories, setEditCategories] = useState<EventCategory[]>([]);
   const [editPublished, setEditPublished] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -98,6 +107,7 @@ export default function EventManager({
     setCreateDescription("");
     setCreateDate("");
     setCreateGoal("");
+    setCreateCategories([]);
     setCreatePublished(true);
   }
 
@@ -116,6 +126,7 @@ export default function EventManager({
         description: createDescription || "",
         date: new Date(createDate).toISOString(),
         goalAmount: createGoal ? Number(createGoal) : null,
+        categories: createCategories,
         isPublished: createPublished,
       };
 
@@ -144,6 +155,7 @@ export default function EventManager({
     setEditTitle(ev.title ?? "");
     setEditDescription(ev.description ?? "");
     setEditGoal(typeof ev.goalAmount === "number" ? String(ev.goalAmount) : "");
+    setEditCategories(ev.categories ?? []);
     setEditPublished(ev.isPublished ?? true);
     setEditDate(ev.date ? toDatetimeLocal(ev.date) : "");
   }
@@ -171,6 +183,7 @@ export default function EventManager({
         description: editDescription || "",
         date: new Date(editDate).toISOString(),
         goalAmount: editGoal ? Number(editGoal) : null,
+        categories: editCategories,
         isPublished: editPublished,
       };
 
@@ -303,6 +316,38 @@ export default function EventManager({
         </div>
 
         <div>
+          <label className="block text-[11px] text-gray-600 mb-1">カテゴリ</label>
+          <div className="flex flex-wrap gap-2">
+            {EVENT_CATEGORY_OPTIONS.map((option) => {
+              const selected = createCategories.includes(option);
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                    selected
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-gray-300 bg-white text-gray-700"
+                  }`}
+                  disabled={
+                    creating || (!selected && createCategories.length >= 5)
+                  }
+                  onClick={() =>
+                    setCreateCategories((prev) =>
+                      selected
+                        ? prev.filter((item) => item !== option)
+                        : [...prev, option]
+                    )
+                  }
+                >
+                  {EVENT_CATEGORY_LABELS[option]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
           <label className="block text-[11px] text-gray-600 mb-1">説明</label>
           <textarea
             className="input min-h-[70px]"
@@ -420,6 +465,19 @@ export default function EventManager({
                           </p>
                         )}
 
+                        {ev.categories && ev.categories.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {ev.categories.map((category) => (
+                              <span
+                                key={`${ev.id}-${category}`}
+                                className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-600"
+                              >
+                                {EVENT_CATEGORY_LABELS[category]}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+
                         {ev.description && (
                           <p className="text-xs text-gray-700 whitespace-pre-wrap mt-1">
                             {ev.description}
@@ -504,6 +562,41 @@ export default function EventManager({
                           value={editGoal}
                           onChange={(e) => setEditGoal(e.target.value)}
                         />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-gray-600 mb-1">
+                          カテゴリ
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {EVENT_CATEGORY_OPTIONS.map((option) => {
+                            const selected = editCategories.includes(option);
+                            return (
+                              <button
+                                key={`${ev.id}-${option}`}
+                                type="button"
+                                className={`rounded-full border px-3 py-1 text-xs transition ${
+                                  selected
+                                    ? "border-slate-900 bg-slate-900 text-white"
+                                    : "border-gray-300 bg-white text-gray-700"
+                                }`}
+                                disabled={
+                                  savingId === ev.id ||
+                                  (!selected && editCategories.length >= 5)
+                                }
+                                onClick={() =>
+                                  setEditCategories((prev) =>
+                                    selected
+                                      ? prev.filter((item) => item !== option)
+                                      : [...prev, option]
+                                  )
+                                }
+                              >
+                                {EVENT_CATEGORY_LABELS[option]}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       <div>

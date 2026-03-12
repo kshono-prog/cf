@@ -9,7 +9,7 @@ export const CREATOR_TYPE_OPTIONS = [
   "OTHER",
 ] as const;
 
-export const CREATOR_CATEGORY_OPTIONS = [
+export const EVENT_CATEGORY_OPTIONS = [
   "LIVE",
   "DJ",
   "JAZZ",
@@ -26,7 +26,7 @@ export const CREATOR_CATEGORY_OPTIONS = [
 ] as const;
 
 export type CreatorType = (typeof CREATOR_TYPE_OPTIONS)[number];
-export type CreatorCategory = (typeof CREATOR_CATEGORY_OPTIONS)[number];
+export type EventCategory = (typeof EVENT_CATEGORY_OPTIONS)[number];
 
 export const CREATOR_TYPE_LABELS: Record<CreatorType, string> = {
   MUSICIAN: "Music",
@@ -39,7 +39,7 @@ export const CREATOR_TYPE_LABELS: Record<CreatorType, string> = {
   OTHER: "Other",
 };
 
-export const CREATOR_CATEGORY_LABELS: Record<CreatorCategory, string> = {
+export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {
   LIVE: "Live",
   DJ: "DJ",
   JAZZ: "Jazz",
@@ -59,6 +59,6 @@ export function isCreatorType(value: string): value is CreatorType {
   return CREATOR_TYPE_OPTIONS.includes(value as CreatorType);
 }
 
-export function isCreatorCategory(value: string): value is CreatorCategory {
-  return CREATOR_CATEGORY_OPTIONS.includes(value as CreatorCategory);
+export function isEventCategory(value: string): value is EventCategory {
+  return EVENT_CATEGORY_OPTIONS.includes(value as EventCategory);
 }

@@ -2,6 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
+import {
+  isEventCategory,
+  type EventCategory,
+} from "@/lib/creatorTaxonomy";
 
 type EventPostBody = {
   title?: string;
@@ -15,6 +19,7 @@ type EventPostBody = {
   placeName?: string;
   placeUrl?: string;
   ticketUrl?: string;
+  categories?: string[];
   isPublished?: boolean;
 };
 
@@ -25,8 +30,34 @@ type EventPutBody = {
   description?: string;
   date?: string; // startAt
   goalAmount?: number;
+  categories?: string[];
   isPublished?: boolean;
 };
+
+function parseEventCategories(
+  input: unknown
+): EventCategory[] | undefined {
+  if (input === undefined) return undefined;
+  if (!Array.isArray(input)) {
+    throw new Error("EVENT_CATEGORIES_INVALID");
+  }
+
+  const categories: EventCategory[] = [];
+  for (const item of input) {
+    if (typeof item !== "string" || !isEventCategory(item)) {
+      throw new Error("EVENT_CATEGORIES_INVALID");
+    }
+    if (!categories.includes(item)) {
+      categories.push(item);
+    }
+  }
+
+  if (categories.length > 5) {
+    throw new Error("EVENT_CATEGORIES_TOO_MANY");
+  }
+
+  return categories;
+}
 
 function serializeGoalAmount(
   goalAmountJpyc: bigint | number | null
@@ -77,6 +108,7 @@ export async function GET(
         date: e.startAt ? e.startAt.toISOString() : null,
         // goalAmountJpyc を goalAmount として返す
         goalAmount: serializeGoalAmount(e.goalAmountJpyc),
+        categories: e.eventCategories.filter(isEventCategory),
         // placeName / placeUrl / ticketUrl などは必要になったらここに追加
       })),
     });
@@ -100,6 +132,7 @@ export async function POST(
     }
 
     const { title, description, date, goalAmount, isPublished } = body;
+    const categories = parseEventCategories(body.categories) ?? [];
 
     if (!title || !date) {
       return NextResponse.json(
@@ -133,6 +166,7 @@ export async function POST(
           placeName: null,
           placeUrl: null,
           ticketUrl: null,
+          eventCategories: categories,
           goalAmountJpyc:
             typeof goalAmount === "number" ? Math.trunc(goalAmount) : null,
           isPublished:
@@ -148,9 +182,17 @@ export async function POST(
       // レスポンスでは startAt を date として返す
       date: newEvent.startAt ? newEvent.startAt.toISOString() : null,
       goalAmount: serializeGoalAmount(newEvent.goalAmountJpyc),
+      categories: newEvent.eventCategories.filter(isEventCategory),
       isPublished: newEvent.isPublished,
     });
   } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      (error.message === "EVENT_CATEGORIES_INVALID" ||
+        error.message === "EVENT_CATEGORIES_TOO_MANY")
+    ) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("EVENT_CREATE_ERROR", error);
     return NextResponse.json({ error: "EVENT_CREATE_FAILED" }, { status: 500 });
   }
@@ -192,6 +234,8 @@ export async function PUT(
       return NextResponse.json({ error: "EVENT_NOT_FOUND" }, { status: 404 });
     }
 
+    const categories = parseEventCategories(body.categories);
+
     const updated = await withPrismaRetry(() =>
       prisma.event.update({
         where: { id: eventId },
@@ -205,6 +249,7 @@ export async function PUT(
             typeof body.goalAmount === "number"
               ? Math.trunc(body.goalAmount)
               : undefined,
+          eventCategories: categories,
           isPublished:
             typeof body.isPublished === "boolean"
               ? body.isPublished
@@ -219,9 +264,17 @@ export async function PUT(
       description: updated.description,
       date: updated.startAt ? updated.startAt.toISOString() : null,
       goalAmount: updated.goalAmountJpyc,
+      categories: updated.eventCategories.filter(isEventCategory),
       isPublished: updated.isPublished,
     });
   } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      (error.message === "EVENT_CATEGORIES_INVALID" ||
+        error.message === "EVENT_CATEGORIES_TOO_MANY")
+    ) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("EVENT_UPDATE_ERROR", error);
     return NextResponse.json({ error: "EVENT_UPDATE_FAILED" }, { status: 500 });
   }

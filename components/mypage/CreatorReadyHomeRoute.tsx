@@ -35,7 +35,6 @@ export function CreatorReadyHomeRoute(props: Props) {
         profile={workspace.profile}
         avatarUrl={workspace.avatarUrl}
         creatorType={workspace.creatorType}
-        categories={workspace.categories}
         walletAddress={workspace.address?.toLowerCase() ?? null}
         projectId={workspace.localProjectId}
         isConnected={workspace.isConnected}

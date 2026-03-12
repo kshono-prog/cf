@@ -21,7 +21,6 @@ type PublicOk = {
       qrcodeUrl: string | null;
       externalUrl: string | null;
       creatorType: string | null;
-      creatorCategories: string[];
     };
   activeProjectId: string | null;
   projectIdsByCurrency: {
@@ -65,7 +64,6 @@ export async function GET(
           qrcodeUrl: true,
           externalUrl: true,
           creatorType: true,
-          creatorCategories: true,
           activeProjectId: true,
           activeProjectIdJpyc: true,
           activeProjectIdUsdc: true,
@@ -141,7 +139,6 @@ export async function GET(
         qrcodeUrl: creator.qrcodeUrl,
         externalUrl: creator.externalUrl,
         creatorType: creator.creatorType,
-        creatorCategories: creator.creatorCategories,
       },
       activeProjectId,
       projectIdsByCurrency,

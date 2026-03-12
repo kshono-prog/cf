@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import {
-  isCreatorCategory,
-  isCreatorType,
+  isEventCategory,
 } from "@/lib/creatorTaxonomy";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -22,14 +21,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       Math.max(Number(url.searchParams.get("limit") ?? 50), 1),
       200
     );
-    const creatorTypeRaw = url.searchParams.get("creatorType");
     const categoryRaw = url.searchParams.get("category");
-    const creatorType =
-      typeof creatorTypeRaw === "string" && isCreatorType(creatorTypeRaw)
-        ? creatorTypeRaw
-        : null;
     const category =
-      typeof categoryRaw === "string" && isCreatorCategory(categoryRaw)
+      typeof categoryRaw === "string" && isEventCategory(categoryRaw)
         ? categoryRaw
         : null;
 
@@ -37,13 +31,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       prisma.event.findMany({
         where: {
           isPublished: true,
+          ...(category ? { eventCategories: { has: category } } : {}),
           creatorProfile: {
             is: {
               ...(excludeUsernames.length > 0
                 ? { username: { notIn: excludeUsernames } }
                 : {}),
-              ...(creatorType ? { creatorType } : {}),
-              ...(category ? { creatorCategories: { has: category } } : {}),
             },
           },
         },
@@ -57,7 +50,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
               avatarUrl: true,
               themeColor: true,
               creatorType: true,
-              creatorCategories: true,
             },
           },
         },
@@ -72,6 +64,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         description: e.description,
         date: e.startAt ? e.startAt.toISOString() : null,
         goalAmount: e.goalAmountJpyc,
+        categories: e.eventCategories.filter(isEventCategory),
         // イベント表示に必要な最小のクリエイター情報
         creator: {
           username: e.creatorProfile.username,
@@ -79,7 +72,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           avatarUrl: e.creatorProfile.avatarUrl,
           themeColor: e.creatorProfile.themeColor,
           creatorType: e.creatorProfile.creatorType,
-          categories: e.creatorProfile.creatorCategories,
         },
       })),
     });

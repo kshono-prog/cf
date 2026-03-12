@@ -25,13 +25,11 @@ export function CreatorReadySupportPageRoute() {
         profile: workspace.profile,
         avatarUrl: workspace.avatarUrl,
         creatorType: workspace.creatorType,
-        categories: workspace.categories ?? [],
         projectDashboardsByCurrency,
       }),
     [
       projectDashboardsByCurrency,
       workspace.avatarUrl,
-      workspace.categories,
       workspace.creatorType,
       workspace.displayName,
       workspace.profile,
@@ -76,7 +74,6 @@ export function CreatorReadySupportPageRoute() {
         avatarUrl={workspace.avatarUrl}
         themeColorValue={workspace.themeColorValue}
         creatorType={workspace.creatorType}
-        categories={workspace.categories}
         socials={workspace.socials}
         youtubeVideos={workspace.youtubeVideos}
         avatarFile={workspace.avatarFile}
@@ -85,7 +82,6 @@ export function CreatorReadySupportPageRoute() {
         setProfile={workspace.setProfile}
         setThemeColor={workspace.setThemeColor}
         setCreatorType={workspace.setCreatorType}
-        setCategories={workspace.setCategories}
         setSocials={workspace.setSocials}
         setYoutubeVideos={workspace.setYoutubeVideos}
         setAvatarFile={workspace.setAvatarFile}

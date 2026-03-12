@@ -46,7 +46,6 @@ export async function GET(
     goalTargetJpyc: profile.goalTargetJpyc,
     themeColor: profile.themeColor,
     creatorType: profile.creatorType,
-    categories: profile.creatorCategories,
     address: profile.walletAddress, // CreatorProfile に統合したアドレス
     projectId: profile.activeProjectId ? profile.activeProjectId.toString() : null,
     projectIdsByCurrency: {

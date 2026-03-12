@@ -1,5 +1,4 @@
 import type {
-  CreatorCategory,
   CreatorType,
 } from "@/lib/creatorTaxonomy";
 
@@ -28,7 +27,6 @@ export type CreatorProfile = {
   goalTargetJpyc?: number | null;
   themeColor?: string | null;
   creatorType?: CreatorType | null;
-  categories?: CreatorCategory[];
   socials?: SocialLinks;
   youtubeVideos?: YoutubeVideo[];
 };

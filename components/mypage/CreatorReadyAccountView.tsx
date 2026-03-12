@@ -41,7 +41,6 @@ type Props = {
   avatarUrl: string;
   themeColorValue: string;
   creatorType: CreatorProfile["creatorType"];
-  categories: CreatorProfile["categories"];
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   avatarFile: File | null;
@@ -51,9 +50,6 @@ type Props = {
   setThemeColor: React.Dispatch<React.SetStateAction<string>>;
   setCreatorType: React.Dispatch<
     React.SetStateAction<CreatorProfile["creatorType"]>
-  >;
-  setCategories: React.Dispatch<
-    React.SetStateAction<CreatorProfile["categories"]>
   >;
   setSocials: React.Dispatch<React.SetStateAction<SocialLinks>>;
   setYoutubeVideos: React.Dispatch<React.SetStateAction<YoutubeVideo[]>>;
@@ -91,7 +87,6 @@ export function CreatorReadyAccountView(props: Props) {
       avatarUrl: props.avatarUrl,
       themeColorValue: props.themeColorValue,
       creatorType: props.creatorType,
-      categories: props.categories,
       socials: props.socials,
       youtubeVideos: props.youtubeVideos,
       avatarFile: props.avatarFile,
@@ -100,7 +95,6 @@ export function CreatorReadyAccountView(props: Props) {
       setProfile: props.setProfile,
       setThemeColor: props.setThemeColor,
       setCreatorType: props.setCreatorType,
-      setCategories: props.setCategories,
       setSocials: props.setSocials,
       setYoutubeVideos: props.setYoutubeVideos,
       setAvatarFile: props.setAvatarFile,
@@ -115,7 +109,6 @@ export function CreatorReadyAccountView(props: Props) {
       props.avatarFile,
       props.avatarPreview,
       props.avatarUrl,
-      props.categories,
       props.creatorType,
       props.displayName,
       props.editingProfile,
@@ -134,7 +127,6 @@ export function CreatorReadyAccountView(props: Props) {
       props.setAvatarPreview,
       props.setDisplayName,
       props.setProfile,
-      props.setCategories,
       props.setCreatorType,
       props.setSocials,
       props.setThemeColor,

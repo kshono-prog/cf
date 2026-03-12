@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
+import { isCreatorType } from "@/lib/creatorTaxonomy";
 import type { CreatorProfile } from "@/types/creator";
 
 export const runtime = "nodejs";
@@ -15,9 +16,18 @@ export async function GET(req: NextRequest) {
   const limit = Number.isFinite(limitRaw)
     ? Math.min(Math.max(limitRaw, 1), 100)
     : 100;
+  const creatorTypeRaw = searchParams.get("creatorType");
+  const creatorType =
+    typeof creatorTypeRaw === "string" && isCreatorType(creatorTypeRaw)
+      ? creatorTypeRaw
+      : null;
 
   try {
-    const total = await withPrismaRetry(() => prisma.creatorProfile.count());
+    const total = await withPrismaRetry(() =>
+      prisma.creatorProfile.count({
+        where: creatorType ? { creatorType } : undefined,
+      })
+    );
 
     if (total === 0) {
       return NextResponse.json<CreatorProfile[]>([]);
@@ -30,6 +40,7 @@ export async function GET(req: NextRequest) {
 
     const rows = await withPrismaRetry(() =>
       prisma.creatorProfile.findMany({
+        where: creatorType ? { creatorType } : undefined,
         skip,
         take: limit,
         orderBy: { createdAt: "asc" },
@@ -53,6 +64,10 @@ export async function GET(req: NextRequest) {
         goalTitle: p.goalTitle,
         goalTargetJpyc: p.goalTargetJpyc ?? undefined,
         themeColor: p.themeColor,
+        creatorType:
+          typeof p.creatorType === "string" && isCreatorType(p.creatorType)
+            ? p.creatorType
+            : null,
         socials: {}, // ここはひとまず空でもOK（必要なら /api/me と同じ整形を足せる）
         youtubeVideos: [],
       };

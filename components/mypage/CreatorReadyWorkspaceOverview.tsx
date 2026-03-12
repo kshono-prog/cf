@@ -37,7 +37,6 @@ type Props = {
   profile: string;
   avatarUrl: string;
   creatorType: CreatorProfile["creatorType"];
-  categories: CreatorProfile["categories"];
   walletAddress: string | null;
   projectId: string | null;
   isConnected: boolean;
@@ -238,12 +237,10 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
         profile: props.profile,
         avatarUrl: props.avatarUrl,
         creatorType: props.creatorType ?? null,
-        categories: props.categories ?? [],
         projectDashboardsByCurrency: props.projectDashboardsByCurrency,
       }),
     [
       props.avatarUrl,
-      props.categories,
       props.creatorType,
       props.displayName,
       props.profile,

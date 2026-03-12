@@ -20,7 +20,6 @@ export type CreatorReadyWorkspaceState = {
   avatarUrl: string;
   themeColorValue: string;
   creatorType: CreatorProfile["creatorType"];
-  categories: CreatorProfile["categories"];
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   avatarFile: File | null;
@@ -30,9 +29,6 @@ export type CreatorReadyWorkspaceState = {
   setThemeColor: React.Dispatch<React.SetStateAction<string>>;
   setCreatorType: React.Dispatch<
     React.SetStateAction<CreatorProfile["creatorType"]>
-  >;
-  setCategories: React.Dispatch<
-    React.SetStateAction<CreatorProfile["categories"]>
   >;
   setSocials: React.Dispatch<React.SetStateAction<SocialLinks>>;
   setYoutubeVideos: React.Dispatch<React.SetStateAction<YoutubeVideo[]>>;

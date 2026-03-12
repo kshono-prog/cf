@@ -6,7 +6,7 @@ export type PublicReadinessItem = {
     | "displayName"
     | "profile"
     | "avatar"
-    | "taxonomy"
+    | "creatorType"
     | "project"
     | "goal";
   label: string;
@@ -28,7 +28,6 @@ export function buildPublicReadiness(args: {
   profile: string;
   avatarUrl: string;
   creatorType: CreatorProfile["creatorType"];
-  categories: CreatorProfile["categories"];
   projectDashboardsByCurrency: {
     JPYC: MyPageProjectDashboard | null;
     USDC: MyPageProjectDashboard | null;
@@ -37,10 +36,8 @@ export function buildPublicReadiness(args: {
   const hasDisplayName = args.displayName.trim().length > 0;
   const hasProfile = args.profile.trim().length > 0;
   const hasAvatar = args.avatarUrl.trim().length > 0;
-  const hasTaxonomy =
-    args.creatorType !== null &&
-    args.creatorType !== undefined &&
-    (args.categories?.length ?? 0) > 0;
+  const hasCreatorType =
+    args.creatorType !== null && args.creatorType !== undefined;
 
   const dashboards = [
     args.projectDashboardsByCurrency.JPYC,
@@ -79,12 +76,12 @@ export function buildPublicReadiness(args: {
         : "顔写真やロゴがあると、初見の支援者に伝わりやすくなります。",
     },
     {
-      key: "taxonomy",
-      label: "種類とカテゴリ",
-      ready: hasTaxonomy,
-      detail: hasTaxonomy
-        ? "活動の種類とカテゴリが設定されています。"
-        : "種類とカテゴリを入れると、イベント一覧や発見導線で見つかりやすくなります。",
+      key: "creatorType",
+      label: "クリエイターの種類",
+      ready: hasCreatorType,
+      detail: hasCreatorType
+        ? "活動の種類が設定されています。"
+        : "種類を入れると、クリエイター一覧から見つけてもらいやすくなります。",
     },
     {
       key: "project",

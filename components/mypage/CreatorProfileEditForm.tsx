@@ -4,8 +4,6 @@
 import React from "react";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
 import {
-  CREATOR_CATEGORY_LABELS,
-  CREATOR_CATEGORY_OPTIONS,
   CREATOR_TYPE_LABELS,
   CREATOR_TYPE_OPTIONS,
   isCreatorType,
@@ -22,7 +20,6 @@ type Props = {
   avatarUrl: string;
   themeColor: string;
   creatorType: CreatorProfile["creatorType"];
-  categories: CreatorProfile["categories"];
 
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
@@ -34,7 +31,6 @@ type Props = {
   setProfile: (v: string) => void;
   setThemeColor: (v: string) => void;
   setCreatorType: (v: CreatorProfile["creatorType"]) => void;
-  setCategories: (v: CreatorProfile["categories"]) => void;
 
   setSocials: (v: SocialLinks) => void;
   setYoutubeVideos: (v: YoutubeVideo[]) => void;
@@ -60,7 +56,6 @@ export function CreatorProfileEditForm({
   avatarUrl,
   themeColor,
   creatorType,
-  categories,
   socials,
   youtubeVideos,
   avatarFile,
@@ -69,7 +64,6 @@ export function CreatorProfileEditForm({
   setProfile,
   setThemeColor,
   setCreatorType,
-  setCategories,
   setSocials,
   setYoutubeVideos,
   setAvatarFile,
@@ -135,40 +129,6 @@ export function CreatorProfileEditForm({
             </option>
           ))}
         </select>
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium mb-1">カテゴリ</label>
-        <p className="mb-2 text-[11px] text-gray-500">
-          イベントページで見つけてもらいやすくなります。最大5件まで。
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {CREATOR_CATEGORY_OPTIONS.map((option) => {
-            const selected = categories?.includes(option) ?? false;
-            return (
-              <button
-                key={option}
-                type="button"
-                className={`rounded-full border px-3 py-1 text-xs transition ${
-                  selected
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-gray-300 bg-white text-gray-700"
-                }`}
-                disabled={saving || (!selected && (categories?.length ?? 0) >= 5)}
-                onClick={() => {
-                  const nextCategories = categories ?? [];
-                  setCategories(
-                    selected
-                      ? nextCategories.filter((item) => item !== option)
-                      : [...nextCategories, option]
-                  );
-                }}
-              >
-                {CREATOR_CATEGORY_LABELS[option]}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       <AvatarUploader

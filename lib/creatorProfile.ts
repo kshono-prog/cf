@@ -4,7 +4,6 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import {
-  isCreatorCategory,
   isCreatorType,
 } from "@/lib/creatorTaxonomy";
 import {
@@ -32,7 +31,6 @@ function normalizeCreator(raw: {
   goalTargetJpyc: number | null;
   themeColor: string | null;
   creatorType: string | null;
-  creatorCategories: string[];
   walletAddress: string | null;
   socials?: SocialLinks;
   youtubeVideos?: YoutubeVideo[];
@@ -52,7 +50,6 @@ function normalizeCreator(raw: {
       typeof raw.creatorType === "string" && isCreatorType(raw.creatorType)
         ? raw.creatorType
         : null,
-    categories: raw.creatorCategories.filter(isCreatorCategory),
     socials: raw.socials,
     youtubeVideos: raw.youtubeVideos,
   };
@@ -109,7 +106,6 @@ const getCreatorProfileByUsernameCached = unstable_cache(
         goalTargetJpyc: profile.goalTargetJpyc,
         themeColor: profile.themeColor,
         creatorType: profile.creatorType,
-        creatorCategories: profile.creatorCategories,
         walletAddress: profile.walletAddress,
         socials,
         youtubeVideos: profile.youtubeVideos.map((video) => ({
