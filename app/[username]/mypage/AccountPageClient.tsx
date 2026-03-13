@@ -379,6 +379,8 @@ export default function AccountPageClient({
         }));
         setLocalProjectId(pid);
       }}
+      openSections={openSections}
+      onToggleSection={toggleSection}
     />
   );
 }

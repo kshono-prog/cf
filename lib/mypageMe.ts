@@ -130,6 +130,7 @@ export async function getMeStatusByAddress(
     hasUser: true,
     hasCreator,
     user: {
+      username: profile.username,
       displayName: profile.displayName,
       profile: profile.profileText,
     },

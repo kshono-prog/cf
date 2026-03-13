@@ -5,6 +5,7 @@ export type MeStatus = {
   hasUser: boolean;
   hasCreator: boolean;
   user?: {
+    username?: string;
     displayName?: string;
     profile?: string | null;
   } | null;

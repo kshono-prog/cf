@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 
 import { errJson, okJson } from "@/lib/api/responses";
 import { isRecord } from "@/lib/api/guards";
+import { applyConfirmedContributionToPostTips } from "@/lib/social";
 
 import {
   createPublicClient,
@@ -288,15 +289,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const now = new Date();
 
-    const updated = await prisma.contribution.update({
-      where: { txHash: parsed.txHash },
-      data: {
-        status: "CONFIRMED",
-        confirmedAt: now,
-        decimals: v.decimals,
-        amountRaw: v.valueRaw.toString(),
-        updatedAt: now,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const next = await tx.contribution.update({
+        where: { txHash: parsed.txHash },
+        data: {
+          status: "CONFIRMED",
+          confirmedAt: now,
+          decimals: v.decimals,
+          amountRaw: v.valueRaw.toString(),
+          updatedAt: now,
+        },
+      });
+
+      if (next.currency === "JPYC" || next.currency === "USDC") {
+        await applyConfirmedContributionToPostTips({
+          tx,
+          contributionId: next.id,
+          currency: next.currency,
+          amountDecimal: next.amountDecimal
+            ? (next.amountDecimal as Prisma.Decimal)
+            : null,
+          now,
+        });
+      }
+
+      return next;
     });
 
     // 目標自動達成は “副作用” として試す（失敗してもreverify自体は成功扱い）

@@ -45,6 +45,7 @@ import {
 type ContributionArgs = {
   projectId?: string;
   purposeId?: string;
+  postId?: string;
   chainId: number;
   currency: Currency;
   tokenAddress: string;
@@ -69,10 +70,14 @@ type Props = {
   } | null;
   showLegacyCard: boolean;
   headerColor: string;
+  selectedPostId: string | null;
+  selectedPostSummary: string | null;
+  selectedPostCurrency: Currency | null;
+  onClearSelectedPost: () => void;
   onPostContribution: (
     args: ContributionArgs
   ) => Promise<{ ok: true } | { ok: false; reason: string }>;
-  onAfterSend: (txHash: string) => Promise<void>;
+  onAfterSend: (txHash: string, postId?: string | null) => Promise<void>;
 };
 
 export function ProfileWalletClient({
@@ -84,6 +89,10 @@ export function ProfileWalletClient({
   supportedChainIdsByCurrency,
   showLegacyCard,
   headerColor,
+  selectedPostId,
+  selectedPostSummary,
+  selectedPostCurrency,
+  onClearSelectedPost,
   onPostContribution,
   onAfterSend,
 }: Props) {
@@ -165,6 +174,12 @@ export function ProfileWalletClient({
   }, [allowedChainIdsForCurrency, DEFAULT_CHAIN]);
 
   useEffect(() => {
+    if (!selectedPostCurrency || currency === selectedPostCurrency) return;
+    setCurrency(selectedPostCurrency);
+    setAmount(TOKENS[selectedPostCurrency].presets[0]);
+  }, [currency, selectedPostCurrency]);
+
+  useEffect(() => {
     if (selectableChainIds.length === 0) return;
 
     if (!selectableChainIds.includes(selectedChainId)) {
@@ -243,6 +258,7 @@ export function ProfileWalletClient({
         await onPostContribution({
           projectId: last.projectId ?? undefined,
           purposeId: last.purposeId ?? undefined,
+          postId: last.postId ?? undefined,
           chainId: last.chainId,
           currency: last.currency,
           tokenAddress: token.address,
@@ -252,7 +268,7 @@ export function ProfileWalletClient({
           amount: last.amount,
         });
 
-        await onAfterSend(last.txHash);
+        await onAfterSend(last.txHash, last.postId);
       }
 
       setStatus("送金が反映されました");
@@ -612,6 +628,7 @@ export function ProfileWalletClient({
         toAddress,
         projectId: activeProjectId,
         purposeId: purposeId ?? null,
+        postId: selectedPostId ?? null,
         createdAtMs: Date.now(),
       });
 
@@ -630,6 +647,7 @@ export function ProfileWalletClient({
       await onPostContribution({
         projectId: activeProjectId ?? undefined,
         purposeId,
+        postId: selectedPostId ?? undefined,
         chainId: selectedChainId,
         currency,
         tokenAddress,
@@ -640,7 +658,7 @@ export function ProfileWalletClient({
       });
 
       void refreshGoalProgress();
-      await onAfterSend(tx.hash);
+      await onAfterSend(tx.hash, selectedPostId);
 
       void fetchWalletBalances();
 
@@ -764,6 +782,7 @@ export function ProfileWalletClient({
         showSendUI={connected && !onWrongChain}
         headerColor={headerColor}
         creatorDisplayName={creator.displayName || username}
+        selectedPostSummary={selectedPostSummary}
         selectableChainIds={selectableChainIds}
         currency={currency}
         amount={amount}
@@ -782,6 +801,7 @@ export function ProfileWalletClient({
         onChangeAmount={(next) => {
           setAmount(normalizeAmountInput(next, currency));
         }}
+        onClearSelectedPost={onClearSelectedPost}
         onSend={() => {
           const v = normalizeAmountInput(amount, currency);
           if (v) void send(v);

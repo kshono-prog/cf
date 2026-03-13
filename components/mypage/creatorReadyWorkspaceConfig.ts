@@ -12,8 +12,8 @@ export const CREATOR_READY_WORKSPACE_VIEWS: Array<{
   },
   {
     id: "support-page",
-    label: "プロフィールと支援設定",
-    description: "公開ページと目標を整えます。",
+    label: "公開ページと投稿",
+    description: "公開ページ、支援導線、投稿を整えます。",
   },
   {
     id: "supporters",

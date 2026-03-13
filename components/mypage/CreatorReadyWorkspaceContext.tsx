@@ -5,6 +5,10 @@ import type { Address } from "viem";
 
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
+import type {
+  OpenSections,
+  SectionKey,
+} from "@/components/mypage/MyPageAccordion";
 
 export type CreatorReadyWorkspaceState = {
   meCreatorUsername: string;
@@ -38,6 +42,8 @@ export type CreatorReadyWorkspaceState = {
   onSubmitProfile: (e: React.FormEvent) => void;
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
   onActiveProjectIdChange: (pid: string | null, changedCur: CurrencyCode) => void;
+  openSections: OpenSections;
+  onToggleSection: (key: SectionKey) => void;
 };
 
 const CreatorReadyWorkspaceContext =

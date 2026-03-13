@@ -10,6 +10,10 @@ import type {
   YoutubeVideo,
 } from "@/types/creator";
 import type {
+  OpenSections,
+  SectionKey,
+} from "@/components/mypage/MyPageAccordion";
+import type {
   CurrencyCode,
 } from "@/lib/mypage/accountPageTypes";
 import { CreatorReadyWorkspaceProvider } from "@/components/mypage/CreatorReadyWorkspaceContext";
@@ -59,12 +63,17 @@ type Props = {
   onSubmitProfile: (e: React.FormEvent) => void;
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
   onActiveProjectIdChange: (pid: string | null, changedCur: CurrencyCode) => void;
+  openSections: OpenSections;
+  onToggleSection: (key: SectionKey) => void;
 };
 
 export function CreatorReadyAccountView(props: Props) {
   const router = useRouter();
   const promoHeaderColor = props.themeColor || "#005bbb";
   const activeView = props.initialWorkspaceView;
+  const composeHref = `${props.workspaceBasePath}/support-page#sns-compose`;
+  const isSnsOpen = props.openSections.sns;
+  const toggleSection = props.onToggleSection;
 
   const navigateToView = React.useCallback(
     (view: WorkspaceView) => {
@@ -72,6 +81,30 @@ export function CreatorReadyAccountView(props: Props) {
     },
     [props.workspaceBasePath, router]
   );
+  const handleOpenComposer = React.useCallback(() => {
+    if (!isSnsOpen) {
+      toggleSection("sns");
+    }
+
+    if (activeView !== "support-page") {
+      router.push(composeHref, { scroll: true });
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+    window.requestAnimationFrame(() => {
+      document.getElementById("sns-compose")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [
+    activeView,
+    composeHref,
+    isSnsOpen,
+    router,
+    toggleSection,
+  ]);
   const workspaceState = React.useMemo(
     () => ({
       meCreatorUsername: props.meCreatorUsername,
@@ -103,6 +136,8 @@ export function CreatorReadyAccountView(props: Props) {
       onSubmitProfile: props.onSubmitProfile,
       projectIdsByCurrency: props.projectIdsByCurrency,
       onActiveProjectIdChange: props.onActiveProjectIdChange,
+      openSections: props.openSections,
+      onToggleSection: props.onToggleSection,
     }),
     [
       props.address,
@@ -120,6 +155,8 @@ export function CreatorReadyAccountView(props: Props) {
       props.onCancelEditProfile,
       props.onStartEditProfile,
       props.onSubmitProfile,
+      props.onToggleSection,
+      props.openSections,
       props.profile,
       props.projectIdsByCurrency,
       props.saving,
@@ -146,9 +183,18 @@ export function CreatorReadyAccountView(props: Props) {
       <CreatorReadyWorkspaceProvider value={workspaceState}>
         <div className="container-narrow space-y-4">
           <div className="flex flex-col gap-3">
-            <h1 className="text-lg font-semibold">
-              {activeWorkspace?.label ?? "やること一覧"}
-            </h1>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h1 className="text-lg font-semibold">
+                {activeWorkspace?.label ?? "やること一覧"}
+              </h1>
+              <button
+                type="button"
+                className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                onClick={handleOpenComposer}
+              >
+                投稿する
+              </button>
+            </div>
             <div className="grid gap-2 md:grid-cols-5">
               {CREATOR_READY_WORKSPACE_VIEWS.map((view) => (
                 <button

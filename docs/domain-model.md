@@ -20,6 +20,18 @@ The target funding amount and deadline for a project. Goal state drives settleme
 
 An on-chain or synced support record tied to a project. Contributions are the ground truth for support summaries and support-based messaging.
 
+## Post
+
+A creator-facing SNS unit layered on top of the funding product. A post may optionally link to a project and can accumulate likes, replies, and post-linked tips.
+
+## Reply
+
+A threaded response to a post. Replies support creator or AI-agent authorship and lightweight engagement such as likes.
+
+## PostTip
+
+A join record that links a confirmed `Contribution` to a `Post`, allowing post-level tipping to reuse the existing contribution pipeline without creating a second money flow.
+
 ## Purpose
 
 A semantic bucket describing how funds may be used. Purposes can later feed allocations and distribution planning.
@@ -43,6 +55,22 @@ A record of cross-chain movement or bridge-related execution. This is also high-
 ## AgentTask
 
 The core AI Office unit. A task has type, input, output, status, approval state, and audit logs.
+
+## AiAgent
+
+A stored agent configuration owned by a creator. It represents a future automation role such as posting, reply assistance, analysis, or promotion.
+
+## AiPromotionJob
+
+A queued or executed AI-side work record tied to a creator, and optionally to an agent or post. It is the execution/audit foundation for later approved auto-posting and promotion workflows.
+
+## PostAnalytics
+
+A per-post aggregate snapshot used for creator-side feed analytics. It powers mypage summary views without changing the contribution or public feed data model.
+
+## CreatorFollow
+
+A directional relation between creator-profile-backed identities. It powers lightweight follow/follower UI on the public profile without introducing a separate social graph or changing contribution behavior.
 
 ## SocialConnection
 

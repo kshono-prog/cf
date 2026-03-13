@@ -9,6 +9,11 @@ import {
   toBigIntOrThrow,
   toAddressOrNull,
 } from "@/lib/api/guards";
+import {
+  applyConfirmedContributionToPostTips,
+  ensurePostTipLink,
+  isUuidString,
+} from "@/lib/social";
 import { getRpcUrl as getRpcUrlFromLib } from "../_lib/chain";
 import {
   createPublicClient,
@@ -52,6 +57,7 @@ type ContributionPostBody = {
   fromAddress?: unknown;
   toAddress?: unknown;
   amount?: unknown; // human string
+  postId?: unknown; // UUID string|null|undefined
 };
 
 function toCurrency(v: unknown): Currency | null {
@@ -127,6 +133,7 @@ function parseBody(raw: unknown):
       from: Address;
       to: Address;
       amountHuman: string;
+      postIdStr: string | null | undefined;
     }
   | { ok: false; error: string } {
   if (!isRecord(raw)) return { ok: false, error: "INVALID_JSON" };
@@ -169,6 +176,21 @@ function parseBody(raw: unknown):
   const amountHuman = toNonEmptyString(b.amount);
   if (!amountHuman) return { ok: false, error: "AMOUNT_REQUIRED" };
 
+  let postIdStr: string | null | undefined = undefined;
+  if (b.postId === null) {
+    postIdStr = null;
+  } else if (typeof b.postId === "string") {
+    const trimmed = b.postId.trim();
+    if (!trimmed) {
+      postIdStr = null;
+    } else {
+      if (!isUuidString(trimmed)) return { ok: false, error: "POST_ID_INVALID" };
+      postIdStr = trimmed;
+    }
+  } else if (typeof b.postId !== "undefined") {
+    return { ok: false, error: "POST_ID_INVALID" };
+  }
+
   return {
     ok: true,
     projectIdStr,
@@ -179,6 +201,7 @@ function parseBody(raw: unknown):
     from,
     to,
     amountHuman,
+    postIdStr,
   };
 }
 
@@ -332,80 +355,182 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true, currency: true },
+      select: {
+        id: true,
+        currency: true,
+        creatorProfileId: true,
+        ownerAddress: true,
+      },
     });
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
     if (project.currency !== parsed.currency) {
       return errJson("PROJECT_CURRENCY_MISMATCH", 400);
     }
 
+    let postId: string | null = null;
+    if (parsed.postIdStr) {
+      const post = await prisma.post.findUnique({
+        where: { id: parsed.postIdStr },
+        select: {
+          id: true,
+          creatorProfileId: true,
+          projectId: true,
+          creatorProfile: {
+            select: { walletAddress: true },
+          },
+        },
+      });
+      if (!post) return errJson("POST_NOT_FOUND", 404);
+
+      const projectMatchesCreator =
+        (project.creatorProfileId !== null &&
+          project.creatorProfileId === post.creatorProfileId) ||
+        (project.creatorProfileId === null &&
+          typeof project.ownerAddress === "string" &&
+          typeof post.creatorProfile.walletAddress === "string" &&
+          project.ownerAddress.toLowerCase() ===
+            post.creatorProfile.walletAddress.toLowerCase());
+
+      if (!projectMatchesCreator) {
+        return errJson("POST_PROJECT_CREATOR_MISMATCH", 400);
+      }
+      if (post.projectId !== null && post.projectId !== projectId) {
+        return errJson("POST_PROJECT_MISMATCH", 400);
+      }
+
+      postId = post.id;
+    }
+
     const existing = await prisma.contribution.findUnique({
       where: { txHash: parsed.txHash },
     });
-    if (existing && existing.status === "CONFIRMED") {
+    if (existing && existing.status === "CONFIRMED" && !postId) {
       return okJson({
         verified: true,
         contribution: serializeContribution(existing),
       });
     }
 
-    const v = await verifyAndExtract({
-      chainId: parsed.chainId,
-      currency: parsed.currency,
-      txHash: parsed.txHash,
-      expectedFrom: parsed.from,
-      expectedTo: parsed.to,
-      expectedAmountHuman: parsed.amountHuman,
-    });
+    const wasConfirmedBefore = existing?.status === "CONFIRMED";
+    const confirmedContribution = wasConfirmedBefore ? existing : null;
+    const v = wasConfirmedBefore
+      ? null
+      : await verifyAndExtract({
+          chainId: parsed.chainId,
+          currency: parsed.currency,
+          txHash: parsed.txHash,
+          expectedFrom: parsed.from,
+          expectedTo: parsed.to,
+          expectedAmountHuman: parsed.amountHuman,
+        });
 
     const now = new Date();
-    const status: "CONFIRMED" | "PENDING" = v.ok ? "CONFIRMED" : "PENDING";
-    const confirmedAt = v.ok ? now : null;
+    const status: "CONFIRMED" | "PENDING" =
+      wasConfirmedBefore || (v && v.ok) ? "CONFIRMED" : "PENDING";
+    const confirmedAt =
+      confirmedContribution?.confirmedAt
+        ? confirmedContribution.confirmedAt
+        : v && v.ok
+          ? now
+          : null;
 
-    const decimals = v.ok ? v.decimals : 0;
-    const amountRawStr = v.ok ? v.valueRaw.toString() : "0";
-    const amountDecimalStr = normalizeTo18(parsed.amountHuman);
+    const decimals = wasConfirmedBefore
+      ? (confirmedContribution?.decimals ?? 0)
+      : v && v.ok
+        ? v.decimals
+        : 0;
+    const amountRawStr = wasConfirmedBefore
+      ? String(confirmedContribution?.amountRaw ?? "0")
+      : v && v.ok
+        ? v.valueRaw.toString()
+        : "0";
+    const amountDecimalStr = existing?.amountDecimal
+      ? (existing.amountDecimal as Prisma.Decimal).toString()
+      : normalizeTo18(parsed.amountHuman);
 
-    const row = await prisma.contribution.upsert({
-      where: { txHash: parsed.txHash },
-      create: {
-        projectId,
-        purposeId: purposeId === undefined ? null : purposeId,
-        chainId: parsed.chainId,
-        currency: parsed.currency,
-        txHash: parsed.txHash,
-        fromAddress: parsed.from,
-        toAddress: parsed.to,
-        amountRaw: amountRawStr,
-        decimals,
-        amountDecimal: amountDecimalStr,
-        status,
-        confirmedAt,
-        createdAt: now,
-        updatedAt: now,
-      },
-      update: {
-        projectId,
-        ...(purposeId === undefined ? {} : { purposeId }),
-        chainId: parsed.chainId,
-        currency: parsed.currency,
-        fromAddress: parsed.from,
-        toAddress: parsed.to,
-        amountRaw: amountRawStr,
-        decimals,
-        amountDecimal: amountDecimalStr,
-        status,
-        confirmedAt,
-        updatedAt: now,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const row = confirmedContribution
+        ? confirmedContribution
+        : await tx.contribution.upsert({
+            where: { txHash: parsed.txHash },
+            create: {
+              projectId,
+              purposeId: purposeId === undefined ? null : purposeId,
+              chainId: parsed.chainId,
+              currency: parsed.currency,
+              txHash: parsed.txHash,
+              fromAddress: parsed.from,
+              toAddress: parsed.to,
+              amountRaw: amountRawStr,
+              decimals,
+              amountDecimal: amountDecimalStr,
+              status,
+              confirmedAt,
+              createdAt: now,
+              updatedAt: now,
+            },
+            update: {
+              projectId,
+              ...(purposeId === undefined ? {} : { purposeId }),
+              chainId: parsed.chainId,
+              currency: parsed.currency,
+              fromAddress: parsed.from,
+              toAddress: parsed.to,
+              amountRaw: amountRawStr,
+              decimals,
+              amountDecimal: amountDecimalStr,
+              status,
+              confirmedAt,
+              updatedAt: now,
+            },
+          });
+
+      let postTipLinked = false;
+      if (postId) {
+        const link = await ensurePostTipLink({
+          tx,
+          postId,
+          contributionId: row.id,
+          now,
+        });
+        postTipLinked = true;
+
+        const shouldApplyPostTipTotals =
+          row.status === "CONFIRMED" &&
+          (!wasConfirmedBefore || link.created);
+
+        if (shouldApplyPostTipTotals) {
+          await applyConfirmedContributionToPostTips({
+            tx,
+            contributionId: row.id,
+            currency: parsed.currency,
+            amountDecimal: row.amountDecimal
+              ? (row.amountDecimal as Prisma.Decimal)
+              : amountDecimalStr,
+            now,
+          });
+        }
+      }
+
+      return { row, postTipLinked };
     });
 
     return okJson({
-      verified: v.ok,
-      verifyReason: v.ok ? null : v.reason,
-      contribution: serializeContribution(row),
+      verified: status === "CONFIRMED",
+      verifyReason:
+        status === "CONFIRMED" || !v || v.ok ? null : v.reason,
+      contribution: serializeContribution(result.row),
+      ...(postId
+        ? {
+            postTipLinked: result.postTipLinked,
+            postId,
+          }
+        : {}),
     });
   } catch (e) {
+    if (e instanceof Error && e.message === "CONTRIBUTION_ALREADY_LINKED_TO_ANOTHER_POST") {
+      return errJson("CONTRIBUTION_ALREADY_LINKED_TO_ANOTHER_POST", 409);
+    }
     console.error("CONTRIBUTION_POST_FAILED", e);
     return errJson("CONTRIBUTION_POST_FAILED", 500);
   }

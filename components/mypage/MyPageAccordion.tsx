@@ -10,7 +10,8 @@ export type SectionKey =
   | "flow"
   | "gas"
   | "project"
-  | "supporter";
+  | "supporter"
+  | "sns";
 
 export type OpenSections = Record<SectionKey, boolean>;
 

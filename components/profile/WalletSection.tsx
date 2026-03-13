@@ -34,6 +34,7 @@ export type WalletSectionProps = {
   // 表示に必要
   headerColor: string;
   creatorDisplayName: string; // displayName or username
+  selectedPostSummary: string | null;
 
   // 送金フォームの入力状態（親管理のまま）
   selectableChainIds: SupportedChainId[];
@@ -49,6 +50,7 @@ export type WalletSectionProps = {
   onChangeChain: (next: SupportedChainId) => void;
   onChangeCurrency: (next: Currency) => void;
   onChangeAmount: (next: string) => void;
+  onClearSelectedPost: () => void;
 
   onSend: () => void;
   onSendEnter: () => void;
@@ -91,6 +93,7 @@ export function WalletSection(props: WalletSectionProps) {
 
     headerColor,
     creatorDisplayName,
+    selectedPostSummary,
 
     selectableChainIds,
     currency,
@@ -104,6 +107,7 @@ export function WalletSection(props: WalletSectionProps) {
     onChangeChain,
     onChangeCurrency,
     onChangeAmount,
+    onClearSelectedPost,
 
     onSend,
     onSendEnter,
@@ -325,6 +329,31 @@ export function WalletSection(props: WalletSectionProps) {
                     下から順に選ぶと、そのまま送金まで進めます。
                   </p>
                 </div>
+
+                {selectedPostSummary ? (
+                  <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                          Post tip
+                        </div>
+                        <p className="mt-1 text-sm leading-6 text-emerald-900">
+                          この投稿を支援対象に選択しています。
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-emerald-800">
+                          {selectedPostSummary}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                        onClick={onClearSelectedPost}
+                      >
+                        選択を解除
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-gray-200 bg-white p-4">

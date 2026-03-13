@@ -1,16 +1,186 @@
-// components/BottomNav.tsx
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
-import type { MouseEvent } from "react";
+import { useAccount } from "wagmi";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import type { ReactNode } from "react";
+
+import {
+  parsePublicViewerMeResponse,
+  resolvePublicViewerState,
+} from "@/lib/publicViewerState";
+
+type BottomNavItem = "events" | "home" | "cta" | "community" | "manage";
 
 type BottomNavProps = {
-  active?: "calendar" | "favorite" | "profile";
+  active?: BottomNavItem;
   themeColor?: string;
-  username: string; // ★ 追加：どのクリエイターのページか
+  username: string;
 };
+
+type NavButtonProps = {
+  label: string;
+  icon: ReactNode;
+  active: boolean;
+  emphasize?: boolean;
+  onClick: () => void;
+};
+
+function IconCalendar() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <rect
+        x="3.5"
+        y="4.5"
+        width="17"
+        height="16"
+        rx="3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M8 3.5v4M16 3.5v4M4 10h16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconHome() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M4.5 11.5 12 5l7.5 6.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.5 10.8v7.7h11v-7.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconCompose() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M4 17.5V20h2.5L17.8 8.7l-2.5-2.5L4 17.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14.5 7.5 17 10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconCommunity() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <circle
+        cx="8"
+        cy="9"
+        r="2.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle
+        cx="16.5"
+        cy="10.5"
+        r="2.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.8 18c.8-2.4 2.6-3.9 4.9-3.9 2.2 0 4 1.5 4.8 3.9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M14.4 17.4c.5-1.4 1.6-2.4 3.1-2.4.9 0 1.7.3 2.3.9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconManage() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <circle
+        cx="9"
+        cy="8"
+        r="3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.8 18.2c.8-2.3 2.6-3.8 4.9-3.8 2.2 0 4 1.5 4.8 3.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M17.2 8.5v4.3M15.1 10.7h4.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function NavButton(props: NavButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 transition ${
+        props.emphasize
+          ? "bg-slate-950 text-white shadow-sm"
+          : props.active
+          ? "bg-slate-100 text-slate-950"
+          : "text-gray-500 hover:bg-gray-100"
+      }`}
+    >
+      {props.icon}
+      <span className="truncate text-[10px] font-medium">{props.label}</span>
+    </button>
+  );
+}
+
+function normalizeHash(value: string): string {
+  return value.startsWith("#") ? value : value ? `#${value}` : "";
+}
 
 export default function BottomNav({
   active,
@@ -19,273 +189,206 @@ export default function BottomNav({
 }: BottomNavProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { address } = useAccount();
   const [, startTransition] = useTransition();
-  const [pressed, setPressed] = useState<BottomNavProps["active"] | null>(null);
-  const baseItemClass = "flex-1 flex items-center justify-center py-2";
-  const iconBase = "w-7 h-7 transition-transform duration-150";
-  const inactiveColor = "text-gray-400";
-  const activeStyle = { color: themeColor };
-  const navDirectionKey = "nav-slide-direction";
-  type NavItem = NonNullable<BottomNavProps["active"]>;
-  const resolvedActive = (active ??
-    (pathname?.includes("/events")
-      ? "calendar"
-      : pathname?.includes("/mypage")
-      ? "profile"
-      : "favorite")) as NavItem;
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const touchLastRef = useRef<{ x: number; y: number } | null>(null);
-  const isActive = (item: BottomNavProps["active"]) =>
-    pressed !== null ? pressed === item : resolvedActive === item;
+  const [currentHash, setCurrentHash] = useState("");
+  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
+    typeof parsePublicViewerMeResponse
+  > | null>(null);
+  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
 
-  // 移動先の判定
-  const calendarHref = `/${username}/events`;
-  const favoriteHref = `/${username}`;
-  const profileHref = `/${username}/mypage/home`;
+  const publicHref = `/${username}`;
+  const eventsHref = `/${username}/events`;
+  const fallbackWorkspaceHref = `/${username}/mypage/home`;
 
   useEffect(() => {
-    router.prefetch(calendarHref);
-    router.prefetch(favoriteHref);
-    router.prefetch(profileHref);
-  }, [router, calendarHref, favoriteHref, profileHref]);
-
-  const handleNavigate =
-    (item: BottomNavProps["active"], href: string) =>
-    (event: MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault();
-      setPressed(item);
-      requestAnimationFrame(() => {
-        startTransition(() => {
-          if (pathname !== href) {
-            router.push(href);
-          } else {
-            router.refresh();
-          }
-        });
-      });
+    if (typeof window === "undefined") return;
+    const syncHash = () => setCurrentHash(normalizeHash(window.location.hash));
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => {
+      window.removeEventListener("hashchange", syncHash);
     };
-
-  useEffect(() => {
-    setPressed(null);
   }, [pathname]);
 
-  const navOrder: NavItem[] = ["calendar", "favorite", "profile"];
-  const getDirection = (from: NavItem, to: NavItem) => {
-    const fromIndex = navOrder.indexOf(from);
-    const toIndex = navOrder.indexOf(to);
-    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
-      return null;
+  useEffect(() => {
+    if (!address) {
+      setViewerIdentity(null);
+      setViewerIdentityResolved(true);
+      return;
     }
-    return toIndex > fromIndex ? "next" : "prev";
-  };
 
-  const hrefByItem: Record<NavItem, string> = {
-    calendar: calendarHref,
-    favorite: favoriteHref,
-    profile: profileHref,
-  };
+    let cancelled = false;
+    const connectedAddress = address;
+    setViewerIdentityResolved(false);
 
-  const swipeNextMap: Record<NavItem, NavItem | null> = {
-    calendar: "favorite",
-    favorite: "profile",
-    profile: null,
-  };
-
-  const swipePrevMap: Record<NavItem, NavItem | null> = {
-    calendar: null,
-    favorite: "calendar",
-    profile: "favorite",
-  };
-
-  const handleSwipeNavigate = (direction: "next" | "prev") => {
-    const targetId =
-      direction === "next"
-        ? swipeNextMap[resolvedActive]
-        : swipePrevMap[resolvedActive];
-    if (!targetId) return;
-    const targetHref = hrefByItem[targetId];
-    setPressed(targetId);
-    startTransition(() => {
-      if (pathname !== targetHref) {
-        window.sessionStorage.setItem(navDirectionKey, direction);
-        router.push(targetHref);
-      } else {
-        router.refresh();
+    async function fetchViewerIdentity(): Promise<void> {
+      try {
+        const response = await fetch(
+          `/api/me?address=${encodeURIComponent(connectedAddress)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+        const json: unknown = await response.json().catch(() => null);
+        if (cancelled) return;
+        setViewerIdentity(response.ok ? parsePublicViewerMeResponse(json) : null);
+      } catch {
+        if (!cancelled) {
+          setViewerIdentity(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setViewerIdentityResolved(true);
+        }
       }
-    });
-  };
+    }
 
-  return (
-    <nav
-      className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm"
-      onTouchStart={(event) => {
-        const touch = event.touches[0];
-        if (!touch) return;
-        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-        touchLastRef.current = { x: touch.clientX, y: touch.clientY };
-      }}
-      onTouchMove={(event) => {
-        const touch = event.touches[0];
-        if (!touch) return;
-        touchLastRef.current = { x: touch.clientX, y: touch.clientY };
-      }}
-      onTouchEnd={() => {
-        const start = touchStartRef.current;
-        const last = touchLastRef.current;
-        touchStartRef.current = null;
-        touchLastRef.current = null;
-        if (!start || !last) return;
-        const deltaX = last.x - start.x;
-        const deltaY = last.y - start.y;
-        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
+    void fetchViewerIdentity();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
+
+  const viewerState = resolvePublicViewerState({
+    pageUsername: username,
+    pageCreatorAddress: null,
+    viewerAddress: address ?? null,
+    identity: viewerIdentity,
+    identityResolved: viewerIdentityResolved,
+  });
+  const manageHref = viewerState.userUsername
+    ? `/${viewerState.userUsername}/mypage/home`
+    : fallbackWorkspaceHref;
+
+  const cta = useMemo(() => {
+    switch (viewerState.mode) {
+      case "owner":
+        return {
+          label: "投稿",
+          href: `${publicHref}#owner-composer`,
+        };
+      case "registered":
+        return {
+          label: "支援",
+          href: `${publicHref}#support-wallet`,
+        };
+      case "unregistered":
+        return {
+          label: "登録",
+          href: fallbackWorkspaceHref,
+        };
+      case "loading":
+        return {
+          label: "確認中",
+          href: publicHref,
+        };
+      case "unconnected":
+      default:
+        return {
+          label: "接続",
+          href: `${publicHref}#support-wallet`,
+        };
+    }
+  }, [fallbackWorkspaceHref, publicHref, viewerState.mode]);
+
+  const activeItem: BottomNavItem = useMemo(() => {
+    if (active) return active;
+    if (pathname?.startsWith(eventsHref)) return "events";
+    if (pathname?.includes("/mypage")) return "manage";
+    if (currentHash === "#community") return "community";
+
+    const ctaHash = normalizeHash(cta.href.split("#")[1] ?? "");
+    if (pathname === publicHref && ctaHash && currentHash === ctaHash) {
+      return "cta";
+    }
+
+    return "home";
+  }, [active, cta.href, currentHash, eventsHref, pathname, publicHref]);
+
+  const navigate = useCallback(
+    (href: string) => {
+      const [targetPath, rawHash] = href.split("#");
+      const targetHash = normalizeHash(rawHash ?? "");
+
+      if (pathname === targetPath) {
+        if (!targetHash) {
+          setCurrentHash("");
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", targetPath);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
           return;
         }
-        if (deltaX < 0) {
-          handleSwipeNavigate("next");
-        } else {
-          handleSwipeNavigate("prev");
+
+        if (typeof window !== "undefined") {
+          const element = document.getElementById(targetHash.slice(1));
+          if (element) {
+            setCurrentHash(targetHash);
+            window.history.replaceState(null, "", `${targetPath}${targetHash}`);
+            element.scrollIntoView({ behavior: "smooth", block: "start" });
+            return;
+          }
         }
-      }}
-    >
-      <div className="mx-auto max-w-md flex items-center justify-between px-6">
-        {/* カレンダー → /[username]/events */}
-        <Link
-          href={calendarHref}
-          prefetch={true}
-          className={baseItemClass}
-          aria-label="イベント"
-          onClick={(event) => {
-            const direction = getDirection(resolvedActive, "calendar");
-            if (direction && pathname !== calendarHref) {
-              window.sessionStorage.setItem(navDirectionKey, direction);
-            }
-            handleNavigate("calendar", calendarHref)(event);
-          }}
-        >
-          <svg
-            className={`${iconBase} ${
-              isActive("calendar") ? "" : inactiveColor
-            }`}
-            style={isActive("calendar") ? activeStyle : undefined}
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <rect
-              x="3"
-              y="4"
-              width="18"
-              height="17"
-              rx="3"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-            />
-            <path
-              d="M8 3v4M16 3v4M4 10h16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-            />
-            <rect
-              x="9"
-              y="13"
-              width="6"
-              height="3"
-              rx="1.2"
-              fill="currentColor"
-            />
-          </svg>
-        </Link>
+      }
 
-        {/* ハート → クリエイター本人のトップ /[username] */}
-        <Link
-          href={favoriteHref}
-          prefetch={true}
-          className={baseItemClass}
-          aria-label="クリエイターページ"
-          onClick={(event) => {
-            const direction = getDirection(resolvedActive, "favorite");
-            if (direction && pathname !== favoriteHref) {
-              window.sessionStorage.setItem(navDirectionKey, direction);
-            }
-            handleNavigate("favorite", favoriteHref)(event);
-          }}
-        >
-          <svg
-            className={`${iconBase} ${
-              isActive("favorite") ? "" : inactiveColor
-            }`}
-            style={isActive("favorite") ? activeStyle : undefined}
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              d="M12 20s-4.7-2.7-7.2-5.7C3.6 13.4 3 12.3 3 11.1 3 8.9 4.8 7 7.1 7c1.2 0 2.4.5 3.1 1.4A4 4 0 0 1 13.3 7C15.5 7 17 8.5 17 10.7c0 1.2-.6 2.3-1.8 3.4C13 16.8 12 20 12 20z"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Link>
+      startTransition(() => {
+        router.push(href);
+      });
+    },
+    [pathname, router]
+  );
 
-        {/* 人アイコン → /me */}
-        <Link
-          href={profileHref}
-          prefetch
-          className={baseItemClass}
-          aria-label="マイページ"
-          onClick={(event) => {
-            const direction = getDirection(resolvedActive, "profile");
-            if (direction && pathname !== profileHref) {
-              window.sessionStorage.setItem(navDirectionKey, direction);
-            }
-            handleNavigate("profile", profileHref)(event);
-          }}
-        >
-          <svg
-            className={`${iconBase} ${
-              isActive("profile") ? "" : inactiveColor
-            }`}
-            style={isActive("profile") ? activeStyle : undefined}
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            {/* 人型 */}
-            <circle
-              cx="9"
-              cy="9"
-              r="3"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-            />
-            <path
-              d="M4.5 18.5c.8-2.4 2.6-4 4.5-4s3.7 1.6 4.5 4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-            />
-            {/* ＋ */}
-            <circle
-              cx="17"
-              cy="14"
-              r="2.6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-            />
-            <path
-              d="M17 12.9v2.2M15.9 14h2.2"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-            />
-          </svg>
-        </Link>
+  useEffect(() => {
+    router.prefetch(publicHref);
+    router.prefetch(eventsHref);
+    router.prefetch(manageHref);
+  }, [eventsHref, manageHref, publicHref, router]);
+
+  return (
+    <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
+      <div className="mx-auto grid max-w-md grid-cols-5 gap-2 px-3 py-2">
+        <NavButton
+          label="予定"
+          icon={<IconCalendar />}
+          active={activeItem === "events"}
+          onClick={() => navigate(eventsHref)}
+        />
+        <NavButton
+          label="トップ"
+          icon={<IconHome />}
+          active={activeItem === "home"}
+          onClick={() => navigate(publicHref)}
+        />
+        <NavButton
+          label={cta.label}
+          icon={<IconCompose />}
+          active={activeItem === "cta"}
+          emphasize
+          onClick={() => navigate(cta.href)}
+        />
+        <NavButton
+          label="つながり"
+          icon={<IconCommunity />}
+          active={activeItem === "community"}
+          onClick={() => navigate(`${publicHref}#community`)}
+        />
+        <NavButton
+          label="マイ"
+          icon={<IconManage />}
+          active={activeItem === "manage"}
+          onClick={() => navigate(manageHref)}
+        />
       </div>
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${themeColor}, transparent)`,
+          opacity: 0.35,
+        }}
+      />
     </nav>
   );
 }

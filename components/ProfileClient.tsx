@@ -4,7 +4,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
-import { useChainId } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import { postReverify, autoReverifyPending } from "@/lib/reverifyClient";
@@ -46,6 +46,14 @@ import {
   type PublicSummaryLite,
 } from "@/lib/publicSummary";
 import { MyPageFooter } from "@/components/MyPageFooter";
+import { CreatorFeedSection } from "@/components/feed/CreatorFeedSection";
+import type { SelectedPostTipContext } from "@/components/feed/feedTypes";
+import { CreatorCommunityCard } from "@/components/profile/CreatorCommunityCard";
+import { PublicOwnerComposerCard } from "@/components/profile/PublicOwnerComposerCard";
+import {
+  parsePublicViewerMeResponse,
+  resolvePublicViewerState,
+} from "@/lib/publicViewerState";
 
 // ===== Public API response（/api/public/creator）=====
 type PublicCreatorResponse =
@@ -206,6 +214,7 @@ export default function ProfileClient({
   publicSummary,
   layout = "full",
 }: Props) {
+  const { address: viewerAddress } = useAccount();
   // --- creator の address null を排除して CreatorProfile に正規化 ---
   const creator: CreatorProfile = useMemo(() => {
     const normalizedAddress =
@@ -244,6 +253,13 @@ export default function ProfileClient({
 
   const [publicSummaryState, setPublicSummaryState] =
     useState<PublicSummaryLite | null>(publicSummary ?? null);
+  const [selectedPostTipContext, setSelectedPostTipContext] =
+    useState<SelectedPostTipContext | null>(null);
+  const [feedRefreshToken, setFeedRefreshToken] = useState(0);
+  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
+  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
+    typeof parsePublicViewerMeResponse
+  > | null>(null);
 
   useEffect(() => {
     if (publicSummary !== undefined) {
@@ -283,6 +299,47 @@ export default function ProfileClient({
       cancelled = true;
     };
   }, [publicSummary, username]);
+
+  useEffect(() => {
+    if (!viewerAddress) {
+      setViewerIdentity(null);
+      setViewerIdentityResolved(true);
+      return;
+    }
+
+    let cancelled = false;
+    const connectedViewerAddress = viewerAddress;
+    setViewerIdentityResolved(false);
+
+    async function fetchViewerIdentity(): Promise<void> {
+      try {
+        const response = await fetch(
+          `/api/me?address=${encodeURIComponent(connectedViewerAddress)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+        const json: unknown = await response.json().catch(() => null);
+        if (cancelled) return;
+        setViewerIdentity(response.ok ? parsePublicViewerMeResponse(json) : null);
+      } catch {
+        if (!cancelled) {
+          setViewerIdentity(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setViewerIdentityResolved(true);
+        }
+      }
+    }
+
+    void fetchViewerIdentity();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerAddress]);
 
   // ===== Phase1 Progress/Goal states =====
 
@@ -623,6 +680,7 @@ export default function ProfileClient({
   const [autoReverifyRunning, setAutoReverifyRunning] = useState(false);
   const [loadWalletSection, setLoadWalletSection] = useState(false);
   const walletSectionRef = useRef<HTMLDivElement | null>(null);
+  const feedSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -748,6 +806,7 @@ export default function ProfileClient({
   async function postContribution(args: {
     projectId?: string;
     purposeId?: string;
+    postId?: string;
     chainId: number;
     currency: Currency;
     tokenAddress: string;
@@ -777,6 +836,7 @@ export default function ProfileClient({
           fromAddress: args.fromAddress,
           toAddress: args.toAddress,
           amount: String(args.amount),
+          ...(args.postId ? { postId: args.postId } : {}),
         }),
       });
 
@@ -800,7 +860,7 @@ export default function ProfileClient({
    * 3) progress を更新
    * 4) reached なら goal/achieve（未達成時のみ）
    */
-  async function afterSendPipeline(txHash: string) {
+  async function afterSendPipeline(txHash: string, postId?: string | null) {
     if (!activeProjectId) return;
 
     const maxTry = 3;
@@ -836,6 +896,14 @@ export default function ProfileClient({
       await achieveGoalSafe();
     } else {
       await fetchProjectStatusSafe();
+    }
+
+    const tippedPostId = postId ?? selectedPostTipContext?.id ?? null;
+    if (tippedPostId) {
+      setFeedRefreshToken((current) => current + 1);
+      setSelectedPostTipContext((current) =>
+        current?.id === tippedPostId ? null : current
+      );
     }
   }
 
@@ -965,6 +1033,37 @@ export default function ProfileClient({
         ? "このページから支援できます"
         : "支援ページを準備中です";
 
+  const viewerState = resolvePublicViewerState({
+    pageUsername: username,
+    pageCreatorAddress: creator.address ?? null,
+    viewerAddress: viewerAddress ?? null,
+    identity: viewerIdentity,
+    identityResolved: viewerIdentityResolved,
+  });
+  const ownerComposerManagementHref = `/${username}/mypage/support-page#sns-compose`;
+  const viewerWorkspaceHref = viewerState.userUsername
+    ? `/${viewerState.userUsername}/mypage/home`
+    : `/${username}/mypage/home`;
+  const ownerProjectOptions = useMemo(() => {
+    const options: Array<{ id: string; label: string }> = [];
+    const seen = new Set<string>();
+
+    for (const currency of ["JPYC", "USDC"] as const) {
+      const nextId = resolvedProjectIdsByCurrency[currency];
+      if (!nextId || seen.has(nextId)) continue;
+      seen.add(nextId);
+
+      const resolvedLabelTitle =
+        currency === viewCurrency && projectTitle ? projectTitle : `${currency} project`;
+      options.push({
+        id: nextId,
+        label: `${currency} / ${resolvedLabelTitle}`,
+      });
+    }
+
+    return options;
+  }, [projectTitle, resolvedProjectIdsByCurrency, viewCurrency]);
+
   function scrollToElement(ref: React.RefObject<HTMLDivElement | null>) {
     if (typeof window === "undefined") return;
     window.requestAnimationFrame(() => {
@@ -975,6 +1074,19 @@ export default function ProfileClient({
   function focusWalletSection() {
     setLoadWalletSection(true);
     scrollToElement(walletSectionRef);
+  }
+
+  function handleSelectPostTip(post: SelectedPostTipContext) {
+    setSelectedPostTipContext(post);
+    if (post.preferredCurrency) {
+      setViewCurrency(post.preferredCurrency);
+    }
+    focusWalletSection();
+  }
+
+  function handleOwnerPostCreated() {
+    setFeedRefreshToken((current) => current + 1);
+    scrollToElement(feedSectionRef);
   }
 
   const content = (
@@ -1174,6 +1286,37 @@ export default function ProfileClient({
         </div>
       </section>
 
+      {viewerState.isOwner && viewerAddress ? (
+        <PublicOwnerComposerCard
+          address={viewerAddress}
+          managementHref={ownerComposerManagementHref}
+          projectOptions={ownerProjectOptions}
+          onCreated={handleOwnerPostCreated}
+        />
+      ) : null}
+
+      <CreatorCommunityCard
+        username={username}
+        viewerAddress={viewerAddress ?? null}
+        viewerState={viewerState}
+        managementHref={ownerComposerManagementHref}
+        registrationHref={viewerWorkspaceHref}
+        onRequireConnection={focusWalletSection}
+      />
+
+      <div id="creator-feed" ref={feedSectionRef}>
+        <CreatorFeedSection
+          username={username}
+          viewerAddress={viewerAddress ?? null}
+          selectedPostId={selectedPostTipContext?.id ?? null}
+          projectIdsByCurrency={resolvedProjectIdsByCurrency}
+          refreshToken={feedRefreshToken}
+          headerColor={headerColor}
+          onSelectTipPost={handleSelectPostTip}
+          onFocusWalletSection={focusWalletSection}
+        />
+      </div>
+
       {/* YouTube 動画ブロック */}
       {creator.youtubeVideos && creator.youtubeVideos.length > 0 && (
         <div className="mt-6 rounded-3xl border border-gray-200/80 bg-gray-50 p-5 shadow-sm">
@@ -1213,7 +1356,7 @@ export default function ProfileClient({
         </div>
       )}
 
-      <div ref={walletSectionRef}>
+      <div id="support-wallet" ref={walletSectionRef}>
         {loadWalletSection ? (
           <ProfileWalletClient
             username={username}
@@ -1224,6 +1367,10 @@ export default function ProfileClient({
             supportedChainIdsByCurrency={supportedChainIdsByCurrency}
             showLegacyCard={showLegacyCard}
             headerColor={headerColor}
+            selectedPostId={selectedPostTipContext?.id ?? null}
+            selectedPostSummary={selectedPostTipContext?.preview ?? null}
+            selectedPostCurrency={selectedPostTipContext?.preferredCurrency ?? null}
+            onClearSelectedPost={() => setSelectedPostTipContext(null)}
             onPostContribution={postContribution}
             onAfterSend={afterSendPipeline}
           />

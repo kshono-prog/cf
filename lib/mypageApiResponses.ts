@@ -7,7 +7,11 @@ import { getMeStatusByAddress } from "@/lib/mypageMe";
 export type MyPageMePayload = {
   hasUser: boolean;
   hasCreator: boolean;
-  user: { displayName: string; profile: string | null } | null;
+  user: {
+    username: string;
+    displayName: string;
+    profile: string | null;
+  } | null;
   creator: CreatorProfile | null;
   projectId: string | null;
   projectIdsByCurrency: {
@@ -37,6 +41,7 @@ export function normalizeMyPageMePayload(me: MeStatus): MyPageMePayload {
     hasCreator: me.hasCreator,
     user: me.user
       ? {
+          username: me.user.username ?? "",
           displayName: me.user.displayName ?? "",
           profile: me.user.profile ?? null,
         }

@@ -10,6 +10,8 @@ Creator Founding is structured as a creator support platform with an AI Office l
 
 - creator public page
 - project summary and progress
+- funding-centric SNS data/API foundation for creator posts, replies, likes, and post-linked tips
+- creator follow/follower relation and public community read/write UI layered on top of creator identity
 - events and public creator discovery
 
 ### Creator Operation Layer
@@ -17,6 +19,7 @@ Creator Founding is structured as a creator support platform with an AI Office l
 - mypage management
 - project and settlement management
 - AI Office task creation and review
+- AI agent and promotion-job storage foundation for later approved automation
 - metrics collection and display
 
 AI Office runtime note:
@@ -36,6 +39,7 @@ Creator mypage runtime note:
 - normalize primary mypage mutation responses to `ok + me` so the client can treat save/apply/update uniformly
 - render `loading / unconnected / noUser / userOnly / creatorReady` as separate containers instead of inline status branches
 - within `creatorReady`, keep `links`, `project management`, and `summary actions` as separate section containers
+- add `SNS・AI事務所` to the creator `support-page` as a localized accordion backed by dedicated mypage SNS routes so profile/project/settlement flows stay unchanged
 - within project management, keep `per-currency project blocks` and `AI Office` as separate composition units
 - move `ProjectSection` create/edit/fetch into a dedicated hook backed by shared project API helpers
 - move `CurrencyGoalSettlementPanel` summary fetch and goal mutations into a dedicated hook backed by shared mypage API helpers
@@ -50,6 +54,7 @@ Creator mypage runtime note:
 ### Funding and Settlement Layer
 
 - contribution recording
+- contribution-to-post linkage for post-level tipping
 - goal and settlement state
 - distribution planning and execution records
 - bridge visibility and audit trail

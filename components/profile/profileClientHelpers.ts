@@ -16,6 +16,7 @@ export type LastTx = {
   toAddress: string;
   projectId: string | null;
   purposeId: string | null;
+  postId: string | null;
   createdAtMs: number; // Date.now()
 };
 
@@ -96,6 +97,7 @@ function parseLastTx(v: unknown): LastTx | null {
   const toAddress = v.toAddress;
   const projectId = v.projectId;
   const purposeId = v.purposeId;
+  const postId = "postId" in v ? v.postId : null;
   const createdAtMs = v.createdAtMs;
 
   if (!isHexTxHash(txHash)) return null;
@@ -106,6 +108,7 @@ function parseLastTx(v: unknown): LastTx | null {
 
   if (!(typeof projectId === "string" || projectId === null)) return null;
   if (!(typeof purposeId === "string" || purposeId === null)) return null;
+  if (!(typeof postId === "string" || postId === null)) return null;
 
   if (typeof createdAtMs !== "number" || !Number.isFinite(createdAtMs))
     return null;
@@ -118,6 +121,7 @@ function parseLastTx(v: unknown): LastTx | null {
     toAddress,
     projectId,
     purposeId,
+    postId,
     createdAtMs,
   };
 }

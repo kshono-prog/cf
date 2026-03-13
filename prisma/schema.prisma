@@ -9,34 +9,55 @@ datasource db {
 }
 
 model CreatorProfile {
-  id              BigInt                @id @default(autoincrement())
-  username        String                @unique
-  displayName     String
-  profileText     String?
-  avatarUrl       String?
-  qrcodeUrl       String?
-  externalUrl     String?
-  goalTitle       String?
-  goalTargetJpyc  Int?
-  themeColor      String?
-  creatorType     String?
-  walletAddress   String?               @unique
-  email           String?               @unique
-  status          String                @default("PUBLISHED")
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  activeProjectId BigInt?
+  id                  BigInt                  @id @default(autoincrement())
+  username            String                  @unique
+  displayName         String
+  profileText         String?
+  avatarUrl           String?
+  qrcodeUrl           String?
+  externalUrl         String?
+  goalTitle           String?
+  goalTargetJpyc      Int?
+  themeColor          String?
+  creatorType         String?
+  walletAddress       String?                 @unique
+  email               String?                 @unique
+  status              String                  @default("PUBLISHED")
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  activeProjectId     BigInt?
   activeProjectIdJpyc BigInt?
   activeProjectIdUsdc BigInt?
-  socialLinks     CreatorSocialLink[]
-  youtubeVideos   CreatorYoutubeVideo[]
-  events          Event[]
-  projects        Project[]
-  tips            Tip[]
-  socialConnections SocialConnection[]
-  metricSnapshots   ContentMetricSnapshot[]
-  agentTasks        AgentTask[]
-  agentTaskAuditLogs AgentTaskAuditLog[]
+  socialLinks         CreatorSocialLink[]
+  youtubeVideos       CreatorYoutubeVideo[]
+  events              Event[]
+  projects            Project[]
+  tips                Tip[]
+  socialConnections   SocialConnection[]
+  metricSnapshots     ContentMetricSnapshot[]
+  posts               Post[]
+  replies             Reply[]
+  postLikes           PostLike[]
+  replyLikes          ReplyLike[]
+  aiAgents            AiAgent[]
+  aiPromotionJobs     AiPromotionJob[]
+  agentTasks          AgentTask[]
+  agentTaskAuditLogs  AgentTaskAuditLog[]
+  followingRelations  CreatorFollow[]         @relation("CreatorFollowing")
+  followerRelations   CreatorFollow[]         @relation("CreatorFollowers")
+}
+
+model CreatorFollow {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  followerProfileId  BigInt
+  followingProfileId BigInt
+  createdAt          DateTime       @default(now()) @db.Timestamptz(6)
+  followerProfile    CreatorProfile @relation("CreatorFollowing", fields: [followerProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  followingProfile   CreatorProfile @relation("CreatorFollowers", fields: [followingProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([followerProfileId, followingProfileId], map: "CreatorFollow_follower_following_key")
+  @@index([followerProfileId, createdAt], map: "CreatorFollow_follower_created_idx")
+  @@index([followingProfileId, createdAt], map: "CreatorFollow_following_created_idx")
 }
 
 model CreatorSocialLink {
@@ -144,6 +165,7 @@ model GasSupportNonce {
   expiresAt DateTime @db.Timestamp(6)
   createdAt DateTime @default(now()) @db.Timestamp(6)
   updatedAt DateTime @default(now()) @db.Timestamp(6)
+
   @@unique([chainId, address], map: "GasSupportNonce_chainId_address_key")
 }
 
@@ -184,6 +206,7 @@ model Contribution {
   createdAt     DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @db.Timestamptz(6)
   project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  postTips      PostTip[]
   purpose       Purpose?  @relation(fields: [purposeId], references: [id], onUpdate: NoAction)
 
   @@index([chainId])
@@ -213,16 +236,16 @@ model Goal {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model Project {
-  id                        BigInt            @id @default(autoincrement())
+  id                        BigInt                  @id @default(autoincrement())
   ownerAddress              String?
   creatorProfileId          BigInt?
   title                     String
   description               String?
-  status                    String            @default("DRAFT")
-  purposeMode               String            @default("OPTIONAL")
-  currency                  String            @default("JPYC")
-  createdAt                 DateTime          @default(now()) @db.Timestamptz(6)
-  updatedAt                 DateTime          @default(now()) @db.Timestamptz(6)
+  status                    String                  @default("DRAFT")
+  purposeMode               String                  @default("OPTIONAL")
+  currency                  String                  @default("JPYC")
+  createdAt                 DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime                @default(now()) @db.Timestamptz(6)
   liquidityChainId          Int?
   eventFundingChainId       Int?
   eventFundingSourceAddress String?
@@ -238,18 +261,19 @@ model Project {
   lastBridgeTxHashIctt      String?
   liquidityBlockchainId     String?
   teleporterMessenger       String?
-  distributionPlan          Json              @default("{}")
+  distributionPlan          Json                    @default("{}")
   bridgeRuns                BridgeRun[]
   budgetItems               BudgetItem[]
   contributions             Contribution[]
+  posts                     Post[]
   distributionRuns          DistributionRun[]
-  settlementState          ProjectSettlement?
-  bridgeSteps              ProjectBridgeStep[]
-  distributionEntries      DistributionEntry[]
-  distributionExecutions   DistributionExecution[]
-  cctpBridgeJobs          CctpBridgeJob[]
+  settlementState           ProjectSettlement?
+  bridgeSteps               ProjectBridgeStep[]
+  distributionEntries       DistributionEntry[]
+  distributionExecutions    DistributionExecution[]
+  cctpBridgeJobs            CctpBridgeJob[]
   goal                      Goal?
-  creatorProfile            CreatorProfile?   @relation(fields: [creatorProfileId], references: [id], onUpdate: NoAction)
+  creatorProfile            CreatorProfile?         @relation(fields: [creatorProfileId], references: [id], onUpdate: NoAction)
   purposes                  Purpose[]
   metricSnapshots           ContentMetricSnapshot[]
   agentTasks                AgentTask[]
@@ -263,27 +287,27 @@ model Project {
 }
 
 model CctpBridgeJob {
-  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   projectId            BigInt
-  currency             SettlementToken       @default(USDC)
+  currency             SettlementToken        @default(USDC)
   sourceChain          BridgeSourceChain
   destinationChain     BridgeDestinationChain @default(AVALANCHE)
-  status               CctpBridgeJobStatus   @default(PENDING)
-  idempotencyKey       String                @unique
-  goalAchievedAt       DateTime              @db.Timestamptz(6)
-  burnAmountAtomic     Decimal?              @db.Decimal(78, 0)
+  status               CctpBridgeJobStatus    @default(PENDING)
+  idempotencyKey       String                 @unique
+  goalAchievedAt       DateTime               @db.Timestamptz(6)
+  burnAmountAtomic     Decimal?               @db.Decimal(78, 0)
   burnTxHash           String?
   burnMessageHash      String?
   attestation          String?
-  attestationFetchedAt DateTime?             @db.Timestamptz(6)
+  attestationFetchedAt DateTime?              @db.Timestamptz(6)
   mintTxHash           String?
   failureReason        String?
-  attempts             Int                   @default(0)
-  maxAttempts          Int                   @default(8)
-  nextRetryAt          DateTime?             @db.Timestamptz(6)
-  createdAt            DateTime              @default(now()) @db.Timestamptz(6)
-  updatedAt            DateTime              @default(now()) @db.Timestamptz(6)
-  project              Project               @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  attempts             Int                    @default(0)
+  maxAttempts          Int                    @default(8)
+  nextRetryAt          DateTime?              @db.Timestamptz(6)
+  createdAt            DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime               @default(now()) @db.Timestamptz(6)
+  project              Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([projectId, createdAt], map: "CctpBridgeJob_project_created_idx")
   @@index([projectId, status], map: "CctpBridgeJob_project_status_idx")
@@ -291,18 +315,18 @@ model CctpBridgeJob {
 }
 
 model SocialConnection {
-  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id               String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   creatorProfileId BigInt
   platform         String
   accountHandle    String
   accountId        String?
-  status           String         @default("ACTIVE")
+  status           String                  @default("ACTIVE")
   accessTokenRef   String?
   refreshTokenRef  String?
-  tokenExpiresAt   DateTime?      @db.Timestamptz(6)
-  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
-  updatedAt        DateTime       @default(now()) @db.Timestamptz(6)
-  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tokenExpiresAt   DateTime?               @db.Timestamptz(6)
+  createdAt        DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime                @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile          @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   snapshots        ContentMetricSnapshot[]
 
   @@unique([platform, accountHandle], map: "SocialConnection_platform_handle_key")
@@ -333,21 +357,171 @@ model ContentMetricSnapshot {
   @@index([socialConnectionId], map: "ContentMetricSnapshot_connection_idx")
 }
 
-model AgentTask {
-  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+model Post {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   creatorProfileId BigInt
   projectId        BigInt?
-  taskType         String
+  authorType       String
+  body             String
+  mediaType        String?
+  mediaUrl         String?
+  visibility       String           @default("PUBLIC")
+  status           String           @default("DRAFT")
+  aiGenerated      Boolean          @default(false)
+  aiAgentId        String?          @db.Uuid
+  likeCount        Int              @default(0)
+  replyCount       Int              @default(0)
+  tipCount         Int              @default(0)
+  tipAmountJpyc    Decimal          @default(0) @db.Decimal(38, 18)
+  tipAmountUsdc    Decimal          @default(0) @db.Decimal(38, 18)
+  createdAt        DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime         @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile   @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project          Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  aiAgent          AiAgent?         @relation(fields: [aiAgentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  replies          Reply[]
+  likes            PostLike[]
+  tips             PostTip[]
+  analytics        PostAnalytics?
+  promotionJobs    AiPromotionJob[]
+
+  @@index([status, visibility, createdAt], map: "Post_status_visibility_created_idx")
+  @@index([creatorProfileId, status, visibility, createdAt], map: "Post_creator_status_visibility_created_idx")
+  @@index([projectId, status, visibility, createdAt], map: "Post_project_status_visibility_created_idx")
+  @@index([aiAgentId], map: "Post_aiAgent_idx")
+}
+
+model Reply {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId           String         @db.Uuid
+  creatorProfileId BigInt
+  parentReplyId    String?        @db.Uuid
+  authorType       String
+  body             String
+  aiGenerated      Boolean        @default(false)
+  aiAgentId        String?        @db.Uuid
+  likeCount        Int            @default(0)
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime       @default(now()) @db.Timestamptz(6)
+  post             Post           @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  parentReply      Reply?         @relation("ReplyTree", fields: [parentReplyId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  childReplies     Reply[]        @relation("ReplyTree")
+  aiAgent          AiAgent?       @relation(fields: [aiAgentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  likes            ReplyLike[]
+
+  @@index([postId, createdAt], map: "Reply_post_created_idx")
+  @@index([creatorProfileId, createdAt], map: "Reply_creator_created_idx")
+  @@index([parentReplyId, createdAt], map: "Reply_parent_created_idx")
+  @@index([aiAgentId], map: "Reply_aiAgent_idx")
+}
+
+model PostLike {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId           String         @db.Uuid
+  creatorProfileId BigInt
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  post             Post           @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([postId, creatorProfileId], map: "PostLike_post_creator_key")
+  @@index([creatorProfileId], map: "PostLike_creator_idx")
+}
+
+model ReplyLike {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  replyId          String         @db.Uuid
+  creatorProfileId BigInt
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  reply            Reply          @relation(fields: [replyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([replyId, creatorProfileId], map: "ReplyLike_reply_creator_key")
+  @@index([creatorProfileId], map: "ReplyLike_creator_idx")
+}
+
+model PostTip {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId         String       @db.Uuid
+  contributionId String       @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contribution   Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([postId, contributionId], map: "PostTip_post_contribution_key")
+  @@index([contributionId], map: "PostTip_contribution_idx")
+}
+
+model PostAnalytics {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId             String   @unique(map: "PostAnalytics_postId_key") @db.Uuid
+  impressionCount    Int      @default(0)
+  profileClickCount  Int      @default(0)
+  likeCountSnapshot  Int      @default(0)
+  replyCountSnapshot Int      @default(0)
+  tipCountSnapshot   Int      @default(0)
+  tipJpycSnapshot    Decimal  @default(0) @db.Decimal(38, 18)
+  tipUsdcSnapshot    Decimal  @default(0) @db.Decimal(38, 18)
+  engagementScore    Decimal  @default(0) @db.Decimal(18, 6)
+  updatedAt          DateTime @default(now()) @db.Timestamptz(6)
+  post               Post     @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model AiAgent {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  name             String
+  role             String
+  status           String           @default("ACTIVE")
+  configJson       Json             @default("{}")
+  createdAt        DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime         @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile   @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  posts            Post[]
+  replies          Reply[]
+  jobs             AiPromotionJob[]
+
+  @@index([creatorProfileId, role, status], map: "AiAgent_creator_role_status_idx")
+}
+
+model AiPromotionJob {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  aiAgentId        String?        @db.Uuid
+  postId           String?        @db.Uuid
+  jobType          String
   status           String         @default("QUEUED")
   inputJson        Json           @default("{}")
   outputJson       Json           @default("{}")
-  requestedBy      String?
-  approvedBy       String?
-  approvedAt       DateTime?      @db.Timestamptz(6)
+  executionCostUsd Decimal?       @db.Decimal(18, 6)
+  billable         Boolean        @default(false)
+  billingStatus    String         @default("NONE")
   createdAt        DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime       @default(now()) @db.Timestamptz(6)
   creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  aiAgent          AiAgent?       @relation(fields: [aiAgentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  post             Post?          @relation(fields: [postId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([creatorProfileId, status, createdAt], map: "AiPromotionJob_creator_status_created_idx")
+  @@index([aiAgentId, createdAt], map: "AiPromotionJob_agent_created_idx")
+  @@index([postId, createdAt], map: "AiPromotionJob_post_created_idx")
+}
+
+model AgentTask {
+  id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  projectId        BigInt?
+  taskType         String
+  status           String              @default("QUEUED")
+  inputJson        Json                @default("{}")
+  outputJson       Json                @default("{}")
+  requestedBy      String?
+  approvedBy       String?
+  approvedAt       DateTime?           @db.Timestamptz(6)
+  createdAt        DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime            @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile      @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project          Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   auditLogs        AgentTaskAuditLog[]
 
   @@index([creatorProfileId, status, createdAt], map: "AgentTask_creator_status_created_idx")
@@ -355,17 +529,17 @@ model AgentTask {
 }
 
 model AgentTaskAuditLog {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  agentTaskId     String    @db.Uuid
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agentTaskId      String         @db.Uuid
   creatorProfileId BigInt
-  projectId       BigInt?
-  action          String
-  actorAddress    String?
-  metaJson        Json      @default("{}")
-  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
-  agentTask       AgentTask @relation(fields: [agentTaskId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  creatorProfile  CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  project         Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  projectId        BigInt?
+  action           String
+  actorAddress     String?
+  metaJson         Json           @default("{}")
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  agentTask        AgentTask      @relation(fields: [agentTaskId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([agentTaskId, createdAt], map: "AgentTaskAuditLog_task_created_idx")
   @@index([creatorProfileId, createdAt], map: "AgentTaskAuditLog_creator_created_idx")
@@ -391,56 +565,56 @@ model DistributionRun {
 }
 
 model ProjectSettlement {
-  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId           BigInt                    @unique
-  status              ProjectSettlementStatus   @default(NOT_READY)
-  bridgedTotalAtomic  Decimal                   @default(0) @db.Decimal(78, 0)
-  distributedTotalAtomic Decimal                @default(0) @db.Decimal(78, 0)
-  readyAt             DateTime?                 @db.Timestamptz(6)
-  distributedAt       DateTime?                 @db.Timestamptz(6)
-  createdAt           DateTime                  @default(now()) @db.Timestamptz(6)
-  updatedAt           DateTime                  @default(now()) @db.Timestamptz(6)
-  project             Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId              BigInt                  @unique
+  status                 ProjectSettlementStatus @default(NOT_READY)
+  bridgedTotalAtomic     Decimal                 @default(0) @db.Decimal(78, 0)
+  distributedTotalAtomic Decimal                 @default(0) @db.Decimal(78, 0)
+  readyAt                DateTime?               @db.Timestamptz(6)
+  distributedAt          DateTime?               @db.Timestamptz(6)
+  createdAt              DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime                @default(now()) @db.Timestamptz(6)
+  project                Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([status])
   @@index([createdAt])
 }
 
 model ProjectBridgeStep {
-  id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId             BigInt
-  sourceChain           BridgeSourceChain
-  destinationChain      BridgeDestinationChain @default(AVALANCHE)
-  token                 SettlementToken
-  status                BridgeStepStatus   @default(PENDING)
-  bridgedAmountAtomic   Decimal            @default(0) @db.Decimal(78, 0)
-  txHash                String?
-  completedAt           DateTime?          @db.Timestamptz(6)
-  recordedByWallet      String?
-  memo                  String?
-  createdAt             DateTime           @default(now()) @db.Timestamptz(6)
-  updatedAt             DateTime           @default(now()) @db.Timestamptz(6)
-  project               Project            @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                  String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId           BigInt
+  sourceChain         BridgeSourceChain
+  destinationChain    BridgeDestinationChain @default(AVALANCHE)
+  token               SettlementToken
+  status              BridgeStepStatus       @default(PENDING)
+  bridgedAmountAtomic Decimal                @default(0) @db.Decimal(78, 0)
+  txHash              String?
+  completedAt         DateTime?              @db.Timestamptz(6)
+  recordedByWallet    String?
+  memo                String?
+  createdAt           DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime               @default(now()) @db.Timestamptz(6)
+  project             Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([projectId, sourceChain, destinationChain, token], map: "ProjectBridgeStep_project_source_dest_token_key")
   @@index([projectId, status], map: "ProjectBridgeStep_project_status_idx")
 }
 
 model DistributionEntry {
-  id                        String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId                 BigInt
-  recipientAddressChecksum  String
-  token                     SettlementToken
-  amountAtomic              Decimal                 @db.Decimal(78, 0)
-  memo                      String?
-  status                    DistributionEntryStatus @default(DRAFT)
-  sentAt                    DateTime?               @db.Timestamptz(6)
-  txHash                    String?
-  orderIndex                Int                     @default(0)
-  createdAt                 DateTime                @default(now()) @db.Timestamptz(6)
-  updatedAt                 DateTime                @default(now()) @db.Timestamptz(6)
-  project                   Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  executionItems            DistributionExecutionItem[]
+  id                       String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId                BigInt
+  recipientAddressChecksum String
+  token                    SettlementToken
+  amountAtomic             Decimal                     @db.Decimal(78, 0)
+  memo                     String?
+  status                   DistributionEntryStatus     @default(DRAFT)
+  sentAt                   DateTime?                   @db.Timestamptz(6)
+  txHash                   String?
+  orderIndex               Int                         @default(0)
+  createdAt                DateTime                    @default(now()) @db.Timestamptz(6)
+  updatedAt                DateTime                    @default(now()) @db.Timestamptz(6)
+  project                  Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  executionItems           DistributionExecutionItem[]
 
   @@index([projectId, orderIndex], map: "DistributionEntry_project_order_idx")
   @@index([projectId, status], map: "DistributionEntry_project_status_idx")
@@ -448,30 +622,30 @@ model DistributionEntry {
 }
 
 model DistributionExecution {
-  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId          BigInt
-  initiatedByWallet  String?
-  startedAt          DateTime                  @default(now()) @db.Timestamptz(6)
-  finishedAt         DateTime?                 @db.Timestamptz(6)
-  result             DistributionExecutionResult @default(PARTIAL_SUCCESS)
-  note               String?
-  createdAt          DateTime                  @default(now()) @db.Timestamptz(6)
-  project            Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  items              DistributionExecutionItem[]
+  id                String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId         BigInt
+  initiatedByWallet String?
+  startedAt         DateTime                    @default(now()) @db.Timestamptz(6)
+  finishedAt        DateTime?                   @db.Timestamptz(6)
+  result            DistributionExecutionResult @default(PARTIAL_SUCCESS)
+  note              String?
+  createdAt         DateTime                    @default(now()) @db.Timestamptz(6)
+  project           Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  items             DistributionExecutionItem[]
 
   @@index([projectId, startedAt], map: "DistributionExecution_project_started_idx")
 }
 
 model DistributionExecutionItem {
-  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  executionId           String                  @db.Uuid
-  distributionEntryId   String                  @db.Uuid
-  status                DistributionEntryStatus
-  txHash                String?
-  errorReason           String?
-  createdAt             DateTime                @default(now()) @db.Timestamptz(6)
-  execution             DistributionExecution   @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  distributionEntry     DistributionEntry       @relation(fields: [distributionEntryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  executionId         String                  @db.Uuid
+  distributionEntryId String                  @db.Uuid
+  status              DistributionEntryStatus
+  txHash              String?
+  errorReason         String?
+  createdAt           DateTime                @default(now()) @db.Timestamptz(6)
+  execution           DistributionExecution   @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  distributionEntry   DistributionEntry       @relation(fields: [distributionEntryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([executionId], map: "DistributionExecutionItem_execution_idx")
   @@index([distributionEntryId], map: "DistributionExecutionItem_entry_idx")
@@ -479,7 +653,7 @@ model DistributionExecutionItem {
 
 /// ✅ NEW: bridge execution log (Route B: LOG_ONLY)
 model BridgeRun {
-  id                            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   projectId                     BigInt
   mode                          String
   currency                      String
@@ -494,23 +668,23 @@ model BridgeRun {
   vaultBalanceFormatted         String?
   recipientBalanceRaw           String?
   recipientBalanceFormatted     String?
-  deltaHintJson                 Json     @default("{}")
-  force                         Boolean  @default(false)
-  dryRun                        Boolean  @default(false)
+  deltaHintJson                 Json    @default("{}")
+  force                         Boolean @default(false)
+  dryRun                        Boolean @default(false)
   note                          String?
 
   /// ✅ NEW: user executed bridge tx (source chain)
-  bridgeTxHash                  String?
+  bridgeTxHash             String?
   /// ✅ NEW: source receipt block number (string to avoid bigint serialization issues)
-  sourceReceiptBlockNumber      String?
+  sourceReceiptBlockNumber String?
 
   /// ✅ NEW: destination verification succeeded
-  confirmedAt                   DateTime? @db.Timestamptz(6)
+  confirmedAt   DateTime? @db.Timestamptz(6)
   /// ✅ NEW: optional memo for last verify result
-  confirmReason                 String?
+  confirmReason String?
 
-  createdAt                     DateTime @default(now()) @db.Timestamptz(6)
-  project                       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([projectId])
   @@index([createdAt])
@@ -518,7 +692,6 @@ model BridgeRun {
   @@index([bridgeTxHash])
   @@index([confirmedAt])
 }
-
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model Purpose {
