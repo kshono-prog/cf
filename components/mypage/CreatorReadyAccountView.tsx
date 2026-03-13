@@ -72,6 +72,7 @@ export function CreatorReadyAccountView(props: Props) {
   const promoHeaderColor = props.themeColor || "#005bbb";
   const activeView = props.initialWorkspaceView;
   const composeHref = `${props.workspaceBasePath}/support-page#sns-compose`;
+  const publicPageHref = `/${props.meCreatorUsername}`;
   const isSnsOpen = props.openSections.sns;
   const toggleSection = props.onToggleSection;
 
@@ -187,13 +188,22 @@ export function CreatorReadyAccountView(props: Props) {
               <h1 className="text-lg font-semibold">
                 {activeWorkspace?.label ?? "やること一覧"}
               </h1>
-              <button
-                type="button"
-                className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                onClick={handleOpenComposer}
-              >
-                投稿する
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                  onClick={() => router.push(publicPageHref, { scroll: true })}
+                >
+                  公開ページを見る
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  onClick={handleOpenComposer}
+                >
+                  投稿する
+                </button>
+              </div>
             </div>
             <div className="grid gap-2 md:grid-cols-5">
               {CREATOR_READY_WORKSPACE_VIEWS.map((view) => (

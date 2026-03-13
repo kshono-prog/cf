@@ -54,7 +54,6 @@ export function getRpcUrls(chainId: number): string[] {
       add(`https://rpc.ankr.com/polygon/${ankrKey}`);
     }
     add("https://polygon-bor-rpc.publicnode.com");
-    add("https://polygon-rpc.com");
   }
 
   if (chainId === 80002) {

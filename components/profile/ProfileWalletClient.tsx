@@ -18,6 +18,7 @@ import {
   isSupportedChainId,
   type SupportedChainId,
 } from "@/lib/chainConfig";
+import { getClientRpcUrl } from "@/lib/clientRpc";
 import { getTokenOnChain, type TokenKey } from "@/lib/tokenRegistry";
 import type { WalletBalances } from "@/lib/walletService";
 import type { CreatorProfile } from "@/lib/profileTypes";
@@ -480,7 +481,9 @@ export function ProfileWalletClient({
     if (!cfg) return;
 
     const chainHex = `0x${cfg.id.toString(16)}`;
-    const rpcUrl = cfg.viemChain.rpcUrls.default.http[0] ?? "";
+    const rpcUrl =
+      getClientRpcUrl(selectedChainId) ??
+      (selectedChainId === 137 ? "" : (cfg.viemChain.rpcUrls.default.http[0] ?? ""));
 
     try {
       await eth.request({

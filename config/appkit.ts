@@ -55,7 +55,7 @@ const polygonRpc = readRpcEnv([
   "NEXT_PUBLIC_RPC_URL_POLYGON",
   "NEXT_PUBLIC_POLYGON_RPC_URL",
   "POLYGON_RPC_URL",
-]);
+]) ?? "https://polygon-bor-rpc.publicnode.com";
 const avalancheRpc = readRpcEnv([
   "NEXT_PUBLIC_RPC_URL_AVAX",
   "NEXT_PUBLIC_AVALANCHE_RPC_URL",

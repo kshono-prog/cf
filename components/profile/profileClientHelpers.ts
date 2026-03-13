@@ -129,7 +129,9 @@ function parseLastTx(v: unknown): LastTx | null {
 export function getPublicClientForChain(chainId: number) {
   const cfg = getChainConfig(chainId);
   if (!cfg) return null;
-  const rpc = getClientRpcUrl(cfg.id) ?? cfg.viemChain.rpcUrls.default.http[0];
+  const rpc =
+    getClientRpcUrl(cfg.id) ??
+    (cfg.id === 137 ? null : cfg.viemChain.rpcUrls.default.http[0]);
   if (!rpc) return null;
   return createPublicClient({
     chain: cfg.viemChain,

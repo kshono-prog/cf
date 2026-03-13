@@ -125,7 +125,7 @@ export function PublicOwnerComposerCard(props: Props) {
             href={props.managementHref}
             className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-800 transition hover:border-gray-400"
           >
-            管理画面で詳しく編集
+            マイページで詳しく編集
           </Link>
         </div>
 

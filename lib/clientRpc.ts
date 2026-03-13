@@ -19,7 +19,8 @@ export function getClientRpcUrl(chainId: SupportedChainId): string | null {
     return (
       readEnv("NEXT_PUBLIC_RPC_URL_POLYGON") ??
       readEnv("NEXT_PUBLIC_POLYGON_RPC_URL") ??
-      readEnv("POLYGON_RPC_URL")
+      readEnv("POLYGON_RPC_URL") ??
+      "https://polygon-bor-rpc.publicnode.com"
     );
   }
   if (chainId === 43114) {
@@ -31,4 +32,3 @@ export function getClientRpcUrl(chainId: SupportedChainId): string | null {
   }
   return null;
 }
-

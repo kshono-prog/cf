@@ -50,11 +50,13 @@ export function SnsAiOfficeSection(props: Props) {
           refreshToken={refreshToken}
           onPostsChanged={handleChanged}
         />
-        <AiAgencyCard
-          address={props.address}
-          refreshToken={refreshToken}
-          onChanged={handleChanged}
-        />
+        <div id="sns-ai-office">
+          <AiAgencyCard
+            address={props.address}
+            refreshToken={refreshToken}
+            onChanged={handleChanged}
+          />
+        </div>
       </div>
     </div>
   );

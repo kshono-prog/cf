@@ -2,6 +2,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useAccount, useChainId } from "wagmi";
@@ -1040,6 +1041,7 @@ export default function ProfileClient({
     identity: viewerIdentity,
     identityResolved: viewerIdentityResolved,
   });
+  const ownerWorkspaceHomeHref = `/${username}/mypage/home`;
   const ownerComposerManagementHref = `/${username}/mypage/support-page#sns-compose`;
   const viewerWorkspaceHref = viewerState.userUsername
     ? `/${viewerState.userUsername}/mypage/home`
@@ -1071,6 +1073,16 @@ export default function ProfileClient({
     });
   }
 
+  function scrollToId(id: string) {
+    if (typeof window === "undefined") return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
+
   function focusWalletSection() {
     setLoadWalletSection(true);
     scrollToElement(walletSectionRef);
@@ -1091,6 +1103,39 @@ export default function ProfileClient({
 
   const content = (
     <>
+      {viewerState.isOwner ? (
+        <section className="mt-4 overflow-hidden rounded-3xl border border-sky-200/80 bg-sky-50 shadow-sm">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">
+                Owner mode
+              </div>
+              <h3 className="mt-2 text-lg font-semibold text-slate-900">
+                いま見ているのは公開ページです
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                支援者からの見え方を確認しながら、必要になったらすぐマイページへ戻れます。
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={ownerWorkspaceHomeHref}
+                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+              >
+                マイページへ
+              </Link>
+              <button
+                type="button"
+                onClick={() => scrollToId("owner-composer")}
+                className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                このページで投稿する
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
         <div className="space-y-4 p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

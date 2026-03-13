@@ -10,7 +10,15 @@ import {
   resolvePublicViewerState,
 } from "@/lib/publicViewerState";
 
-type BottomNavItem = "events" | "home" | "cta" | "community" | "manage";
+type PublicNavItem =
+  | "top"
+  | "feed"
+  | "cta"
+  | "community"
+  | "events"
+  | "mypage";
+type MyPageNavItem = "today" | "public" | "compose" | "aiOffice" | "settings";
+type BottomNavItem = PublicNavItem | MyPageNavItem;
 
 type BottomNavProps = {
   active?: BottomNavItem;
@@ -26,31 +34,7 @@ type NavButtonProps = {
   onClick: () => void;
 };
 
-function IconCalendar() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <rect
-        x="3.5"
-        y="4.5"
-        width="17"
-        height="16"
-        rx="3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M8 3.5v4M16 3.5v4M4 10h16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function IconHome() {
+function IconTop() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path
@@ -68,6 +52,23 @@ function IconHome() {
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function IconFeed() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M6 7h12M6 12h12M6 17h8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <circle cx="4.2" cy="7" r="1" fill="currentColor" />
+      <circle cx="4.2" cy="12" r="1" fill="currentColor" />
+      <circle cx="4.2" cy="17" r="1" fill="currentColor" />
     </svg>
   );
 }
@@ -130,30 +131,74 @@ function IconCommunity() {
   );
 }
 
-function IconManage() {
+function IconToday() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M6 7h12M6 12h9M6 17h7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <circle cx="17.5" cy="17.5" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconPublic() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M12 4.5c4.4 0 8 3.1 9 7.5-1 4.4-4.6 7.5-9 7.5S4 16.4 3 12c1-4.4 4.6-7.5 9-7.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="2.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconAiOffice() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M12 4.5 14 9l4.8.5-3.6 3.2 1 4.8L12 15l-4.2 2.5 1-4.8-3.6-3.2L10 9Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconSettings() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <circle
-        cx="9"
-        cy="8"
+        cx="12"
+        cy="12"
         r="3"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.8"
       />
       <path
-        d="M4.8 18.2c.8-2.3 2.6-3.8 4.9-3.8 2.2 0 4 1.5 4.8 3.8"
+        d="M19 12a7 7 0 0 0-.1-1.1l2-1.5-1.9-3.3-2.4 1a7.8 7.8 0 0 0-1.9-1.1l-.3-2.6h-3.8l-.3 2.6a7.8 7.8 0 0 0-1.9 1.1l-2.4-1L3.1 9.4l2 1.5A7 7 0 0 0 5 12c0 .4 0 .7.1 1.1l-2 1.5 1.9 3.3 2.4-1c.6.5 1.2.8 1.9 1.1l.3 2.6h3.8l.3-2.6c.7-.3 1.3-.6 1.9-1.1l2.4 1 1.9-3.3-2-1.5c.1-.4.1-.7.1-1.1Z"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M17.2 8.5v4.3M15.1 10.7h4.2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -199,7 +244,10 @@ export default function BottomNav({
 
   const publicHref = `/${username}`;
   const eventsHref = `/${username}/events`;
-  const fallbackWorkspaceHref = `/${username}/mypage/home`;
+  const workspaceBaseHref = `/${username}/mypage`;
+  const fallbackWorkspaceHref = `${workspaceBaseHref}/home`;
+  const ownerWorkspaceHomeHref = `${workspaceBaseHref}/home`;
+  const isMyPageRoute = pathname?.includes("/mypage") ?? false;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -259,11 +307,8 @@ export default function BottomNav({
     identity: viewerIdentity,
     identityResolved: viewerIdentityResolved,
   });
-  const manageHref = viewerState.userUsername
-    ? `/${viewerState.userUsername}/mypage/home`
-    : fallbackWorkspaceHref;
 
-  const cta = useMemo(() => {
+  const publicCta = useMemo(() => {
     switch (viewerState.mode) {
       case "owner":
         return {
@@ -293,20 +338,6 @@ export default function BottomNav({
         };
     }
   }, [fallbackWorkspaceHref, publicHref, viewerState.mode]);
-
-  const activeItem: BottomNavItem = useMemo(() => {
-    if (active) return active;
-    if (pathname?.startsWith(eventsHref)) return "events";
-    if (pathname?.includes("/mypage")) return "manage";
-    if (currentHash === "#community") return "community";
-
-    const ctaHash = normalizeHash(cta.href.split("#")[1] ?? "");
-    if (pathname === publicHref && ctaHash && currentHash === ctaHash) {
-      return "cta";
-    }
-
-    return "home";
-  }, [active, cta.href, currentHash, eventsHref, pathname, publicHref]);
 
   const navigate = useCallback(
     (href: string) => {
@@ -341,46 +372,184 @@ export default function BottomNav({
     [pathname, router]
   );
 
+  const publicActiveItem: PublicNavItem = useMemo(() => {
+    if (
+      active &&
+      ["top", "feed", "cta", "community", "events", "mypage"].includes(active)
+    ) {
+      return active as PublicNavItem;
+    }
+    if (pathname?.startsWith(ownerWorkspaceHomeHref)) return "mypage";
+    if (pathname?.startsWith(eventsHref)) return "events";
+    if (currentHash === "#community") return "community";
+
+    const ctaHash = normalizeHash(publicCta.href.split("#")[1] ?? "");
+    if (pathname === publicHref && ctaHash && currentHash === ctaHash) {
+      return "cta";
+    }
+    if (currentHash === "#creator-feed") return "feed";
+    return "top";
+  }, [
+    active,
+    currentHash,
+    eventsHref,
+    ownerWorkspaceHomeHref,
+    pathname,
+    publicCta.href,
+    publicHref,
+  ]);
+
+  const myPageActiveItem: MyPageNavItem = useMemo(() => {
+    if (
+      active &&
+      ["today", "public", "compose", "aiOffice", "settings"].includes(active)
+    ) {
+      return active as MyPageNavItem;
+    }
+    if (pathname?.startsWith(`${workspaceBaseHref}/public`)) return "public";
+    if (pathname?.startsWith(`${workspaceBaseHref}/advanced`)) return "settings";
+    if (
+      pathname?.startsWith(`${workspaceBaseHref}/support-page`) &&
+      currentHash === "#sns-ai-office"
+    ) {
+      return "aiOffice";
+    }
+    if (pathname?.startsWith(`${workspaceBaseHref}/support-page`)) return "compose";
+    return "today";
+  }, [active, currentHash, pathname, workspaceBaseHref]);
+
+  const viewerPublicUsername =
+    viewerState.creatorUsername ?? viewerState.userUsername;
+
+  const topHref =
+    viewerPublicUsername && viewerState.mode !== "unregistered"
+      ? `/${viewerPublicUsername}`
+      : publicHref;
+
+  const followNav = useMemo(
+    () => ({
+      key: "community" as const,
+      label: "フォロー",
+      href: `${publicHref}#community`,
+      icon: <IconCommunity />,
+      active: publicActiveItem === "community" && pathname === publicHref,
+      emphasize: false,
+    }),
+    [pathname, publicActiveItem, publicHref]
+  );
+
+  const publicLinks = useMemo(
+    () => [
+      {
+        key: "top" as const,
+        label: "トップ",
+        href: topHref,
+        icon: <IconTop />,
+        active: publicActiveItem === "top" && pathname === topHref,
+      },
+      {
+        key: "feed" as const,
+        label: "フィード",
+        href: `${publicHref}#creator-feed`,
+        icon: <IconFeed />,
+        active: publicActiveItem === "feed",
+      },
+      {
+        key: "cta" as const,
+        label: publicCta.label,
+        href: publicCta.href,
+        icon: <IconCompose />,
+        active: publicActiveItem === "cta",
+        emphasize: true,
+      },
+      {
+        key: "events" as const,
+        label: "つながり",
+        href: eventsHref,
+        icon: <IconCommunity />,
+        active: publicActiveItem === "events",
+      },
+      followNav,
+    ],
+    [
+      eventsHref,
+      followNav,
+      publicCta.href,
+      publicCta.label,
+      publicHref,
+      pathname,
+      publicActiveItem,
+      topHref,
+    ]
+  );
+
+  const myPageLinks = useMemo(
+    () => [
+      {
+        key: "today" as const,
+        label: "今日やること",
+        href: `${workspaceBaseHref}/home`,
+        icon: <IconToday />,
+        active: myPageActiveItem === "today",
+      },
+      {
+        key: "public" as const,
+        label: "公開確認",
+        href: `${workspaceBaseHref}/public`,
+        icon: <IconPublic />,
+        active: myPageActiveItem === "public",
+      },
+      {
+        key: "compose" as const,
+        label: "投稿する",
+        href: `${workspaceBaseHref}/support-page#sns-compose`,
+        icon: <IconCompose />,
+        active: myPageActiveItem === "compose",
+        emphasize: true,
+      },
+      {
+        key: "aiOffice" as const,
+        label: "AI事務所",
+        href: `${workspaceBaseHref}/support-page#sns-ai-office`,
+        icon: <IconAiOffice />,
+        active: myPageActiveItem === "aiOffice",
+      },
+      {
+        key: "settings" as const,
+        label: "設定",
+        href: `${workspaceBaseHref}/advanced`,
+        icon: <IconSettings />,
+        active: myPageActiveItem === "settings",
+      },
+    ],
+    [myPageActiveItem, workspaceBaseHref]
+  );
+
   useEffect(() => {
-    router.prefetch(publicHref);
-    router.prefetch(eventsHref);
-    router.prefetch(manageHref);
-  }, [eventsHref, manageHref, publicHref, router]);
+    const prefetchTargets = isMyPageRoute
+      ? myPageLinks.map((link) => link.href.split("#")[0])
+      : publicLinks.map((link) => link.href.split("#")[0]);
+
+    for (const href of prefetchTargets) {
+      router.prefetch(href);
+    }
+  }, [isMyPageRoute, myPageLinks, publicLinks, router]);
+
+  const links = isMyPageRoute ? myPageLinks : publicLinks;
 
   return (
     <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto grid max-w-md grid-cols-5 gap-2 px-3 py-2">
-        <NavButton
-          label="予定"
-          icon={<IconCalendar />}
-          active={activeItem === "events"}
-          onClick={() => navigate(eventsHref)}
-        />
-        <NavButton
-          label="トップ"
-          icon={<IconHome />}
-          active={activeItem === "home"}
-          onClick={() => navigate(publicHref)}
-        />
-        <NavButton
-          label={cta.label}
-          icon={<IconCompose />}
-          active={activeItem === "cta"}
-          emphasize
-          onClick={() => navigate(cta.href)}
-        />
-        <NavButton
-          label="つながり"
-          icon={<IconCommunity />}
-          active={activeItem === "community"}
-          onClick={() => navigate(`${publicHref}#community`)}
-        />
-        <NavButton
-          label="マイ"
-          icon={<IconManage />}
-          active={activeItem === "manage"}
-          onClick={() => navigate(manageHref)}
-        />
+        {links.map((link) => (
+          <NavButton
+            key={link.key}
+            label={link.label}
+            icon={link.icon}
+            active={link.active}
+            emphasize={link.emphasize}
+            onClick={() => navigate(link.href)}
+          />
+        ))}
       </div>
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
