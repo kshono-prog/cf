@@ -7,6 +7,7 @@ import type { FeedPost } from "@/components/feed/feedTypes";
 
 type Props = {
   post: FeedPost;
+  headerAction?: React.ReactNode;
   selectedForTip: boolean;
   canTip: boolean;
   showTipAction: boolean;
@@ -31,9 +32,36 @@ function formatDateTime(value: string): string {
   });
 }
 
+function getYouTubeEmbedUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "").toLowerCase();
+    let videoId = "";
+
+    if (host === "youtu.be") {
+      videoId = url.pathname.slice(1).split("/")[0] ?? "";
+    } else if (host === "youtube.com" || host === "m.youtube.com") {
+      if (url.pathname === "/watch") {
+        videoId = url.searchParams.get("v") ?? "";
+      } else if (url.pathname.startsWith("/shorts/")) {
+        videoId = url.pathname.split("/")[2] ?? "";
+      } else if (url.pathname.startsWith("/embed/")) {
+        videoId = url.pathname.split("/")[2] ?? "";
+      }
+    }
+
+    const trimmedId = videoId.trim();
+    if (!trimmedId) return null;
+    return `https://www.youtube.com/embed/${encodeURIComponent(trimmedId)}`;
+  } catch {
+    return null;
+  }
+}
+
 export function FeedPostCard(props: Props) {
   const {
     post,
+    headerAction,
     selectedForTip,
     canTip,
     showTipAction,
@@ -46,6 +74,10 @@ export function FeedPostCard(props: Props) {
     onTip,
     children,
   } = props;
+  const youTubeEmbedUrl = post.mediaUrl ? getYouTubeEmbedUrl(post.mediaUrl) : null;
+  const showEmbeddedVideo =
+    youTubeEmbedUrl !== null &&
+    (post.mediaType === "VIDEO" || post.mediaType === "LINK");
 
   return (
     <article className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
@@ -70,20 +102,25 @@ export function FeedPostCard(props: Props) {
         </Link>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/${post.creator.username}`}
-              className="flex min-w-0 flex-wrap items-center gap-2 hover:opacity-80"
-              aria-label={`${post.creator.displayName} のページを見る`}
-            >
-              <div className="text-sm font-semibold text-gray-900">
-                {post.creator.displayName}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/${post.creator.username}`}
+                  className="flex min-w-0 flex-wrap items-center gap-2 hover:opacity-80"
+                  aria-label={`${post.creator.displayName} のページを見る`}
+                >
+                  <div className="text-sm font-semibold text-gray-900">
+                    {post.creator.displayName}
+                  </div>
+                  <div className="text-xs text-gray-500">@{post.creator.username}</div>
+                </Link>
+                <div className="text-xs text-gray-400">
+                  {formatDateTime(post.createdAt)}
+                </div>
               </div>
-              <div className="text-xs text-gray-500">@{post.creator.username}</div>
-            </Link>
-            <div className="text-xs text-gray-400">
-              {formatDateTime(post.createdAt)}
             </div>
+            {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
           </div>
 
           <div className="mt-2 flex flex-wrap gap-2">
@@ -121,6 +158,27 @@ export function FeedPostCard(props: Props) {
                 className="max-h-[420px] w-full object-cover"
               />
             </>
+          ) : showEmbeddedVideo ? (
+            <div className="bg-black">
+              <div className="aspect-video w-full">
+                <iframe
+                  src={youTubeEmbedUrl}
+                  title={`${post.creator.displayName} の動画`}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              </div>
+              <a
+                href={post.mediaUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block border-t border-white/10 px-4 py-3 text-xs font-medium text-white/80 transition hover:text-white"
+              >
+                YouTube で開く
+              </a>
+            </div>
           ) : (
             <a
               href={post.mediaUrl}

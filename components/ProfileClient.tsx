@@ -1194,6 +1194,9 @@ export default function ProfileClient({
         <CreatorFeedSection
           creatorUsername={username}
           viewerAddress={viewerAddress ?? null}
+          managedCreatorUsername={viewerState.creatorUsername}
+          managePostAddress={viewerState.hasCreator ? viewerAddress ?? null : null}
+          manageProjectOptions={ownerProjectOptions}
           selectedPostId={selectedPostTipContext?.id ?? null}
           projectIdsByCurrency={resolvedProjectIdsByCurrency}
           showTipAction
@@ -1225,6 +1228,9 @@ export default function ProfileClient({
         <CreatorFeedSection
           creatorUsername={null}
           viewerAddress={viewerAddress ?? null}
+          managedCreatorUsername={viewerState.creatorUsername}
+          managePostAddress={viewerState.hasCreator ? viewerAddress ?? null : null}
+          manageProjectOptions={ownerProjectOptions}
           selectedPostId={selectedPostTipContext?.id ?? null}
           projectIdsByCurrency={homeProjectIdsByCurrency}
           showTipAction={false}

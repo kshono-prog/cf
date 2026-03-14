@@ -613,7 +613,7 @@ function parseJobsResponse(value: unknown): SnsAiJob[] {
 
 async function requestJson(args: {
   url: string;
-  method?: "GET" | "POST" | "PATCH";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
 }): Promise<{ res: Response; json: unknown }> {
   const res = await fetch(args.url, {
@@ -716,6 +716,65 @@ export async function updateMySnsPostStatus(args: {
   const post = parseManagedPost(json.post);
   if (!post) return { ok: false, error: "SNS_POST_STATUS_RESPONSE_INVALID" };
   return { ok: true, post };
+}
+
+export async function updateMySnsPostContent(args: {
+  address: Address;
+  postId: string;
+  body: string;
+  mediaType: "IMAGE" | "VIDEO" | "LINK" | null;
+  mediaUrl: string | null;
+  projectId: string | null;
+}): Promise<{ ok: true; post: SnsManagedPost } | { ok: false; error: string }> {
+  const { res, json } = await requestJson({
+    url: `/api/mypage/sns/posts/${encodeURIComponent(args.postId)}`,
+    method: "PATCH",
+    body: {
+      address: args.address,
+      body: args.body,
+      mediaType: args.mediaType,
+      mediaUrl: args.mediaUrl,
+      projectId: args.projectId,
+    },
+  });
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: toApiError(json, "SNS_POST_CONTENT_UPDATE_FAILED"),
+    };
+  }
+
+  if (!isRecord(json) || json.ok !== true) {
+    return { ok: false, error: "SNS_POST_CONTENT_RESPONSE_INVALID" };
+  }
+
+  const post = parseManagedPost(json.post);
+  if (!post) return { ok: false, error: "SNS_POST_CONTENT_RESPONSE_INVALID" };
+  return { ok: true, post };
+}
+
+export async function deleteMySnsPost(args: {
+  address: Address;
+  postId: string;
+}): Promise<{ ok: true; deletedPostId: string } | { ok: false; error: string }> {
+  const { res, json } = await requestJson({
+    url: `/api/mypage/sns/posts/${encodeURIComponent(args.postId)}`,
+    method: "DELETE",
+    body: {
+      address: args.address,
+    },
+  });
+
+  if (!res.ok) {
+    return { ok: false, error: toApiError(json, "SNS_POST_DELETE_FAILED") };
+  }
+
+  if (!isRecord(json) || json.ok !== true || typeof json.deletedPostId !== "string") {
+    return { ok: false, error: "SNS_POST_DELETE_RESPONSE_INVALID" };
+  }
+
+  return { ok: true, deletedPostId: json.deletedPostId };
 }
 
 export async function fetchSnsAnalyticsSummary(args: {

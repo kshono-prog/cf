@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Address } from "viem";
 
 import { FeedPostCard } from "@/components/feed/FeedPostCard";
 import { ReplyComposer } from "@/components/feed/ReplyComposer";
@@ -8,14 +9,20 @@ import { ReplyList } from "@/components/feed/ReplyList";
 import {
   parseApiErrorCode,
   parseFeedLikeToggleResponse,
+  parseFeedReplyDeleteResponse,
   parseFeedListResponse,
   parseFeedPostDetailResponse,
   parseFeedReplyCreateResponse,
+  parseFeedReplyUpdateResponse,
   toSelectedPostTipContext,
   type FeedPost,
   type FeedReply,
   type SelectedPostTipContext,
 } from "@/components/feed/feedTypes";
+import {
+  deleteMySnsPost,
+  updateMySnsPostContent,
+} from "@/lib/mypage/snsApi";
 
 type CurrencyProjectIds = {
   JPYC: string | null;
@@ -33,9 +40,19 @@ type PostDetailState = {
   pendingReplyLikeIds: Set<string>;
 };
 
+type PostEditDraft = {
+  body: string;
+  projectId: string;
+  mediaType: "" | "IMAGE" | "VIDEO" | "LINK";
+  mediaUrl: string;
+};
+
 type Props = {
   creatorUsername: string | null;
   viewerAddress: string | null;
+  managedCreatorUsername?: string | null;
+  managePostAddress?: Address | null;
+  manageProjectOptions?: Array<{ id: string; label: string }>;
   selectedPostId: string | null;
   projectIdsByCurrency: CurrencyProjectIds;
   showTipAction?: boolean;
@@ -85,10 +102,37 @@ function isTipSupported(post: FeedPost, projectIdsByCurrency: CurrencyProjectIds
   return projectIdsByCurrency.JPYC !== null || projectIdsByCurrency.USDC !== null;
 }
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function normalizeKey(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function createEditDraft(post: FeedPost): PostEditDraft {
+  return {
+    body: post.body,
+    projectId: post.projectId ?? "",
+    mediaType: post.mediaType ?? "",
+    mediaUrl: post.mediaUrl ?? "",
+  };
+}
+
 export function CreatorFeedSection(props: Props) {
   const {
     creatorUsername,
     viewerAddress,
+    managedCreatorUsername = null,
+    managePostAddress = null,
+    manageProjectOptions = [],
     selectedPostId,
     projectIdsByCurrency,
     showTipAction = true,
@@ -111,11 +155,25 @@ export function CreatorFeedSection(props: Props) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<PostEditDraft | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
+  const [replyEditValue, setReplyEditValue] = useState("");
+  const [replyEditError, setReplyEditError] = useState<string | null>(null);
+  const [savingReplyId, setSavingReplyId] = useState<string | null>(null);
+  const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
 
   const viewerQuery = useMemo(
     () =>
       viewerAddress ? `&viewerAddress=${encodeURIComponent(viewerAddress)}` : "",
     [viewerAddress]
+  );
+  const normalizedManagedCreatorUsername = useMemo(
+    () => normalizeKey(managedCreatorUsername),
+    [managedCreatorUsername]
   );
 
   function ensureDetailState(postId: string) {
@@ -271,6 +329,279 @@ export function CreatorFeedSection(props: Props) {
   function handleNeedConnection() {
     setNotice("いいねや返信を続けるには、まずウォレットを接続してください。");
     onFocusWalletSection();
+  }
+
+  function canManagePost(post: FeedPost): boolean {
+    if (!managePostAddress || !normalizedManagedCreatorUsername) return false;
+    return normalizeKey(post.creator.username) === normalizedManagedCreatorUsername;
+  }
+
+  function beginEdit(post: FeedPost) {
+    setEditingPostId(post.id);
+    setEditDraft(createEditDraft(post));
+    setEditError(null);
+    setNotice(null);
+  }
+
+  function cancelEdit() {
+    setEditingPostId(null);
+    setEditDraft(null);
+    setEditError(null);
+  }
+
+  function canManageReply(reply: FeedReply): boolean {
+    if (!managePostAddress || !normalizedManagedCreatorUsername) return false;
+    return normalizeKey(reply.creator.username) === normalizedManagedCreatorUsername;
+  }
+
+  function beginReplyEdit(reply: FeedReply) {
+    setEditingReplyId(reply.id);
+    setReplyEditValue(reply.body);
+    setReplyEditError(null);
+    setNotice(null);
+  }
+
+  function cancelReplyEdit() {
+    setEditingReplyId(null);
+    setReplyEditValue("");
+    setReplyEditError(null);
+  }
+
+  async function handleSaveEdit(post: FeedPost): Promise<void> {
+    if (!managePostAddress || editingPostId !== post.id || !editDraft) return;
+
+    const trimmedBody = editDraft.body.trim();
+    const trimmedMediaUrl = editDraft.mediaUrl.trim();
+    if (!trimmedBody) {
+      setEditError("投稿本文を入力してください。");
+      return;
+    }
+    if (trimmedBody.length > 2000) {
+      setEditError("投稿本文は 2000 文字以内で入力してください。");
+      return;
+    }
+    if (editDraft.mediaType && !trimmedMediaUrl) {
+      setEditError("メディア URL を入力してください。");
+      return;
+    }
+    if (!editDraft.mediaType && trimmedMediaUrl) {
+      setEditError("メディア種別を選んでください。");
+      return;
+    }
+    if (trimmedMediaUrl && !isHttpUrl(trimmedMediaUrl)) {
+      setEditError("メディア URL は http(s) 形式で入力してください。");
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditError(null);
+
+    const result = await updateMySnsPostContent({
+      address: managePostAddress,
+      postId: post.id,
+      body: trimmedBody,
+      mediaType: editDraft.mediaType || null,
+      mediaUrl: editDraft.mediaType ? trimmedMediaUrl : null,
+      projectId: editDraft.projectId || null,
+    });
+
+    if (!result.ok) {
+      setEditError(
+        result.error === "PROJECT_NOT_FOUND_OR_FORBIDDEN"
+          ? "応援のひもづけ先を確認してください。"
+          : result.error === "MEDIA_FIELDS_MISMATCH"
+          ? "メディア種別と URL をそろえてください。"
+          : result.error === "MEDIA_URL_INVALID"
+          ? "メディア URL を確認してください。"
+          : "投稿の更新に失敗しました。"
+      );
+      setSavingEdit(false);
+      return;
+    }
+
+    updatePostInAllStates(post.id, (currentPost) => ({
+      ...currentPost,
+      ...result.post,
+      viewerHasLiked: currentPost.viewerHasLiked,
+    }));
+    setNotice("投稿を更新しました。");
+    setSavingEdit(false);
+    cancelEdit();
+  }
+
+  async function handleDeletePost(post: FeedPost): Promise<void> {
+    if (!managePostAddress) return;
+
+    const confirmed =
+      typeof window !== "undefined"
+        ? window.confirm("この投稿を削除しますか？ この操作は元に戻せません。")
+        : false;
+    if (!confirmed) return;
+
+    setDeletingPostId(post.id);
+    setNotice(null);
+
+    const result = await deleteMySnsPost({
+      address: managePostAddress,
+      postId: post.id,
+    });
+
+    if (!result.ok) {
+      setNotice("投稿の削除に失敗しました。もう一度お試しください。");
+      setDeletingPostId(null);
+      return;
+    }
+
+    setPosts((current) => current.filter((item) => item.id !== post.id));
+    setDetailByPostId((current) => {
+      const next = { ...current };
+      delete next[post.id];
+      return next;
+    });
+    setOpenPostIds((current) => {
+      const next = { ...current };
+      delete next[post.id];
+      return next;
+    });
+    if (editingPostId === post.id) {
+      cancelEdit();
+    }
+    setNotice("投稿を削除しました。");
+    setDeletingPostId(null);
+  }
+
+  async function handleSaveReplyEdit(reply: FeedReply): Promise<void> {
+    if (!managePostAddress) return;
+
+    const trimmedBody = replyEditValue.trim();
+    if (!trimmedBody) {
+      setReplyEditError("返信内容を入力してください。");
+      return;
+    }
+    if (trimmedBody.length > 1200) {
+      setReplyEditError("返信は 1200 文字以内で入力してください。");
+      return;
+    }
+
+    setSavingReplyId(reply.id);
+    setReplyEditError(null);
+
+    try {
+      const response = await fetch(`/api/replies/${encodeURIComponent(reply.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: managePostAddress,
+          body: trimmedBody,
+        }),
+      });
+      const json = await readJsonSafe(response);
+      if (!response.ok) {
+        throw new Error(
+          buildFeedActionErrorMessage(
+            parseApiErrorCode(json),
+            "返信の更新に失敗しました。"
+          )
+        );
+      }
+
+      const parsed = parseFeedReplyUpdateResponse(json);
+      setDetailByPostId((current) => {
+        const detail = current[reply.postId];
+        if (!detail) return current;
+        return {
+          ...current,
+          [reply.postId]: {
+            ...detail,
+            replies: detail.replies.map((currentReply) =>
+              currentReply.id === reply.id
+                ? {
+                    ...currentReply,
+                    ...parsed.reply,
+                    viewerHasLiked: currentReply.viewerHasLiked,
+                  }
+                : currentReply
+            ),
+          },
+        };
+      });
+      setNotice("返信を更新しました。");
+      cancelReplyEdit();
+    } catch (mutationError) {
+      setReplyEditError(
+        mutationError instanceof Error
+          ? mutationError.message
+          : "返信の更新に失敗しました。"
+      );
+    } finally {
+      setSavingReplyId(null);
+    }
+  }
+
+  async function handleDeleteReply(reply: FeedReply): Promise<void> {
+    if (!managePostAddress) return;
+
+    const confirmed =
+      typeof window !== "undefined"
+        ? window.confirm("この返信を削除しますか？ この操作は元に戻せません。")
+        : false;
+    if (!confirmed) return;
+
+    setDeletingReplyId(reply.id);
+    setNotice(null);
+
+    try {
+      const response = await fetch(`/api/replies/${encodeURIComponent(reply.id)}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: managePostAddress,
+        }),
+      });
+      const json = await readJsonSafe(response);
+      if (!response.ok) {
+        throw new Error(
+          buildFeedActionErrorMessage(
+            parseApiErrorCode(json),
+            "返信の削除に失敗しました。"
+          )
+        );
+      }
+
+      const parsed = parseFeedReplyDeleteResponse(json);
+      setDetailByPostId((current) => {
+        const detail = current[parsed.postId];
+        if (!detail) return current;
+        return {
+          ...current,
+          [parsed.postId]: {
+            ...detail,
+            replies: detail.replies.filter(
+              (currentReply) => currentReply.id !== parsed.deletedReplyId
+            ),
+          },
+        };
+      });
+      updatePostInAllStates(parsed.postId, (currentPost) => ({
+        ...currentPost,
+        counts: {
+          ...currentPost.counts,
+          replies: parsed.postReplyCount,
+        },
+      }));
+      if (editingReplyId === reply.id) {
+        cancelReplyEdit();
+      }
+      setNotice("返信を削除しました。");
+    } catch (mutationError) {
+      setNotice(
+        mutationError instanceof Error
+          ? mutationError.message
+          : "返信の削除に失敗しました。"
+      );
+    } finally {
+      setDeletingReplyId(null);
+    }
   }
 
   async function handleShare(post: FeedPost): Promise<void> {
@@ -607,6 +938,32 @@ export function CreatorFeedSection(props: Props) {
               <FeedPostCard
                 key={post.id}
                 post={cardPost}
+                headerAction={
+                  canManagePost(cardPost) ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 transition hover:bg-gray-50"
+                        onClick={() => {
+                          beginEdit(cardPost);
+                        }}
+                        disabled={savingEdit || deletingPostId === post.id}
+                      >
+                        {editingPostId === post.id ? "編集中" : "編集"}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-medium text-rose-700 transition hover:bg-rose-50"
+                        onClick={() => {
+                          void handleDeletePost(cardPost);
+                        }}
+                        disabled={deletingPostId === post.id || savingEdit}
+                      >
+                        {deletingPostId === post.id ? "削除中..." : "削除"}
+                      </button>
+                    </div>
+                  ) : null
+                }
                 selectedForTip={selectedPostId === post.id}
                 canTip={isTipSupported(cardPost, projectIdsByCurrency)}
                 showTipAction={showTipAction}
@@ -626,6 +983,150 @@ export function CreatorFeedSection(props: Props) {
                   handleSelectTip(cardPost);
                 }}
               >
+                {editingPostId === post.id && editDraft ? (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">
+                            投稿を編集
+                          </div>
+                          <p className="mt-1 text-xs leading-6 text-gray-500">
+                            本文や添付、応援のひもづけをここで直せます。
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:bg-gray-50"
+                          onClick={cancelEdit}
+                          disabled={savingEdit}
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700">
+                            本文
+                          </label>
+                          <textarea
+                            className="input mt-1 min-h-[132px]"
+                            value={editDraft.body}
+                            onChange={(event) => {
+                              setEditDraft((current) =>
+                                current
+                                  ? { ...current, body: event.target.value }
+                                  : current
+                              );
+                            }}
+                            disabled={savingEdit}
+                          />
+                          <div className="mt-1 text-[11px] text-gray-500">
+                            {editDraft.body.trim().length}/2000
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">
+                              応援のひもづけ
+                            </label>
+                            <select
+                              className="input mt-1"
+                              value={editDraft.projectId}
+                              onChange={(event) => {
+                                setEditDraft((current) =>
+                                  current
+                                    ? { ...current, projectId: event.target.value }
+                                    : current
+                                );
+                              }}
+                              disabled={savingEdit}
+                            >
+                              <option value="">なし</option>
+                              {manageProjectOptions.map((option) => (
+                                <option key={option.id} value={option.id}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">
+                              メディア種別
+                            </label>
+                            <select
+                              className="input mt-1"
+                              value={editDraft.mediaType}
+                              onChange={(event) => {
+                                const nextValue = event.target.value;
+                                setEditDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        mediaType:
+                                          nextValue === "IMAGE" ||
+                                          nextValue === "VIDEO" ||
+                                          nextValue === "LINK"
+                                            ? nextValue
+                                            : "",
+                                      }
+                                    : current
+                                );
+                              }}
+                              disabled={savingEdit}
+                            >
+                              <option value="">なし</option>
+                              <option value="IMAGE">画像</option>
+                              <option value="VIDEO">動画リンク</option>
+                              <option value="LINK">外部リンク</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">
+                              メディア URL
+                            </label>
+                            <input
+                              type="url"
+                              className="input mt-1"
+                              value={editDraft.mediaUrl}
+                              onChange={(event) => {
+                                setEditDraft((current) =>
+                                  current
+                                    ? { ...current, mediaUrl: event.target.value }
+                                    : current
+                                );
+                              }}
+                              placeholder="https://example.com/..."
+                              disabled={savingEdit}
+                            />
+                          </div>
+                        </div>
+
+                        {editError ? (
+                          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                            {editError}
+                          </div>
+                        ) : null}
+
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => {
+                              void handleSaveEdit(cardPost);
+                            }}
+                            disabled={savingEdit}
+                          >
+                            {savingEdit ? "保存中..." : "保存する"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 {isOpen ? (
                   <div className="space-y-4">
                     {detail.loading ? (
@@ -641,6 +1142,21 @@ export function CreatorFeedSection(props: Props) {
                         <ReplyList
                           replies={detail.replies}
                           pendingReplyLikeIds={detail.pendingReplyLikeIds}
+                          canManageReply={canManageReply}
+                          editingReplyId={editingReplyId}
+                          editValue={replyEditValue}
+                          editError={replyEditError}
+                          savingReplyId={savingReplyId}
+                          deletingReplyId={deletingReplyId}
+                          onBeginEdit={beginReplyEdit}
+                          onCancelEdit={cancelReplyEdit}
+                          onEditValueChange={setReplyEditValue}
+                          onSaveEdit={(reply) => {
+                            void handleSaveReplyEdit(reply);
+                          }}
+                          onDelete={(reply) => {
+                            void handleDeleteReply(reply);
+                          }}
                           onToggleLike={(reply) => {
                             void handleToggleReplyLike(post.id, reply);
                           }}

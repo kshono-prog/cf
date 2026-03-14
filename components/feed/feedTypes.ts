@@ -94,6 +94,16 @@ export type FeedReplyCreateResponse = {
   postReplyCount: number;
 };
 
+export type FeedReplyUpdateResponse = {
+  reply: FeedReply;
+};
+
+export type FeedReplyDeleteResponse = {
+  deletedReplyId: string;
+  postId: string;
+  postReplyCount: number;
+};
+
 export type SelectedPostTipContext = {
   id: string;
   preview: string;
@@ -257,7 +267,7 @@ function parseFeedPost(value: unknown): FeedPost | null {
   };
 }
 
-function parseFeedReply(value: unknown): FeedReply | null {
+export function parseFeedReply(value: unknown): FeedReply | null {
   if (!isRecord(value)) return null;
 
   const id = toStringOrNull(value.id);
@@ -445,6 +455,34 @@ export function parseFeedReplyCreateResponse(
 
   return {
     reply,
+    postReplyCount,
+  };
+}
+
+export function parseFeedReplyUpdateResponse(
+  value: unknown
+): FeedReplyUpdateResponse {
+  const record = expectOkResponse(value);
+  const reply = parseFeedReply(record.reply);
+  if (!reply) {
+    throw new Error("REPLY_UPDATE_INVALID");
+  }
+  return { reply };
+}
+
+export function parseFeedReplyDeleteResponse(
+  value: unknown
+): FeedReplyDeleteResponse {
+  const record = expectOkResponse(value);
+  const deletedReplyId = toStringOrNull(record.deletedReplyId);
+  const postId = toStringOrNull(record.postId);
+  const postReplyCount = toNumberOrNull(record.postReplyCount);
+  if (!deletedReplyId || !postId || postReplyCount === null) {
+    throw new Error("REPLY_DELETE_INVALID");
+  }
+  return {
+    deletedReplyId,
+    postId,
     postReplyCount,
   };
 }
