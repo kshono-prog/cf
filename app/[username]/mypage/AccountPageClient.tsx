@@ -17,6 +17,7 @@ import {
 } from "@/lib/mypage/api";
 
 import { CreatorReadyAccountView } from "@/components/mypage/CreatorReadyAccountView";
+import { SettingsPageClient } from "@/components/mypage/SettingsPageClient";
 import { LoadingMyPageView } from "@/components/mypage/LoadingMyPageView";
 import { NoUserMyPageView } from "@/components/mypage/NoUserMyPageView";
 import { UnconnectedMyPageView } from "@/components/mypage/UnconnectedMyPageView";
@@ -28,11 +29,13 @@ import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 type Props = {
   username: string;
   initialWorkspaceView: WorkspaceView;
+  renderMode?: "workspace" | "settings";
 };
 
 export default function AccountPageClient({
   username,
   initialWorkspaceView,
+  renderMode = "workspace",
 }: Props) {
   const { address, isConnected } = useAccount();
 
@@ -58,8 +61,10 @@ export default function AccountPageClient({
     profile,
     setProfile,
     avatarUrl,
+    externalUrl,
     themeColor,
     setThemeColor,
+    setExternalUrl,
     creatorType,
     setCreatorType,
     avatarFile,
@@ -254,6 +259,7 @@ export default function AccountPageClient({
         profile: profile.trim(),
         address,
         avatarUrl,
+        externalUrl,
         themeColor,
         creatorType,
         socials,
@@ -268,7 +274,11 @@ export default function AccountPageClient({
 
       cancelEditingProfile();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "CREATOR_UPDATE_FAILED");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "保存に失敗しました。入力内容を確認してください。"
+      );
     } finally {
       setSaving(false);
     }
@@ -338,49 +348,55 @@ export default function AccountPageClient({
     ""
   );
 
-  return (
-    <CreatorReadyAccountView
-      initialWorkspaceView={initialWorkspaceView}
-      workspaceBasePath={`/${username}/mypage`}
-      meCreatorUsername={creatorUsername}
-      eventBaseUrl={eventBaseUrl}
-      themeColor={themeColor}
-      error={error}
-      localProjectId={localProjectId}
-      address={address}
-      isConnected={isConnected}
-      editingProfile={editingProfile}
-      onStartEditProfile={startEditingProfile}
-      onCancelEditProfile={cancelEditingProfile}
-      displayName={displayName}
-      profile={profile}
-      avatarUrl={avatarUrl}
-      themeColorValue={themeColor}
-      creatorType={creatorType}
-      socials={socials}
-      youtubeVideos={youtubeVideos}
-      avatarFile={avatarFile}
-      avatarPreview={avatarPreview}
-      setDisplayName={setDisplayName}
-      setProfile={setProfile}
-      setThemeColor={setThemeColor}
-      setCreatorType={setCreatorType}
-      setSocials={setSocials}
-      setYoutubeVideos={setYoutubeVideos}
-      setAvatarFile={setAvatarFile}
-      setAvatarPreview={setAvatarPreview}
-      saving={saving}
-      onSubmitProfile={(e) => void handleSaveCreatorProfile(e)}
-      projectIdsByCurrency={projectIdsByCurrency}
-      onActiveProjectIdChange={(pid, changedCur) => {
-        setProjectIdsByCurrency((prev) => ({
-          ...prev,
-          [changedCur]: pid,
-        }));
-        setLocalProjectId(pid);
-      }}
-      openSections={openSections}
-      onToggleSection={toggleSection}
-    />
-  );
+  const sharedCreatorReadyProps = {
+    initialWorkspaceView,
+    workspaceBasePath: `/${username}/mypage`,
+    meCreatorUsername: creatorUsername,
+    eventBaseUrl,
+    themeColor,
+    error,
+    localProjectId,
+    address,
+    isConnected,
+    editingProfile,
+    onStartEditProfile: startEditingProfile,
+    onCancelEditProfile: cancelEditingProfile,
+    displayName,
+    profile,
+    avatarUrl,
+    externalUrl,
+    themeColorValue: themeColor,
+    creatorType,
+    socials,
+    youtubeVideos,
+    avatarFile,
+    avatarPreview,
+    setDisplayName,
+    setProfile,
+    setExternalUrl,
+    setThemeColor,
+    setCreatorType,
+    setSocials,
+    setYoutubeVideos,
+    setAvatarFile,
+    setAvatarPreview,
+    saving,
+    onSubmitProfile: (e: React.FormEvent) => void handleSaveCreatorProfile(e),
+    projectIdsByCurrency,
+    onActiveProjectIdChange: (pid: string | null, changedCur: "JPYC" | "USDC") => {
+      setProjectIdsByCurrency((prev) => ({
+        ...prev,
+        [changedCur]: pid,
+      }));
+      setLocalProjectId(pid);
+    },
+    openSections,
+    onToggleSection: toggleSection,
+  };
+
+  if (renderMode === "settings") {
+    return <SettingsPageClient {...sharedCreatorReadyProps} />;
+  }
+
+  return <CreatorReadyAccountView {...sharedCreatorReadyProps} />;
 }

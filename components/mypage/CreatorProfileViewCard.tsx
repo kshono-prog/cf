@@ -9,6 +9,7 @@ type Props = {
   displayName: string;
   profile: string;
   avatarUrl: string;
+  externalUrl: string;
   themeColor: string;
   creatorType: CreatorProfile["creatorType"];
   socials: SocialLinks;
@@ -20,6 +21,7 @@ export function CreatorProfileViewCard({
   displayName,
   profile,
   avatarUrl,
+  externalUrl,
   themeColor,
   creatorType,
   socials,
@@ -27,17 +29,20 @@ export function CreatorProfileViewCard({
   onEdit,
 }: Props) {
   return (
-    <div className="rounded-2xl border bg-white p-4 space-y-3">
+    <div className="surface-card space-y-4 p-5 sm:p-6">
       <div className="flex items-center justify-between">
-        <div className="font-semibold">プロフィール</div>
+        <div>
+          <div className="text-lg font-semibold text-[var(--text)]">
+            プロフィール
+          </div>
+          <div className="mt-1 text-sm text-[var(--text-subtle)]">
+            公開される見た目の簡易プレビューです。
+          </div>
+        </div>
         <button
           type="button"
-          className="rounded-lg border px-3 py-1.5 text-xs"
+          className="btn-secondary"
           onClick={onEdit}
-          style={{
-            borderColor: themeColor || undefined,
-            color: themeColor || undefined,
-          }}
         >
           編集
         </button>
@@ -49,47 +54,62 @@ export function CreatorProfileViewCard({
           <img
             src={avatarUrl}
             alt="avatar"
-            className="h-12 w-12 rounded-full object-cover border"
+            className="h-14 w-14 rounded-full border border-[var(--line)] object-cover"
           />
         ) : (
-          <div className="h-12 w-12 rounded-full border bg-gray-100" />
+          <div className="h-14 w-14 rounded-full border border-[var(--line)] bg-[var(--surface-subtle)]" />
         )}
 
         <div>
-          <div className="text-sm font-semibold">
+          <div className="text-base font-semibold text-[var(--text)]">
             {displayName || "（未設定）"}
           </div>
-          <div className="text-xs text-gray-500 whitespace-pre-wrap">
+          <div className="mt-1 text-sm whitespace-pre-wrap text-[var(--text-subtle)]">
             {profile || "（未設定）"}
           </div>
         </div>
       </div>
 
       {creatorType ? (
-        <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
-          <div className="text-xs text-gray-700">
+        <div className="surface-subtle space-y-2 p-3">
+          <div className="text-sm text-[var(--text)]">
             種類: {CREATOR_TYPE_LABELS[creatorType]}
           </div>
         </div>
       ) : null}
 
-      {/* socials（存在してもしなくても表示は壊さない） */}
-      <div className="text-xs text-gray-600 space-y-1">
-        {socials.website ? <div>Website: {socials.website}</div> : null}
-        {socials.twitter ? <div>X(Twitter): {socials.twitter}</div> : null}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="surface-subtle p-3 text-sm text-[var(--text-subtle)]">
+          <div className="font-medium text-[var(--text)]">外部リンク</div>
+          <div className="mt-2 break-all">{externalUrl || "未設定"}</div>
+        </div>
+        <div className="surface-subtle p-3 text-sm text-[var(--text-subtle)]">
+          <div className="font-medium text-[var(--text)]">背景トーン</div>
+          <div className="mt-2 flex items-center gap-2">
+            <span
+              className="inline-block h-4 w-4 rounded-full border border-[var(--line)]"
+              style={{ backgroundColor: themeColor || "#f0f1f4" }}
+            />
+            {themeColor || "未設定"}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-1 text-sm text-[var(--text-subtle)]">
+        {socials.website ? <div>Web: {socials.website}</div> : null}
+        {socials.twitter ? <div>X: {socials.twitter}</div> : null}
         {socials.instagram ? <div>Instagram: {socials.instagram}</div> : null}
         {socials.youtube ? <div>YouTube: {socials.youtube}</div> : null}
         {socials.tiktok ? <div>TikTok: {socials.tiktok}</div> : null}
         {socials.facebook ? <div>Facebook: {socials.facebook}</div> : null}
       </div>
 
-      {/* youtubeVideos（必要なら一覧表示。不要なら丸ごと削除OK） */}
       {youtubeVideos.length > 0 && youtubeVideos.some((v) => v.url.trim()) ? (
-        <div className="pt-2 border-t">
-          <div className="text-xs font-semibold text-gray-700 mb-1">
-            Featured Videos
+        <div className="border-t border-[var(--line)] pt-4">
+          <div className="text-sm font-semibold text-[var(--text)]">
+            紹介動画
           </div>
-          <ul className="text-xs text-gray-600 space-y-1">
+          <ul className="mt-2 space-y-1 text-sm text-[var(--text-subtle)]">
             {youtubeVideos
               .filter((v) => v.url.trim())
               .slice(0, 3)

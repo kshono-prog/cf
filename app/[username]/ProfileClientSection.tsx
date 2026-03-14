@@ -18,6 +18,7 @@ type ProfileClientSectionProps = {
     JPYC: string | null;
     USDC: string | null;
   } | null;
+  screen?: "profile" | "home";
 };
 
 export function ProfileClientSection({
@@ -25,6 +26,7 @@ export function ProfileClientSection({
   creator,
   projectId,
   projectIdsByCurrency,
+  screen,
 }: ProfileClientSectionProps) {
   return (
     <ProfileClient
@@ -33,6 +35,7 @@ export function ProfileClientSection({
       projectId={projectId}
       projectIdsByCurrency={projectIdsByCurrency ?? undefined}
       layout="content"
+      screen={screen}
     />
   );
 }

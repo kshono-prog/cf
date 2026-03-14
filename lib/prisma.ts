@@ -8,16 +8,14 @@ const globalForPrisma = globalThis as unknown as {
 function tuneRuntimeDatabaseUrl(rawUrl: string | undefined): string | undefined {
   if (!rawUrl) return undefined;
 
-  // 開発環境では利用者の明示設定を優先する
-  if (process.env.NODE_ENV !== "production") return rawUrl;
-
   try {
     const url = new URL(rawUrl);
     const isSupabase = url.hostname.includes("supabase.com");
     const isPooler =
       url.port === "6543" || url.searchParams.get("pgbouncer") === "true";
 
-    // Supabase free + serverless では 1接続運用が最も安定しやすい
+    // Supabase pooler を使う実行時接続は、環境を問わず明示的に 1接続へ寄せる。
+    // これで長時間利用時や複数ルート遷移時の connection 枯渇を起こしにくくする。
     if (isSupabase && isPooler) {
       if (!url.searchParams.has("connection_limit")) {
         url.searchParams.set("connection_limit", "1");

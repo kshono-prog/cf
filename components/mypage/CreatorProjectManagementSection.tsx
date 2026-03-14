@@ -18,6 +18,7 @@ type Props = {
   displayName: string;
   profile: string;
   avatarUrl: string;
+  externalUrl: string;
   themeColorValue: string;
   creatorType: CreatorProfile["creatorType"];
   socials: SocialLinks;
@@ -26,6 +27,7 @@ type Props = {
   avatarPreview: string | null;
   setDisplayName: React.Dispatch<React.SetStateAction<string>>;
   setProfile: React.Dispatch<React.SetStateAction<string>>;
+  setExternalUrl: React.Dispatch<React.SetStateAction<string>>;
   setThemeColor: React.Dispatch<React.SetStateAction<string>>;
   setCreatorType: React.Dispatch<
     React.SetStateAction<CreatorProfile["creatorType"]>
@@ -56,6 +58,7 @@ export function CreatorProjectManagementSection(props: Props) {
       displayName={props.displayName}
       profile={props.profile}
       avatarUrl={props.avatarUrl}
+      externalUrl={props.externalUrl}
       themeColor={props.themeColorValue}
       creatorType={props.creatorType}
       socials={props.socials}
@@ -64,6 +67,7 @@ export function CreatorProjectManagementSection(props: Props) {
       avatarPreview={props.avatarPreview}
       setDisplayName={props.setDisplayName}
       setProfile={props.setProfile}
+      setExternalUrl={props.setExternalUrl}
       setThemeColor={props.setThemeColor}
       setCreatorType={props.setCreatorType}
       setSocials={props.setSocials}

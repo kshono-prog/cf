@@ -33,14 +33,14 @@ export function UserOnlyMyPageView(props: Props) {
   return (
     <MyPageShell headerColor={props.headerColor}>
       <div className="container-narrow space-y-4">
-        <h1 className="text-lg font-semibold mb-2">マイページ</h1>
+        <h1 className="text-lg font-semibold mb-2">設定</h1>
 
         <MyPageOnboardingProgress
           currentStep="APPLY"
           title="ユーザー登録は完了しています"
-          description="次は公開前のプロフィールを確認して、クリエイターとして申請します。申請後にプロフィールと支援設定、下書きと承認を使えるようになります。"
-          nextActionTitle="プロフィールを確認してから申請する"
-          nextActionBody="表示名と自己紹介を整えたあとで申請すると、公開ページや管理画面の初期状態が分かりやすくなります。"
+          description="次は公開ページを使う準備です。クリエイターとして申請すると、公開ページ、応援設定、投稿管理が使えるようになります。"
+          nextActionTitle="公開してもよい見え方を先に整える"
+          nextActionBody="表示名と紹介文を軽く整えてから進めると、公開ページの初期状態が分かりやすくなります。"
         />
 
         {props.error && (
@@ -82,10 +82,10 @@ export function UserOnlyMyPageView(props: Props) {
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
           <div className="mb-3">
             <h2 className="text-sm font-semibold text-gray-900">
-              Step 3. クリエイター申請
+              クリエイターとして公開する
             </h2>
             <p className="mt-1 text-xs leading-relaxed text-gray-700">
-              申請後は、プロフィール編集、プロフィールと支援設定、下書きと承認、精算と詳細設定などのクリエイター向け機能が利用可能になります。
+              申請後は、公開ページの編集、応援の受け取り、投稿、詳細設定などのクリエイター向け機能が使えるようになります。
             </p>
           </div>
           <CreatorApplyCard saving={props.saving} onApply={props.onApply} />

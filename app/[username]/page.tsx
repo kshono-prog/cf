@@ -1,12 +1,8 @@
 // app/[username]/page.tsx
 
-import { notFound } from "next/navigation";
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
-import { prisma } from "@/lib/prisma";
-import { withPrismaRetry } from "@/lib/prismaRetry";
-import { ProfileSummaryServer } from "@/components/profile/ProfileSummaryServer";
-import { MyPageFooter } from "@/components/MyPageFooter";
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
+import { loadPublicPageData } from "@/lib/publicPageData";
 
 type Params = { username: string };
 
@@ -27,7 +23,7 @@ export async function generateMetadata({
 
   const description =
     creator?.profile ||
-    `${displayName} さんを JPYC で応援できる投げ銭ページです。`;
+    `${displayName} さんの投稿や活動を見ながら、自然に応援できるページです。`;
 
   const rawImage = creator?.avatarUrl || "/icon/nagesen250.png";
   const imageUrl =
@@ -35,7 +31,7 @@ export async function generateMetadata({
       ? rawImage
       : `${SITE_BASE_URL}${rawImage}`;
 
-  const title = `${displayName} さんへの JPYC投げ銭`;
+  const title = `${displayName} のプロフィール`;
 
   return {
     title,
@@ -67,92 +63,17 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<Params> }) {
   const { username } = await params;
-
-  // 1) クリエイタープロフィール（表示用）
-  const creatorResult = await getCreatorProfileByUsername(username);
-  if (!creatorResult) notFound();
-
-  const { creator, profile } = creatorResult;
-
-  // 2) projectId を Prisma から取得（初回表示を優先して read-only で解決）
-  let projectId: string | null = null;
-  let projectIdsByCurrency: { JPYC: string | null; USDC: string | null } = {
-    JPYC: null,
-    USDC: null,
-  };
-
-  try {
-    projectIdsByCurrency = {
-      JPYC: profile.activeProjectIdJpyc ?? null,
-      USDC: profile.activeProjectIdUsdc ?? null,
-    };
-
-    if (!projectIdsByCurrency.JPYC || !projectIdsByCurrency.USDC) {
-      const profileId = BigInt(profile.id);
-      const owner = profile.walletAddress?.toLowerCase() ?? null;
-      const projectWhereOr: Array<
-        { creatorProfileId: bigint } | { ownerAddress: string }
-      > = [{ creatorProfileId: profileId }];
-      if (owner) projectWhereOr.push({ ownerAddress: owner });
-
-      const [latestJpyc, latestUsdc] = await Promise.all([
-        !projectIdsByCurrency.JPYC
-          ? withPrismaRetry(() =>
-              prisma.project.findFirst({
-                where: { OR: projectWhereOr, currency: "JPYC" },
-                select: { id: true },
-                orderBy: { createdAt: "desc" },
-              })
-            )
-          : Promise.resolve(null),
-        !projectIdsByCurrency.USDC
-          ? withPrismaRetry(() =>
-              prisma.project.findFirst({
-                where: { OR: projectWhereOr, currency: "USDC" },
-                select: { id: true },
-                orderBy: { createdAt: "desc" },
-              })
-            )
-          : Promise.resolve(null),
-      ]);
-
-      if (!projectIdsByCurrency.JPYC) {
-        projectIdsByCurrency.JPYC = latestJpyc?.id?.toString() ?? null;
-      }
-      if (!projectIdsByCurrency.USDC) {
-        projectIdsByCurrency.USDC = latestUsdc?.id?.toString() ?? null;
-      }
-    }
-
-    projectId =
-      profile.activeProjectId ??
-      projectIdsByCurrency.JPYC ??
-      projectIdsByCurrency.USDC ??
-      null;
-  } catch (e) {
-    console.error("Failed to resolve projectId:", e);
-    projectId = null;
-    projectIdsByCurrency = { JPYC: null, USDC: null };
-  }
+  const { creator, projectId, projectIdsByCurrency } =
+    await loadPublicPageData(username);
 
   return (
-    <div className="container-narrow py-8 force-light-theme">
-      <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-        <ProfileSummaryServer
-          username={username}
-          creator={creator}
-          headerColor={creator.themeColor || "#005bbb"}
-        />
-        <div className="px-4">
-          <ProfileClientSection
-            username={username}
-            creator={creator}
-            projectId={projectId}
-            projectIdsByCurrency={projectIdsByCurrency}
-          />
-        </div>
-      </div>
-      <MyPageFooter />
+    <div className="space-y-4">
+      <ProfileClientSection
+        username={username}
+        creator={creator}
+        projectId={projectId}
+        projectIdsByCurrency={projectIdsByCurrency}
+      />
     </div>
   );
 }

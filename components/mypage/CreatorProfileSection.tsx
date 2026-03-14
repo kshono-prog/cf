@@ -14,6 +14,7 @@ type Props = {
 
   displayName: string;
   profile: string;
+  externalUrl: string;
 
   // ✅ 旧goalは廃止したので削除
   // goalTitle: string;
@@ -31,6 +32,7 @@ type Props = {
 
   setDisplayName: (v: string) => void;
   setProfile: (v: string) => void;
+  setExternalUrl: (v: string) => void;
   setCreatorType: (v: CreatorProfile["creatorType"]) => void;
 
   // ✅ 旧goalは廃止したので削除
@@ -61,6 +63,7 @@ export function CreatorProfileSection(props: Props) {
 
     displayName,
     profile,
+    externalUrl,
     // ✅ 削除
     // goalTitle,
     // goalTargetJpyc,
@@ -77,6 +80,7 @@ export function CreatorProfileSection(props: Props) {
 
     setDisplayName,
     setProfile,
+    setExternalUrl,
     setCreatorType,
 
     // ✅ 削除
@@ -103,6 +107,7 @@ export function CreatorProfileSection(props: Props) {
         displayName={displayName}
         profile={profile}
         avatarUrl={avatarUrl}
+        externalUrl={externalUrl}
         themeColor={themeColor}
         creatorType={creatorType}
         socials={socials}
@@ -117,6 +122,7 @@ export function CreatorProfileSection(props: Props) {
       username={username}
       displayName={displayName}
       profile={profile}
+      externalUrl={externalUrl}
       avatarUrl={avatarUrl}
       themeColor={themeColor}
       creatorType={creatorType}
@@ -126,6 +132,7 @@ export function CreatorProfileSection(props: Props) {
       avatarPreview={avatarPreview}
       setDisplayName={setDisplayName}
       setProfile={setProfile}
+      setExternalUrl={setExternalUrl}
       setCreatorType={setCreatorType}
       setThemeColor={setThemeColor}
       setSocials={setSocials}

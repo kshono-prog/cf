@@ -34,10 +34,11 @@ type PostDetailState = {
 };
 
 type Props = {
-  username: string;
+  creatorUsername: string | null;
   viewerAddress: string | null;
   selectedPostId: string | null;
   projectIdsByCurrency: CurrencyProjectIds;
+  showTipAction?: boolean;
   refreshToken: number;
   headerColor: string;
   onSelectTipPost: (post: SelectedPostTipContext) => void;
@@ -86,10 +87,11 @@ function isTipSupported(post: FeedPost, projectIdsByCurrency: CurrencyProjectIds
 
 export function CreatorFeedSection(props: Props) {
   const {
-    username,
+    creatorUsername,
     viewerAddress,
     selectedPostId,
     projectIdsByCurrency,
+    showTipAction = true,
     refreshToken,
     headerColor,
     onSelectTipPost,
@@ -132,11 +134,14 @@ export function CreatorFeedSection(props: Props) {
 
   const fetchFeedPage = useCallback(
     async (params: { cursor?: string | null; append: boolean }): Promise<void> => {
-      const url = `/api/feed?creatorUsername=${encodeURIComponent(
-        username
-      )}${viewerQuery}${
-        params.cursor ? `&cursor=${encodeURIComponent(params.cursor)}` : ""
-      }`;
+      const creatorFilter =
+        creatorUsername && creatorUsername.length > 0
+          ? `creatorUsername=${encodeURIComponent(creatorUsername)}`
+          : "";
+      const cursorQuery = params.cursor
+        ? `&cursor=${encodeURIComponent(params.cursor)}`
+        : "";
+      const url = `/api/feed?${creatorFilter}${viewerQuery}${cursorQuery}`;
 
       if (params.append) {
         setLoadingMore(true);
@@ -174,7 +179,7 @@ export function CreatorFeedSection(props: Props) {
         }
       }
     },
-    [username, viewerQuery]
+    [creatorUsername, viewerQuery]
   );
 
   const fetchPostDetail = useCallback(
@@ -266,6 +271,42 @@ export function CreatorFeedSection(props: Props) {
   function handleNeedConnection() {
     setNotice("いいねや返信を続けるには、まずウォレットを接続してください。");
     onFocusWalletSection();
+  }
+
+  async function handleShare(post: FeedPost): Promise<void> {
+    const shareUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/${post.creator.username}#posts`
+        : `/${post.creator.username}#posts`;
+    const shareTitle = `${post.creator.displayName}の投稿を共有`;
+
+    try {
+      if (
+        typeof navigator !== "undefined" &&
+        typeof navigator.share === "function"
+      ) {
+        await navigator.share({
+          title: shareTitle,
+          text: post.body.slice(0, 80),
+          url: shareUrl,
+        });
+        return;
+      }
+
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === "function"
+      ) {
+        await navigator.clipboard.writeText(shareUrl);
+        setNotice("共有リンクをコピーしました。");
+        return;
+      }
+
+      setNotice("共有リンクを用意できませんでした。");
+    } catch {
+      setNotice("共有を完了できませんでした。もう一度お試しください。");
+    }
   }
 
   async function handleTogglePostLike(post: FeedPost): Promise<void> {
@@ -514,7 +555,7 @@ export function CreatorFeedSection(props: Props) {
     }
 
     onSelectTipPost(toSelectedPostTipContext(post));
-    setNotice("支援対象の投稿を選択しました。下のウォレット欄で続けられます。");
+    setNotice("応援する投稿を選びました。応援シートから続けられます。");
     onFocusWalletSection();
   }
 
@@ -522,14 +563,13 @@ export function CreatorFeedSection(props: Props) {
     <section className="mt-6 rounded-3xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-            Creator feed
-          </div>
           <h3 className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
-            最近の投稿
+            {creatorUsername ? "投稿" : "最新の投稿"}
           </h3>
           <p className="mt-1 text-sm leading-6 text-gray-600">
-            近況へのリアクションや返信、そのまま投稿への支援までこのページで続けられます。
+            {creatorUsername
+              ? "近況への返信やいいね、そのまま投稿への応援まで自然に続けられます。"
+              : "いま公開されている最新の投稿を一覧で見られます。応援は各プロフィールから続けられます。"}
           </p>
         </div>
         <div
@@ -569,6 +609,7 @@ export function CreatorFeedSection(props: Props) {
                 post={cardPost}
                 selectedForTip={selectedPostId === post.id}
                 canTip={isTipSupported(cardPost, projectIdsByCurrency)}
+                showTipAction={showTipAction}
                 liking={pendingPostLikeIds.has(post.id)}
                 repliesOpen={isOpen}
                 detailLoading={detail.loading}
@@ -577,6 +618,9 @@ export function CreatorFeedSection(props: Props) {
                 }}
                 onToggleReplies={() => {
                   handleToggleReplies(post.id);
+                }}
+                onShare={() => {
+                  void handleShare(cardPost);
                 }}
                 onTip={() => {
                   handleSelectTip(cardPost);

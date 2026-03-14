@@ -84,7 +84,7 @@ export function PublicOwnerComposerCard(props: Props) {
     if (!result.ok) {
       setError(
         result.error === "PROJECT_NOT_FOUND_OR_FORBIDDEN"
-          ? "project の紐づけを確認してください。"
+          ? "応援先の設定を確認してください。"
           : result.error === "MEDIA_FIELDS_MISMATCH"
           ? "メディア種別と URL をそろえて入力してください。"
           : "投稿の公開に失敗しました。"
@@ -98,7 +98,7 @@ export function PublicOwnerComposerCard(props: Props) {
     setMediaType("");
     setMediaUrl("");
     setShowMediaFields(false);
-    setSuccess("投稿を公開しました。下の feed にすぐ反映されます。");
+    setSuccess("投稿を公開しました。タイムラインに反映されます。");
     setSaving(false);
     props.onCreated();
   }
@@ -111,8 +111,8 @@ export function PublicOwnerComposerCard(props: Props) {
       <div className="space-y-4 p-5 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-              Owner actions
+            <div className="text-[11px] font-semibold tracking-[0.18em] text-gray-500">
+              自分の操作
             </div>
             <h3 className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
               今の進捗をここから投稿
@@ -125,7 +125,7 @@ export function PublicOwnerComposerCard(props: Props) {
             href={props.managementHref}
             className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-800 transition hover:border-gray-400"
           >
-            マイページで詳しく編集
+            設定を開く
           </Link>
         </div>
 
@@ -147,7 +147,7 @@ export function PublicOwnerComposerCard(props: Props) {
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr),auto]">
             <div>
               <label className="block text-xs font-medium text-gray-700">
-                project 紐づけ
+                応援のひもづけ
               </label>
               <select
                 className="input mt-1"
@@ -227,7 +227,7 @@ export function PublicOwnerComposerCard(props: Props) {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-[11px] leading-5 text-gray-500">
-              投稿は公開状態で作成され、支援導線と同じ公開ページの文脈に載ります。
+              投稿は公開状態で作成され、プロフィールと投稿一覧に反映されます。
             </div>
             <button type="submit" className="btn" disabled={saving}>
               {saving ? "投稿中..." : "投稿する"}

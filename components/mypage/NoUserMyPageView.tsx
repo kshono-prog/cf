@@ -28,10 +28,10 @@ export function NoUserMyPageView(props: Props) {
 
         <MyPageOnboardingProgress
           currentStep="REGISTER"
-          title="まずはページの土台を作ります"
-          description="この登録が完了すると、あなた専用のURLとマイページの基本設定が使えるようになります。"
-          nextActionTitle="ページURLと表示名を決める"
-          nextActionBody="このあとクリエイター申請に進むので、公開してもよい表示名と簡単な自己紹介を入れておくと次がスムーズです。"
+          title="ウォレット接続は完了しています"
+          description="次はユーザー登録です。表示名とユーザー名を決めると、自分のページ準備と投稿の入口が使えるようになります。"
+          nextActionTitle="まずは自分の基本情報を決める"
+          nextActionBody="あとから直せるので、まずは公開してもよい表示名と短い自己紹介を入れて進めるのがおすすめです。"
         />
 
         {props.error && (
@@ -41,10 +41,10 @@ export function NoUserMyPageView(props: Props) {
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <div className="mb-3 space-y-1">
             <h2 className="text-sm font-semibold text-gray-900">
-              Step 2. ユーザー登録
+              ユーザー情報を整える
             </h2>
             <p className="text-xs leading-relaxed text-gray-600">
-              あとから修正できますが、ここで入力した内容が公開ページの初期情報になります。
+              ここで登録した内容が、自分のページの最初の見え方になります。あとからいつでも直せます。
             </p>
           </div>
           <UserRegistrationForm

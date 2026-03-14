@@ -206,6 +206,7 @@ export async function updateMyPageCreatorProfile(args: {
   displayName: string;
   profile: string;
   avatarUrl: string;
+  externalUrl: string;
   themeColor: string;
   creatorType: CreatorProfile["creatorType"];
   socials: SocialLinks;
@@ -222,6 +223,7 @@ export async function updateMyPageCreatorProfile(args: {
       displayName: args.displayName,
       profile: args.profile,
       avatarUrl: args.avatarUrl || null,
+      externalUrl: args.externalUrl.trim() || null,
       themeColor: args.themeColor.trim() || null,
       creatorType: args.creatorType ?? null,
       socials: args.socials,

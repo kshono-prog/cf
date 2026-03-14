@@ -670,7 +670,7 @@ export function ProfileWalletClient({
       setStatus(`完了：${amtStr} ${unit} を送金しました（Tx: ${short}…）`);
     } catch (e) {
       const msg = getErrorMessage(e);
-      setStatus(`${msg} / Transaction failed.`);
+      setStatus(`${msg}。もう一度お試しください。`);
     } finally {
       setSending(false);
     }
@@ -703,7 +703,7 @@ export function ProfileWalletClient({
             <div className="flex justify-between items-baseline mb-2">
               <div>
                 <p className="text-xs font-semibold text-gray-500">
-                  目標 / Goal (on-chain balance)
+                  応援の目安
                 </p>
                 <p className="text-sm font-medium text-gray-800">
                   {creator.goalTitle}
@@ -725,7 +725,7 @@ export function ProfileWalletClient({
                     <span className="ml-1">JPYC</span>
                   </>
                 ) : (
-                  <span>読み込み中… / Loading…</span>
+                  <span>読み込み中です</span>
                 )}
               </div>
             </div>
@@ -747,7 +747,7 @@ export function ProfileWalletClient({
 
             <div className="mt-2 text-[11px] leading-relaxed text-gray-500">
               <p>
-                Explorer:&nbsp;
+                アドレス確認:&nbsp;
                 <a
                   className="underline hover:no-underline break-all"
                   href={profileAddressUrl}
@@ -755,8 +755,8 @@ export function ProfileWalletClient({
                   rel="noreferrer"
                 >
                   {requiredChainConfig
-                    ? `${requiredChainConfig.shortName} Explorer`
-                    : "Explorer"}
+                    ? `${requiredChainConfig.shortName} で見る`
+                    : "ブロックチェーンで見る"}
                 </a>
               </p>
             </div>

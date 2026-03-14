@@ -22,6 +22,7 @@ export type CreatorReadyWorkspaceState = {
   displayName: string;
   profile: string;
   avatarUrl: string;
+  externalUrl: string;
   themeColorValue: string;
   creatorType: CreatorProfile["creatorType"];
   socials: SocialLinks;
@@ -30,6 +31,7 @@ export type CreatorReadyWorkspaceState = {
   avatarPreview: string | null;
   setDisplayName: React.Dispatch<React.SetStateAction<string>>;
   setProfile: React.Dispatch<React.SetStateAction<string>>;
+  setExternalUrl: React.Dispatch<React.SetStateAction<string>>;
   setThemeColor: React.Dispatch<React.SetStateAction<string>>;
   setCreatorType: React.Dispatch<
     React.SetStateAction<CreatorProfile["creatorType"]>

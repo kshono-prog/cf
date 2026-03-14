@@ -43,6 +43,7 @@ type Props = {
   displayName: string;
   profile: string;
   avatarUrl: string;
+  externalUrl: string;
   themeColorValue: string;
   creatorType: CreatorProfile["creatorType"];
   socials: SocialLinks;
@@ -51,6 +52,7 @@ type Props = {
   avatarPreview: string | null;
   setDisplayName: React.Dispatch<React.SetStateAction<string>>;
   setProfile: React.Dispatch<React.SetStateAction<string>>;
+  setExternalUrl: React.Dispatch<React.SetStateAction<string>>;
   setThemeColor: React.Dispatch<React.SetStateAction<string>>;
   setCreatorType: React.Dispatch<
     React.SetStateAction<CreatorProfile["creatorType"]>
@@ -119,6 +121,7 @@ export function CreatorReadyAccountView(props: Props) {
       displayName: props.displayName,
       profile: props.profile,
       avatarUrl: props.avatarUrl,
+      externalUrl: props.externalUrl,
       themeColorValue: props.themeColorValue,
       creatorType: props.creatorType,
       socials: props.socials,
@@ -127,6 +130,7 @@ export function CreatorReadyAccountView(props: Props) {
       avatarPreview: props.avatarPreview,
       setDisplayName: props.setDisplayName,
       setProfile: props.setProfile,
+      setExternalUrl: props.setExternalUrl,
       setThemeColor: props.setThemeColor,
       setCreatorType: props.setCreatorType,
       setSocials: props.setSocials,
@@ -149,6 +153,7 @@ export function CreatorReadyAccountView(props: Props) {
       props.displayName,
       props.editingProfile,
       props.eventBaseUrl,
+      props.externalUrl,
       props.isConnected,
       props.localProjectId,
       props.meCreatorUsername,
@@ -164,6 +169,7 @@ export function CreatorReadyAccountView(props: Props) {
       props.setAvatarFile,
       props.setAvatarPreview,
       props.setDisplayName,
+      props.setExternalUrl,
       props.setProfile,
       props.setCreatorType,
       props.setSocials,

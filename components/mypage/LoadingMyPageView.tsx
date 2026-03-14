@@ -15,7 +15,7 @@ export function LoadingMyPageView({ headerColor }: Props) {
       <div className="container-narrow">
         <WorkspaceStatusNotice
           tone="info"
-          title="マイページを読み込み中です"
+          title="設定を読み込み中です"
           description="ウォレット状態とプロフィール情報を確認しています。"
         />
       </div>

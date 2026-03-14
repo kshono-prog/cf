@@ -20,7 +20,7 @@ export default function AppKitProvider({
     <WagmiProvider
       config={wagmiConfig as Config}
       initialState={initial}
-      reconnectOnMount={false}
+      reconnectOnMount
     >
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </WagmiProvider>

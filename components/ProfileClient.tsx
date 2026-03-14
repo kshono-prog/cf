@@ -1,30 +1,33 @@
-/* components/ProfileClient.tsx */
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useAccount, useChainId } from "wagmi";
-import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAccount } from "wagmi";
+
 import type { CreatorProfile } from "@/lib/profileTypes";
-import { postReverify, autoReverifyPending } from "@/lib/reverifyClient";
-
-import {
-  getChainConfig,
-  getDefaultChainId,
-  isSupportedChainId,
-  type SupportedChainId,
-} from "@/lib/chainConfig";
-
+import { autoReverifyPending, postReverify } from "@/lib/reverifyClient";
 import {
   clampPct,
-  formatJpyc,
   getErrorMessage,
   type Currency,
 } from "@/components/profile/profileClientHelpers";
-
-import { ProjectProgressCard } from "@/components/profile/ProjectProgressCard";
+import {
+  isRecord,
+  pickPublicSummaryLite,
+  type PublicSummaryLite,
+} from "@/lib/publicSummary";
+import { CreatorFeedSection } from "@/components/feed/CreatorFeedSection";
+import type { SelectedPostTipContext } from "@/components/feed/feedTypes";
+import { PublicOwnerComposerCard } from "@/components/profile/PublicOwnerComposerCard";
+import {
+  parsePublicViewerMeResponse,
+  resolvePublicViewerState,
+} from "@/lib/publicViewerState";
+import { ProfileHero } from "@/components/profile/ProfileHero";
+import { SupportSheet } from "@/components/support/SupportSheet";
 
 const ProfileWalletClient = dynamic(
   () =>
@@ -34,60 +37,20 @@ const ProfileWalletClient = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
-        ウォレット情報を読み込み中…
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--text-subtle)]">
+        ウォレット情報を準備しています…
       </div>
     ),
   }
 );
 
-import {
-  isRecord,
-  pickPublicSummaryLite,
-  type PublicSummaryLite,
-} from "@/lib/publicSummary";
-import { MyPageFooter } from "@/components/MyPageFooter";
-import { CreatorFeedSection } from "@/components/feed/CreatorFeedSection";
-import type { SelectedPostTipContext } from "@/components/feed/feedTypes";
-import { CreatorCommunityCard } from "@/components/profile/CreatorCommunityCard";
-import { PublicOwnerComposerCard } from "@/components/profile/PublicOwnerComposerCard";
-import {
-  parsePublicViewerMeResponse,
-  resolvePublicViewerState,
-} from "@/lib/publicViewerState";
-
-// ===== Public API response（/api/public/creator）=====
 type PublicCreatorResponse =
   | {
       ok: true;
-      creator: {
-        username: string;
-        displayName: string;
-        profileText: string | null;
-        avatarUrl: string | null;
-        themeColor: string | null;
-        qrcodeUrl: string | null;
-        externalUrl: string | null;
-      };
-      activeProjectId: string | null;
-      projectIdsByCurrency?: {
-        JPYC: string | null;
-        USDC: string | null;
-      };
       summary: unknown | null;
-      summariesByCurrency?: {
-        JPYC: unknown | null;
-        USDC: unknown | null;
-      };
     }
   | { ok: false; error: string; detail?: string };
 
-const API_BASE = "";
-
-/**
- * CreatorProfile の address が「null」を返してくる（Prisma/DB）ケースを吸収する入力型。
- * 内部では CreatorProfile に正規化して扱う。
- */
 type CreatorProfileInput = Omit<CreatorProfile, "address"> & {
   address?: string | null;
 };
@@ -102,23 +65,18 @@ type Props = {
   } | null;
   publicSummary?: PublicSummaryLite | null;
   layout?: "full" | "content";
+  screen?: "profile" | "home";
 };
 
-// ===== Project Progress（/api/projects/[projectId]/progress）型 =====
-type ProgressTotalsAllChains = {
-  JPYC: string | null;
-  USDC: string | null;
+type ProgressSupportedChainIdsByCurrency = {
+  JPYC: number[];
+  USDC: number[];
 };
 
 type ProgressByChainRow = {
   chainId: number;
   confirmedAmountDecimal: string | null;
   confirmedAmountJpyc: number;
-};
-
-type ProgressSupportedChainIdsByCurrency = {
-  JPYC: number[];
-  USDC: number[];
 };
 
 type PurposeDto = { id: string; title?: string | null };
@@ -145,7 +103,6 @@ type ProjectProgressApi = {
     targetAmount?: number | null;
     targetJpyc: number | null;
     progressPct: number;
-
     supportedChainIds?: number[];
     supportedJpycChainIds: number[];
     supportedChainIdsByCurrency?: ProgressSupportedChainIdsByCurrency;
@@ -154,8 +111,10 @@ type ProjectProgressApi = {
       JPYC: ProgressByChainRow[];
       USDC: ProgressByChainRow[];
     };
-    totalsAllChains: ProgressTotalsAllChains;
-
+    totalsAllChains: {
+      JPYC: string | null;
+      USDC: string | null;
+    };
     perPurpose: Array<{
       purposeId: string;
       code: string | null;
@@ -167,21 +126,6 @@ type ProjectProgressApi = {
     noPurposeConfirmedJpyc: number;
   };
   purposes: PurposeDto[];
-};
-
-/* ========== Phase1: Project status/get 型（/api/projects/[id]） ========== */
-
-type ProjectStatusGet = {
-  ok: true;
-  status: string;
-  project: { id: string; status: string; title?: string | null };
-  goal: {
-    id: string;
-    unitCurrency?: Currency;
-    targetAmount?: number | null;
-    targetAmountJpyc: number | null;
-    achievedAt: string | null;
-  } | null;
 };
 
 type GoalAchievePost = {
@@ -202,10 +146,14 @@ function formatSupportAmount(value: number, currency: Currency): string {
       maximumFractionDigits: 2,
     });
   }
+
   return Math.floor(value).toLocaleString();
 }
 
-/* ========== メインコンポーネント ========== */
+function extractYouTubeId(url: string): string {
+  const match = url.match(/(?:v=|youtu\.be\/)([^&]+)/);
+  return match ? match[1] : "";
+}
 
 export default function ProfileClient({
   username,
@@ -214,13 +162,13 @@ export default function ProfileClient({
   projectIdsByCurrency,
   publicSummary,
   layout = "full",
+  screen = "profile",
 }: Props) {
   const { address: viewerAddress } = useAccount();
-  // --- creator の address null を排除して CreatorProfile に正規化 ---
+  const router = useRouter();
   const creator: CreatorProfile = useMemo(() => {
     const normalizedAddress =
-      typeof creatorInput.address === "string" &&
-      creatorInput.address.length > 0
+      typeof creatorInput.address === "string" && creatorInput.address.length > 0
         ? creatorInput.address
         : undefined;
 
@@ -229,15 +177,53 @@ export default function ProfileClient({
       address: normalizedAddress,
     };
   }, [creatorInput]);
+
   const [viewCurrency, setViewCurrency] = useState<Currency>("JPYC");
   const resolvedProjectIdsByCurrency = useMemo(
     () => ({
       JPYC: projectIdsByCurrency?.JPYC ?? projectId ?? null,
       USDC: projectIdsByCurrency?.USDC ?? null,
     }),
-    [projectIdsByCurrency, projectId]
+    [projectId, projectIdsByCurrency]
   );
   const activeProjectId = resolvedProjectIdsByCurrency[viewCurrency];
+  const publicSummaryFetchRef = useRef<string | null>(null);
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+  const reverifyOnViewBusyRef = useRef(false);
+  const attemptedThisViewRef = useRef<{ set: Set<string> }>({
+    set: new Set<string>(),
+  });
+
+  const [publicSummaryState, setPublicSummaryState] =
+    useState<PublicSummaryLite | null>(publicSummary ?? null);
+  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
+  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
+    typeof parsePublicViewerMeResponse
+  > | null>(null);
+  const [selectedPostTipContext, setSelectedPostTipContext] =
+    useState<SelectedPostTipContext | null>(null);
+  const [feedRefreshToken, setFeedRefreshToken] = useState(0);
+  const [supportSheetOpen, setSupportSheetOpen] = useState(false);
+  const [supportSheetLoaded, setSupportSheetLoaded] = useState(false);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const [progressTotalYen, setProgressTotalYen] = useState<number | null>(null);
+  const [progressTargetYen, setProgressTargetYen] = useState<number | null>(null);
+  const [goalAchievedAt, setGoalAchievedAt] = useState<string | null>(null);
+  const [supportedJpycChainIds, setSupportedJpycChainIds] = useState<number[]>(
+    []
+  );
+  const [supportedChainIdsByCurrency, setSupportedChainIdsByCurrency] =
+    useState<ProgressSupportedChainIdsByCurrency>({
+      JPYC: [],
+      USDC: [],
+    });
+  const [projectGoalTargetYen, setProjectGoalTargetYen] = useState<
+    number | null
+  >(null);
+  const [projectTitle, setProjectTitle] = useState<string | null>(null);
+  const [autoReverifyRunning, setAutoReverifyRunning] = useState(false);
+
   useEffect(() => {
     if (resolvedProjectIdsByCurrency[viewCurrency]) return;
     if (resolvedProjectIdsByCurrency.JPYC) {
@@ -248,19 +234,6 @@ export default function ProfileClient({
       setViewCurrency("USDC");
     }
   }, [resolvedProjectIdsByCurrency, viewCurrency]);
-
-  const reverifyOnViewBusyRef = useRef(false);
-  const publicSummaryFetchRef = useRef<string | null>(null);
-
-  const [publicSummaryState, setPublicSummaryState] =
-    useState<PublicSummaryLite | null>(publicSummary ?? null);
-  const [selectedPostTipContext, setSelectedPostTipContext] =
-    useState<SelectedPostTipContext | null>(null);
-  const [feedRefreshToken, setFeedRefreshToken] = useState(0);
-  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
-  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
-    typeof parsePublicViewerMeResponse
-  > | null>(null);
 
   useEffect(() => {
     if (publicSummary !== undefined) {
@@ -275,22 +248,23 @@ export default function ProfileClient({
 
     async function fetchPublicSummary(): Promise<void> {
       try {
-        const res = await fetch(
-          `${API_BASE}/api/public/creator?username=${encodeURIComponent(
-            username
-          )}`,
-          { cache: "no-store" }
+        const response = await fetch(
+          `/api/public/creator?username=${encodeURIComponent(username)}`,
+          {
+            cache: "no-store",
+          }
         );
-        const data: unknown = await res.json().catch(() => null);
-
-        if (!cancelled && res.ok && isRecord(data) && data.ok === true) {
-          const response = data as Extract<PublicCreatorResponse, { ok: true }>;
+        const json: unknown = await response.json().catch(() => null);
+        if (!cancelled && response.ok && isRecord(json) && json.ok === true) {
+          const result = json as Extract<PublicCreatorResponse, { ok: true }>;
           setPublicSummaryState(
-            response.summary ? pickPublicSummaryLite(response.summary) : null
+            result.summary ? pickPublicSummaryLite(result.summary) : null
           );
         }
       } catch {
-        if (!cancelled) setPublicSummaryState(null);
+        if (!cancelled) {
+          setPublicSummaryState(null);
+        }
       }
     }
 
@@ -308,22 +282,25 @@ export default function ProfileClient({
       return;
     }
 
+    const connectedAddress = viewerAddress;
     let cancelled = false;
-    const connectedViewerAddress = viewerAddress;
-    setViewerIdentityResolved(false);
 
     async function fetchViewerIdentity(): Promise<void> {
+      setViewerIdentityResolved(false);
       try {
         const response = await fetch(
-          `/api/me?address=${encodeURIComponent(connectedViewerAddress)}`,
+          `/api/me?address=${encodeURIComponent(connectedAddress)}`,
           {
             method: "GET",
             cache: "no-store",
           }
         );
         const json: unknown = await response.json().catch(() => null);
-        if (cancelled) return;
-        setViewerIdentity(response.ok ? parsePublicViewerMeResponse(json) : null);
+        if (!cancelled) {
+          setViewerIdentity(
+            response.ok ? parsePublicViewerMeResponse(json) : null
+          );
+        }
       } catch {
         if (!cancelled) {
           setViewerIdentity(null);
@@ -342,157 +319,26 @@ export default function ProfileClient({
     };
   }, [viewerAddress]);
 
-  // ===== Phase1 Progress/Goal states =====
-
-  const hasProject = !!activeProjectId;
-
-  const [projectStatus, setProjectStatus] = useState<string | null>(null);
-  const [projectTitle, setProjectTitle] = useState<string | null>(null);
-  const [progressLoading, setProgressLoading] = useState(false);
-  const [progressError, setProgressError] = useState<string | null>(null);
-
-  const [progressTotalYen, setProgressTotalYen] = useState<number | null>(null);
-  const [progressConfirmedCount, setProgressConfirmedCount] = useState<
-    number | null
-  >(null);
-  const [progressTargetYen, setProgressTargetYen] = useState<number | null>(
-    null
-  );
-  const [progressReached, setProgressReached] = useState<boolean | null>(null);
-  const [goalAchievedAt, setGoalAchievedAt] = useState<string | null>(null);
-
-  // 追加：合算対象チェーン / チェーン別内訳
-  const [supportedJpycChainIds, setSupportedJpycChainIds] = useState<number[]>(
-    []
-  );
-  const [supportedChainIdsByCurrency, setSupportedChainIdsByCurrency] =
-    useState<ProgressSupportedChainIdsByCurrency>({
-      JPYC: [],
-      USDC: [],
-    });
-  const [byChainJpyc, setByChainJpyc] = useState<ProgressByChainRow[]>([]);
-
-  // “自動達成” 実行中フラグ（連打防止）
-  const [achieving, setAchieving] = useState(false);
-
-  const [projectGoalTargetYen, setProjectGoalTargetYen] = useState<
-    number | null
-  >(null);
-
-  /* ========== Phase1: status/progress loader ========== */
-
-  async function fetchProjectStatusSafe() {
-    if (!activeProjectId) return;
-
-    try {
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(activeProjectId)}`,
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
-      if (!res.ok) {
-        setProjectStatus(null);
-        setProjectTitle(null);
-        return;
-      }
-      const json = (await res.json()) as ProjectStatusGet;
-      if (json?.ok) {
-        setProjectStatus(json.status ?? json.project?.status ?? null);
-
-        const t = json.project?.title ?? null;
-        setProjectTitle(typeof t === "string" && t.length > 0 ? t : null);
-
-        const achievedAt =
-          (json.goal?.achievedAt as string | null | undefined) ?? null;
-        if (achievedAt) setGoalAchievedAt(achievedAt);
-
-        const tt = json.goal?.targetAmount ?? json.goal?.targetAmountJpyc ?? null;
-        if (typeof tt === "number" && Number.isFinite(tt)) {
-          setProjectGoalTargetYen(tt);
-        }
-      }
-    } catch {
-      setProjectStatus(null);
-      setProjectTitle(null);
-    }
-  }
-
-  function toTxHashOrNull(v: unknown): `0x${string}` | null {
-    if (typeof v !== "string") return null;
-    if (!/^0x[0-9a-fA-F]{64}$/.test(v)) return null;
-    return v as `0x${string}`;
-  }
-
-  async function fetchPendingTxHashesSafe(): Promise<`0x${string}`[]> {
-    if (!activeProjectId) return [];
-    try {
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(
-          activeProjectId
-        )}/contributions?status=PENDING`,
-        { method: "GET", cache: "no-store" }
-      );
-      if (!res.ok) return [];
-      const json: unknown = await res.json().catch(() => null);
-      if (!isRecord(json) || json.ok !== true) return [];
-      const arr = (json as Record<string, unknown>).items;
-      if (!Array.isArray(arr)) return [];
-
-      const out: `0x${string}`[] = [];
-      for (const row of arr) {
-        if (!isRecord(row)) continue;
-        const h = toTxHashOrNull(row.txHash);
-        if (h) out.push(h);
-      }
-      return out;
-    } catch {
-      return [];
-    }
-  }
-
-  async function autoReverifyPendingOnView(): Promise<void> {
-    if (!activeProjectId) return;
-
-    if (reverifyOnViewBusyRef.current) return;
-    reverifyOnViewBusyRef.current = true;
-
-    try {
-      const r = await autoReverifyPending({
-        projectId: activeProjectId,
-        cooldownMs: 60_000,
-        maxPerView: 3,
-      });
-
-      if (r.verified.length > 0) {
-        await fetchProjectProgressSafe();
-        await fetchProjectStatusSafe();
-      }
-    } finally {
-      reverifyOnViewBusyRef.current = false;
-    }
-  }
-
-  async function fetchProjectProgressSafe(): Promise<ProjectProgressApi | null> {
+  const fetchProjectProgressSafe = useCallback(async (): Promise<ProjectProgressApi | null> => {
     if (!activeProjectId) return null;
 
     setProgressLoading(true);
     setProgressError(null);
 
     try {
-      const res = await fetch(
+      const response = await fetch(
         `/api/projects/${encodeURIComponent(activeProjectId)}/progress`,
-        { method: "GET", cache: "no-store" }
+        {
+          method: "GET",
+          cache: "no-store",
+        }
       );
 
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        setProgressError(`progress fetch failed: ${res.status} ${t}`);
-        return null;
+      if (!response.ok) {
+        throw new Error("うまく読み込めませんでした");
       }
 
-      const json = (await res.json()) as unknown;
+      const json = (await response.json()) as unknown;
 
       if (
         !isRecord(json) ||
@@ -500,101 +346,59 @@ export default function ProfileClient({
         !isRecord(json.project) ||
         !isRecord(json.progress)
       ) {
-        setProgressError("progress response shape mismatch");
-        return null;
+        throw new Error("うまく読み込めませんでした");
       }
 
       const typed = json as ProjectProgressApi;
-
-      setProjectStatus(
-        typeof typed.project.status === "string" ? typed.project.status : null
+      const confirmed = Number(
+        typed.progress.confirmedTotal ?? typed.progress.confirmedJpyc ?? 0
       );
-
-      setProjectTitle(
-        typeof typed.project.title === "string" &&
-          typed.project.title.length > 0
-          ? typed.project.title
-          : null
-      );
-
-      // ---- supported chains / byChain / totalsAllChains ----
+      const target =
+        typed.progress.targetAmount ?? typed.progress.targetJpyc ?? null;
       const idsLegacy = Array.isArray(typed.progress.supportedJpycChainIds)
         ? typed.progress.supportedJpycChainIds.filter(
-            (x): x is number => typeof x === "number" && Number.isFinite(x)
+            (value): value is number =>
+              typeof value === "number" && Number.isFinite(value)
           )
         : [];
       const idsAll = Array.isArray(typed.progress.supportedChainIds)
         ? typed.progress.supportedChainIds.filter(
-            (x): x is number => typeof x === "number" && Number.isFinite(x)
+            (value): value is number =>
+              typeof value === "number" && Number.isFinite(value)
           )
         : [];
 
+      setProjectTitle(
+        typeof typed.project.title === "string" && typed.project.title.length > 0
+          ? typed.project.title
+          : null
+      );
+      setProgressTotalYen(Number.isFinite(confirmed) ? confirmed : 0);
+      setProgressTargetYen(
+        typeof target === "number" && Number.isFinite(target) ? target : null
+      );
+      setGoalAchievedAt(typed.goal?.achievedAt ?? null);
       setSupportedJpycChainIds(idsAll.length > 0 ? idsAll : idsLegacy);
 
-      const byCur = typed.progress.supportedChainIdsByCurrency;
+      const byCurrency = typed.progress.supportedChainIdsByCurrency;
       if (
-        isRecord(byCur) &&
-        Array.isArray(byCur.JPYC) &&
-        Array.isArray(byCur.USDC)
+        isRecord(byCurrency) &&
+        Array.isArray(byCurrency.JPYC) &&
+        Array.isArray(byCurrency.USDC)
       ) {
         setSupportedChainIdsByCurrency({
-          JPYC: byCur.JPYC.filter(
-            (x): x is number => typeof x === "number" && Number.isFinite(x)
+          JPYC: byCurrency.JPYC.filter(
+            (value): value is number =>
+              typeof value === "number" && Number.isFinite(value)
           ),
-          USDC: byCur.USDC.filter(
-            (x): x is number => typeof x === "number" && Number.isFinite(x)
+          USDC: byCurrency.USDC.filter(
+            (value): value is number =>
+              typeof value === "number" && Number.isFinite(value)
           ),
         });
       } else {
         setSupportedChainIdsByCurrency({ JPYC: idsLegacy, USDC: [] });
       }
-
-      const bc = Array.isArray(typed.progress.byChain)
-        ? typed.progress.byChain
-            .filter(
-              (r): r is ProgressByChainRow =>
-                isRecord(r) &&
-                typeof r.chainId === "number" &&
-                Number.isFinite(r.chainId) &&
-                typeof r.confirmedAmountJpyc === "number" &&
-                Number.isFinite(r.confirmedAmountJpyc) &&
-                (typeof r.confirmedAmountDecimal === "string" ||
-                  r.confirmedAmountDecimal === null)
-            )
-            .map((r) => ({
-              chainId: r.chainId,
-              confirmedAmountDecimal: r.confirmedAmountDecimal,
-              confirmedAmountJpyc: r.confirmedAmountJpyc,
-            }))
-        : [];
-
-      setByChainJpyc(bc);
-
-      // ---- 既存：progress / goal ----
-      const confirmed = Number(
-        typed.progress.confirmedTotal ?? typed.progress.confirmedJpyc ?? 0
-      );
-      setProgressTotalYen(Number.isFinite(confirmed) ? confirmed : 0);
-
-      const target = typed.progress.targetAmount ?? typed.progress.targetJpyc ?? null;
-      setProgressTargetYen(
-        typeof target === "number" && Number.isFinite(target) ? target : null
-      );
-
-      const reached =
-        typeof target === "number" && Number.isFinite(target) && target > 0
-          ? confirmed >= target
-          : null;
-      setProgressReached(reached);
-
-      const achievedAt = typed.goal?.achievedAt ?? null;
-      setGoalAchievedAt(
-        typeof achievedAt === "string" && achievedAt.length > 0
-          ? achievedAt
-          : null
-      );
-
-      setProgressConfirmedCount(null);
 
       const goalTarget = typed.goal?.targetAmount ?? typed.goal?.targetAmountJpyc;
       if (goalTarget != null) {
@@ -602,20 +406,19 @@ export default function ProfileClient({
       }
 
       return typed;
-    } catch (e) {
-      setProgressError(getErrorMessage(e));
+    } catch (error) {
+      setProgressError(getErrorMessage(error));
       return null;
     } finally {
       setProgressLoading(false);
     }
-  }
+  }, [activeProjectId]);
 
   async function achieveGoalSafe(): Promise<GoalAchievePost | null> {
     if (!activeProjectId) return null;
 
-    setAchieving(true);
     try {
-      const res = await fetch(
+      const response = await fetch(
         `/api/projects/${encodeURIComponent(activeProjectId)}/goal/achieve`,
         {
           method: "POST",
@@ -625,113 +428,143 @@ export default function ProfileClient({
         }
       );
 
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        console.warn("POST /goal/achieve failed:", res.status, t);
+      if (!response.ok) {
         return null;
       }
 
-      const json = (await res.json()) as GoalAchievePost;
-      await fetchProjectStatusSafe();
+      const result = (await response.json()) as GoalAchievePost;
       await fetchProjectProgressSafe();
-      return json;
-    } catch (e) {
-      console.warn("POST /goal/achieve error:", e);
+      return result;
+    } catch {
       return null;
-    } finally {
-      setAchieving(false);
     }
   }
 
-  useEffect(() => {
-    if (!activeProjectId) return;
+  const fetchPendingTxHashesSafe = useCallback(async (): Promise<`0x${string}`[]> => {
+    if (!activeProjectId) return [];
 
-    void fetchProjectStatusSafe();
-    void fetchProjectProgressSafe();
-    void autoReverifyPendingOnView();
+    try {
+      const response = await fetch(
+        `/api/projects/${encodeURIComponent(activeProjectId)}/contributions?status=PENDING`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+      if (!response.ok) return [];
+      const json: unknown = await response.json().catch(() => null);
+      if (!isRecord(json) || json.ok !== true || !Array.isArray(json.items)) {
+        return [];
+      }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      return json.items
+        .filter((row): row is Record<string, unknown> => isRecord(row))
+        .map((row) => row.txHash)
+        .filter(
+          (txHash): txHash is `0x${string}` =>
+            typeof txHash === "string" && /^0x[0-9a-fA-F]{64}$/.test(txHash)
+        );
+    } catch {
+      return [];
+    }
   }, [activeProjectId]);
 
-  const MAX_PER_LOAD = 5;
-  const COOLDOWN_MS = 20_000;
-  const KEY_PREFIX = "cf:reverify:lastAttempt:";
+  const autoReverifyPendingOnView = useCallback(async (): Promise<void> => {
+    if (!activeProjectId) return;
+    if (reverifyOnViewBusyRef.current) return;
 
-  function getLastAttempt(txHash: string): number {
+    reverifyOnViewBusyRef.current = true;
     try {
-      const v = localStorage.getItem(KEY_PREFIX + txHash);
-      if (!v) return 0;
-      const n = Number(v);
-      return Number.isFinite(n) ? n : 0;
-    } catch {
-      return 0;
-    }
-  }
-  function setLastAttempt(txHash: string, ms: number): void {
-    try {
-      localStorage.setItem(KEY_PREFIX + txHash, String(ms));
-    } catch {
-      // ignore
-    }
-  }
+      const result = await autoReverifyPending({
+        projectId: activeProjectId,
+        cooldownMs: 60_000,
+        maxPerView: 3,
+      });
 
-  const attemptedThisViewRef = useRef<{ set: Set<string> }>({
-    set: new Set<string>(),
-  });
-  const [autoReverifyRunning, setAutoReverifyRunning] = useState(false);
-  const [loadWalletSection, setLoadWalletSection] = useState(false);
-  const walletSectionRef = useRef<HTMLDivElement | null>(null);
-  const feedSectionRef = useRef<HTMLDivElement | null>(null);
+      if (result.verified.length > 0) {
+        await fetchProjectProgressSafe();
+      }
+    } finally {
+      reverifyOnViewBusyRef.current = false;
+    }
+  }, [activeProjectId, fetchProjectProgressSafe]);
 
   useEffect(() => {
     if (!activeProjectId) return;
+
     attemptedThisViewRef.current.set.clear();
+    void fetchProjectProgressSafe();
+    void autoReverifyPendingOnView();
+  }, [activeProjectId, autoReverifyPendingOnView, fetchProjectProgressSafe]);
+
+  useEffect(() => {
+    if (!activeProjectId) return;
+    if (progressLoading || autoReverifyRunning) return;
+
     let cancelled = false;
+    const keyPrefix = "cf:reverify:lastAttempt:";
+    const maxPerLoad = 5;
+    const cooldownMs = 20_000;
+
+    function getLastAttempt(txHash: string): number {
+      try {
+        const value = localStorage.getItem(keyPrefix + txHash);
+        if (!value) return 0;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function setLastAttempt(txHash: string, value: number) {
+      try {
+        localStorage.setItem(keyPrefix + txHash, String(value));
+      } catch {
+        // ignore storage errors
+      }
+    }
 
     async function run(): Promise<void> {
-      if (autoReverifyRunning) return;
-      if (progressTotalYen == null && progressLoading) return;
-
       setAutoReverifyRunning(true);
       try {
         const pending = await fetchPendingTxHashesSafe();
-        if (cancelled) return;
-        if (pending.length === 0) return;
+        if (cancelled || pending.length === 0) return;
 
-        const t0 = Date.now();
-
+        const now = Date.now();
         const candidates: `0x${string}`[] = [];
-        for (const h of pending) {
-          if (attemptedThisViewRef.current.set.has(h)) continue;
 
-          const last = getLastAttempt(h);
-          if (t0 - last < COOLDOWN_MS) continue;
+        for (const txHash of pending) {
+          if (attemptedThisViewRef.current.set.has(txHash)) continue;
+          if (now - getLastAttempt(txHash) < cooldownMs) continue;
 
-          candidates.push(h);
-          if (candidates.length >= MAX_PER_LOAD) break;
+          candidates.push(txHash);
+          if (candidates.length >= maxPerLoad) break;
         }
 
         if (candidates.length === 0) return;
 
-        for (const h of candidates) {
-          attemptedThisViewRef.current.set.add(h);
-          setLastAttempt(h, t0);
+        for (const txHash of candidates) {
+          attemptedThisViewRef.current.set.add(txHash);
+          setLastAttempt(txHash, now);
         }
 
         let anyConfirmed = false;
-
-        for (const h of candidates) {
+        for (const txHash of candidates) {
           if (cancelled) return;
-          const r = await postReverify(h);
-          if (r.verified === true) anyConfirmed = true;
+          const result = await postReverify(txHash);
+          if (result.verified === true) {
+            anyConfirmed = true;
+          }
         }
 
         if (anyConfirmed && !cancelled) {
           await fetchProjectProgressSafe();
-          await fetchProjectStatusSafe();
         }
       } finally {
-        if (!cancelled) setAutoReverifyRunning(false);
+        if (!cancelled) {
+          setAutoReverifyRunning(false);
+        }
       }
     }
 
@@ -740,69 +573,14 @@ export default function ProfileClient({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId, progressTotalYen]);
-
-  useEffect(() => {
-    if (loadWalletSection) return;
-    if (typeof window === "undefined") return;
-
-    let observer: IntersectionObserver | null = null;
-    let idleId: number | null = null;
-    let timeoutId: number | null = null;
-
-    const trigger = () => {
-      if (observer && walletSectionRef.current) {
-        observer.unobserve(walletSectionRef.current);
-      }
-      if (idleId != null) {
-        const win = window as Window & {
-          cancelIdleCallback?: (id: number) => void;
-        };
-        win.cancelIdleCallback?.(idleId);
-      }
-      if (timeoutId != null) {
-        window.clearTimeout(timeoutId);
-      }
-      setLoadWalletSection(true);
-    };
-
-    observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        trigger();
-      }
-    });
-
-    if (walletSectionRef.current) {
-      observer.observe(walletSectionRef.current);
-    }
-
-    const win = window as Window & {
-      requestIdleCallback?: (
-        callback: (deadline: { didTimeout: boolean }) => void,
-        options?: { timeout: number }
-      ) => number;
-    };
-
-    if (win.requestIdleCallback) {
-      idleId = win.requestIdleCallback(() => trigger(), { timeout: 2000 });
-    } else {
-      timeoutId = window.setTimeout(() => trigger(), 2000);
-    }
-
-    return () => {
-      observer?.disconnect();
-      if (idleId != null) {
-        const cancelWin = window as Window & {
-          cancelIdleCallback?: (id: number) => void;
-        };
-        cancelWin.cancelIdleCallback?.(idleId);
-      }
-      if (timeoutId != null) {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [loadWalletSection]);
+  }, [
+    activeProjectId,
+    autoReverifyRunning,
+    fetchPendingTxHashesSafe,
+    fetchProjectProgressSafe,
+    progressLoading,
+    progressTotalYen,
+  ]);
 
   async function postContribution(args: {
     projectId?: string;
@@ -819,7 +597,7 @@ export default function ProfileClient({
     if (!args.projectId) return { ok: false, reason: "PROJECT_ID_MISSING" };
 
     try {
-      const res = await fetch("/api/contributions", {
+      const response = await fetch("/api/contributions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
@@ -831,72 +609,56 @@ export default function ProfileClient({
                 purposeId:
                   args.purposeId === null ? null : String(args.purposeId),
               }),
+          ...(args.postId ? { postId: args.postId } : {}),
           chainId: args.chainId,
           currency: args.currency,
           txHash: args.txHash,
           fromAddress: args.fromAddress,
           toAddress: args.toAddress,
           amount: String(args.amount),
-          ...(args.postId ? { postId: args.postId } : {}),
         }),
       });
 
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        console.warn("POST /api/contributions failed:", res.status, t);
-        return { ok: false, reason: `HTTP_${res.status}` };
+      if (!response.ok) {
+        return { ok: false, reason: `HTTP_${response.status}` };
       }
 
       return { ok: true };
-    } catch (e) {
-      console.warn("POST /api/contributions error:", e);
+    } catch {
       return { ok: false, reason: "FETCH_FAILED" };
     }
   }
 
-  /**
-   * 送金後に：
-   * 1) contributions 登録
-   * 2) reverify で receipt 検証（PENDING→CONFIRMED）
-   * 3) progress を更新
-   * 4) reached なら goal/achieve（未達成時のみ）
-   */
   async function afterSendPipeline(txHash: string, postId?: string | null) {
     if (!activeProjectId) return;
 
-    const maxTry = 3;
-    for (let i = 0; i < maxTry; i++) {
-      const r = await postReverify(txHash as `0x${string}`);
-      if (r.verified === true) break;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const result = await postReverify(txHash as `0x${string}`);
+      if (result.verified === true) break;
       await new Promise((resolve) => setTimeout(resolve, 900));
     }
 
-    const p = await fetchProjectProgressSafe();
-
+    const progress = await fetchProjectProgressSafe();
     const achievedAt =
-      (p?.goal?.achievedAt && p.goal.achievedAt.length > 0
-        ? p.goal.achievedAt
+      (progress?.goal?.achievedAt && progress.goal.achievedAt.length > 0
+        ? progress.goal.achievedAt
         : null) ?? goalAchievedAt;
-
-    const targetRaw = p?.progress?.targetAmount ?? p?.progress?.targetJpyc;
+    const targetRaw =
+      progress?.progress.targetAmount ?? progress?.progress.targetJpyc ?? null;
+    const confirmedRaw =
+      progress?.progress.confirmedTotal ?? progress?.progress.confirmedJpyc ?? 0;
     const target =
       typeof targetRaw === "number" && Number.isFinite(targetRaw)
         ? targetRaw
         : null;
-
-    const confirmedRaw =
-      p?.progress?.confirmedTotal ?? p?.progress?.confirmedJpyc ?? 0;
     const confirmed =
       typeof confirmedRaw === "number" && Number.isFinite(confirmedRaw)
         ? confirmedRaw
         : 0;
-
     const reached = target != null && target > 0 ? confirmed >= target : null;
 
     if (reached === true && !achievedAt) {
       await achieveGoalSafe();
-    } else {
-      await fetchProjectStatusSafe();
     }
 
     const tippedPostId = postId ?? selectedPostTipContext?.id ?? null;
@@ -908,71 +670,37 @@ export default function ProfileClient({
     }
   }
 
-  function extractYouTubeId(url: string): string {
-    const regExp = /(?:v=|youtu\.be\/)([^&]+)/;
-    const match = url.match(regExp);
-    return match ? match[1] : "";
-  }
-
-  const defaultColor = "#005bbb";
-  const headerColor = creator.themeColor || defaultColor;
-  const connectedChainId = useChainId();
-  const explorerChainId = useMemo(() => {
-    if (
-      isSupportedChainId(connectedChainId) &&
-      (supportedJpycChainIds.length === 0 ||
-        supportedJpycChainIds.includes(connectedChainId))
-    ) {
-      return connectedChainId;
-    }
-
-    const first = supportedJpycChainIds.find((id) => isSupportedChainId(id));
-    return first != null ? (first as SupportedChainId) : getDefaultChainId();
-  }, [connectedChainId, supportedJpycChainIds]);
-  const explorerChainConfig = getChainConfig(explorerChainId);
-  const profileAddressUrl =
-    creator.address && explorerChainConfig?.explorerBaseUrl
-      ? `${explorerChainConfig.explorerBaseUrl}/address/${creator.address}`
-      : explorerChainConfig?.explorerBaseUrl ?? "";
+  const viewerState = resolvePublicViewerState({
+    pageUsername: username,
+    pageCreatorAddress: creator.address ?? null,
+    viewerAddress: viewerAddress ?? null,
+    identity: viewerIdentity,
+    identityResolved: viewerIdentityResolved,
+  });
 
   const resolvedTargetYen =
     progressTargetYen != null ? progressTargetYen : projectGoalTargetYen;
-
-  const showManualAchieveButton = false;
-
-  // =========================================================
-  // 表示優先順位（要求通り）
-  // 1) DBカード（主表示）: hasProject && goal設定あり
-  // 2) Public Summary（代替）: 1が無い/goal未設定 && publicSummaryが成立
-  // 3) Legacy on-chain（互換）: 最後（or feature flag）
-  // =========================================================
+  const hasProject = Boolean(activeProjectId);
   const hasDbGoal =
     hasProject &&
     typeof resolvedTargetYen === "number" &&
     Number.isFinite(resolvedTargetYen) &&
     resolvedTargetYen > 0;
-
   const hasPublicGoal =
-    !!publicSummaryState?.goal && !!publicSummaryState?.progress;
-  const hasLegacyOnchainGoal = !!creator.goalTitle && !!creator.goalTargetJpyc;
-
+    publicSummaryState?.goal != null && publicSummaryState.progress != null;
+  const hasLegacyOnchainGoal = Boolean(
+    creator.goalTitle && creator.goalTargetJpyc
+  );
   const showDbCard = hasDbGoal;
   const showPublicCard = !showDbCard && hasPublicGoal;
-
-  const ENABLE_LEGACY_ONCHAIN_GOAL = true;
   const showLegacyCard =
-    ENABLE_LEGACY_ONCHAIN_GOAL && !showDbCard && !showPublicCard
-      ? hasLegacyOnchainGoal
-      : false;
-
+    !showDbCard && !showPublicCard ? hasLegacyOnchainGoal : false;
   const displayName = creator.displayName || username;
   const supportTitle =
-    projectTitle ||
-    creator.goalTitle ||
-    `${displayName}の活動を支援してください`;
+    projectTitle || creator.goalTitle || `${displayName}の活動を応援する`;
   const supportDescription =
     creator.profile?.trim() ||
-    "いま進めている活動や制作に必要な支援を、このページから直接送れます。";
+    "投稿や活動の近況を見ながら、必要なタイミングで自然に応援できます。";
 
   const supportOverview = (() => {
     if (
@@ -982,7 +710,6 @@ export default function ProfileClient({
       resolvedTargetYen > 0
     ) {
       return {
-        source: "db" as const,
         current: progressTotalYen,
         target: resolvedTargetYen,
         progressPct: clampPct((progressTotalYen / resolvedTargetYen) * 100),
@@ -993,11 +720,10 @@ export default function ProfileClient({
 
     if (
       showPublicCard &&
-      publicSummaryState?.progress &&
-      publicSummaryState?.goal?.targetAmountJpyc
+      publicSummaryState?.goal?.targetAmountJpyc &&
+      publicSummaryState.progress
     ) {
       return {
-        source: "public" as const,
         current: publicSummaryState.progress.confirmedJpyc,
         target: publicSummaryState.goal.targetAmountJpyc,
         progressPct: clampPct(publicSummaryState.progress.progressPct),
@@ -1007,11 +733,9 @@ export default function ProfileClient({
     }
 
     if (showLegacyCard && creator.goalTargetJpyc) {
-      const target = creator.goalTargetJpyc;
       return {
-        source: "legacy" as const,
         current: 0,
-        target,
+        target: creator.goalTargetJpyc,
         progressPct: 0,
         achievedAt: null,
         deadline: null,
@@ -1021,31 +745,6 @@ export default function ProfileClient({
     return null;
   })();
 
-  const supportStatusLabel = supportOverview?.achievedAt
-    ? "目標達成済み"
-    : supportOverview && supportOverview.progressPct >= 100
-      ? "達成圏内"
-      : "支援受付中";
-  const supportMetaLabel = supportOverview?.deadline
-    ? `期限: ${supportOverview.deadline.slice(0, 10)}`
-    : supportOverview
-      ? `${Math.floor(supportOverview.progressPct)}% 達成`
-      : hasProject
-        ? "このページから支援できます"
-        : "支援ページを準備中です";
-
-  const viewerState = resolvePublicViewerState({
-    pageUsername: username,
-    pageCreatorAddress: creator.address ?? null,
-    viewerAddress: viewerAddress ?? null,
-    identity: viewerIdentity,
-    identityResolved: viewerIdentityResolved,
-  });
-  const ownerWorkspaceHomeHref = `/${username}/mypage/home`;
-  const ownerComposerManagementHref = `/${username}/mypage/support-page#sns-compose`;
-  const viewerWorkspaceHref = viewerState.userUsername
-    ? `/${viewerState.userUsername}/mypage/home`
-    : `/${username}/mypage/home`;
   const ownerProjectOptions = useMemo(() => {
     const options: Array<{ id: string; label: string }> = [];
     const seen = new Set<string>();
@@ -1055,37 +754,23 @@ export default function ProfileClient({
       if (!nextId || seen.has(nextId)) continue;
       seen.add(nextId);
 
-      const resolvedLabelTitle =
-        currency === viewCurrency && projectTitle ? projectTitle : `${currency} project`;
       options.push({
         id: nextId,
-        label: `${currency} / ${resolvedLabelTitle}`,
+        label: `${currency} / ${projectTitle ?? `${currency} の公開ページ`}`,
       });
     }
 
     return options;
-  }, [projectTitle, resolvedProjectIdsByCurrency, viewCurrency]);
+  }, [projectTitle, resolvedProjectIdsByCurrency]);
 
-  function scrollToElement(ref: React.RefObject<HTMLDivElement | null>) {
-    if (typeof window === "undefined") return;
-    window.requestAnimationFrame(() => {
-      ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+  function openSupportSheet() {
+    setSupportSheetLoaded(true);
+    setSupportSheetOpen(true);
   }
 
-  function scrollToId(id: string) {
-    if (typeof window === "undefined") return;
-    window.requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
-  }
-
-  function focusWalletSection() {
-    setLoadWalletSection(true);
-    scrollToElement(walletSectionRef);
+  function closeSupportSheet() {
+    setSupportSheetOpen(false);
+    setSelectedPostTipContext(null);
   }
 
   function handleSelectPostTip(post: SelectedPostTipContext) {
@@ -1093,110 +778,293 @@ export default function ProfileClient({
     if (post.preferredCurrency) {
       setViewCurrency(post.preferredCurrency);
     }
-    focusWalletSection();
+    openSupportSheet();
   }
 
   function handleOwnerPostCreated() {
     setFeedRefreshToken((current) => current + 1);
-    scrollToElement(feedSectionRef);
+    window.requestAnimationFrame(() => {
+      timelineRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
-  const content = (
-    <>
-      {viewerState.isOwner ? (
-        <section className="mt-4 overflow-hidden rounded-3xl border border-sky-200/80 bg-sky-50 shadow-sm">
-          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+  const ownerComposerManagementHref = `/${username}/mypage#public-page`;
+  const viewerWorkspaceHref = viewerState.userUsername
+    ? `/${viewerState.userUsername}/mypage`
+    : `/${username}/mypage`;
+  const viewerComposeHref = viewerState.creatorUsername
+    ? `/${viewerState.creatorUsername}/compose`
+    : viewerWorkspaceHref;
+  const viewerProfileHref = viewerState.creatorUsername
+    ? `/${viewerState.creatorUsername}`
+    : viewerWorkspaceHref;
+  const pageDisplayName = displayName;
+  const availableCurrencies = (["JPYC", "USDC"] as const).filter(
+    (currency) => resolvedProjectIdsByCurrency[currency]
+  );
+  const homeProjectIdsByCurrency = {
+    JPYC: null,
+    USDC: null,
+  } satisfies {
+    JPYC: string | null;
+    USDC: string | null;
+  };
+
+  function handleHeroAction() {
+    if (viewerState.isOwner) {
+      router.push(viewerWorkspaceHref);
+      return;
+    }
+    openSupportSheet();
+  }
+
+  const profileGuideCard = (() => {
+    if (viewerState.isOwner) {
+      return (
+        <section className="surface-card p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">
-                Owner mode
+              <div className="text-lg font-semibold text-[var(--text)]">
+                これはあなたの公開ページです
               </div>
-              <h3 className="mt-2 text-lg font-semibold text-slate-900">
-                いま見ているのは公開ページです
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                支援者からの見え方を確認しながら、必要になったらすぐマイページへ戻れます。
+              <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+                見え方を確認しながら、投稿や設定をすぐ開けます。
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={ownerWorkspaceHomeHref}
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
-              >
-                マイページへ
+            <div className="flex flex-wrap gap-2">
+              <Link href={viewerComposeHref} className="btn">
+                投稿する
               </Link>
-              <button
-                type="button"
-                onClick={() => scrollToId("owner-composer")}
-                className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                このページで投稿する
-              </button>
+              <Link href={viewerWorkspaceHref} className="btn-secondary">
+                設定を開く
+              </Link>
             </div>
           </div>
         </section>
-      ) : null}
+      );
+    }
 
-      <section className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
-        <div className="space-y-4 p-5 sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-                Creator support
+    if (viewerState.mode === "unconnected") {
+      return null;
+    }
+
+    if (viewerState.mode === "unregistered") {
+      return (
+        <section className="surface-card p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-lg font-semibold text-[var(--text)]">
+                応援はできます。投稿したいときはユーザー登録
               </div>
-              <h3 className="mt-2 text-xl font-semibold leading-tight text-gray-900 sm:text-2xl">
-                {supportTitle}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                {supportDescription}
+              <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+                まずは登録すると、自分のページと投稿機能を使い始められます。
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                {supportStatusLabel}
-              </span>
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600">
-                {supportMetaLabel}
-              </span>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn" onClick={openSupportSheet}>
+                応援する
+              </button>
+              <Link href={viewerWorkspaceHref} className="btn-secondary">
+                ユーザー登録へ
+              </Link>
             </div>
           </div>
+        </section>
+      );
+    }
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
-                いま集まっている支援
+    if (!viewerState.hasCreator) {
+      return (
+        <section className="surface-card p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-lg font-semibold text-[var(--text)]">
+                自分の公開ページを作ると、投稿も始められます
               </div>
-              <div className="mt-2 text-2xl font-semibold text-gray-900">
+              <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+                いまは {pageDisplayName} さんのページを見ています。自分のページを整えると、投稿や応援の受け取りも始められます。
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn" onClick={openSupportSheet}>
+                応援する
+              </button>
+              <Link href={viewerWorkspaceHref} className="btn-secondary">
+                設定を開く
+              </Link>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    return (
+      <section className="surface-card p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-lg font-semibold text-[var(--text)]">
+              いま見ているのは {pageDisplayName} さんの公開ページです
+            </div>
+            <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+              応援したり、気になる投稿を見たりできます。自分のページは別で整えられます。
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn" onClick={openSupportSheet}>
+              応援する
+            </button>
+            <Link href={viewerProfileHref} className="btn-secondary">
+              自分のページを見る
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  })();
+
+  const homeGuideCard = (() => {
+    if (viewerState.mode === "loading") {
+      return (
+        <section className="surface-subtle px-4 py-4 sm:px-5">
+          <div className="text-sm font-semibold text-[var(--text)]">
+            準備を確認しています
+          </div>
+          <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
+            接続状態と登録状況を読み込み中です。
+          </p>
+        </section>
+      );
+    }
+
+    if (viewerState.mode === "unconnected") {
+      return null;
+    }
+
+    if (viewerState.mode === "unregistered") {
+      return (
+        <section className="surface-subtle px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-[var(--text)]">
+                応援はそのままできます。投稿したいときはユーザー登録
+              </div>
+              <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
+                まずは登録すると、自分のページと投稿機能を使い始められます。
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/${username}`} className="btn">
+                プロフィールを見る
+              </Link>
+              <Link href={viewerWorkspaceHref} className="btn-secondary">
+                ユーザー登録へ
+              </Link>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (!viewerState.hasCreator) {
+      return null;
+    }
+
+    return (
+      <section className="surface-subtle px-4 py-4 sm:px-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-[var(--text)]">
+              いま見ているのは、みんなの最新投稿です
+            </div>
+            <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
+              気になる投稿に反応しながら流れを見られます。投稿したいときは自分のページへ移動できます。
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href={viewerComposeHref} className="btn-secondary">
+              自分の投稿画面へ
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  })();
+
+  const profileScreen = (
+    <div className="space-y-4">
+      <ProfileHero
+        username={username}
+        displayName={displayName}
+        avatarUrl={creator.avatarUrl}
+        profile={creator.profile}
+        externalUrl={creator.url}
+        supportLabel={viewerState.isOwner ? "設定を開く" : "応援する"}
+        onSupport={handleHeroAction}
+      />
+
+      {viewerState.mode !== "unconnected" ? profileGuideCard : null}
+
+      <section className="surface-card p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="text-lg font-semibold text-[var(--text)]">
+              いま受け付けている応援
+            </div>
+            <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+              このページでいま受け付けている応援の目的と進み具合をまとめています。
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {viewerState.isOwner ? (
+              <Link href={viewerWorkspaceHref} className="btn-secondary">
+                公開ページを整える
+              </Link>
+            ) : (
+              <button type="button" className="btn" onClick={openSupportSheet}>
+                応援する
+              </button>
+            )}
+          </div>
+        </div>
+
+        {progressLoading ? (
+          <div className="mt-4 text-sm text-[var(--text-subtle)]">読み込み中です</div>
+        ) : progressError ? (
+          <div className="alert-warn mt-4">
+            うまく読み込めませんでした。もう一度お試しください。
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="surface-subtle px-4 py-4">
+              <div className="text-sm text-[var(--text-subtle)]">いま集まっている応援</div>
+              <div className="mt-2 text-2xl font-semibold text-[var(--text)]">
                 {supportOverview
                   ? formatSupportAmount(supportOverview.current, viewCurrency)
                   : "-"}
               </div>
-              <div className="mt-1 text-xs text-gray-500">{viewCurrency}</div>
+              <div className="mt-1 text-xs text-[var(--text-subtle)]">{viewCurrency}</div>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
-                目標
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-gray-900">
+            <div className="surface-subtle px-4 py-4">
+              <div className="text-sm text-[var(--text-subtle)]">目標</div>
+              <div className="mt-2 text-2xl font-semibold text-[var(--text)]">
                 {supportOverview
                   ? formatSupportAmount(supportOverview.target, viewCurrency)
                   : creator.goalTargetJpyc
-                    ? formatSupportAmount(creator.goalTargetJpyc, "JPYC")
-                    : "-"}
+                  ? formatSupportAmount(creator.goalTargetJpyc, "JPYC")
+                  : "-"}
               </div>
-              <div className="mt-1 text-xs text-gray-500">
+              <div className="mt-1 text-xs text-[var(--text-subtle)]">
                 {supportOverview ? viewCurrency : "JPYC"}
               </div>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
-                進捗
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-gray-900">
+            <div className="surface-subtle px-4 py-4">
+              <div className="text-sm text-[var(--text-subtle)]">進捗</div>
+              <div className="mt-2 text-2xl font-semibold text-[var(--text)]">
                 {supportOverview ? `${Math.floor(supportOverview.progressPct)}%` : "-"}
               </div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200">
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
                 <div
-                  className="h-full rounded-full bg-emerald-500"
+                  className="h-full rounded-full bg-[var(--support)]"
                   style={{
                     width: `${supportOverview ? supportOverview.progressPct : 0}%`,
                   }}
@@ -1204,133 +1072,140 @@ export default function ProfileClient({
               </div>
             </div>
           </div>
+        )}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <button
-              type="button"
-              onClick={focusWalletSection}
-              className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
-            >
-              この目標を支援する
-            </button>
-            <div className="text-xs leading-5 text-gray-500">
-              送金は接続したあなたのウォレットから直接実行されます。
+        <div className="mt-4 surface-subtle px-4 py-4">
+          <div className="text-sm text-[var(--text-subtle)]">いま集めていること</div>
+          <div className="mt-2 text-lg font-semibold text-[var(--text)]">
+            {supportTitle}
+          </div>
+          <p className="mt-2 text-sm leading-7 text-[var(--text-subtle)]">
+            {supportDescription}
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="surface-subtle px-4 py-4">
+            <div className="text-sm text-[var(--text-subtle)]">応援の状態</div>
+            <div className="mt-2 text-lg font-semibold text-[var(--text)]">
+              {supportOverview?.achievedAt ? "目標達成済み" : "応援受付中"}
+            </div>
+            <div className="mt-1 text-sm text-[var(--text-subtle)]">
+              {supportOverview?.deadline
+                ? `期限: ${supportOverview.deadline.slice(0, 10)}`
+                : supportOverview
+                ? `${Math.floor(supportOverview.progressPct)}% 進行中`
+                : "公開ページの設定で応援内容を整えられます"}
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
-            <span className="text-xs text-gray-500">表示通貨</span>
-            {(["JPYC", "USDC"] as const).map((cur) => {
-              const active = viewCurrency === cur;
-              const disabled = !resolvedProjectIdsByCurrency[cur];
-              return (
-                <button
-                  key={cur}
-                  type="button"
-                  onClick={() => setViewCurrency(cur)}
-                  disabled={disabled}
-                  className={`rounded-full border px-3 py-1 text-xs ${
-                    active
-                      ? "border-slate-950 bg-slate-950 text-white"
-                      : "border-gray-200 bg-white text-gray-700"
-                  } disabled:opacity-40`}
-                >
-                  {cur}
-                </button>
-              );
-            })}
+          <div className="surface-subtle px-4 py-4">
+            <div className="text-sm text-[var(--text-subtle)]">使える通貨</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {availableCurrencies.length > 0 ? (
+                availableCurrencies.map((currency) => (
+                  <span
+                    key={currency}
+                    className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs text-[var(--text)]"
+                  >
+                    {currency}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-[var(--text-subtle)]">未設定</span>
+              )}
+            </div>
           </div>
-          <div className="border-t border-gray-200 pt-4">
-            {showDbCard ? (
-              <ProjectProgressCard
-                headerColor={headerColor}
-                projectTitle={projectTitle}
-                projectStatus={projectStatus}
-                profileAddressUrl={profileAddressUrl}
-                progressLoading={progressLoading}
-                progressError={progressError}
-                progressTotalYen={progressTotalYen}
-                resolvedTargetYen={resolvedTargetYen}
-                progressConfirmedCount={progressConfirmedCount}
-                goalAchievedAt={goalAchievedAt}
-                progressReached={progressReached}
-                currencyLabel={viewCurrency}
-                supportedJpycChainIds={supportedJpycChainIds}
-                byChainJpyc={byChainJpyc}
-                achieving={achieving}
-                showManualAchieveButton={showManualAchieveButton}
-                embedded
-                onRefresh={() => {
-                  void fetchProjectStatusSafe();
-                  void fetchProjectProgressSafe();
-                }}
-                onAchieve={() => {
-                  void achieveGoalSafe();
-                }}
-              />
-            ) : null}
-            {!showDbCard && showPublicCard ? (
-              <div className="overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
-                <div className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
-                      Goal progress
-                    </div>
-                    {publicSummaryState?.goal?.achievedAt ? (
-                      <span className="text-[11px] text-emerald-700">達成済み</span>
-                    ) : null}
-                  </div>
+        </div>
 
-                  <div className="text-sm font-semibold text-gray-900">
-                    {supportTitle}
-                  </div>
-
-                  <div className="text-xs text-gray-500">
-                    目標:{" "}
-                    {publicSummaryState?.goal
-                      ? formatJpyc(publicSummaryState.goal.targetAmountJpyc)
-                      : "-"}{" "}
-                    JPYC
-                    {publicSummaryState?.goal?.deadline ? (
-                      <span className="ml-2">
-                        期限: {publicSummaryState.goal.deadline.slice(0, 10)}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="text-sm text-gray-800">
-                    現在:{" "}
-                    {publicSummary?.progress
-                      ? formatJpyc(publicSummary.progress.confirmedJpyc)
-                      : "-"}{" "}
-                    JPYC
-                  </div>
-
-                  <div className="h-2 w-full overflow-hidden rounded bg-gray-200">
-                    <div
-                      className="h-2"
-                      style={{
-                        backgroundColor: headerColor,
-                        width: `${clampPct(
-                          publicSummaryState?.progress?.progressPct ?? 0
-                        )}%`,
-                      }}
-                    />
-                  </div>
-
-                  <div className="text-[11px] text-gray-500">
-                    {Math.floor(
-                      clampPct(publicSummaryState?.progress?.progressPct ?? 0)
-                    )}
-                    % 達成
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {(["JPYC", "USDC"] as const).map((currency) => (
+            <button
+              key={currency}
+              type="button"
+              className={`chip-button ${
+                viewCurrency === currency
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : ""
+              }`}
+              disabled={!resolvedProjectIdsByCurrency[currency]}
+              onClick={() => setViewCurrency(currency)}
+            >
+              {currency}
+            </button>
+          ))}
+          {viewerState.isOwner ? (
+            <Link href={viewerWorkspaceHref} className="btn-secondary">
+              設定を開く
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={openSupportSheet}
+            >
+              応援する
+            </button>
+          )}
         </div>
       </section>
 
+      {creator.youtubeVideos && creator.youtubeVideos.length > 0 ? (
+        <section className="surface-card p-5 sm:p-6">
+          <div className="text-lg font-semibold text-[var(--text)]">紹介動画</div>
+          <div className="mt-4 space-y-5">
+            {creator.youtubeVideos.map((video, index) => {
+              const videoId = extractYouTubeId(video.url);
+
+              return (
+                <div key={`${video.url}-${index}`} className="space-y-3">
+                  {videoId ? (
+                    <Link href={video.url} target="_blank" rel="noreferrer">
+                      <Image
+                        src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                        alt={video.title || "紹介動画"}
+                        width={1280}
+                        height={720}
+                        className="w-full rounded-2xl border border-[var(--line)]"
+                      />
+                    </Link>
+                  ) : null}
+                  <div>
+                    <div className="text-base font-semibold text-[var(--text)]">
+                      {video.title || "紹介動画"}
+                    </div>
+                    {video.description ? (
+                      <p className="mt-2 text-sm leading-7 text-[var(--text-subtle)]">
+                        {video.description}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <div id="posts" ref={timelineRef}>
+        <CreatorFeedSection
+          creatorUsername={username}
+          viewerAddress={viewerAddress ?? null}
+          selectedPostId={selectedPostTipContext?.id ?? null}
+          projectIdsByCurrency={resolvedProjectIdsByCurrency}
+          showTipAction
+          refreshToken={feedRefreshToken}
+          headerColor={creator.themeColor || "#2563eb"}
+          onSelectTipPost={handleSelectPostTip}
+          onFocusWalletSection={openSupportSheet}
+        />
+      </div>
+
+      {viewerState.mode === "unconnected" ? profileGuideCard : null}
+    </div>
+  );
+
+  const homeScreen = (
+    <div className="space-y-4">
       {viewerState.isOwner && viewerAddress ? (
         <PublicOwnerComposerCard
           address={viewerAddress}
@@ -1338,71 +1213,41 @@ export default function ProfileClient({
           projectOptions={ownerProjectOptions}
           onCreated={handleOwnerPostCreated}
         />
-      ) : null}
-
-      <CreatorCommunityCard
-        username={username}
-        viewerAddress={viewerAddress ?? null}
-        viewerState={viewerState}
-        managementHref={ownerComposerManagementHref}
-        registrationHref={viewerWorkspaceHref}
-        onRequireConnection={focusWalletSection}
-      />
-
-      <div id="creator-feed" ref={feedSectionRef}>
-        <CreatorFeedSection
-          username={username}
-          viewerAddress={viewerAddress ?? null}
-          selectedPostId={selectedPostTipContext?.id ?? null}
-          projectIdsByCurrency={resolvedProjectIdsByCurrency}
-          refreshToken={feedRefreshToken}
-          headerColor={headerColor}
-          onSelectTipPost={handleSelectPostTip}
-          onFocusWalletSection={focusWalletSection}
-        />
-      </div>
-
-      {/* YouTube 動画ブロック */}
-      {creator.youtubeVideos && creator.youtubeVideos.length > 0 && (
-        <div className="mt-6 rounded-3xl border border-gray-200/80 bg-gray-50 p-5 shadow-sm">
-          <h3 className="mb-2 text-sm font-semibold text-gray-800">
-            🎬 紹介動画 / Featured Videos
-          </h3>
-
-          {creator.youtubeVideos.map((v, idx) => (
-            <div key={idx} className="mb-6 last:mb-0">
-              <a
-                href={v.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Image
-                  src={`https://img.youtube.com/vi/${extractYouTubeId(
-                    v.url
-                  )}/hqdefault.jpg`}
-                  alt={v.title}
-                  width={1280}
-                  height={720}
-                  sizes="(min-width: 768px) 768px, 100vw"
-                  className="rounded-xl w-full mb-2 shadow-sm hover:opacity-90 transition"
-                />
-              </a>
-
-              <h4 className="mb-2 mt-4 text-sm font-semibold text-gray-800">
-                {v.title}
-              </h4>
-
-              <p className="mb-3 text-sm leading-relaxed text-gray-600">
-                {v.description}
-              </p>
-            </div>
-          ))}
-        </div>
+      ) : (
+        homeGuideCard
       )}
 
-      <div id="support-wallet" ref={walletSectionRef}>
-        {loadWalletSection ? (
+      <div id="timeline" ref={timelineRef}>
+        <CreatorFeedSection
+          creatorUsername={null}
+          viewerAddress={viewerAddress ?? null}
+          selectedPostId={selectedPostTipContext?.id ?? null}
+          projectIdsByCurrency={homeProjectIdsByCurrency}
+          showTipAction={false}
+          refreshToken={feedRefreshToken}
+          headerColor={creator.themeColor || "#2563eb"}
+          onSelectTipPost={handleSelectPostTip}
+          onFocusWalletSection={openSupportSheet}
+        />
+      </div>
+    </div>
+  );
+
+  const content = (
+    <>
+      {screen === "home" ? homeScreen : profileScreen}
+
+      <SupportSheet
+        open={supportSheetOpen}
+        title={selectedPostTipContext ? "この投稿を応援" : `${displayName}を応援`}
+        description={
+          selectedPostTipContext
+            ? "金額と通貨を選んで、そのまま応援を送れます。"
+            : "金額と通貨を選んで、やさしく応援を送れます。"
+        }
+        onClose={closeSupportSheet}
+      >
+        {supportSheetLoaded ? (
           <ProfileWalletClient
             username={username}
             creator={creator}
@@ -1411,7 +1256,7 @@ export default function ProfileClient({
             supportedJpycChainIds={supportedJpycChainIds}
             supportedChainIdsByCurrency={supportedChainIdsByCurrency}
             showLegacyCard={showLegacyCard}
-            headerColor={headerColor}
+            headerColor={creator.themeColor || "#2563eb"}
             selectedPostId={selectedPostTipContext?.id ?? null}
             selectedPostSummary={selectedPostTipContext?.preview ?? null}
             selectedPostCurrency={selectedPostTipContext?.preferredCurrency ?? null}
@@ -1419,45 +1264,8 @@ export default function ProfileClient({
             onPostContribution={postContribution}
             onAfterSend={afterSendPipeline}
           />
-        ) : (
-          <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
-            ウォレット情報を準備しています…
-          </div>
-        )}
-      </div>
-
-      {/* フッター */}
-      <footer
-        className="mt-8 -mx-4 sm:-mx-6 px-6 py-5 text-center text-[11px] leading-relaxed text-white/90 space-y-3"
-        style={{
-          backgroundColor: defaultColor,
-          backgroundImage:
-            "linear-gradient(135deg, rgba(255,255,255,0.16), transparent 45%)",
-        }}
-      >
-        <div className="flex justify-center mb-2">
-          <Image
-            src="/icon/creator_founding_white.svg"
-            alt="creator founding logo"
-            width={170}
-            height={48}
-            className="w-[170px] h-auto opacity-90"
-          />
-        </div>
-        <p>
-          ・本サービスは、クリエイター応援を目的とした個人学習による無償提供のUIツールです。
-        </p>
-        <p>
-          ・本サービス（コンテンツ・作品等）はJPYC株式会社の公式コンテンツではありません。
-        </p>
-        <p>
-          ・JPYC/USDCの送付は利用者が外部ウォレットで行うもので、本サービスは資金の保管・預託・管理・送付やその代理・媒介には一切関与しません。
-        </p>
-        <p>
-          ・本サイトの投げ銭は<strong>無償の応援</strong>
-          です。返金や金銭的・物品的な対価は一切発生しません。
-        </p>
-      </footer>
+        ) : null}
+      </SupportSheet>
     </>
   );
 
@@ -1465,19 +1273,5 @@ export default function ProfileClient({
     return content;
   }
 
-  /* ========== 表示部分 ========== */
-  return (
-    <div className="container-narrow py-8 force-light-theme">
-      <div className="overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
-        {/* プロフィールヘッダー */}
-        <ProfileHeader
-          username={username}
-          creator={creator}
-          headerColor={headerColor}
-        />
-        <div className="bg-stone-50/70 px-4 pb-4">{content}</div>
-      </div>
-      <MyPageFooter />
-    </div>
-  );
+  return <div className="space-y-4">{content}</div>;
 }

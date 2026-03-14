@@ -99,6 +99,7 @@ export function CreatorReadySupportPageRoute() {
         displayName={workspace.displayName}
         profile={workspace.profile}
         avatarUrl={workspace.avatarUrl}
+        externalUrl={workspace.externalUrl}
         themeColorValue={workspace.themeColorValue}
         creatorType={workspace.creatorType}
         socials={workspace.socials}
@@ -107,6 +108,7 @@ export function CreatorReadySupportPageRoute() {
         avatarPreview={workspace.avatarPreview}
         setDisplayName={workspace.setDisplayName}
         setProfile={workspace.setProfile}
+        setExternalUrl={workspace.setExternalUrl}
         setThemeColor={workspace.setThemeColor}
         setCreatorType={workspace.setCreatorType}
         setSocials={workspace.setSocials}

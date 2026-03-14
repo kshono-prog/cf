@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 
 import type { FeedPost } from "@/components/feed/feedTypes";
@@ -8,11 +9,13 @@ type Props = {
   post: FeedPost;
   selectedForTip: boolean;
   canTip: boolean;
+  showTipAction: boolean;
   liking: boolean;
   repliesOpen: boolean;
   detailLoading: boolean;
   onToggleLike: () => void;
   onToggleReplies: () => void;
+  onShare: () => void;
   onTip: () => void;
   children?: React.ReactNode;
 };
@@ -33,11 +36,13 @@ export function FeedPostCard(props: Props) {
     post,
     selectedForTip,
     canTip,
+    showTipAction,
     liking,
     repliesOpen,
     detailLoading,
     onToggleLike,
     onToggleReplies,
+    onShare,
     onTip,
     children,
   } = props;
@@ -45,25 +50,37 @@ export function FeedPostCard(props: Props) {
   return (
     <article className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex items-start gap-3">
-        {post.creator.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={post.creator.avatarUrl}
-            alt={post.creator.displayName}
-            className="h-11 w-11 rounded-full border border-gray-200 object-cover"
-          />
-        ) : (
-          <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-semibold text-gray-500">
-            {post.creator.displayName.slice(0, 1)}
-          </div>
-        )}
+        <Link
+          href={`/${post.creator.username}`}
+          className="transition hover:opacity-80"
+          aria-label={`${post.creator.displayName} のページを見る`}
+        >
+          {post.creator.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={post.creator.avatarUrl}
+              alt={post.creator.displayName}
+              className="h-11 w-11 rounded-full border border-gray-200 object-cover"
+            />
+          ) : (
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-semibold text-gray-500">
+              {post.creator.displayName.slice(0, 1)}
+            </div>
+          )}
+        </Link>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="text-sm font-semibold text-gray-900">
-              {post.creator.displayName}
-            </div>
-            <div className="text-xs text-gray-500">@{post.creator.username}</div>
+            <Link
+              href={`/${post.creator.username}`}
+              className="flex min-w-0 flex-wrap items-center gap-2 hover:opacity-80"
+              aria-label={`${post.creator.displayName} のページを見る`}
+            >
+              <div className="text-sm font-semibold text-gray-900">
+                {post.creator.displayName}
+              </div>
+              <div className="text-xs text-gray-500">@{post.creator.username}</div>
+            </Link>
             <div className="text-xs text-gray-400">
               {formatDateTime(post.createdAt)}
             </div>
@@ -82,7 +99,7 @@ export function FeedPostCard(props: Props) {
             ) : null}
             {selectedForTip ? (
               <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
-                支援対象に選択中
+                応援先を選択中
               </span>
             ) : null}
           </div>
@@ -117,15 +134,24 @@ export function FeedPostCard(props: Props) {
         </div>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-gray-500">
-        <span>いいね {post.counts.likes}</span>
-        <span>返信 {post.counts.replies}</span>
-        <span>支援 {post.counts.tips}</span>
-        <span>JPYC {post.tipTotals.JPYC}</span>
-        <span>USDC {post.tipTotals.USDC}</span>
-      </div>
+      <div
+        className={`mt-5 grid gap-2 ${
+          showTipAction ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+        }`}
+      >
+        <button
+          type="button"
+          className={`rounded-full border px-3 py-2 text-xs font-medium transition ${
+            repliesOpen
+              ? "border-slate-900 bg-slate-900 text-white"
+              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+          }`}
+          onClick={onToggleReplies}
+          disabled={detailLoading}
+        >
+          返信 {post.counts.replies}
+        </button>
 
-      <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
           className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
@@ -136,36 +162,33 @@ export function FeedPostCard(props: Props) {
           onClick={onToggleLike}
           disabled={liking}
         >
-          {post.viewerHasLiked ? "いいね済み" : "いいね"}
+          いいね {post.counts.likes}
         </button>
 
         <button
           type="button"
-          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-            repliesOpen
-              ? "border-slate-900 bg-slate-900 text-white"
-              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-          }`}
-          onClick={onToggleReplies}
-          disabled={detailLoading}
+          className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+          onClick={onShare}
         >
-          {repliesOpen ? "返信を閉じる" : "返信を見る"}
+          共有
         </button>
 
-        <button
-          type="button"
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-            canTip
-              ? selectedForTip
-                ? "bg-emerald-600 text-white hover:bg-emerald-500"
-                : "bg-slate-950 text-white hover:bg-slate-800"
-              : "cursor-not-allowed bg-gray-200 text-gray-500"
-          }`}
-          onClick={onTip}
-          disabled={!canTip}
-        >
-          {selectedForTip ? "支援先を確認する" : "この投稿を支援"}
-        </button>
+        {showTipAction ? (
+          <button
+            type="button"
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              canTip
+                ? selectedForTip
+                  ? "bg-emerald-600 text-white hover:bg-emerald-500"
+                  : "bg-slate-950 text-white hover:bg-slate-800"
+                : "cursor-not-allowed bg-gray-200 text-gray-500"
+            }`}
+            onClick={onTip}
+            disabled={!canTip}
+          >
+            {selectedForTip ? "応援先を確認" : `応援 ${post.counts.tips}`}
+          </button>
+        ) : null}
       </div>
 
       {children ? <div className="mt-4 border-t border-gray-200 pt-4">{children}</div> : null}

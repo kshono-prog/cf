@@ -170,8 +170,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const displayName = toOptionalString(json.displayName);
     const profile = toOptionalString(json.profile);
 
-    // null 許容（明示クリアしたい場合）: avatarUrl/themeColor
+    // null 許容（明示クリアしたい場合）: avatarUrl/externalUrl/themeColor
     const avatarUrl = toOptionalNullableString(json.avatarUrl);
+    const externalUrl = toOptionalNullableString(json.externalUrl);
     const themeColor = toOptionalNullableString(json.themeColor);
     const creatorType = parseCreatorTypeOrThrow(json.creatorType);
 
@@ -208,6 +209,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         displayName: displayName ?? creator.displayName,
         profileText: profile ?? creator.profileText,
         avatarUrl: avatarUrl === undefined ? creator.avatarUrl : avatarUrl,
+        externalUrl:
+          externalUrl === undefined ? creator.externalUrl : externalUrl,
         themeColor: themeColor === undefined ? creator.themeColor : themeColor,
         creatorType:
           creatorType === undefined ? creator.creatorType : creatorType,

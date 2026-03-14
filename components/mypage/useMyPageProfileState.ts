@@ -21,6 +21,7 @@ export function useMyPageProfileState(defaultUsername: string) {
   const [displayName, setDisplayName] = useState<string>("");
   const [profile, setProfile] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [externalUrl, setExternalUrl] = useState<string>("");
   const [themeColor, setThemeColor] = useState<string>("");
   const [creatorType, setCreatorType] =
     useState<CreatorProfile["creatorType"]>(null);
@@ -38,6 +39,7 @@ export function useMyPageProfileState(defaultUsername: string) {
       setDisplayName("");
       setProfile("");
       setAvatarUrl("");
+      setExternalUrl("");
       setThemeColor("");
       setCreatorType(null);
       setAvatarFile(null);
@@ -55,6 +57,7 @@ export function useMyPageProfileState(defaultUsername: string) {
       setDisplayName(user?.displayName ?? "");
       setProfile(user?.profile ?? "");
       setAvatarUrl("");
+      setExternalUrl("");
       setThemeColor("");
       setCreatorType(null);
       setAvatarFile(null);
@@ -72,6 +75,7 @@ export function useMyPageProfileState(defaultUsername: string) {
       setDisplayName(creator.displayName ?? user?.displayName ?? "");
       setProfile(creator.profile ?? user?.profile ?? "");
       setAvatarUrl(creator.avatarUrl ?? "");
+      setExternalUrl(creator.url ?? "");
       setThemeColor(creator.themeColor ?? "");
       setCreatorType(creator.creatorType ?? null);
       setAvatarFile(null);
@@ -103,6 +107,8 @@ export function useMyPageProfileState(defaultUsername: string) {
     setProfile,
     avatarUrl,
     setAvatarUrl,
+    externalUrl,
+    setExternalUrl,
     themeColor,
     setThemeColor,
     creatorType,
