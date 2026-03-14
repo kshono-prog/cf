@@ -8,6 +8,7 @@ import {
   useDisconnect,
   useChainId,
   usePublicClient,
+  useSwitchChain,
 } from "wagmi";
 import { formatUnits, type Address } from "viem";
 
@@ -18,7 +19,6 @@ import {
   isSupportedChainId,
   type SupportedChainId,
 } from "@/lib/chainConfig";
-import { getClientRpcUrl } from "@/lib/clientRpc";
 import { getTokenOnChain, type TokenKey } from "@/lib/tokenRegistry";
 import type { WalletBalances } from "@/lib/walletService";
 import type { CreatorProfile } from "@/lib/profileTypes";
@@ -28,7 +28,6 @@ import {
   addAmount,
   clearLastTx,
   ERC20_ABI,
-  getEthereum,
   getErrorMessage,
   getPublicClientForChain,
   INCREMENTS,
@@ -101,6 +100,7 @@ export function ProfileWalletClient({
   const { connector } = account;
   const connect = useConnect();
   const { disconnectAsync } = useDisconnect();
+  const { switchChainAsync } = useSwitchChain();
   const currentChainId = useChainId();
   const ethersProvider = useEthersProvider();
   const publicClient = usePublicClient();
@@ -474,55 +474,21 @@ export function ProfileWalletClient({
   ]);
 
   async function switchChainToSelected() {
-    const eth = getEthereum();
-    if (!eth) return;
-
     const cfg = getChainConfig(selectedChainId);
     if (!cfg) return;
 
-    const chainHex = `0x${cfg.id.toString(16)}`;
-    const rpcUrl =
-      getClientRpcUrl(selectedChainId) ??
-      (selectedChainId === 137 ? "" : (cfg.viemChain.rpcUrls.default.http[0] ?? ""));
-
     try {
-      await eth.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: chainHex }],
-      });
+      setStatus(`${cfg.name} への切り替えを確認しています…`);
+      await switchChainAsync({ chainId: selectedChainId });
+      setStatus("");
       return;
-    } catch {
-      // 未登録の可能性 → add → switch
-    }
-
-    try {
-      await eth.request({
-        method: "wallet_addEthereumChain",
-        params: [
-          {
-            chainId: chainHex,
-            chainName: cfg.name,
-            nativeCurrency: {
-              name: cfg.nativeSymbol,
-              symbol: cfg.nativeSymbol,
-              decimals: 18,
-            },
-            rpcUrls: rpcUrl ? [rpcUrl] : [],
-            blockExplorerUrls: cfg.explorerBaseUrl ? [cfg.explorerBaseUrl] : [],
-          },
-        ],
-      });
-    } catch {
-      // ignore
-    }
-
-    try {
-      await eth.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: chainHex }],
-      });
-    } catch {
-      // ignore
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setStatus(
+        message && message !== "[object Object]"
+          ? `ネットワーク切り替えに失敗しました: ${message}`
+          : "ウォレット側でネットワーク切り替えを完了してください。"
+      );
     }
   }
 
