@@ -225,7 +225,7 @@ export function CreatorCommunityCard(props: Props) {
       return (
         <Link
           href={props.registrationHref}
-          className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+          className="btn"
         >
           登録してフォロー
         </Link>
@@ -237,7 +237,7 @@ export function CreatorCommunityCard(props: Props) {
         <button
           type="button"
           onClick={props.onRequireConnection}
-          className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+          className="btn"
         >
           接続してフォロー
         </button>
@@ -261,10 +261,10 @@ export function CreatorCommunityCard(props: Props) {
         type="button"
         onClick={() => void handleToggleFollow()}
         disabled={pending || loading || !summary}
-        className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+        className={`px-4 py-2 text-xs font-semibold transition ${
           summary?.viewer.follows
-            ? "border border-gray-300 bg-white text-gray-800 hover:border-gray-400"
-            : "border border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
+            ? "btn-secondary"
+            : "btn"
         } disabled:cursor-not-allowed disabled:opacity-60`}
       >
         {pending
@@ -277,97 +277,55 @@ export function CreatorCommunityCard(props: Props) {
   })();
 
   return (
-    <section
-      id="community"
-      className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm"
-    >
-      <div className="space-y-4 p-5 sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div id="community" className="space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-6">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-              Community
-            </div>
-            <h3 className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
-              つながりとフォロー
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              新着投稿を追いかけたい人はフォローできます。活動を見守っている人の輪もここで確認できます。
-            </p>
-          </div>
-          {actionButton}
-        </div>
-
-        {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
-              フォロワー
-            </div>
-            <div className="mt-2 text-2xl font-semibold text-gray-900">
+            <div className="text-[11px] text-[var(--text-subtle)]">フォロワー</div>
+            <div className="mt-1 text-sm font-semibold text-[var(--text)]">
               {loading ? "-" : countLabel(summary?.counts.followers ?? 0)}
             </div>
-            <div className="mt-1 text-xs text-gray-500">
-              最近つながってくれた人たち
-            </div>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
-              フォロー中
-            </div>
-            <div className="mt-2 text-2xl font-semibold text-gray-900">
+          <div>
+            <div className="text-[11px] text-[var(--text-subtle)]">フォロー中</div>
+            <div className="mt-1 text-sm font-semibold text-[var(--text)]">
               {loading ? "-" : countLabel(summary?.counts.following ?? 0)}
-            </div>
-            <div className="mt-1 text-xs text-gray-500">
-              このクリエイターが追いかけている相手
             </div>
           </div>
         </div>
-
-        {loading ? (
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-500">
-            フォロワー一覧を読み込み中です...
-          </div>
-        ) : summary && summary.followers.length > 0 ? (
-          <div className="space-y-3">
-            <div className="text-xs font-medium text-gray-600">
-              最近のフォロワー
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {summary.followers.map((follower) => (
-                <Link
-                  key={follower.id}
-                  href={`/${follower.username}`}
-                  className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-3 py-3 transition hover:border-gray-300"
-                >
-                  <Avatar
-                    src={follower.avatarUrl}
-                    alt={`${follower.displayName} のアイコン`}
-                    fallbackText={previewInitials(follower.displayName)}
-                    size={40}
-                  />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-gray-900">
-                      {follower.displayName}
-                    </div>
-                    <div className="truncate text-xs text-gray-500">
-                      @{follower.username}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-500">
-            まだフォロワー表示はありません。最初の投稿や支援報告を続けると見つけてもらいやすくなります。
-          </div>
-        )}
+        {actionButton}
       </div>
-    </section>
+
+      {error ? (
+        <div className="text-xs text-rose-600">{error}</div>
+      ) : null}
+
+      {!loading && summary && summary.followers.length > 0 ? (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <div className="shrink-0 text-[11px] text-[var(--text-subtle)]">
+            最近のフォロワー
+          </div>
+          <div className="flex items-center gap-2">
+            {summary.followers.slice(0, 5).map((follower) => (
+              <Link
+                key={follower.id}
+                href={`/${follower.username}`}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-2 py-1 transition hover:bg-[var(--surface-subtle)]"
+              >
+                <Avatar
+                  src={follower.avatarUrl}
+                  alt={`${follower.displayName} のアイコン`}
+                  fallbackText={previewInitials(follower.displayName)}
+                  size={24}
+                />
+                <span className="max-w-[120px] truncate text-xs text-[var(--text)]">
+                  {follower.displayName}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

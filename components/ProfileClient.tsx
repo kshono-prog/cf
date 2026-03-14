@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
@@ -28,6 +27,7 @@ import {
 } from "@/lib/publicViewerState";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import { SupportSheet } from "@/components/support/SupportSheet";
+import { CreatorCommunityCard } from "@/components/profile/CreatorCommunityCard";
 
 const ProfileWalletClient = dynamic(
   () =>
@@ -165,7 +165,6 @@ export default function ProfileClient({
   screen = "profile",
 }: Props) {
   const { address: viewerAddress } = useAccount();
-  const router = useRouter();
   const creator: CreatorProfile = useMemo(() => {
     const normalizedAddress =
       typeof creatorInput.address === "string" && creatorInput.address.length > 0
@@ -810,12 +809,9 @@ export default function ProfileClient({
     USDC: string | null;
   };
 
-  function handleHeroAction() {
-    if (viewerState.isOwner) {
-      router.push(viewerWorkspaceHref);
-      return;
-    }
-    openSupportSheet();
+  async function handleViewerConnect(): Promise<void> {
+    const { appkit } = await import("@/lib/appkitInstance");
+    await appkit.open({ view: "Connect" });
   }
 
   const profileGuideCard = (() => {
@@ -998,12 +994,20 @@ export default function ProfileClient({
         avatarUrl={creator.avatarUrl}
         profile={creator.profile}
         externalUrl={creator.url}
-        supportLabel={viewerState.isOwner ? "設定を開く" : "応援する"}
-        onSupport={handleHeroAction}
+        socials={creator.socials}
+        communityContent={
+          <CreatorCommunityCard
+            username={username}
+            viewerAddress={viewerAddress ?? null}
+            viewerState={viewerState}
+            managementHref={ownerComposerManagementHref}
+            registrationHref={viewerWorkspaceHref}
+            onRequireConnection={() => void handleViewerConnect()}
+          />
+        }
       />
 
       {viewerState.mode !== "unconnected" ? profileGuideCard : null}
-
       <section className="surface-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>

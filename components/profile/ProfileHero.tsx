@@ -1,8 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import { Avatar } from "@/components/shared/Avatar";
+import {
+  SOCIAL_ICON_CONFIG,
+  type SocialLinks,
+} from "@/lib/profileTypes";
 
 type ProfileHeroProps = {
   username: string;
@@ -10,8 +15,8 @@ type ProfileHeroProps = {
   avatarUrl: string | null | undefined;
   profile: string | null | undefined;
   externalUrl: string | null | undefined;
-  supportLabel: string;
-  onSupport: () => void;
+  socials?: SocialLinks | null | undefined;
+  communityContent?: React.ReactNode;
 };
 
 function getInitials(value: string): string {
@@ -21,6 +26,15 @@ function getInitials(value: string): string {
 }
 
 export function ProfileHero(props: ProfileHeroProps) {
+  const socialEntries = SOCIAL_ICON_CONFIG.flatMap((item) => {
+    const url = props.socials?.[item.key];
+    if (!url) return [];
+    return [{ key: item.key, label: item.label, icon: item.icon, url }];
+  });
+  const shouldShowExternalUrl =
+    !!props.externalUrl &&
+    !socialEntries.some((entry) => entry.url === props.externalUrl);
+
   return (
     <section className="surface-card overflow-hidden">
       <div className="h-28 bg-[linear-gradient(135deg,#ffffff,rgba(240,241,244,0.92)_45%,rgba(229,231,235,0.72))]" />
@@ -46,23 +60,50 @@ export function ProfileHero(props: ProfileHeroProps) {
                 {props.profile}
               </p>
             ) : null}
-            {props.externalUrl ? (
-              <Link
-                href={props.externalUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--accent)]"
-              >
-                外部リンク
-                <span aria-hidden="true">↗</span>
-              </Link>
+            {socialEntries.length > 0 || shouldShowExternalUrl ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                {socialEntries.map((entry) => (
+                  <Link
+                    key={entry.key}
+                    href={entry.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-subtle)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
+                    aria-label={entry.label}
+                  >
+                    <Image
+                      src={entry.icon}
+                      alt={entry.label}
+                      width={16}
+                      height={16}
+                      className="h-4 w-4"
+                    />
+                  </Link>
+                ))}
+                {shouldShowExternalUrl ? (
+                  <Link
+                    href={props.externalUrl ?? "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-subtle)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
+                    aria-label="外部リンク"
+                  >
+                    <Image
+                      src="/icon/icon-link.svg"
+                      alt="外部リンク"
+                      width={16}
+                      height={16}
+                      className="h-4 w-4"
+                    />
+                  </Link>
+                ) : null}
+              </div>
             ) : null}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <button type="button" className="btn" onClick={props.onSupport}>
-              {props.supportLabel}
-            </button>
+            {props.communityContent ? (
+              <div className="mt-4 border-t border-[var(--line)] pt-4">
+                {props.communityContent}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
