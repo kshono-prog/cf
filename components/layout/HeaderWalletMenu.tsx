@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { useAccount, useChainId, useDisconnect } from "wagmi";
 import type { Address } from "viem";
 
+import { useTheme } from "@/components/theme/ThemeProvider";
 import { getChainConfig, getDefaultChainId, isSupportedChainId } from "@/lib/chainConfig";
 import { formatReadableNumber } from "@/lib/numberFormat";
+import type { ThemePreference } from "@/lib/theme";
 import type { WalletBalances } from "@/lib/walletService";
 
 function shortAddress(value: string): string {
@@ -29,6 +31,38 @@ function MenuCaret(props: { open: boolean }) {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+const themeOptions: Array<{ value: ThemePreference; label: string }> = [
+  { value: "light", label: "ライト" },
+  { value: "dark", label: "ダーク" },
+  { value: "system", label: "自動" },
+];
+
+function ThemeModeSection() {
+  const { preference, setPreference } = useTheme();
+
+  return (
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+      <div className="text-[11px] font-semibold tracking-[0.16em] text-[var(--text-subtle)]">
+        表示モード
+      </div>
+      <div className="mt-2 grid grid-cols-3 gap-1.5">
+        {themeOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={
+              preference === option.value ? "action-pill-active" : "action-pill"
+            }
+            onClick={() => setPreference(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -184,6 +218,7 @@ export function HeaderWalletMenu({ username }: { username: string }) {
                   ? "接続中です"
                   : "ウォレット接続"}
               </button>
+              <ThemeModeSection />
               <Link
                 href={`/${username}/mypage`}
                 className="btn-secondary block w-full text-center"
@@ -223,13 +258,13 @@ export function HeaderWalletMenu({ username }: { username: string }) {
                 </div>
                 {balances ? (
                   <div className="grid grid-cols-2 gap-2 text-xs text-[var(--text-subtle)]">
-                    <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2">
+                    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
                       JPYC {formatReadableNumber(
                         Number(balances.tokens.JPYC?.formatted ?? "0"),
                         { maximumFractionDigits: 2 }
                       )}
                     </div>
-                    <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2">
+                    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
                       USDC {formatReadableNumber(
                         Number(balances.tokens.USDC?.formatted ?? "0"),
                         {
@@ -241,6 +276,8 @@ export function HeaderWalletMenu({ username }: { username: string }) {
                   </div>
                 ) : null}
               </div>
+
+              <ThemeModeSection />
 
               <button
                 type="button"

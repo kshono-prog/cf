@@ -8,8 +8,8 @@ import { HeaderWalletMenu } from "@/components/layout/HeaderWalletMenu";
 
 export function AppHeader({ username }: { username: string }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--line)] bg-white/82 backdrop-blur-xl">
-      <div className="mx-auto flex h-[60px] w-full max-w-[760px] items-center justify-between px-4 sm:px-6">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--line)] bg-[var(--surface)]">
+      <div className="mx-auto flex h-[60px] w-full max-w-[760px] items-center justify-between px-3 sm:px-6">
         <Link href={`/${username}/home`} className="min-w-0">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-[14px] border border-[var(--line)] bg-[var(--surface)] shadow-sm">

@@ -2,6 +2,7 @@
 import { createAppKit } from "@reown/appkit/react";
 import { wagmiAdapter, projectId, networks } from "@/config/appkit";
 import { getDefaultChainId } from "@/lib/chainConfig";
+import { getInitialResolvedTheme } from "@/lib/theme";
 
 type Network = (typeof networks)[number];
 
@@ -55,7 +56,7 @@ export const appkit = createAppKit({
         : [],
   },
   features: { analytics: true, email: false, socials: false },
-  themeMode: "light",
+  themeMode: getInitialResolvedTheme(),
   featuredWalletIds: [
     "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96",
     "38633830ef578a1249c345848a8d6487551a346b923d21ce197ea57f423f3113",

@@ -106,45 +106,45 @@ export function PublicOwnerComposerCard(props: Props) {
   return (
     <section
       id="owner-composer"
-      className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm"
+      className="mt-4 overflow-hidden bg-white"
     >
-      <div className="space-y-4 p-5 sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="space-y-3.5 p-4 sm:p-5">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="text-[11px] font-semibold tracking-[0.18em] text-gray-500">
               自分の操作
             </div>
-            <h3 className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
+            <h3 className="mt-1.5 text-[17px] font-semibold text-gray-900 sm:text-lg">
               今の進捗をここから投稿
             </h3>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
+            <p className="mt-1.5 text-[13px] leading-6 text-gray-600">
               公開ページを見ながら、そのまま近況や支援のお礼を投稿できます。
             </p>
           </div>
           <Link
             href={props.managementHref}
-            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+            className="rounded-full border border-gray-300 bg-white px-3.5 py-1.5 text-[11px] font-medium text-gray-800 transition hover:border-gray-400"
           >
             設定を開く
           </Link>
         </div>
 
-        <form className="space-y-3" onSubmit={handleSubmit}>
+        <form className="space-y-2.5" onSubmit={handleSubmit}>
           <div>
             <label className="block text-xs font-medium text-gray-700">本文</label>
             <textarea
-              className="input mt-1 min-h-[128px]"
+              className="input mt-1 min-h-[120px]"
               value={body}
               onChange={(event) => setBody(event.target.value)}
               placeholder="今日の進捗、次に進めたいこと、支援へのお礼を書けます。"
               disabled={saving}
             />
-            <div className="mt-1 text-[11px] text-gray-500">
+            <div className="mt-1 text-[10px] text-gray-500">
               {trimmedLength}/2000
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr),auto]">
+          <div className="grid gap-2.5 md:grid-cols-[minmax(0,1fr),auto]">
             <div>
               <label className="block text-xs font-medium text-gray-700">
                 応援のひもづけ
@@ -167,7 +167,7 @@ export function PublicOwnerComposerCard(props: Props) {
             <div className="flex items-end">
               <button
                 type="button"
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                className="rounded-full border border-gray-300 bg-white px-3.5 py-1.5 text-[11px] font-medium text-gray-800 transition hover:border-gray-400"
                 onClick={() => setShowMediaFields((current) => !current)}
                 disabled={saving}
               >
@@ -177,7 +177,7 @@ export function PublicOwnerComposerCard(props: Props) {
           </div>
 
           {showMediaFields ? (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2.5 md:grid-cols-2">
               <div>
                 <label className="block text-xs font-medium text-gray-700">
                   メディア種別
@@ -215,18 +215,18 @@ export function PublicOwnerComposerCard(props: Props) {
           ) : null}
 
           {error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
               {error}
             </div>
           ) : null}
           {success ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">
               {success}
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-[11px] leading-5 text-gray-500">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-[10px] leading-5 text-gray-500">
               投稿は公開状態で作成され、プロフィールと投稿一覧に反映されます。
             </div>
             <button type="submit" className="btn" disabled={saving}>

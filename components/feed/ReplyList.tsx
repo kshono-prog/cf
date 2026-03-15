@@ -50,29 +50,29 @@ export function ReplyList(props: Props) {
 
   if (replies.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-500">
+      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-500">
         まだ返信はありません。最初のひとことを送れます。
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {replies.map((reply) => (
         <div
           key={reply.id}
-          className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3"
+          className="rounded-2xl border border-gray-200 bg-white px-3.5 py-3"
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2.5">
             {reply.creator.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={reply.creator.avatarUrl}
                 alt={reply.creator.displayName}
-                className="h-9 w-9 rounded-full border border-gray-200 object-cover"
+                className="h-8.5 w-8.5 rounded-full border border-gray-200 object-cover"
               />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-[11px] font-semibold text-gray-500">
+              <div className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-[11px] font-semibold text-gray-500">
                 {reply.creator.displayName.slice(0, 1)}
               </div>
             )}
@@ -99,7 +99,7 @@ export function ReplyList(props: Props) {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="rounded-full border border-gray-200 bg-white px-3 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-gray-100"
+                      className="manage-pill"
                       onClick={() => onBeginEdit(reply)}
                       disabled={
                         savingReplyId === reply.id || deletingReplyId === reply.id
@@ -109,7 +109,7 @@ export function ReplyList(props: Props) {
                     </button>
                     <button
                       type="button"
-                      className="rounded-full border border-rose-200 bg-white px-3 py-1 text-[11px] font-medium text-rose-700 transition hover:bg-rose-50"
+                      className="manage-pill-danger"
                       onClick={() => onDelete(reply)}
                       disabled={
                         deletingReplyId === reply.id || savingReplyId === reply.id
@@ -122,7 +122,7 @@ export function ReplyList(props: Props) {
               </div>
 
               {editingReplyId === reply.id ? (
-                <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-3">
+                <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 p-3">
                   <textarea
                     className="input min-h-[96px] w-full"
                     value={editValue}
@@ -133,7 +133,7 @@ export function ReplyList(props: Props) {
                     {editValue.trim().length}/1200
                   </div>
                   {editError ? (
-                    <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
                       {editError}
                     </div>
                   ) : null}
@@ -166,11 +166,7 @@ export function ReplyList(props: Props) {
                 <span>いいね {reply.likeCount}</span>
                 <button
                   type="button"
-                  className={`rounded-full border px-3 py-1 transition ${
-                    reply.viewerHasLiked
-                      ? "border-rose-200 bg-rose-50 text-rose-700"
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
-                  }`}
+                  className={reply.viewerHasLiked ? "action-pill-active" : "action-pill"}
                   onClick={() => onToggleLike(reply)}
                   disabled={pendingReplyLikeIds.has(reply.id)}
                 >

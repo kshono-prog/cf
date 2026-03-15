@@ -175,7 +175,7 @@ export function HeaderUserMenu() {
               {selfPageHref ? (
                 <Link
                   href={selfPageHref}
-                  className="block rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3 transition hover:bg-white"
+                  className="block rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3 transition hover:bg-[var(--surface)]"
                   onClick={() => setOpen(false)}
                 >
                   <div className="flex items-center gap-3">

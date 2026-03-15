@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import AppKitProvider from "@/context/AppKitProvider";
 import BottomNav from "@/components/BottomNav";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 type Props = {
   children: React.ReactNode;
@@ -16,13 +17,15 @@ export default async function UsernameLayout({ children, params }: Props) {
 
   return (
     <AppKitProvider cookies={cookies}>
-      <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-        <AppHeader username={username} />
-        <div className="px-4 pb-[88px] pt-[74px] sm:px-6 sm:pb-[96px] sm:pt-[82px]">
-          <div className="mx-auto w-full max-w-[760px]">{children}</div>
+      <ThemeProvider>
+        <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+          <AppHeader username={username} />
+          <div className="pb-[78px] pt-[60px] sm:px-6 sm:pb-[96px] sm:pt-[82px]">
+            <div className="mx-auto w-full max-w-[760px]">{children}</div>
+          </div>
         </div>
-      </div>
-      <BottomNav username={username} />
+        <BottomNav username={username} />
+      </ThemeProvider>
     </AppKitProvider>
   );
 }

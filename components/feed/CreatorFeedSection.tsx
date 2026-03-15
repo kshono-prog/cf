@@ -891,44 +891,41 @@ export function CreatorFeedSection(props: Props) {
   }
 
   return (
-    <section className="mt-6 rounded-3xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section className="mt-3">
+      <div className="flex items-center justify-between gap-3 px-1">
         <div>
-          <h3 className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
+          <h3 className="text-[15px] font-semibold text-gray-900 sm:text-base">
             {creatorUsername ? "投稿" : "最新の投稿"}
           </h3>
-          <p className="mt-1 text-sm leading-6 text-gray-600">
+          <p className="mt-0.5 text-[11px] leading-5 text-gray-500">
             {creatorUsername
               ? "近況への返信やいいね、そのまま投稿への応援まで自然に続けられます。"
               : "いま公開されている最新の投稿を一覧で見られます。応援は各プロフィールから続けられます。"}
           </p>
         </div>
-        <div
-          className="h-1.5 w-20 rounded-full"
-          style={{ backgroundColor: headerColor }}
-        />
+        <div className="h-1 w-14 rounded-full" style={{ backgroundColor: headerColor }} />
       </div>
 
       {notice ? (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="mt-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
           {notice}
         </div>
       ) : null}
 
       {loading ? (
-        <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+        <div className="mt-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-500">
           投稿を読み込み中です…
         </div>
       ) : error ? (
-        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-700">
+        <div className="mt-2.5 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
           投稿の読み込みに失敗しました: {error}
         </div>
       ) : posts.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+        <div className="mt-2.5 rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-500">
           まだ公開されている投稿はありません。
         </div>
       ) : (
-        <div className="mt-5 space-y-4">
+        <div className="mt-2.5 divide-y divide-gray-200 bg-white">
           {posts.map((post) => {
             const detail = detailByPostId[post.id] ?? createEmptyDetailState();
             const cardPost = detail.post ?? post;
@@ -943,7 +940,7 @@ export function CreatorFeedSection(props: Props) {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 transition hover:bg-gray-50"
+                        className="manage-pill"
                         onClick={() => {
                           beginEdit(cardPost);
                         }}
@@ -953,7 +950,7 @@ export function CreatorFeedSection(props: Props) {
                       </button>
                       <button
                         type="button"
-                        className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-medium text-rose-700 transition hover:bg-rose-50"
+                        className="manage-pill-danger"
                         onClick={() => {
                           void handleDeletePost(cardPost);
                         }}
@@ -984,9 +981,9 @@ export function CreatorFeedSection(props: Props) {
                 }}
               >
                 {editingPostId === post.id && editDraft ? (
-                  <div className="space-y-4">
-                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <div className="text-sm font-semibold text-gray-900">
                             投稿を編集
@@ -1005,13 +1002,13 @@ export function CreatorFeedSection(props: Props) {
                         </button>
                       </div>
 
-                      <div className="mt-4 space-y-3">
+                      <div className="mt-2.5 space-y-2.5">
                         <div>
                           <label className="block text-xs font-medium text-gray-700">
                             本文
                           </label>
                           <textarea
-                            className="input mt-1 min-h-[132px]"
+                            className="input mt-1 min-h-[108px]"
                             value={editDraft.body}
                             onChange={(event) => {
                               setEditDraft((current) =>
@@ -1022,12 +1019,12 @@ export function CreatorFeedSection(props: Props) {
                             }}
                             disabled={savingEdit}
                           />
-                          <div className="mt-1 text-[11px] text-gray-500">
+                          <div className="mt-1 text-[10px] text-gray-500">
                             {editDraft.body.trim().length}/2000
                           </div>
                         </div>
 
-                        <div className="grid gap-3 md:grid-cols-3">
+                        <div className="grid gap-2 md:grid-cols-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-700">
                               応援のひもづけ
@@ -1105,7 +1102,7 @@ export function CreatorFeedSection(props: Props) {
                         </div>
 
                         {editError ? (
-                          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
                             {editError}
                           </div>
                         ) : null}
@@ -1128,13 +1125,13 @@ export function CreatorFeedSection(props: Props) {
                 ) : null}
 
                 {isOpen ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {detail.loading ? (
-                      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-500">
+                      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-sm text-gray-500">
                         返信を読み込み中です…
                       </div>
                     ) : detail.error ? (
-                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-5 text-sm text-red-700">
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-700">
                         返信の読み込みに失敗しました: {detail.error}
                       </div>
                     ) : (
@@ -1183,10 +1180,10 @@ export function CreatorFeedSection(props: Props) {
       )}
 
       {nextCursor ? (
-        <div className="mt-5 flex justify-center">
+        <div className="mt-2.5 flex justify-center">
           <button
             type="button"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => {
               void fetchFeedPage({ cursor: nextCursor, append: true });
             }}

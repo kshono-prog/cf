@@ -19,7 +19,7 @@ export function Avatar({ src, alt, fallbackText, size = 64 }: AvatarProps) {
     return (
       <div
         style={{ width: dimension, height: dimension }}
-        className="flex items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-sky-500 text-white ring-2 ring-slate-200/80 select-none font-semibold"
+        className="flex items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-sky-500 text-white ring-2 ring-[var(--line)] select-none font-semibold"
         aria-label={alt}
       >
         {fallbackText}
@@ -33,7 +33,7 @@ export function Avatar({ src, alt, fallbackText, size = 64 }: AvatarProps) {
       alt={alt}
       width={dimension}
       height={dimension}
-      className="rounded-full object-cover bg-gray-100 ring-2 ring-slate-200/80"
+      className="rounded-full object-cover bg-[var(--surface-subtle)] ring-2 ring-[var(--line)]"
       onError={() => setBroken(true)}
       priority
     />

@@ -151,8 +151,8 @@ export default function BottomNav({ username }: BottomNavProps) {
   ];
 
   return (
-    <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 px-4 pb-2">
-      <div className="mx-auto flex max-w-[540px] items-center gap-1.5 rounded-[24px] border border-[var(--line)] bg-white/96 px-1.5 py-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+    <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line)] bg-[var(--surface)]">
+      <div className="mx-auto flex max-w-[760px] items-center gap-0 px-1 py-1">
         {items.map((item) => {
           const active = isActive(pathname, item);
           const icon = iconFor(item.key);
@@ -161,9 +161,9 @@ export default function BottomNav({ username }: BottomNavProps) {
             <Link
               key={item.key}
               href={item.href}
-              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[18px] px-2 py-2 text-center transition ${
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[14px] px-2 py-1.5 text-center transition ${
                 active
-                  ? "bg-[var(--surface-subtle)] text-[var(--text)] ring-1 ring-[var(--line)]"
+                  ? "bg-[var(--surface-subtle)] text-[var(--text)]"
                   : "text-[var(--text-subtle)] hover:bg-[var(--surface-subtle)]"
               }`}
             >

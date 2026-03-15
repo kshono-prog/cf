@@ -80,8 +80,8 @@ export function FeedPostCard(props: Props) {
     (post.mediaType === "VIDEO" || post.mediaType === "LINK");
 
   return (
-    <article className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-      <div className="flex items-start gap-3">
+    <article className="px-3.5 py-2.5 sm:px-4 sm:py-3">
+      <div className="flex items-start gap-2.5">
         <Link
           href={`/${post.creator.username}`}
           className="transition hover:opacity-80"
@@ -92,10 +92,10 @@ export function FeedPostCard(props: Props) {
             <img
               src={post.creator.avatarUrl}
               alt={post.creator.displayName}
-              className="h-11 w-11 rounded-full border border-gray-200 object-cover"
+              className="h-9.5 w-9.5 rounded-full border border-gray-200 object-cover"
             />
           ) : (
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-semibold text-gray-500">
+            <div className="flex h-9.5 w-9.5 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-semibold text-gray-500">
               {post.creator.displayName.slice(0, 1)}
             </div>
           )}
@@ -110,12 +110,12 @@ export function FeedPostCard(props: Props) {
                   className="flex min-w-0 flex-wrap items-center gap-2 hover:opacity-80"
                   aria-label={`${post.creator.displayName} のページを見る`}
                 >
-                  <div className="text-sm font-semibold text-gray-900">
+                  <div className="text-[12px] font-semibold text-gray-900 sm:text-[13px]">
                     {post.creator.displayName}
                   </div>
-                  <div className="text-xs text-gray-500">@{post.creator.username}</div>
+                  <div className="text-[11px] text-gray-500">@{post.creator.username}</div>
                 </Link>
-                <div className="text-xs text-gray-400">
+                <div className="text-[11px] text-gray-400">
                   {formatDateTime(post.createdAt)}
                 </div>
               </div>
@@ -123,19 +123,19 @@ export function FeedPostCard(props: Props) {
             {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-1 flex flex-wrap gap-1.5">
             {post.project ? (
-              <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-700">
+              <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
                 {post.project.title} / {post.project.currency}
               </span>
             ) : null}
             {post.aiGenerated ? (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
                 AI生成
               </span>
             ) : null}
             {selectedForTip ? (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
                 応援先を選択中
               </span>
             ) : null}
@@ -143,12 +143,12 @@ export function FeedPostCard(props: Props) {
         </div>
       </div>
 
-      <div className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-800">
+      <div className="mt-2.5 whitespace-pre-wrap text-[13px] leading-6 text-gray-800">
         {post.body}
       </div>
 
       {post.mediaUrl ? (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+        <div className="mt-2.5 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
           {post.mediaType === "IMAGE" ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -184,7 +184,7 @@ export function FeedPostCard(props: Props) {
               href={post.mediaUrl}
               target="_blank"
               rel="noreferrer"
-              className="block p-4 text-sm text-sky-700 underline hover:text-sky-800"
+              className="block px-4 py-3 text-sm text-sky-700 underline hover:text-sky-800"
             >
               {post.mediaType === "VIDEO" ? "動画リンクを開く" : "リンクを開く"}
             </a>
@@ -193,16 +193,16 @@ export function FeedPostCard(props: Props) {
       ) : null}
 
       <div
-        className={`mt-5 grid gap-2 ${
+        className={`mt-3 grid gap-1.5 ${
           showTipAction ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
         }`}
       >
         <button
           type="button"
-          className={`rounded-full border px-3 py-2 text-xs font-medium transition ${
+          className={`${
             repliesOpen
-              ? "border-slate-900 bg-slate-900 text-white"
-              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+              ? "action-pill-active"
+              : "action-pill"
           }`}
           onClick={onToggleReplies}
           disabled={detailLoading}
@@ -212,10 +212,10 @@ export function FeedPostCard(props: Props) {
 
         <button
           type="button"
-          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+          className={`${
             post.viewerHasLiked
-              ? "border-rose-200 bg-rose-50 text-rose-700"
-              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+              ? "action-pill-active"
+              : "action-pill"
           }`}
           onClick={onToggleLike}
           disabled={liking}
@@ -225,7 +225,7 @@ export function FeedPostCard(props: Props) {
 
         <button
           type="button"
-          className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+          className="action-pill"
           onClick={onShare}
         >
           共有
@@ -234,12 +234,12 @@ export function FeedPostCard(props: Props) {
         {showTipAction ? (
           <button
             type="button"
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            className={`${
               canTip
                 ? selectedForTip
-                  ? "bg-emerald-600 text-white hover:bg-emerald-500"
-                  : "bg-slate-950 text-white hover:bg-slate-800"
-                : "cursor-not-allowed bg-gray-200 text-gray-500"
+                  ? "action-pill-active"
+                  : "btn"
+                : "action-pill cursor-not-allowed text-gray-400"
             }`}
             onClick={onTip}
             disabled={!canTip}
@@ -249,7 +249,7 @@ export function FeedPostCard(props: Props) {
         ) : null}
       </div>
 
-      {children ? <div className="mt-4 border-t border-gray-200 pt-4">{children}</div> : null}
+      {children ? <div className="mt-2.5 border-t border-gray-200 pt-2.5">{children}</div> : null}
     </article>
   );
 }
