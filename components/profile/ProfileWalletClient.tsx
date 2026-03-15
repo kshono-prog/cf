@@ -55,6 +55,14 @@ type ContributionArgs = {
   amount: string;
 };
 
+type ContributionPreflightArgs = {
+  projectId: string;
+  purposeId?: string;
+  postId?: string | null;
+  chainId: number;
+  currency: Currency;
+};
+
 type Props = {
   username: string;
   creator: CreatorProfile;
@@ -524,6 +532,54 @@ export function ProfileWalletClient({
     }
   }
 
+  async function ensureContributionPreflight(
+    args: ContributionPreflightArgs
+  ): Promise<{ ok: true } | { ok: false; message: string }> {
+    try {
+      const response = await fetch("/api/contributions/preflight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          projectId: args.projectId,
+          purposeId: args.purposeId ?? null,
+          postId: args.postId ?? null,
+          chainId: args.chainId,
+          currency: args.currency,
+        }),
+      });
+
+      const json = (await response.json().catch(() => null)) as unknown;
+      if (response.ok) {
+        return { ok: true };
+      }
+
+      if (
+        typeof json === "object" &&
+        json !== null &&
+        "message" in json &&
+        typeof json.message === "string" &&
+        json.message.trim().length > 0
+      ) {
+        return { ok: false, message: json.message };
+      }
+
+      return {
+        ok: false,
+        message:
+          response.status === 503
+            ? "現在サーバーが混み合っているため、送金後の記録を保証できません。時間をおいてもう一度お試しください。"
+            : "送金前の確認に失敗しました。時間をおいてもう一度お試しください。",
+      };
+    } catch {
+      return {
+        ok: false,
+        message:
+          "送金前の確認に失敗しました。通信状況を確認して、もう一度お試しください。",
+      };
+    }
+  }
+
   async function send(overrideAmount?: string) {
     if (!connected) {
       alert("ウォレットを接続してください");
@@ -549,7 +605,7 @@ export function ProfileWalletClient({
 
     try {
       setSending(true);
-      setStatus("送金中…ウォレットで承認してください");
+      setStatus("送金内容を確認しています…");
 
       const signer = await ethersProvider.getSigner();
 
@@ -587,6 +643,23 @@ export function ProfileWalletClient({
         return;
       }
 
+      if (activeProjectId) {
+        setStatus("送金前の確認をしています…");
+        const preflight = await ensureContributionPreflight({
+          projectId: activeProjectId,
+          purposeId,
+          postId: selectedPostId,
+          chainId: selectedChainId,
+          currency,
+        });
+
+        if (!preflight.ok) {
+          setStatus(preflight.message);
+          return;
+        }
+      }
+
+      setStatus("送金中…ウォレットで承認してください");
       const tx = await token.transfer(toAddress, value);
 
       saveLastTx({
