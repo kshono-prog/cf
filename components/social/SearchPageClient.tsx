@@ -9,6 +9,7 @@ import type { FeedPost } from "@/components/feed/feedTypes";
 import type { DiscoverCreator } from "@/lib/discoverCreators";
 import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
+import { getActiveSupportProject } from "@/lib/supportProfileView";
 
 function matchesQuery(value: string, query: string): boolean {
   return value.toLowerCase().includes(query);
@@ -18,16 +19,22 @@ function buildPostPreview(body: string): string {
   return body.length > 120 ? `${body.slice(0, 119)}…` : body;
 }
 
-function formatTargetYen(value: number | null): string | null {
+function formatSupportAmount(
+  value: number | null,
+  currency: "JPYC" | "USDC"
+): string {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return null;
+    return `0 ${currency}`;
+  }
+
+  if (currency === "USDC") {
+    return `${value.toLocaleString("ja-JP", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} USDC`;
   }
 
   return `${Math.floor(value).toLocaleString("ja-JP")} JPYC`;
-}
-
-function buildSupportTitle(creator: DiscoverCreator): string {
-  return creator.supportTitle ?? `${creator.displayName}の活動を応援する`;
 }
 
 type SearchPageClientProps = {
@@ -88,13 +95,24 @@ export function SearchPageClient(props: SearchPageClientProps) {
     if (!normalizedQuery) return creators;
 
     return creators.filter((creator) => {
+      const activeSupport = getActiveSupportProject(creator.supportProfileView);
       return (
         matchesQuery(creator.displayName, normalizedQuery) ||
         matchesQuery(creator.username, normalizedQuery) ||
         matchesQuery(creator.profile ?? "", normalizedQuery) ||
-        matchesQuery(creator.supportTitle ?? "", normalizedQuery) ||
-        matchesQuery(creator.supportDescription ?? "", normalizedQuery) ||
-        matchesQuery(formatTargetYen(creator.supportTargetJpyc) ?? "", normalizedQuery)
+        matchesQuery(activeSupport?.title ?? "", normalizedQuery) ||
+        matchesQuery(activeSupport?.description ?? "", normalizedQuery) ||
+        matchesQuery(
+          activeSupport
+            ? formatSupportAmount(activeSupport.targetAmount, activeSupport.currency)
+            : "",
+          normalizedQuery
+        ) ||
+        matchesQuery(creator.supportProfileView.draft?.title ?? "", normalizedQuery) ||
+        matchesQuery(
+          creator.supportProfileView.draft?.description ?? "",
+          normalizedQuery
+        )
       );
     });
   }, [creators, normalizedQuery]);
@@ -115,22 +133,21 @@ export function SearchPageClient(props: SearchPageClientProps) {
     const supportSource = normalizedQuery ? creators : filteredCreators;
 
     return supportSource.filter((creator) => {
+      const activeSupport = getActiveSupportProject(creator.supportProfileView);
       const matchesSupportQuery =
         !normalizedQuery ||
         matchesQuery(creator.displayName, normalizedQuery) ||
         matchesQuery(creator.username, normalizedQuery) ||
-        matchesQuery(creator.supportTitle ?? "", normalizedQuery) ||
-        matchesQuery(creator.supportDescription ?? "", normalizedQuery) ||
-        matchesQuery(formatTargetYen(creator.supportTargetJpyc) ?? "", normalizedQuery);
+        matchesQuery(activeSupport?.title ?? "", normalizedQuery) ||
+        matchesQuery(activeSupport?.description ?? "", normalizedQuery) ||
+        matchesQuery(
+          activeSupport
+            ? formatSupportAmount(activeSupport.targetAmount, activeSupport.currency)
+            : "",
+          normalizedQuery
+        );
 
-      return (
-        matchesSupportQuery &&
-        Boolean(
-          creator.supportTitle ||
-            creator.supportDescription ||
-            creator.supportTargetJpyc
-        )
-      );
+      return matchesSupportQuery && creator.supportProfileView.mode === "ready";
     });
   }, [creators, filteredCreators, normalizedQuery]);
 
@@ -369,9 +386,20 @@ export function SearchPageClient(props: SearchPageClientProps) {
                 </div>
               ) : (
                 filteredSupportCreators.map((creator) => {
-                  const targetLabel = formatTargetYen(creator.supportTargetJpyc);
-                  const description =
-                    creator.supportDescription ?? creator.profile;
+                  const activeSupport = getActiveSupportProject(
+                    creator.supportProfileView
+                  );
+                  if (!activeSupport) return null;
+
+                  const progressPct = Math.floor(
+                    Math.max(0, Math.min(100, activeSupport.progressPct))
+                  );
+                  const statusLabel =
+                    activeSupport.status === "ACHIEVED"
+                      ? "目標達成済み"
+                      : activeSupport.status === "NO_GOAL"
+                      ? "目標未設定"
+                      : "受付中";
 
                   return (
                     <div
@@ -403,11 +431,11 @@ export function SearchPageClient(props: SearchPageClientProps) {
                         </div>
                         <div className="min-w-0">
                           <div className="text-lg font-semibold leading-7 text-[var(--text)]">
-                            {buildSupportTitle(creator)}
+                            {activeSupport.title}
                           </div>
-                          {description ? (
+                          {activeSupport.description ? (
                             <p className="mt-2 text-sm leading-7 text-[var(--text-subtle)]">
-                              {description}
+                              {activeSupport.description}
                             </p>
                           ) : null}
                         </div>
@@ -418,7 +446,10 @@ export function SearchPageClient(props: SearchPageClientProps) {
                             集まった応援
                           </div>
                           <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                            0 JPYC
+                            {formatSupportAmount(
+                              activeSupport.confirmedAmount,
+                              activeSupport.currency
+                            )}
                           </div>
                         </div>
                         <div>
@@ -426,7 +457,12 @@ export function SearchPageClient(props: SearchPageClientProps) {
                             目標
                           </div>
                           <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                            {targetLabel ?? "-"}
+                            {activeSupport.targetAmount != null
+                              ? formatSupportAmount(
+                                  activeSupport.targetAmount,
+                                  activeSupport.currency
+                                )
+                              : "-"}
                           </div>
                         </div>
                         <div>
@@ -434,7 +470,7 @@ export function SearchPageClient(props: SearchPageClientProps) {
                             進捗
                           </div>
                           <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                            0%
+                            {progressPct}%
                           </div>
                         </div>
                         <div>
@@ -442,7 +478,7 @@ export function SearchPageClient(props: SearchPageClientProps) {
                             状態
                           </div>
                           <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                            受付中
+                            {statusLabel}
                           </div>
                         </div>
                       </div>

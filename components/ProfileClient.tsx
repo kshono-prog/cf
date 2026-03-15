@@ -16,7 +16,6 @@ import {
 } from "@/components/profile/profileClientHelpers";
 import {
   isRecord,
-  pickPublicSummaryLite,
   type PublicSummaryLite,
 } from "@/lib/publicSummary";
 import type { SelectedPostTipContext } from "@/components/feed/feedTypes";
@@ -28,6 +27,10 @@ import {
 } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
 import { ProfileHero } from "@/components/profile/ProfileHero";
+import {
+  buildSupportProjectView,
+  type SupportProfileView,
+} from "@/lib/supportProfileView";
 
 const ProfileWalletClient = dynamic(
   () =>
@@ -68,13 +71,6 @@ const CreatorCommunityCard = dynamic(
   }
 );
 
-type PublicCreatorResponse =
-  | {
-      ok: true;
-      summary: unknown | null;
-    }
-  | { ok: false; error: string; detail?: string };
-
 type CreatorProfileInput = Omit<CreatorProfile, "address"> & {
   address?: string | null;
 };
@@ -88,6 +84,7 @@ type Props = {
     USDC: string | null;
   } | null;
   publicSummary?: PublicSummaryLite | null;
+  supportProfileView?: SupportProfileView | null;
   initialFeed?: FeedListView | null;
   layout?: "full" | "content";
 };
@@ -184,7 +181,7 @@ export default function ProfileClient({
   creator: creatorInput,
   projectId,
   projectIdsByCurrency,
-  publicSummary,
+  supportProfileView,
   initialFeed = null,
   layout = "full",
 }: Props) {
@@ -209,16 +206,32 @@ export default function ProfileClient({
     }),
     [projectId, projectIdsByCurrency]
   );
-  const activeProjectId = resolvedProjectIdsByCurrency[viewCurrency];
-  const publicSummaryFetchRef = useRef<string | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const reverifyOnViewBusyRef = useRef(false);
   const attemptedThisViewRef = useRef<{ set: Set<string> }>({
     set: new Set<string>(),
   });
 
-  const [publicSummaryState, setPublicSummaryState] =
-    useState<PublicSummaryLite | null>(publicSummary ?? null);
+  const [supportProfileState, setSupportProfileState] =
+    useState<SupportProfileView>(
+      supportProfileView ?? {
+        mode:
+          creator.goalTitle || creator.profile ? "draft" : "unavailable",
+        activeCurrency: null,
+        activeProjectId: null,
+        projectsByCurrency: {
+          JPYC: null,
+          USDC: null,
+        },
+        draft:
+          creator.goalTitle || creator.profile
+            ? {
+                title: creator.goalTitle ?? null,
+                description: creator.profile ?? null,
+              }
+            : null,
+      }
+    );
   const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
   const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
     typeof parsePublicViewerMeResponse
@@ -230,8 +243,6 @@ export default function ProfileClient({
   const [supportSheetLoaded, setSupportSheetLoaded] = useState(false);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
-  const [progressTotalYen, setProgressTotalYen] = useState<number | null>(null);
-  const [progressTargetYen, setProgressTargetYen] = useState<number | null>(null);
   const [goalAchievedAt, setGoalAchievedAt] = useState<string | null>(null);
   const [supportedJpycChainIds, setSupportedJpycChainIds] = useState<number[]>(
     []
@@ -241,62 +252,45 @@ export default function ProfileClient({
       JPYC: [],
       USDC: [],
     });
-  const [projectGoalTargetYen, setProjectGoalTargetYen] = useState<
-    number | null
-  >(null);
-  const [projectTitle, setProjectTitle] = useState<string | null>(null);
   const [autoReverifyRunning, setAutoReverifyRunning] = useState(false);
 
   useEffect(() => {
-    if (resolvedProjectIdsByCurrency[viewCurrency]) return;
-    if (resolvedProjectIdsByCurrency.JPYC) {
-      setViewCurrency("JPYC");
-      return;
+    if (!supportProfileView) return;
+    setSupportProfileState(supportProfileView);
+  }, [supportProfileView]);
+
+  const availableSupportCurrencies = useMemo(
+    () =>
+      (["JPYC", "USDC"] as const).filter(
+        (currency) => supportProfileState.projectsByCurrency[currency] !== null
+      ),
+    [supportProfileState]
+  );
+
+  const activeSupportProject = useMemo(() => {
+    const preferred = supportProfileState.projectsByCurrency[viewCurrency];
+    if (preferred) return preferred;
+    if (supportProfileState.activeCurrency) {
+      return supportProfileState.projectsByCurrency[supportProfileState.activeCurrency];
     }
-    if (resolvedProjectIdsByCurrency.USDC) {
-      setViewCurrency("USDC");
-    }
-  }, [resolvedProjectIdsByCurrency, viewCurrency]);
+    return availableSupportCurrencies.length > 0
+      ? supportProfileState.projectsByCurrency[availableSupportCurrencies[0]]
+      : null;
+  }, [availableSupportCurrencies, supportProfileState, viewCurrency]);
+
+  const activeProjectId = activeSupportProject?.projectId ?? null;
 
   useEffect(() => {
-    if (publicSummary !== undefined) {
-      setPublicSummaryState(publicSummary);
+    if (supportProfileState.mode !== "ready") return;
+    if (supportProfileState.projectsByCurrency[viewCurrency]) return;
+    if (supportProfileState.activeCurrency) {
+      setViewCurrency(supportProfileState.activeCurrency);
       return;
     }
-
-    if (publicSummaryFetchRef.current === username) return;
-    publicSummaryFetchRef.current = username;
-
-    let cancelled = false;
-
-    async function fetchPublicSummary(): Promise<void> {
-      try {
-        const response = await fetch(
-          `/api/public/creator?username=${encodeURIComponent(username)}`,
-          {
-            cache: "no-store",
-          }
-        );
-        const json: unknown = await response.json().catch(() => null);
-        if (!cancelled && response.ok && isRecord(json) && json.ok === true) {
-          const result = json as Extract<PublicCreatorResponse, { ok: true }>;
-          setPublicSummaryState(
-            result.summary ? pickPublicSummaryLite(result.summary) : null
-          );
-        }
-      } catch {
-        if (!cancelled) {
-          setPublicSummaryState(null);
-        }
-      }
+    if (availableSupportCurrencies[0]) {
+      setViewCurrency(availableSupportCurrencies[0]);
     }
-
-    void fetchPublicSummary();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [publicSummary, username]);
+  }, [availableSupportCurrencies, supportProfileState, viewCurrency]);
 
   useEffect(() => {
     if (!viewerAddress) {
@@ -391,34 +385,39 @@ export default function ProfileClient({
           )
         : [];
 
-      setProjectTitle(
-        typeof typed.project.title === "string" && typed.project.title.length > 0
-          ? typed.project.title
-          : null
-      );
-      setPublicSummaryState({
-        goal: typed.goal
-          ? {
-              targetAmountJpyc: typed.goal.targetAmountJpyc,
-              achievedAt: typed.goal.achievedAt,
-              deadline: typed.goal.deadline ?? null,
-            }
-          : null,
-        progress: {
-          confirmedJpyc: Number.isFinite(confirmed) ? confirmed : 0,
-          targetJpyc:
+      setSupportProfileState((current) => {
+        const currency = typed.progress.currency === "USDC" ? "USDC" : "JPYC";
+        const nextProject = buildSupportProjectView({
+          projectId: typed.project.id,
+          currency,
+          title:
+            typeof typed.project.title === "string" && typed.project.title.length > 0
+              ? typed.project.title
+              : `${creator.displayName || username}の活動を応援する`,
+          description: creator.profile ?? null,
+          targetAmount:
             typeof target === "number" && Number.isFinite(target) ? target : null,
+          confirmedAmount: Number.isFinite(confirmed) ? confirmed : 0,
           progressPct:
             typeof typed.progress.progressPct === "number" &&
             Number.isFinite(typed.progress.progressPct)
               ? typed.progress.progressPct
               : 0,
-        },
+          achievedAt: typed.goal?.achievedAt ?? null,
+          deadline: typed.goal?.deadline ?? null,
+        });
+
+        return {
+          mode: "ready",
+          activeCurrency: current.activeCurrency ?? currency,
+          activeProjectId: typed.project.id,
+          projectsByCurrency: {
+            ...current.projectsByCurrency,
+            [currency]: nextProject,
+          },
+          draft: null,
+        };
       });
-      setProgressTotalYen(Number.isFinite(confirmed) ? confirmed : 0);
-      setProgressTargetYen(
-        typeof target === "number" && Number.isFinite(target) ? target : null
-      );
       setGoalAchievedAt(typed.goal?.achievedAt ?? null);
       setSupportedJpycChainIds(idsAll.length > 0 ? idsAll : idsLegacy);
 
@@ -442,11 +441,6 @@ export default function ProfileClient({
         setSupportedChainIdsByCurrency({ JPYC: idsLegacy, USDC: [] });
       }
 
-      const goalTarget = typed.goal?.targetAmount ?? typed.goal?.targetAmountJpyc;
-      if (goalTarget != null) {
-        setProjectGoalTargetYen(goalTarget);
-      }
-
       return typed;
     } catch (error) {
       setProgressError(getErrorMessage(error));
@@ -454,7 +448,7 @@ export default function ProfileClient({
     } finally {
       setProgressLoading(false);
     }
-  }, [activeProjectId]);
+  }, [activeProjectId, creator.displayName, creator.profile, username]);
 
   async function achieveGoalSafe(): Promise<GoalAchievePost | null> {
     if (!activeProjectId) return null;
@@ -625,11 +619,11 @@ export default function ProfileClient({
     };
   }, [
     activeProjectId,
+    activeSupportProject?.confirmedAmount,
     autoReverifyRunning,
     fetchPendingTxHashesSafe,
     fetchProjectProgressSafe,
     progressLoading,
-    progressTotalYen,
     viewerState.isOwner,
   ]);
 
@@ -725,92 +719,43 @@ export default function ProfileClient({
     }
   }
 
-  const resolvedTargetYen =
-    progressTargetYen != null ? progressTargetYen : projectGoalTargetYen;
-  const hasProject = Boolean(activeProjectId);
-  const hasDbGoal =
-    hasProject &&
-    typeof resolvedTargetYen === "number" &&
-    Number.isFinite(resolvedTargetYen) &&
-    resolvedTargetYen > 0;
-  const hasPublicGoal =
-    publicSummaryState?.goal != null && publicSummaryState.progress != null;
-  const hasLegacyOnchainGoal = Boolean(
-    creator.goalTitle && creator.goalTargetJpyc
-  );
-  const showDbCard = hasDbGoal;
-  const showPublicCard = !showDbCard && hasPublicGoal;
-  const showLegacyCard =
-    !showDbCard && !showPublicCard ? hasLegacyOnchainGoal : false;
   const displayName = creator.displayName || username;
+  const showLegacyCard = false;
+  const supportMode = supportProfileState.mode;
   const supportTitle =
-    projectTitle || creator.goalTitle || `${displayName}の活動を応援する`;
+    supportMode === "ready"
+      ? activeSupportProject?.title ?? `${displayName}の活動を応援する`
+      : supportMode === "draft"
+      ? supportProfileState.draft?.title ?? `${displayName}の公開ページは準備中です`
+      : `${displayName}の公開ページは準備中です`;
   const supportDescription =
-    creator.profile?.trim() ||
-    "投稿や活動の近況を見ながら、必要なタイミングで自然に応援できます。";
-
-  const supportOverview = (() => {
-    if (
-      showDbCard &&
-      resolvedTargetYen != null &&
-      progressTotalYen != null &&
-      resolvedTargetYen > 0
-    ) {
-      return {
-        current: progressTotalYen,
-        target: resolvedTargetYen,
-        progressPct: clampPct((progressTotalYen / resolvedTargetYen) * 100),
-        achievedAt: goalAchievedAt,
-        deadline: null,
-      };
-    }
-
-    if (
-      showPublicCard &&
-      publicSummaryState?.goal?.targetAmountJpyc &&
-      publicSummaryState.progress
-    ) {
-      return {
-        current: publicSummaryState.progress.confirmedJpyc,
-        target: publicSummaryState.goal.targetAmountJpyc,
-        progressPct: clampPct(publicSummaryState.progress.progressPct),
-        achievedAt: publicSummaryState.goal.achievedAt,
-        deadline: publicSummaryState.goal.deadline,
-      };
-    }
-
-    if (showLegacyCard && creator.goalTargetJpyc) {
-      return {
-        current: 0,
-        target: creator.goalTargetJpyc,
-        progressPct: 0,
-        achievedAt: null,
-        deadline: null,
-      };
-    }
-
-    return null;
-  })();
+    supportMode === "ready"
+      ? activeSupportProject?.description ?? null
+      : supportMode === "draft"
+      ? supportProfileState.draft?.description ?? null
+      : "公開ページを準備中です。応援内容が整うと、ここから確認できます。";
 
   const ownerProjectOptions = useMemo(() => {
     const options: Array<{ id: string; label: string }> = [];
     const seen = new Set<string>();
 
     for (const currency of ["JPYC", "USDC"] as const) {
-      const nextId = resolvedProjectIdsByCurrency[currency];
+      const nextProject = supportProfileState.projectsByCurrency[currency];
+      const nextId = nextProject?.projectId ?? resolvedProjectIdsByCurrency[currency];
       if (!nextId || seen.has(nextId)) continue;
       seen.add(nextId);
 
       options.push({
         id: nextId,
-        label: `${currency} / ${projectTitle ?? `${currency} の公開ページ`}`,
+        label: `${currency} / ${nextProject?.title ?? `${currency} の公開ページ`}`,
       });
     }
 
     return options;
-  }, [projectTitle, resolvedProjectIdsByCurrency]);
+  }, [resolvedProjectIdsByCurrency, supportProfileState.projectsByCurrency]);
 
   function openSupportSheet() {
+    if (supportProfileState.mode !== "ready") return;
     setSupportSheetLoaded(true);
     setSupportSheetOpen(true);
   }
@@ -821,6 +766,7 @@ export default function ProfileClient({
   }
 
   function handleSelectPostTip(post: SelectedPostTipContext) {
+    if (supportProfileState.mode !== "ready") return;
     setSelectedPostTipContext(post);
     if (post.preferredCurrency) {
       setViewCurrency(post.preferredCurrency);
@@ -839,24 +785,38 @@ export default function ProfileClient({
     ? `/${viewerState.creatorUsername}`
     : viewerWorkspaceHref;
   const pageDisplayName = displayName;
-  const availableCurrencies = (["JPYC", "USDC"] as const).filter(
-    (currency) => resolvedProjectIdsByCurrency[currency]
-  );
-  const selectedCurrencyLabel = supportOverview ? viewCurrency : "JPYC";
-  const currentSupportLabel = supportOverview
-    ? `${formatSupportAmount(supportOverview.current, viewCurrency)} ${viewCurrency}`
+  const availableCurrencies = availableSupportCurrencies;
+  const selectedCurrencyLabel =
+    activeSupportProject?.currency ??
+    supportProfileState.activeCurrency ??
+    "JPYC";
+  const currentSupportLabel = activeSupportProject
+    ? `${formatSupportAmount(
+        activeSupportProject.confirmedAmount,
+        activeSupportProject.currency
+      )} ${activeSupportProject.currency}`
     : "-";
-  const targetSupportLabel = supportOverview
-    ? `${formatSupportAmount(supportOverview.target, viewCurrency)} ${viewCurrency}`
-    : creator.goalTargetJpyc
-    ? `${formatSupportAmount(creator.goalTargetJpyc, "JPYC")} JPYC`
+  const targetSupportLabel = activeSupportProject
+    ? activeSupportProject.targetAmount != null
+      ? `${formatSupportAmount(
+          activeSupportProject.targetAmount,
+          activeSupportProject.currency
+        )} ${activeSupportProject.currency}`
+      : "-"
     : "-";
-  const statusLabel = supportOverview?.achievedAt ? "目標達成済み" : "受付中";
-  const statusDetail = supportOverview?.deadline
-    ? `期限 ${supportOverview.deadline.slice(0, 10)}`
-    : supportOverview
+  const statusLabel =
+    activeSupportProject?.status === "ACHIEVED"
+      ? "目標達成済み"
+      : activeSupportProject?.status === "NO_GOAL"
+      ? "目標未設定"
+      : "受付中";
+  const statusDetail = activeSupportProject?.deadline
+    ? `期限 ${activeSupportProject.deadline.slice(0, 10)}`
+    : activeSupportProject
     ? null
-    : "設定で応援内容を整えられます";
+    : supportMode === "draft"
+    ? "公開ページを準備中です"
+    : "応援を受け付ける準備が整っていません";
 
   async function handleViewerConnect(): Promise<void> {
     const { appkit } = await import("@/lib/appkitInstance");
@@ -899,16 +859,22 @@ export default function ProfileClient({
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-[var(--text)]">
-                応援はできます。投稿したいときはユーザー登録
+                {supportMode === "ready"
+                  ? "応援はできます。投稿したいときはユーザー登録"
+                  : "公開ページを準備中です。投稿したいときはユーザー登録"}
               </div>
               <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
-                まずは登録すると、自分のページと投稿機能を使い始められます。
+                {supportMode === "ready"
+                  ? "まずは登録すると、自分のページと投稿機能を使い始められます。"
+                  : "まずは登録すると、自分のページと投稿機能を使い始められます。応援内容は公開ページの準備が整うと表示されます。"}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn" onClick={openSupportSheet}>
-                応援する
-              </button>
+              {supportMode === "ready" ? (
+                <button type="button" className="btn" onClick={openSupportSheet}>
+                  応援する
+                </button>
+              ) : null}
               <Link href={viewerWorkspaceHref} className="btn-secondary">
                 ユーザー登録へ
               </Link>
@@ -924,16 +890,22 @@ export default function ProfileClient({
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-[var(--text)]">
-                自分の公開ページを作ると、投稿も始められます
+                {supportMode === "ready"
+                  ? "自分の公開ページを作ると、投稿も始められます"
+                  : "自分の公開ページを整えると、応援内容も表示できます"}
               </div>
               <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
-                いまは {pageDisplayName} さんのページを見ています。自分のページを整えると投稿も始められます。
+                {supportMode === "ready"
+                  ? `いまは ${pageDisplayName} さんのページを見ています。自分のページを整えると投稿も始められます。`
+                  : `いまは ${pageDisplayName} さんのページを見ています。自分のページを整えると、応援内容も自然に見せられます。`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn" onClick={openSupportSheet}>
-                応援する
-              </button>
+              {supportMode === "ready" ? (
+                <button type="button" className="btn" onClick={openSupportSheet}>
+                  応援する
+                </button>
+              ) : null}
               <Link href={viewerWorkspaceHref} className="btn-secondary">
                 設定を開く
               </Link>
@@ -1001,7 +973,7 @@ export default function ProfileClient({
                 >
                   公開ページを整える
                 </Link>
-              ) : (
+              ) : supportMode === "ready" ? (
                 <button
                   type="button"
                   className="btn px-3 py-1.5 text-[12px]"
@@ -1009,20 +981,28 @@ export default function ProfileClient({
                 >
                   応援する
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
           <div className="min-w-0">
             <div className="text-[14px] font-semibold text-[var(--text)] sm:text-[15px]">
               {supportTitle}
             </div>
-            <p className="mt-0.5 whitespace-pre-wrap text-[11px] leading-4.5 text-[var(--text-subtle)] sm:mt-1 sm:text-[12px]">
-              {supportDescription}
-            </p>
+            {supportDescription ? (
+              <p className="mt-0.5 whitespace-pre-wrap text-[11px] leading-4.5 text-[var(--text-subtle)] sm:mt-1 sm:text-[12px]">
+                {supportDescription}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        {progressLoading ? (
+        {supportMode !== "ready" ? (
+          <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[11px] leading-5 text-[var(--text-subtle)]">
+            {supportMode === "draft"
+              ? "公開ページを準備中です。応援内容が整うと、ここに進捗が表示されます。"
+              : "いまは応援内容を読み込めません。時間をおいてもう一度お試しください。"}
+          </div>
+        ) : progressLoading ? (
           <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-sm text-[var(--text-subtle)]">
             読み込み中です
           </div>
@@ -1048,14 +1028,20 @@ export default function ProfileClient({
               <div className="flex items-baseline justify-between gap-2">
                 <div className="text-[10px] font-medium text-[var(--text-subtle)]">進捗</div>
                 <div className="text-[12px] font-semibold text-[var(--text)]">
-                  {supportOverview ? `${Math.floor(supportOverview.progressPct)}%` : "-"}
+                  {activeSupportProject
+                    ? `${Math.floor(clampPct(activeSupportProject.progressPct))}%`
+                    : "-"}
                 </div>
               </div>
               <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
                 <div
                   className="h-full rounded-full bg-[var(--support)]"
                   style={{
-                    width: `${supportOverview ? supportOverview.progressPct : 0}%`,
+                    width: `${
+                      activeSupportProject
+                        ? clampPct(activeSupportProject.progressPct)
+                        : 0
+                    }%`,
                   }}
                 />
               </div>
@@ -1074,7 +1060,7 @@ export default function ProfileClient({
           </div>
         )}
 
-        {availableCurrencies.length > 1 ? (
+        {supportMode === "ready" && availableCurrencies.length > 1 ? (
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 border-t border-[var(--line)] pt-1.5">
             <div className="text-[10px] font-medium text-[var(--text-subtle)]">
               表示通貨
@@ -1088,14 +1074,14 @@ export default function ProfileClient({
                     ? "border-slate-900 bg-slate-900 text-white"
                     : ""
                 }`}
-                disabled={!resolvedProjectIdsByCurrency[currency]}
+                disabled={!supportProfileState.projectsByCurrency[currency]}
                 onClick={() => setViewCurrency(currency)}
               >
                 {currency}
               </button>
             ))}
           </div>
-        ) : availableCurrencies.length === 1 ? (
+        ) : supportMode === "ready" && availableCurrencies.length === 1 ? (
           <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[10px] text-[var(--text-subtle)]">
             表示通貨: {selectedCurrencyLabel}
           </div>
@@ -1148,7 +1134,7 @@ export default function ProfileClient({
           manageProjectOptions={ownerProjectOptions}
           selectedPostId={selectedPostTipContext?.id ?? null}
           projectIdsByCurrency={resolvedProjectIdsByCurrency}
-          showTipAction
+          showTipAction={supportMode === "ready"}
           refreshToken={feedRefreshToken}
           initialFeed={initialFeed}
           headerColor={creator.themeColor || "#2563eb"}
@@ -1165,7 +1151,7 @@ export default function ProfileClient({
     <>
       {profileScreen}
 
-      {supportSheetLoaded || supportSheetOpen ? (
+      {supportMode === "ready" && (supportSheetLoaded || supportSheetOpen) ? (
         <SupportSheet
           open={supportSheetOpen}
           title={selectedPostTipContext ? "この投稿を応援" : `${displayName}を応援`}

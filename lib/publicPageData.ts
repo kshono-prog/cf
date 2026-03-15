@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { pickPublicSummaryLite, type PublicSummaryLite } from "@/lib/publicSummary";
+import { buildSupportProfileView, type SupportProfileView } from "@/lib/supportProfileView";
+import type { SummaryViewData } from "@/lib/mypage/accountPageTypes";
 
 type PublicPageData = {
   creator: NonNullable<Awaited<ReturnType<typeof getCreatorProfileByUsername>>>["creator"];
@@ -13,6 +15,7 @@ type PublicPageData = {
   projectId: string | null;
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
   publicSummary: PublicSummaryLite | null;
+  supportProfileView: SupportProfileView;
 };
 
 async function loadPublicPageDataUncached(
@@ -30,14 +33,22 @@ async function loadPublicPageDataUncached(
     USDC: null,
   };
   let publicSummary: PublicSummaryLite | null = null;
+  const summariesByCurrency: {
+    JPYC: SummaryViewData | null;
+    USDC: SummaryViewData | null;
+  } = {
+    JPYC: null,
+    USDC: null,
+  };
+  let activeSummary: SummaryViewData | null = null;
 
-  try {
-    projectIdsByCurrency = {
-      JPYC: profile.activeProjectIdJpyc ?? null,
-      USDC: profile.activeProjectIdUsdc ?? null,
-    };
+  projectIdsByCurrency = {
+    JPYC: profile.activeProjectIdJpyc ?? null,
+    USDC: profile.activeProjectIdUsdc ?? null,
+  };
 
-    if (!projectIdsByCurrency.JPYC || !projectIdsByCurrency.USDC) {
+  if (!projectIdsByCurrency.JPYC || !projectIdsByCurrency.USDC) {
+    try {
       const profileId = BigInt(profile.id);
       const owner = profile.walletAddress?.toLowerCase() ?? null;
       const projectWhereOr: Array<
@@ -75,27 +86,56 @@ async function loadPublicPageDataUncached(
       if (!projectIdsByCurrency.USDC) {
         projectIdsByCurrency.USDC = latestUsdc?.id?.toString() ?? null;
       }
+    } catch (error) {
+      if (isPrismaUnavailableError(error)) {
+        console.warn("Failed to backfill projectIds due to DB unavailability");
+      } else {
+        console.error("Failed to backfill projectIds:", error);
+      }
     }
+  }
 
-    projectId =
-      profile.activeProjectId ??
-      projectIdsByCurrency.JPYC ??
-      projectIdsByCurrency.USDC ??
-      null;
+  projectId =
+    profile.activeProjectId ??
+    projectIdsByCurrency.JPYC ??
+    projectIdsByCurrency.USDC ??
+    null;
 
-    if (includePublicSummary && projectId) {
-      const summary = await getProjectSummaryView(BigInt(projectId));
-      publicSummary = summary ? pickPublicSummaryLite(summary) : null;
+  if (includePublicSummary && projectId) {
+    try {
+      const summaryTargets = await Promise.all(
+        (["JPYC", "USDC"] as const).map(async (currency) => {
+          const nextProjectId = projectIdsByCurrency[currency];
+          if (!nextProjectId) return [currency, null] as const;
+
+          return [
+            currency,
+            await getProjectSummaryView(BigInt(nextProjectId)),
+          ] as const;
+        })
+      );
+
+      for (const [currency, summary] of summaryTargets) {
+        summariesByCurrency[currency] = summary;
+      }
+
+      const activeCurrency =
+        (["JPYC", "USDC"] as const).find(
+          (currency) => projectIdsByCurrency[currency] === projectId
+        ) ?? null;
+
+      activeSummary = activeCurrency
+        ? summariesByCurrency[activeCurrency]
+        : await getProjectSummaryView(BigInt(projectId));
+
+      publicSummary = activeSummary ? pickPublicSummaryLite(activeSummary) : null;
+    } catch (error) {
+      if (isPrismaUnavailableError(error)) {
+        console.warn("Failed to load public summary due to DB unavailability");
+      } else {
+        console.error("Failed to load public summary:", error);
+      }
     }
-  } catch (error) {
-    if (isPrismaUnavailableError(error)) {
-      console.warn("Failed to resolve projectId due to DB unavailability");
-    } else {
-      console.error("Failed to resolve projectId:", error);
-    }
-    projectId = null;
-    projectIdsByCurrency = { JPYC: null, USDC: null };
-    publicSummary = null;
   }
 
   return {
@@ -104,6 +144,13 @@ async function loadPublicPageDataUncached(
     projectId,
     projectIdsByCurrency,
     publicSummary,
+    supportProfileView: buildSupportProfileView({
+      creator,
+      activeProjectId: projectId,
+      projectIdsByCurrency,
+      summariesByCurrency,
+      activeSummary,
+    }),
   };
 }
 

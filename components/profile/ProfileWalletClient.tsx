@@ -24,6 +24,7 @@ import type { WalletBalances } from "@/lib/walletService";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import { TipThanksCard } from "@/components/profile/TipThanksCard";
 import { WalletSection } from "@/components/profile/WalletSection";
+import { isRecord } from "@/lib/publicSummary";
 import {
   addAmount,
   clearLastTx,
@@ -132,6 +133,17 @@ export function ProfileWalletClient({
   const toAddress = creator.address ?? "";
   const [currency, setCurrency] = useState<Currency>("JPYC");
   const [amount, setAmount] = useState<string>(TOKENS["JPYC"].presets[0]);
+  const [resolvedProjectIdsByCurrency, setResolvedProjectIdsByCurrency] =
+    useState<{
+      JPYC: string | null;
+      USDC: string | null;
+    }>({
+      JPYC: projectIdsByCurrency?.JPYC ?? projectId ?? null,
+      USDC: projectIdsByCurrency?.USDC ?? null,
+    });
+  const [fallbackProjectId, setFallbackProjectId] = useState<string | null>(
+    projectId
+  );
 
   const [goalCurrentJpyc, setGoalCurrentJpyc] = useState<number | null>(null);
 
@@ -157,10 +169,17 @@ export function ProfileWalletClient({
   const connectedChainId = currentChainId ?? null;
 
   const hasProject =
-    !!projectId ||
-    !!projectIdsByCurrency?.JPYC ||
-    !!projectIdsByCurrency?.USDC;
-  const activeProjectId = projectIdsByCurrency?.[currency] ?? projectId ?? null;
+    !!fallbackProjectId ||
+    !!resolvedProjectIdsByCurrency.JPYC ||
+    !!resolvedProjectIdsByCurrency.USDC;
+
+  useEffect(() => {
+    setResolvedProjectIdsByCurrency({
+      JPYC: projectIdsByCurrency?.JPYC ?? projectId ?? null,
+      USDC: projectIdsByCurrency?.USDC ?? null,
+    });
+    setFallbackProjectId(projectId);
+  }, [projectId, projectIdsByCurrency]);
 
   const allowedChainIdsForCurrency = useMemo(() => {
     if (currency === "USDC") {
@@ -612,6 +631,69 @@ export function ProfileWalletClient({
     }
   }
 
+  async function resolveProjectIdsFromServer(): Promise<{
+    activeProjectId: string | null;
+    projectIdsByCurrency: {
+      JPYC: string | null;
+      USDC: string | null;
+    };
+  } | null> {
+    try {
+      const response = await fetch(
+        `/api/public/creator?username=${encodeURIComponent(username)}`,
+        {
+          cache: "no-store",
+        }
+      );
+      if (!response.ok) return null;
+
+      const json = (await response.json().catch(() => null)) as unknown;
+      if (!isRecord(json) || json.ok !== true || !isRecord(json.projectIdsByCurrency)) {
+        return null;
+      }
+
+      const nextProjectIdsByCurrency = {
+        JPYC:
+          typeof json.projectIdsByCurrency.JPYC === "string"
+            ? json.projectIdsByCurrency.JPYC
+            : null,
+        USDC:
+          typeof json.projectIdsByCurrency.USDC === "string"
+            ? json.projectIdsByCurrency.USDC
+            : null,
+      };
+      const nextActiveProjectId =
+        typeof json.activeProjectId === "string" ? json.activeProjectId : null;
+
+      setResolvedProjectIdsByCurrency(nextProjectIdsByCurrency);
+      setFallbackProjectId(nextActiveProjectId);
+
+      return {
+        activeProjectId: nextActiveProjectId,
+        projectIdsByCurrency: nextProjectIdsByCurrency,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async function ensureActiveProjectIdForSend(): Promise<string | null> {
+    const currentProjectId =
+      resolvedProjectIdsByCurrency[currency] ?? fallbackProjectId ?? null;
+    if (currentProjectId) {
+      return currentProjectId;
+    }
+
+    const refreshed = await resolveProjectIdsFromServer();
+    if (!refreshed) return null;
+
+    return (
+      refreshed.projectIdsByCurrency[currency] ??
+      refreshed.activeProjectId ??
+      null
+    );
+  }
+
   function mapContributionFailureMessage(reason: string): string {
     if (reason === "HTTP_503" || reason === "FETCH_FAILED") {
       return "送金は完了しましたが、記録の反映に失敗しました。しばらくしてからこのページを開き直すと再確認します。";
@@ -737,10 +819,12 @@ export function ProfileWalletClient({
         return;
       }
 
-      if (activeProjectId) {
+      const projectIdForSend = await ensureActiveProjectIdForSend();
+
+      if (projectIdForSend) {
         setStatus("送金前の確認をしています…");
         const preflight = await ensureContributionPreflight({
-          projectId: activeProjectId,
+          projectId: projectIdForSend,
           purposeId,
           postId: selectedPostId,
           chainId: selectedChainId,
@@ -776,7 +860,7 @@ export function ProfileWalletClient({
         currency,
         amount: amtStr,
         toAddress,
-        projectId: activeProjectId,
+        projectId: projectIdForSend,
         purposeId: purposeId ?? null,
         postId: selectedPostId ?? null,
         createdAtMs: Date.now(),
@@ -802,7 +886,7 @@ export function ProfileWalletClient({
           currency,
           amount: amtStr,
           toAddress,
-          projectId: activeProjectId,
+          projectId: projectIdForSend,
           purposeId: purposeId ?? null,
           postId: selectedPostId ?? null,
           createdAtMs: Date.now(),

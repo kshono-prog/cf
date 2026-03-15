@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import type { FeedListView } from "@/lib/feedList";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import type { PublicSummaryLite } from "@/lib/publicSummary";
+import type { SupportProfileView } from "@/lib/supportProfileView";
 
 const ProfileClient = dynamic(() => import("@/components/ProfileClient"), {
   loading: () => (
@@ -20,6 +21,7 @@ type ProfileClientSectionProps = {
     USDC: string | null;
   } | null;
   publicSummary?: PublicSummaryLite | null;
+  supportProfileView?: SupportProfileView | null;
   initialFeed?: FeedListView | null;
 };
 
@@ -29,6 +31,7 @@ export function ProfileClientSection({
   projectId,
   projectIdsByCurrency,
   publicSummary,
+  supportProfileView,
   initialFeed,
 }: ProfileClientSectionProps) {
   return (
@@ -38,6 +41,7 @@ export function ProfileClientSection({
       projectId={projectId}
       projectIdsByCurrency={projectIdsByCurrency ?? undefined}
       publicSummary={publicSummary ?? null}
+      supportProfileView={supportProfileView ?? null}
       initialFeed={initialFeed ?? null}
       layout="content"
     />
