@@ -634,6 +634,7 @@ export default function ProfileClient({
   ]);
 
   async function postContribution(args: {
+    contributionId?: string;
     projectId?: string;
     purposeId?: string;
     postId?: string;
@@ -653,6 +654,9 @@ export default function ProfileClient({
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
         body: JSON.stringify({
+          ...(args.contributionId
+            ? { contributionId: String(args.contributionId) }
+            : {}),
           projectId: String(args.projectId),
           ...(args.purposeId === undefined
             ? {}

@@ -22,6 +22,11 @@ type ContributionPreflightBody = {
   postId?: unknown;
   chainId?: unknown;
   currency?: unknown;
+  fromAddress?: unknown;
+  toAddress?: unknown;
+  amount?: unknown;
+  amountRaw?: unknown;
+  decimals?: unknown;
 };
 
 function toCurrency(value: unknown): Currency | null {
@@ -36,6 +41,24 @@ function toChainId(value: unknown): number | null {
   return value;
 }
 
+function normalizeTo18(amountHuman: string): string {
+  const sanitized = amountHuman.replace(/[^\d.]/g, "");
+  if (!sanitized) return "0.000000000000000000";
+
+  const [intRaw, decimalRaw = ""] = sanitized.split(".");
+  const intPart = intRaw.length > 0 ? intRaw : "0";
+  const decimalPart = (decimalRaw + "0".repeat(18)).slice(0, 18);
+
+  let normalizedInt = "0";
+  try {
+    normalizedInt = String(BigInt(intPart));
+  } catch {
+    normalizedInt = "0";
+  }
+
+  return `${normalizedInt}.${decimalPart}`;
+}
+
 function parseBody(raw: unknown):
   | {
       ok: true;
@@ -44,6 +67,11 @@ function parseBody(raw: unknown):
       postIdStr: string | null | undefined;
       chainId: number;
       currency: Currency;
+      fromAddress: string;
+      toAddress: string;
+      amountHuman: string;
+      amountRaw: string;
+      decimals: number;
     }
   | { ok: false; error: string } {
   if (!isRecord(raw)) return { ok: false, error: "INVALID_JSON" };
@@ -84,6 +112,22 @@ function parseBody(raw: unknown):
   const currency = toCurrency(body.currency);
   if (!currency) return { ok: false, error: "CURRENCY_REQUIRED" };
 
+  const fromAddress = toNonEmptyString(body.fromAddress);
+  if (!fromAddress) return { ok: false, error: "FROM_ADDRESS_REQUIRED" };
+
+  const toAddress = toNonEmptyString(body.toAddress);
+  if (!toAddress) return { ok: false, error: "TO_ADDRESS_REQUIRED" };
+
+  const amountHuman = toNonEmptyString(body.amount);
+  if (!amountHuman) return { ok: false, error: "AMOUNT_REQUIRED" };
+
+  const amountRaw = toNonEmptyString(body.amountRaw);
+  if (!amountRaw) return { ok: false, error: "AMOUNT_RAW_REQUIRED" };
+
+  if (typeof body.decimals !== "number" || !Number.isFinite(body.decimals)) {
+    return { ok: false, error: "DECIMALS_REQUIRED" };
+  }
+
   return {
     ok: true,
     projectIdStr,
@@ -91,6 +135,11 @@ function parseBody(raw: unknown):
     postIdStr,
     chainId,
     currency,
+    fromAddress,
+    toAddress,
+    amountHuman,
+    amountRaw,
+    decimals: body.decimals,
   };
 }
 
@@ -191,9 +240,39 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
+    const reservationKey = `reserved:${crypto.randomUUID()}`;
+    const reserved = await withPrismaRetry(() =>
+      prisma.contribution.create({
+        data: {
+          projectId,
+          purposeId:
+            parsed.purposeIdStr === null
+              ? null
+              : typeof parsed.purposeIdStr === "string"
+              ? BigInt(parsed.purposeIdStr)
+              : null,
+          chainId: parsed.chainId,
+          currency: parsed.currency,
+          txHash: reservationKey,
+          fromAddress: parsed.fromAddress,
+          toAddress: parsed.toAddress,
+          amountRaw: parsed.amountRaw,
+          decimals: parsed.decimals,
+          amountDecimal: normalizeTo18(parsed.amountHuman),
+          status: "RESERVED",
+          confirmedAt: null,
+        },
+        select: {
+          id: true,
+          projectId: true,
+        },
+      })
+    );
+
     return okJson({
       ready: true,
-      projectId: project.id.toString(),
+      contributionId: reserved.id,
+      projectId: reserved.projectId.toString(),
       currency: parsed.currency,
       chainId: parsed.chainId,
     });

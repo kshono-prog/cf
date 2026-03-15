@@ -9,6 +9,7 @@ const LAST_TX_KEY = "cf:lastTx:v1";
 export type Currency = "JPYC" | "USDC";
 
 export type LastTx = {
+  contributionId: string | null;
   txHash: `0x${string}`;
   chainId: number;
   currency: Currency;
@@ -91,6 +92,7 @@ function parseLastTx(v: unknown): LastTx | null {
   if (!isRecord(v)) return null;
 
   const txHash = v.txHash;
+  const contributionId = "contributionId" in v ? v.contributionId : null;
   const chainId = v.chainId;
   const currency = v.currency;
   const amount = v.amount;
@@ -101,6 +103,7 @@ function parseLastTx(v: unknown): LastTx | null {
   const createdAtMs = v.createdAtMs;
 
   if (!isHexTxHash(txHash)) return null;
+  if (!(typeof contributionId === "string" || contributionId === null)) return null;
   if (typeof chainId !== "number" || !Number.isFinite(chainId)) return null;
   if (!isCurrency(currency)) return null;
   if (typeof amount !== "string" || amount.length === 0) return null;
@@ -114,6 +117,7 @@ function parseLastTx(v: unknown): LastTx | null {
     return null;
 
   return {
+    contributionId,
     txHash,
     chainId,
     currency,

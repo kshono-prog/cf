@@ -49,6 +49,7 @@ const ERC20_DECIMALS_ABI = [
 type Currency = "JPYC" | "USDC";
 
 type ContributionPostBody = {
+  contributionId?: unknown; // UUID string
   projectId?: unknown; // string (BigInt as string)
   purposeId?: unknown; // string|null|undefined
   chainId?: unknown;
@@ -126,6 +127,7 @@ function parseBody(raw: unknown):
   | {
       ok: true;
       projectIdStr: string;
+      contributionId: string | null;
       purposeIdStr: string | null | undefined;
       chainId: number;
       currency: Currency;
@@ -141,6 +143,13 @@ function parseBody(raw: unknown):
 
   const projectIdStr = toNonEmptyString(b.projectId);
   if (!projectIdStr) return { ok: false, error: "PROJECT_ID_REQUIRED" };
+
+  const contributionIdRaw =
+    typeof b.contributionId === "string" ? b.contributionId.trim() : "";
+  const contributionId = contributionIdRaw.length > 0 ? contributionIdRaw : null;
+  if (contributionId !== null && !isUuidString(contributionId)) {
+    return { ok: false, error: "CONTRIBUTION_ID_INVALID" };
+  }
 
   let purposeIdStr: string | null | undefined = undefined;
   if (b.purposeId === null) {
@@ -194,6 +203,7 @@ function parseBody(raw: unknown):
   return {
     ok: true,
     projectIdStr,
+    contributionId,
     purposeIdStr,
     chainId,
     currency,
@@ -401,9 +411,40 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       postId = post.id;
     }
 
+    const reservedContribution = parsed.contributionId
+      ? await prisma.contribution.findUnique({
+          where: { id: parsed.contributionId },
+        })
+      : null;
+
+    if (parsed.contributionId && !reservedContribution) {
+      return errJson("CONTRIBUTION_RESERVATION_NOT_FOUND", 404);
+    }
+
+    if (
+      reservedContribution &&
+      (reservedContribution.projectId !== projectId ||
+        reservedContribution.currency !== parsed.currency ||
+        reservedContribution.chainId !== parsed.chainId)
+    ) {
+      return errJson("CONTRIBUTION_RESERVATION_MISMATCH", 400);
+    }
+
     const existing = await prisma.contribution.findUnique({
       where: { txHash: parsed.txHash },
     });
+
+    if (
+      existing &&
+      parsed.contributionId &&
+      existing.id !== parsed.contributionId
+    ) {
+      return okJson({
+        verified: existing.status === "CONFIRMED",
+        contribution: serializeContribution(existing),
+      });
+    }
+
     if (existing && existing.status === "CONFIRMED" && !postId) {
       return okJson({
         verified: true,
@@ -411,8 +452,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
     }
 
-    const wasConfirmedBefore = existing?.status === "CONFIRMED";
-    const confirmedContribution = wasConfirmedBefore ? existing : null;
+    const baseContribution =
+      reservedContribution && reservedContribution.txHash === parsed.txHash
+        ? reservedContribution
+        : existing ?? reservedContribution;
+    const wasConfirmedBefore = baseContribution?.status === "CONFIRMED";
+    const confirmedContribution = wasConfirmedBefore ? baseContribution : null;
     const v = wasConfirmedBefore
       ? null
       : await verifyAndExtract({
@@ -451,6 +496,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const result = await prisma.$transaction(async (tx) => {
       const row = confirmedContribution
         ? confirmedContribution
+        : reservedContribution
+        ? await tx.contribution.update({
+            where: { id: reservedContribution.id },
+            data: {
+              projectId,
+              purposeId: purposeId === undefined ? null : purposeId,
+              chainId: parsed.chainId,
+              currency: parsed.currency,
+              txHash: parsed.txHash,
+              fromAddress: parsed.from,
+              toAddress: parsed.to,
+              amountRaw: amountRawStr,
+              decimals,
+              amountDecimal: amountDecimalStr,
+              status,
+              confirmedAt,
+              updatedAt: now,
+            },
+          })
         : await tx.contribution.upsert({
             where: { txHash: parsed.txHash },
             create: {

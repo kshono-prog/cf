@@ -44,6 +44,7 @@ import {
 } from "@/components/profile/profileClientHelpers";
 
 type ContributionArgs = {
+  contributionId?: string;
   projectId?: string;
   purposeId?: string;
   postId?: string;
@@ -62,6 +63,11 @@ type ContributionPreflightArgs = {
   postId?: string | null;
   chainId: number;
   currency: Currency;
+  fromAddress: string;
+  toAddress: string;
+  amount: string;
+  amountRaw: string;
+  decimals: number;
 };
 
 type Props = {
@@ -520,7 +526,10 @@ export function ProfileWalletClient({
 
   async function ensureContributionPreflight(
     args: ContributionPreflightArgs
-  ): Promise<{ ok: true } | { ok: false; message: string }> {
+  ): Promise<
+    | { ok: true; contributionId: string }
+    | { ok: false; message: string }
+  > {
     try {
       const response = await fetch("/api/contributions/preflight", {
         method: "POST",
@@ -532,12 +541,31 @@ export function ProfileWalletClient({
           postId: args.postId ?? null,
           chainId: args.chainId,
           currency: args.currency,
+          fromAddress: args.fromAddress,
+          toAddress: args.toAddress,
+          amount: args.amount,
+          amountRaw: args.amountRaw,
+          decimals: args.decimals,
         }),
       });
 
       const json = (await response.json().catch(() => null)) as unknown;
       if (response.ok) {
-        return { ok: true };
+        if (
+          typeof json === "object" &&
+          json !== null &&
+          "contributionId" in json &&
+          typeof json.contributionId === "string" &&
+          json.contributionId.trim().length > 0
+        ) {
+          return { ok: true, contributionId: json.contributionId };
+        }
+
+        return {
+          ok: false,
+          message:
+            "送金前の準備に失敗しました。時間をおいてもう一度お試しください。",
+        };
       }
 
       if (
@@ -563,6 +591,24 @@ export function ProfileWalletClient({
         message:
           "送金前の確認に失敗しました。通信状況を確認して、もう一度お試しください。",
       };
+    }
+  }
+
+  async function cancelReservedContribution(
+    contributionId: string | null | undefined
+  ): Promise<void> {
+    if (!contributionId) return;
+
+    try {
+      await fetch(
+        `/api/contributions/preflight/${encodeURIComponent(contributionId)}`,
+        {
+          method: "PATCH",
+          cache: "no-store",
+        }
+      );
+    } catch {
+      // ignore cancellation errors
     }
   }
 
@@ -602,6 +648,7 @@ export function ProfileWalletClient({
     }
 
     const contributionResult = await onPostContribution({
+      contributionId: lastTx.contributionId ?? undefined,
       projectId: lastTx.projectId,
       purposeId: lastTx.purposeId ?? undefined,
       postId: lastTx.postId ?? undefined,
@@ -647,6 +694,8 @@ export function ProfileWalletClient({
     }
 
     const { ethers } = await import("ethers");
+    let reservedContributionId: string | null = null;
+    let transferStarted = false;
 
     try {
       setSending(true);
@@ -696,18 +745,32 @@ export function ProfileWalletClient({
           postId: selectedPostId,
           chainId: selectedChainId,
           currency,
+          fromAddress: sender,
+          toAddress,
+          amount: amtStr,
+          amountRaw: value.toString(),
+          decimals,
         });
 
         if (!preflight.ok) {
           setStatus(preflight.message);
           return;
         }
+
+        reservedContributionId = preflight.contributionId;
+      } else {
+        setStatus(
+          "送金先プロジェクトを読み込めませんでした。ページを開き直してから、もう一度お試しください。"
+        );
+        return;
       }
 
       setStatus("送金中…ウォレットで承認してください");
       const tx = await token.transfer(toAddress, value);
+      transferStarted = true;
 
       saveLastTx({
+        contributionId: reservedContributionId,
         txHash: tx.hash as `0x${string}`,
         chainId: selectedChainId,
         currency,
@@ -733,6 +796,7 @@ export function ProfileWalletClient({
 
       const persistResult = await persistContributionRecord(
         {
+          contributionId: reservedContributionId,
           txHash: tx.hash as `0x${string}`,
           chainId: selectedChainId,
           currency,
@@ -760,6 +824,9 @@ export function ProfileWalletClient({
       const unit = currency === "JPYC" ? "円 / JPY" : "USD";
       setStatus(`完了：${amtStr} ${unit} を送金しました（Tx: ${short}…）`);
     } catch (e) {
+      if (!transferStarted) {
+        await cancelReservedContribution(reservedContributionId);
+      }
       const msg = getErrorMessage(e);
       setStatus(`${msg}。もう一度お試しください。`);
     } finally {
