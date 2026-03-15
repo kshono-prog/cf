@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { withPrismaRetry } from "@/lib/prismaRetry";
+import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
@@ -35,38 +34,6 @@ function toChainId(value: unknown): number | null {
   }
 
   return value;
-}
-
-function isDbUnavailableError(error: unknown): boolean {
-  if (
-    error instanceof Prisma.PrismaClientKnownRequestError ||
-    error instanceof Prisma.PrismaClientUnknownRequestError
-  ) {
-    const code =
-      error instanceof Prisma.PrismaClientKnownRequestError
-        ? error.code
-        : null;
-    const message = (error.message ?? "").toLowerCase();
-
-    return (
-      code === "P2024" ||
-      code === "P1017" ||
-      code === "P1001" ||
-      code === "P1008" ||
-      message.includes("timed out fetching a new connection from the connection pool") ||
-      message.includes("unable to check out connection from the pool")
-    );
-  }
-
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    return (
-      message.includes("timed out fetching a new connection from the connection pool") ||
-      message.includes("unable to check out connection from the pool")
-    );
-  }
-
-  return false;
 }
 
 function parseBody(raw: unknown):
@@ -231,7 +198,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       chainId: parsed.chainId,
     });
   } catch (error) {
-    if (isDbUnavailableError(error)) {
+    if (isPrismaUnavailableError(error)) {
       return NextResponse.json(
         {
           ok: false,

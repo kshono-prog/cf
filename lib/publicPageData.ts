@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { prisma } from "@/lib/prisma";
-import { withPrismaRetry } from "@/lib/prismaRetry";
+import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { pickPublicSummaryLite, type PublicSummaryLite } from "@/lib/publicSummary";
 
@@ -88,7 +88,11 @@ async function loadPublicPageDataUncached(
       publicSummary = summary ? pickPublicSummaryLite(summary) : null;
     }
   } catch (error) {
-    console.error("Failed to resolve projectId:", error);
+    if (isPrismaUnavailableError(error)) {
+      console.warn("Failed to resolve projectId due to DB unavailability");
+    } else {
+      console.error("Failed to resolve projectId:", error);
+    }
     projectId = null;
     projectIdsByCurrency = { JPYC: null, USDC: null };
     publicSummary = null;
