@@ -340,7 +340,7 @@ export default function ProfileClient({
     identity: viewerIdentity,
     identityResolved: viewerIdentityResolved,
   });
-  const shouldPrefetchProjectProgress = supportSheetLoaded || viewerState.isOwner;
+  const shouldPrefetchProjectProgress = Boolean(activeProjectId);
 
   const fetchProjectProgressSafe = useCallback(async (): Promise<ProjectProgressApi | null> => {
     if (!activeProjectId) return null;
@@ -396,6 +396,25 @@ export default function ProfileClient({
           ? typed.project.title
           : null
       );
+      setPublicSummaryState({
+        goal: typed.goal
+          ? {
+              targetAmountJpyc: typed.goal.targetAmountJpyc,
+              achievedAt: typed.goal.achievedAt,
+              deadline: typed.goal.deadline ?? null,
+            }
+          : null,
+        progress: {
+          confirmedJpyc: Number.isFinite(confirmed) ? confirmed : 0,
+          targetJpyc:
+            typeof target === "number" && Number.isFinite(target) ? target : null,
+          progressPct:
+            typeof typed.progress.progressPct === "number" &&
+            Number.isFinite(typed.progress.progressPct)
+              ? typed.progress.progressPct
+              : 0,
+        },
+      });
       setProgressTotalYen(Number.isFinite(confirmed) ? confirmed : 0);
       setProgressTargetYen(
         typeof target === "number" && Number.isFinite(target) ? target : null

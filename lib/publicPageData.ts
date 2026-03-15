@@ -107,7 +107,7 @@ const getPublicPageDataCached = unstable_cache(
   async (username: string, includePublicSummary: boolean) =>
     loadPublicPageDataUncached(username, includePublicSummary),
   ["public-page-data"],
-  { revalidate: 30 }
+  { revalidate: 120 }
 );
 
 export async function loadPublicPageData(

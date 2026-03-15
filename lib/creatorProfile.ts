@@ -117,7 +117,7 @@ const getCreatorProfileByUsernameCached = unstable_cache(
     };
   },
   ["creator-profile-by-username"],
-  { revalidate: 60 }
+  { revalidate: 300 }
 );
 
 export const getCreatorProfileByUsername = cache(async (username: string) =>
