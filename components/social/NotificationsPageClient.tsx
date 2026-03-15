@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
 import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
+import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
 
 type NotificationKind = "REPLY" | "LIKE" | "SUPPORT" | "NOTICE";
 
@@ -144,18 +145,9 @@ export function NotificationsPageClient({ username }: { username: string }) {
     async function loadViewer() {
       setViewerIdentityResolved(false);
       try {
-        const response = await fetch(
-          `/api/me?address=${encodeURIComponent(connectedAddress)}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-        const json: unknown = await response.json().catch(() => null);
+        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
         if (!cancelled) {
-          setViewerIdentity(
-            response.ok ? parsePublicViewerMeResponse(json) : null
-          );
+          setViewerIdentity(identity);
         }
       } catch {
         if (!cancelled) {

@@ -50,7 +50,6 @@ export function ProfileSummaryServer({
                 width={96}
                 height={96}
                 className="rounded-full object-cover ring-2 ring-indigo-500/30 bg-gray-100 dark:bg-gray-800"
-                priority
               />
             ) : (
               <div

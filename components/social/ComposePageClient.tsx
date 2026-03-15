@@ -10,6 +10,7 @@ import {
   parsePublicViewerMeResponse,
   resolvePublicViewerState,
 } from "@/lib/publicViewerState";
+import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
 
 type ComposePageClientProps = {
   username: string;
@@ -40,18 +41,9 @@ export function ComposePageClient(props: ComposePageClientProps) {
     async function loadViewer() {
       setViewerIdentityResolved(false);
       try {
-        const response = await fetch(
-          `/api/me?address=${encodeURIComponent(connectedAddress)}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-        const json: unknown = await response.json().catch(() => null);
+        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
         if (!cancelled) {
-          setViewerIdentity(
-            response.ok ? parsePublicViewerMeResponse(json) : null
-          );
+          setViewerIdentity(identity);
         }
       } catch {
         if (!cancelled) {

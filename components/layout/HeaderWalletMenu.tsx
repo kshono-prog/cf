@@ -8,6 +8,7 @@ import type { Address } from "viem";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { getChainConfig, getDefaultChainId, isSupportedChainId } from "@/lib/chainConfig";
 import { formatReadableNumber } from "@/lib/numberFormat";
+import { clearPublicViewerIdentityCache } from "@/lib/publicViewerIdentityClient";
 import type { ThemePreference } from "@/lib/theme";
 import type { WalletBalances } from "@/lib/walletService";
 
@@ -140,6 +141,7 @@ export function HeaderWalletMenu({ username }: { username: string }) {
   }
 
   async function handleDisconnect(): Promise<void> {
+    const connectedAddress = address ?? null;
     try {
       await disconnectAsync();
     } catch {
@@ -162,6 +164,12 @@ export function HeaderWalletMenu({ username }: { username: string }) {
           window.localStorage.removeItem(key);
         }
       }
+    }
+
+    if (connectedAddress) {
+      clearPublicViewerIdentityCache(connectedAddress);
+    } else {
+      clearPublicViewerIdentityCache();
     }
 
     setOpen(false);

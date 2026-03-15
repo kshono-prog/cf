@@ -10,6 +10,7 @@ import {
   parseHeaderViewerState,
   type HeaderViewerState,
 } from "@/components/layout/headerShared";
+import { fetchMeResponseCached } from "@/lib/publicViewerIdentityClient";
 
 function MenuCaret(props: { open: boolean }) {
   return (
@@ -68,16 +69,9 @@ export function HeaderUserMenu() {
     async function loadViewer() {
       setLoading(true);
       try {
-        const response = await fetch(
-          `/api/me?address=${encodeURIComponent(connectedAddress)}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-        const json: unknown = await response.json().catch(() => null);
+        const identity = await fetchMeResponseCached(connectedAddress);
         if (!cancelled) {
-          setViewer(response.ok ? parseHeaderViewerState(json) : null);
+          setViewer(parseHeaderViewerState(identity));
         }
       } catch {
         if (!cancelled) {

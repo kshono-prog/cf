@@ -3,6 +3,7 @@
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 import { loadPublicPageData } from "@/lib/publicPageData";
+import { getInitialPublicFeedList } from "@/lib/feedList";
 
 type Params = { username: string };
 
@@ -63,8 +64,11 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<Params> }) {
   const { username } = await params;
-  const { creator, projectId, projectIdsByCurrency } =
-    await loadPublicPageData(username);
+  const [{ creator, projectId, projectIdsByCurrency, publicSummary }, initialFeed] =
+    await Promise.all([
+      loadPublicPageData(username, { includePublicSummary: true }),
+      getInitialPublicFeedList(username),
+    ]);
 
   return (
     <div className="space-y-4">
@@ -73,6 +77,8 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         creator={creator}
         projectId={projectId}
         projectIdsByCurrency={projectIdsByCurrency}
+        publicSummary={publicSummary}
+        initialFeed={initialFeed}
       />
     </div>
   );

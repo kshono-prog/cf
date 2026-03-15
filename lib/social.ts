@@ -287,7 +287,7 @@ export function serializePost(
     projectId: row.projectId?.toString() ?? null,
     authorType: row.authorType,
     body: row.body,
-    mediaType: row.mediaType,
+    mediaType: toPostMediaType(row.mediaType),
     mediaUrl: row.mediaUrl,
     visibility: row.visibility,
     status: row.status,

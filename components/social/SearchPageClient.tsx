@@ -10,6 +10,7 @@ import {
   type FeedPost,
 } from "@/components/feed/feedTypes";
 import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
+import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
 
 type SearchCreator = {
   username: string;
@@ -95,18 +96,9 @@ export function SearchPageClient(props: SearchPageClientProps) {
     async function loadViewer() {
       setViewerIdentityResolved(false);
       try {
-        const response = await fetch(
-          `/api/me?address=${encodeURIComponent(connectedAddress)}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-        const json: unknown = await response.json().catch(() => null);
+        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
         if (!cancelled) {
-          setViewerIdentity(
-            response.ok ? parsePublicViewerMeResponse(json) : null
-          );
+          setViewerIdentity(identity);
         }
       } catch {
         if (!cancelled) {

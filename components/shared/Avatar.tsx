@@ -35,7 +35,6 @@ export function Avatar({ src, alt, fallbackText, size = 64 }: AvatarProps) {
       height={dimension}
       className="rounded-full object-cover bg-[var(--surface-subtle)] ring-2 ring-[var(--line)]"
       onError={() => setBroken(true)}
-      priority
     />
   );
 }

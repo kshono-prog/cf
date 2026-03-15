@@ -57,6 +57,10 @@ type Props = {
   projectIdsByCurrency: CurrencyProjectIds;
   showTipAction?: boolean;
   refreshToken: number;
+  initialFeed?: {
+    items: FeedPost[];
+    nextCursor: string | null;
+  } | null;
   headerColor: string;
   onSelectTipPost: (post: SelectedPostTipContext) => void;
   onFocusWalletSection: () => void;
@@ -137,12 +141,13 @@ export function CreatorFeedSection(props: Props) {
     projectIdsByCurrency,
     showTipAction = true,
     refreshToken,
+    initialFeed = null,
     headerColor,
     onSelectTipPost,
     onFocusWalletSection,
   } = props;
 
-  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [posts, setPosts] = useState<FeedPost[]>(() => initialFeed?.items ?? []);
   const [detailByPostId, setDetailByPostId] = useState<Record<string, PostDetailState>>(
     {}
   );
@@ -150,11 +155,13 @@ export function CreatorFeedSection(props: Props) {
   const [pendingPostLikeIds, setPendingPostLikeIds] = useState<Set<string>>(
     new Set<string>()
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialFeed === null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(
+    initialFeed?.nextCursor ?? null
+  );
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<PostEditDraft | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -175,6 +182,7 @@ export function CreatorFeedSection(props: Props) {
     () => normalizeKey(managedCreatorUsername),
     [managedCreatorUsername]
   );
+  const hasInitialFeed = initialFeed !== null;
 
   function ensureDetailState(postId: string) {
     setDetailByPostId((current) => {
@@ -297,9 +305,23 @@ export function CreatorFeedSection(props: Props) {
   );
 
   useEffect(() => {
+    setPosts(initialFeed?.items ?? []);
+    setNextCursor(initialFeed?.nextCursor ?? null);
+    setError(null);
+    setLoading(initialFeed === null);
+  }, [creatorUsername, initialFeed]);
+
+  useEffect(() => {
+    const shouldUseInitialFeed =
+      hasInitialFeed && refreshToken === 0 && viewerAddress === null;
+    if (shouldUseInitialFeed) {
+      setNotice(null);
+      return;
+    }
+
     void fetchFeedPage({ append: false });
     setNotice(null);
-  }, [fetchFeedPage, refreshToken]);
+  }, [fetchFeedPage, hasInitialFeed, refreshToken, viewerAddress]);
 
   useEffect(() => {
     const openIds = Object.entries(openPostIds)

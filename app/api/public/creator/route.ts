@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
+import { getProjectSummaryView } from "@/lib/projectSummary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,29 +103,32 @@ export async function GET(
       USDC: null,
     };
 
-    // ここが重要：DB組み立てをやめ、既存 summary API を内部 fetch
-    if (activeProjectId) {
-      const origin = req.nextUrl.origin;
-      const url = `${origin}/api/projects/${encodeURIComponent(
-        activeProjectId
-      )}/summary`;
+    const summaryTargets = await Promise.all(
+      (["JPYC", "USDC"] as const).map(async (currency) => {
+        const pid = projectIdsByCurrency[currency];
+        if (!pid) return [currency, null] as const;
 
-      const sres = await fetch(url, { cache: "no-store" }).catch(() => null);
-      if (sres && sres.ok) {
-        summary = await sres.json().catch(() => null);
-      } else {
-        summary = null;
-      }
+        try {
+          return [currency, await getProjectSummaryView(BigInt(pid))] as const;
+        } catch {
+          return [currency, null] as const;
+        }
+      })
+    );
+
+    for (const [currency, currencySummary] of summaryTargets) {
+      summariesByCurrency[currency] = currencySummary;
     }
 
-    for (const currency of ["JPYC", "USDC"] as const) {
-      const pid = projectIdsByCurrency[currency];
-      if (!pid) continue;
-      const origin = req.nextUrl.origin;
-      const url = `${origin}/api/projects/${encodeURIComponent(pid)}/summary`;
-      const sres = await fetch(url, { cache: "no-store" }).catch(() => null);
-      if (sres && sres.ok) {
-        summariesByCurrency[currency] = await sres.json().catch(() => null);
+    if (activeProjectId) {
+      if (projectIdsByCurrency.JPYC === activeProjectId) {
+        summary = summariesByCurrency.JPYC;
+      } else if (projectIdsByCurrency.USDC === activeProjectId) {
+        summary = summariesByCurrency.USDC;
+      } else {
+        summary = await getProjectSummaryView(BigInt(activeProjectId)).catch(
+          () => null
+        );
       }
     }
 

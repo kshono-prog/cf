@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 
+import type { FeedListView } from "@/lib/feedList";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import { autoReverifyPending, postReverify } from "@/lib/reverifyClient";
 import {
@@ -25,6 +26,7 @@ import {
   parsePublicViewerMeResponse,
   resolvePublicViewerState,
 } from "@/lib/publicViewerState";
+import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import { SupportSheet } from "@/components/support/SupportSheet";
 import { CreatorCommunityCard } from "@/components/profile/CreatorCommunityCard";
@@ -64,6 +66,7 @@ type Props = {
     USDC: string | null;
   } | null;
   publicSummary?: PublicSummaryLite | null;
+  initialFeed?: FeedListView | null;
   layout?: "full" | "content";
   screen?: "profile" | "home";
 };
@@ -161,6 +164,7 @@ export default function ProfileClient({
   projectId,
   projectIdsByCurrency,
   publicSummary,
+  initialFeed = null,
   layout = "full",
   screen = "profile",
 }: Props) {
@@ -235,6 +239,11 @@ export default function ProfileClient({
   }, [resolvedProjectIdsByCurrency, viewCurrency]);
 
   useEffect(() => {
+    if (screen !== "profile") {
+      setPublicSummaryState(null);
+      return;
+    }
+
     if (publicSummary !== undefined) {
       setPublicSummaryState(publicSummary);
       return;
@@ -272,7 +281,7 @@ export default function ProfileClient({
     return () => {
       cancelled = true;
     };
-  }, [publicSummary, username]);
+  }, [publicSummary, screen, username]);
 
   useEffect(() => {
     if (!viewerAddress) {
@@ -287,18 +296,9 @@ export default function ProfileClient({
     async function fetchViewerIdentity(): Promise<void> {
       setViewerIdentityResolved(false);
       try {
-        const response = await fetch(
-          `/api/me?address=${encodeURIComponent(connectedAddress)}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-        const json: unknown = await response.json().catch(() => null);
+        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
         if (!cancelled) {
-          setViewerIdentity(
-            response.ok ? parsePublicViewerMeResponse(json) : null
-          );
+          setViewerIdentity(identity);
         }
       } catch {
         if (!cancelled) {
@@ -317,6 +317,15 @@ export default function ProfileClient({
       cancelled = true;
     };
   }, [viewerAddress]);
+
+  const viewerState = resolvePublicViewerState({
+    pageUsername: username,
+    pageCreatorAddress: creator.address ?? null,
+    viewerAddress: viewerAddress ?? null,
+    identity: viewerIdentity,
+    identityResolved: viewerIdentityResolved,
+  });
+  const shouldPrefetchProjectProgress = supportSheetLoaded || viewerState.isOwner;
 
   const fetchProjectProgressSafe = useCallback(async (): Promise<ProjectProgressApi | null> => {
     if (!activeProjectId) return null;
@@ -489,15 +498,23 @@ export default function ProfileClient({
   }, [activeProjectId, fetchProjectProgressSafe]);
 
   useEffect(() => {
-    if (!activeProjectId) return;
+    if (!activeProjectId || !shouldPrefetchProjectProgress) return;
 
     attemptedThisViewRef.current.set.clear();
     void fetchProjectProgressSafe();
-    void autoReverifyPendingOnView();
-  }, [activeProjectId, autoReverifyPendingOnView, fetchProjectProgressSafe]);
+    if (viewerState.isOwner) {
+      void autoReverifyPendingOnView();
+    }
+  }, [
+    activeProjectId,
+    autoReverifyPendingOnView,
+    fetchProjectProgressSafe,
+    shouldPrefetchProjectProgress,
+    viewerState.isOwner,
+  ]);
 
   useEffect(() => {
-    if (!activeProjectId) return;
+    if (!activeProjectId || !viewerState.isOwner) return;
     if (progressLoading || autoReverifyRunning) return;
 
     let cancelled = false;
@@ -579,6 +596,7 @@ export default function ProfileClient({
     fetchProjectProgressSafe,
     progressLoading,
     progressTotalYen,
+    viewerState.isOwner,
   ]);
 
   async function postContribution(args: {
@@ -668,14 +686,6 @@ export default function ProfileClient({
       );
     }
   }
-
-  const viewerState = resolvePublicViewerState({
-    pageUsername: username,
-    pageCreatorAddress: creator.address ?? null,
-    viewerAddress: viewerAddress ?? null,
-    identity: viewerIdentity,
-    identityResolved: viewerIdentityResolved,
-  });
 
   const resolvedTargetYen =
     progressTargetYen != null ? progressTargetYen : projectGoalTargetYen;
@@ -1201,6 +1211,7 @@ export default function ProfileClient({
           projectIdsByCurrency={resolvedProjectIdsByCurrency}
           showTipAction
           refreshToken={feedRefreshToken}
+          initialFeed={screen === "profile" ? initialFeed : null}
           headerColor={creator.themeColor || "#2563eb"}
           onSelectTipPost={handleSelectPostTip}
           onFocusWalletSection={openSupportSheet}
@@ -1235,6 +1246,7 @@ export default function ProfileClient({
           projectIdsByCurrency={homeProjectIdsByCurrency}
           showTipAction={false}
           refreshToken={feedRefreshToken}
+          initialFeed={screen === "home" ? initialFeed : null}
           headerColor={creator.themeColor || "#2563eb"}
           onSelectTipPost={handleSelectPostTip}
           onFocusWalletSection={openSupportSheet}
