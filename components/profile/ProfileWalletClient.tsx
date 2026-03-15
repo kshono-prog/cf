@@ -32,6 +32,7 @@ import {
   getPublicClientForChain,
   INCREMENTS,
   isInAppBrowser,
+  type LastTx,
   loadLastTx,
   normalizeAmountInput,
   openInMetaMaskDapp,
@@ -237,6 +238,7 @@ export function ProfileWalletClient({
 
     setResumeBusy(true);
     setSuppressConnectUI(true);
+    let recorded = false;
 
     try {
       setStatus("送金を確認しています…");
@@ -253,31 +255,13 @@ export function ProfileWalletClient({
       });
 
       if (last.projectId) {
-        const tx = await pc.getTransaction({ hash: last.txHash });
-
-        const token = getTokenOnChain(
-          last.currency,
-          last.chainId as SupportedChainId
-        );
-        if (!token) {
-          setStatus("トークン設定が見つかりません");
+        const persistResult = await persistContributionRecord(last);
+        if (!persistResult.ok) {
+          setStatus(persistResult.message);
           return;
         }
 
-        await onPostContribution({
-          projectId: last.projectId ?? undefined,
-          purposeId: last.purposeId ?? undefined,
-          postId: last.postId ?? undefined,
-          chainId: last.chainId,
-          currency: last.currency,
-          tokenAddress: token.address,
-          txHash: last.txHash,
-          fromAddress: tx.from,
-          toAddress: last.toAddress,
-          amount: last.amount,
-        });
-
-        await onAfterSend(last.txHash, last.postId);
+        recorded = true;
       }
 
       setStatus("送金が反映されました");
@@ -285,7 +269,9 @@ export function ProfileWalletClient({
       console.error("resumeAfterReturnFromWallet failed", e);
       setStatus("送金確認に失敗しました");
     } finally {
-      clearLastTx();
+      if (recorded) {
+        clearLastTx();
+      }
       setResumeBusy(false);
       setSuppressConnectUI(false);
     }
@@ -580,6 +566,65 @@ export function ProfileWalletClient({
     }
   }
 
+  function mapContributionFailureMessage(reason: string): string {
+    if (reason === "HTTP_503" || reason === "FETCH_FAILED") {
+      return "送金は完了しましたが、記録の反映に失敗しました。しばらくしてからこのページを開き直すと再確認します。";
+    }
+
+    return `送金は完了しましたが、記録の反映に失敗しました（${reason}）。しばらくしてからこのページを開き直してください。`;
+  }
+
+  async function persistContributionRecord(
+    lastTx: LastTx,
+    fromAddressOverride?: string
+  ): Promise<{ ok: true } | { ok: false; message: string }> {
+    if (!lastTx.projectId) {
+      return { ok: false, message: "送金先プロジェクトを確認できませんでした。" };
+    }
+
+    const token = getTokenOnChain(
+      lastTx.currency,
+      lastTx.chainId as SupportedChainId
+    );
+    if (!token) {
+      return { ok: false, message: "トークン設定が見つかりません。" };
+    }
+
+    let fromAddress = fromAddressOverride;
+    if (!fromAddress) {
+      const pc = getPublicClientForChain(lastTx.chainId);
+      if (!pc) {
+        return { ok: false, message: "送金の確認に必要なチェーン接続が見つかりません。" };
+      }
+
+      const tx = await pc.getTransaction({ hash: lastTx.txHash });
+      fromAddress = tx.from;
+    }
+
+    const contributionResult = await onPostContribution({
+      projectId: lastTx.projectId,
+      purposeId: lastTx.purposeId ?? undefined,
+      postId: lastTx.postId ?? undefined,
+      chainId: lastTx.chainId,
+      currency: lastTx.currency,
+      tokenAddress: token.address,
+      txHash: lastTx.txHash,
+      fromAddress,
+      toAddress: lastTx.toAddress,
+      amount: lastTx.amount,
+    });
+
+    if (!contributionResult.ok) {
+      return {
+        ok: false,
+        message: mapContributionFailureMessage(contributionResult.reason),
+      };
+    }
+
+    await onAfterSend(lastTx.txHash, lastTx.postId);
+    return { ok: true };
+  }
+
   async function send(overrideAmount?: string) {
     if (!connected) {
       alert("ウォレットを接続してください");
@@ -686,21 +731,28 @@ export function ProfileWalletClient({
         });
       }
 
-      await onPostContribution({
-        projectId: activeProjectId ?? undefined,
-        purposeId,
-        postId: selectedPostId ?? undefined,
-        chainId: selectedChainId,
-        currency,
-        tokenAddress,
-        txHash: tx.hash,
-        fromAddress: sender,
-        toAddress,
-        amount: amtStr,
-      });
+      const persistResult = await persistContributionRecord(
+        {
+          txHash: tx.hash as `0x${string}`,
+          chainId: selectedChainId,
+          currency,
+          amount: amtStr,
+          toAddress,
+          projectId: activeProjectId,
+          purposeId: purposeId ?? null,
+          postId: selectedPostId ?? null,
+          createdAtMs: Date.now(),
+        },
+        sender
+      );
 
+      if (!persistResult.ok) {
+        setStatus(persistResult.message);
+        return;
+      }
+
+      clearLastTx();
       void refreshGoalProgress();
-      await onAfterSend(tx.hash, selectedPostId);
 
       void fetchWalletBalances();
 
