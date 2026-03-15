@@ -19,17 +19,15 @@ import {
   pickPublicSummaryLite,
   type PublicSummaryLite,
 } from "@/lib/publicSummary";
-import { CreatorFeedSection } from "@/components/feed/CreatorFeedSection";
 import type { SelectedPostTipContext } from "@/components/feed/feedTypes";
-import { PublicOwnerComposerCard } from "@/components/profile/PublicOwnerComposerCard";
+import { LazyFeedSection } from "@/components/feed/LazyFeedSection";
+import { Avatar } from "@/components/shared/Avatar";
 import {
   parsePublicViewerMeResponse,
   resolvePublicViewerState,
 } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
 import { ProfileHero } from "@/components/profile/ProfileHero";
-import { SupportSheet } from "@/components/support/SupportSheet";
-import { CreatorCommunityCard } from "@/components/profile/CreatorCommunityCard";
 
 const ProfileWalletClient = dynamic(
   () =>
@@ -41,6 +39,30 @@ const ProfileWalletClient = dynamic(
     loading: () => (
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--text-subtle)]">
         ウォレット情報を準備しています…
+      </div>
+    ),
+  }
+);
+
+const SupportSheet = dynamic(
+  () =>
+    import("@/components/support/SupportSheet").then(
+      (module) => module.SupportSheet
+    ),
+  {
+    ssr: false,
+  }
+);
+
+const CreatorCommunityCard = dynamic(
+  () =>
+    import("@/components/profile/CreatorCommunityCard").then(
+      (module) => module.CreatorCommunityCard
+    ),
+  {
+    loading: () => (
+      <div className="text-sm text-[var(--text-subtle)]">
+        つながり情報を準備しています…
       </div>
     ),
   }
@@ -68,7 +90,6 @@ type Props = {
   publicSummary?: PublicSummaryLite | null;
   initialFeed?: FeedListView | null;
   layout?: "full" | "content";
-  screen?: "profile" | "home";
 };
 
 type ProgressSupportedChainIdsByCurrency = {
@@ -166,7 +187,6 @@ export default function ProfileClient({
   publicSummary,
   initialFeed = null,
   layout = "full",
-  screen = "profile",
 }: Props) {
   const { address: viewerAddress } = useAccount();
   const creator: CreatorProfile = useMemo(() => {
@@ -239,11 +259,6 @@ export default function ProfileClient({
   }, [resolvedProjectIdsByCurrency, viewCurrency]);
 
   useEffect(() => {
-    if (screen !== "profile") {
-      setPublicSummaryState(null);
-      return;
-    }
-
     if (publicSummary !== undefined) {
       setPublicSummaryState(publicSummary);
       return;
@@ -281,7 +296,7 @@ export default function ProfileClient({
     return () => {
       cancelled = true;
     };
-  }, [publicSummary, screen, username]);
+  }, [publicSummary, username]);
 
   useEffect(() => {
     if (!viewerAddress) {
@@ -790,13 +805,6 @@ export default function ProfileClient({
     openSupportSheet();
   }
 
-  function handleOwnerPostCreated() {
-    setFeedRefreshToken((current) => current + 1);
-    window.requestAnimationFrame(() => {
-      timelineRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-
   const ownerComposerManagementHref = `/${username}/mypage#public-page`;
   const viewerWorkspaceHref = viewerState.userUsername
     ? `/${viewerState.userUsername}/mypage`
@@ -811,13 +819,21 @@ export default function ProfileClient({
   const availableCurrencies = (["JPYC", "USDC"] as const).filter(
     (currency) => resolvedProjectIdsByCurrency[currency]
   );
-  const homeProjectIdsByCurrency = {
-    JPYC: null,
-    USDC: null,
-  } satisfies {
-    JPYC: string | null;
-    USDC: string | null;
-  };
+  const selectedCurrencyLabel = supportOverview ? viewCurrency : "JPYC";
+  const currentSupportLabel = supportOverview
+    ? `${formatSupportAmount(supportOverview.current, viewCurrency)} ${viewCurrency}`
+    : "-";
+  const targetSupportLabel = supportOverview
+    ? `${formatSupportAmount(supportOverview.target, viewCurrency)} ${viewCurrency}`
+    : creator.goalTargetJpyc
+    ? `${formatSupportAmount(creator.goalTargetJpyc, "JPYC")} JPYC`
+    : "-";
+  const statusLabel = supportOverview?.achievedAt ? "目標達成済み" : "受付中";
+  const statusDetail = supportOverview?.deadline
+    ? `期限 ${supportOverview.deadline.slice(0, 10)}`
+    : supportOverview
+    ? null
+    : "設定で応援内容を整えられます";
 
   async function handleViewerConnect(): Promise<void> {
     const { appkit } = await import("@/lib/appkitInstance");
@@ -827,13 +843,13 @@ export default function ProfileClient({
   const profileGuideCard = (() => {
     if (viewerState.isOwner) {
       return (
-        <section className="surface-card p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-3.5">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-lg font-semibold text-[var(--text)]">
+              <div className="text-[15px] font-semibold text-[var(--text)]">
                 これはあなたの公開ページです
               </div>
-              <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+              <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
                 見え方を確認しながら、投稿や設定をすぐ開けます。
               </p>
             </div>
@@ -856,13 +872,13 @@ export default function ProfileClient({
 
     if (viewerState.mode === "unregistered") {
       return (
-        <section className="surface-card p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-3.5">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-lg font-semibold text-[var(--text)]">
+              <div className="text-[15px] font-semibold text-[var(--text)]">
                 応援はできます。投稿したいときはユーザー登録
               </div>
-              <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+              <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
                 まずは登録すると、自分のページと投稿機能を使い始められます。
               </p>
             </div>
@@ -881,14 +897,14 @@ export default function ProfileClient({
 
     if (!viewerState.hasCreator) {
       return (
-        <section className="surface-card p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-3.5">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-lg font-semibold text-[var(--text)]">
+              <div className="text-[15px] font-semibold text-[var(--text)]">
                 自分の公開ページを作ると、投稿も始められます
               </div>
-              <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-                いまは {pageDisplayName} さんのページを見ています。自分のページを整えると、投稿や応援の受け取りも始められます。
+              <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
+                いまは {pageDisplayName} さんのページを見ています。自分のページを整えると投稿も始められます。
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -905,99 +921,21 @@ export default function ProfileClient({
     }
 
     return (
-      <section className="surface-card p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-lg font-semibold text-[var(--text)]">
-              いま見ているのは {pageDisplayName} さんの公開ページです
-            </div>
-            <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              応援したり、気になる投稿を見たりできます。自分のページは別で整えられます。
-            </p>
+      <section className="rounded-[20px] border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-2.5 sm:px-5 sm:py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-[13px] font-medium text-[var(--text-subtle)]">
+            いま見ているのは {pageDisplayName} さんの公開ページです
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn" onClick={openSupportSheet}>
-              応援する
-            </button>
-            <Link href={viewerProfileHref} className="btn-secondary">
-              自分のページを見る
-            </Link>
-          </div>
-        </div>
-      </section>
-    );
-  })();
-
-  const homeGuideCard = (() => {
-    if (viewerState.mode === "loading") {
-      return (
-        <section className="surface-subtle px-4 py-4 sm:px-5">
-          <div className="text-sm font-semibold text-[var(--text)]">
-            準備を確認しています
-          </div>
-          <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
-            接続状態と登録状況を読み込み中です。
-          </p>
-        </section>
-      );
-    }
-
-    if (viewerState.mode === "unconnected") {
-      return null;
-    }
-
-    if (viewerState.mode === "unregistered") {
-      return (
-        <section className="surface-subtle px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-[var(--text)]">
-                応援はそのままできます。投稿したいときはユーザー登録
-              </div>
-              <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
-                まずは登録すると、自分のページと投稿機能を使い始められます。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href={`/${username}`} className="btn">
-                プロフィールを見る
-              </Link>
-              <Link href={viewerWorkspaceHref} className="btn-secondary">
-                ユーザー登録へ
-              </Link>
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    if (!viewerState.hasCreator) {
-      return null;
-    }
-
-    return (
-      <section className="surface-subtle px-4 py-4 sm:px-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-[var(--text)]">
-              いま見ているのは、みんなの最新投稿です
-            </div>
-            <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
-              気になる投稿に反応しながら流れを見られます。投稿したいときは自分のページへ移動できます。
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href={viewerComposeHref} className="btn-secondary">
-              自分の投稿画面へ
-            </Link>
-          </div>
+          <Link href={viewerProfileHref} className="btn-secondary px-3 py-1.5 text-[12px]">
+            自分のページを見る
+          </Link>
         </div>
       </section>
     );
   })();
 
   const profileScreen = (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <ProfileHero
         username={username}
         displayName={displayName}
@@ -1018,65 +956,79 @@ export default function ProfileClient({
       />
 
       {viewerState.mode !== "unconnected" ? profileGuideCard : null}
-      <section className="surface-card p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="text-lg font-semibold text-[var(--text)]">
-              いま受け付けている応援
+      <section className="panel-card px-3.5 py-2.5 sm:px-4 sm:py-3">
+        <div className="grid gap-2.5 pb-2.5 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-3">
+          <div className="flex min-w-0 flex-col items-center justify-center gap-2 text-center">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <Avatar
+                src={creator.avatarUrl}
+                alt={`${displayName} のアイコン`}
+                fallbackText={displayName.slice(0, 1) || "?"}
+                size={32}
+              />
+              <div className="text-[11px] font-medium text-[var(--text-subtle)]">
+                {displayName}
+              </div>
             </div>
-            <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              このページでいま受け付けている応援の目的と進み具合をまとめています。
-            </p>
+            <div>
+              {viewerState.isOwner ? (
+                <Link
+                  href={viewerWorkspaceHref}
+                  className="btn-secondary px-3 py-1.5 text-[12px]"
+                >
+                  公開ページを整える
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="btn px-3 py-1.5 text-[12px]"
+                  onClick={openSupportSheet}
+                >
+                  応援する
+                </button>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {viewerState.isOwner ? (
-              <Link href={viewerWorkspaceHref} className="btn-secondary">
-                公開ページを整える
-              </Link>
-            ) : (
-              <button type="button" className="btn" onClick={openSupportSheet}>
-                応援する
-              </button>
-            )}
+          <div className="min-w-0">
+            <div className="text-[14px] font-semibold text-[var(--text)] sm:text-[15px]">
+              {supportTitle}
+            </div>
+            <p className="mt-0.5 whitespace-pre-wrap text-[11px] leading-4.5 text-[var(--text-subtle)] sm:mt-1 sm:text-[12px]">
+              {supportDescription}
+            </p>
           </div>
         </div>
 
         {progressLoading ? (
-          <div className="mt-4 text-sm text-[var(--text-subtle)]">読み込み中です</div>
+          <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-sm text-[var(--text-subtle)]">
+            読み込み中です
+          </div>
         ) : progressError ? (
-          <div className="alert-warn mt-4">
+          <div className="alert-warn mt-1.5">
             うまく読み込めませんでした。もう一度お試しください。
           </div>
         ) : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="surface-subtle px-4 py-4">
-              <div className="text-sm text-[var(--text-subtle)]">いま集まっている応援</div>
-              <div className="mt-2 text-2xl font-semibold text-[var(--text)]">
-                {supportOverview
-                  ? formatSupportAmount(supportOverview.current, viewCurrency)
-                  : "-"}
-              </div>
-              <div className="mt-1 text-xs text-[var(--text-subtle)]">{viewCurrency}</div>
-            </div>
-            <div className="surface-subtle px-4 py-4">
-              <div className="text-sm text-[var(--text-subtle)]">目標</div>
-              <div className="mt-2 text-2xl font-semibold text-[var(--text)]">
-                {supportOverview
-                  ? formatSupportAmount(supportOverview.target, viewCurrency)
-                  : creator.goalTargetJpyc
-                  ? formatSupportAmount(creator.goalTargetJpyc, "JPYC")
-                  : "-"}
-              </div>
-              <div className="mt-1 text-xs text-[var(--text-subtle)]">
-                {supportOverview ? viewCurrency : "JPYC"}
+          <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-[var(--line)] pt-1.5 sm:grid-cols-4">
+            <div className="min-w-0">
+              <div className="text-[10px] font-medium text-[var(--text-subtle)]">集まった応援</div>
+              <div className="mt-0.5 text-[14px] font-semibold text-[var(--text)] sm:text-[1rem]">
+                {currentSupportLabel}
               </div>
             </div>
-            <div className="surface-subtle px-4 py-4">
-              <div className="text-sm text-[var(--text-subtle)]">進捗</div>
-              <div className="mt-2 text-2xl font-semibold text-[var(--text)]">
-                {supportOverview ? `${Math.floor(supportOverview.progressPct)}%` : "-"}
+            <div className="min-w-0">
+              <div className="text-[10px] font-medium text-[var(--text-subtle)]">目標</div>
+              <div className="mt-0.5 text-[14px] font-semibold text-[var(--text)] sm:text-[1rem]">
+                {targetSupportLabel}
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="text-[10px] font-medium text-[var(--text-subtle)]">進捗</div>
+                <div className="text-[12px] font-semibold text-[var(--text)]">
+                  {supportOverview ? `${Math.floor(supportOverview.progressPct)}%` : "-"}
+                </div>
+              </div>
+              <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
                 <div
                   className="h-full rounded-full bg-[var(--support)]"
                   style={{
@@ -1085,93 +1037,57 @@ export default function ProfileClient({
                 />
               </div>
             </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-medium text-[var(--text-subtle)]">状態</div>
+              <div className="mt-0.5 text-[13px] font-semibold text-[var(--text)]">
+                {statusLabel}
+              </div>
+              {statusDetail ? (
+                <div className="mt-0.5 text-[10px] leading-4 text-[var(--text-subtle)]">
+                  {statusDetail}
+                </div>
+              ) : null}
+            </div>
           </div>
         )}
 
-        <div className="mt-4 surface-subtle px-4 py-4">
-          <div className="text-sm text-[var(--text-subtle)]">いま集めていること</div>
-          <div className="mt-2 text-lg font-semibold text-[var(--text)]">
-            {supportTitle}
-          </div>
-          <p className="mt-2 text-sm leading-7 text-[var(--text-subtle)]">
-            {supportDescription}
-          </p>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="surface-subtle px-4 py-4">
-            <div className="text-sm text-[var(--text-subtle)]">応援の状態</div>
-            <div className="mt-2 text-lg font-semibold text-[var(--text)]">
-              {supportOverview?.achievedAt ? "目標達成済み" : "応援受付中"}
+        {availableCurrencies.length > 1 ? (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 border-t border-[var(--line)] pt-1.5">
+            <div className="text-[10px] font-medium text-[var(--text-subtle)]">
+              表示通貨
             </div>
-            <div className="mt-1 text-sm text-[var(--text-subtle)]">
-              {supportOverview?.deadline
-                ? `期限: ${supportOverview.deadline.slice(0, 10)}`
-                : supportOverview
-                ? `${Math.floor(supportOverview.progressPct)}% 進行中`
-                : "公開ページの設定で応援内容を整えられます"}
-            </div>
+            {(["JPYC", "USDC"] as const).map((currency) => (
+              <button
+                key={currency}
+                type="button"
+                className={`chip-button px-2.5 py-1 text-[11px] ${
+                  viewCurrency === currency
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : ""
+                }`}
+                disabled={!resolvedProjectIdsByCurrency[currency]}
+                onClick={() => setViewCurrency(currency)}
+              >
+                {currency}
+              </button>
+            ))}
           </div>
-          <div className="surface-subtle px-4 py-4">
-            <div className="text-sm text-[var(--text-subtle)]">使える通貨</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {availableCurrencies.length > 0 ? (
-                availableCurrencies.map((currency) => (
-                  <span
-                    key={currency}
-                    className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs text-[var(--text)]"
-                  >
-                    {currency}
-                  </span>
-                ))
-              ) : (
-                <span className="text-sm text-[var(--text-subtle)]">未設定</span>
-              )}
-            </div>
+        ) : availableCurrencies.length === 1 ? (
+          <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[10px] text-[var(--text-subtle)]">
+            表示通貨: {selectedCurrencyLabel}
           </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {(["JPYC", "USDC"] as const).map((currency) => (
-            <button
-              key={currency}
-              type="button"
-              className={`chip-button ${
-                viewCurrency === currency
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : ""
-              }`}
-              disabled={!resolvedProjectIdsByCurrency[currency]}
-              onClick={() => setViewCurrency(currency)}
-            >
-              {currency}
-            </button>
-          ))}
-          {viewerState.isOwner ? (
-            <Link href={viewerWorkspaceHref} className="btn-secondary">
-              設定を開く
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={openSupportSheet}
-            >
-              応援する
-            </button>
-          )}
-        </div>
+        ) : null}
       </section>
 
       {creator.youtubeVideos && creator.youtubeVideos.length > 0 ? (
-        <section className="surface-card p-5 sm:p-6">
-          <div className="text-lg font-semibold text-[var(--text)]">紹介動画</div>
-          <div className="mt-4 space-y-5">
+        <section className="panel-card px-4 py-4 sm:px-5 sm:py-5">
+          <div className="text-base font-semibold text-[var(--text)]">紹介動画</div>
+          <div className="mt-3 space-y-4">
             {creator.youtubeVideos.map((video, index) => {
               const videoId = extractYouTubeId(video.url);
 
               return (
-                <div key={`${video.url}-${index}`} className="space-y-3">
+                <div key={`${video.url}-${index}`} className="space-y-2.5">
                   {videoId ? (
                     <Link href={video.url} target="_blank" rel="noreferrer">
                       <Image
@@ -1184,11 +1100,11 @@ export default function ProfileClient({
                     </Link>
                   ) : null}
                   <div>
-                    <div className="text-base font-semibold text-[var(--text)]">
+                    <div className="text-[15px] font-semibold text-[var(--text)]">
                       {video.title || "紹介動画"}
                     </div>
                     {video.description ? (
-                      <p className="mt-2 text-sm leading-7 text-[var(--text-subtle)]">
+                      <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-subtle)]">
                         {video.description}
                       </p>
                     ) : null}
@@ -1201,7 +1117,7 @@ export default function ProfileClient({
       ) : null}
 
       <div id="posts" ref={timelineRef}>
-        <CreatorFeedSection
+        <LazyFeedSection
           creatorUsername={username}
           viewerAddress={viewerAddress ?? null}
           managedCreatorUsername={viewerState.creatorUsername}
@@ -1211,7 +1127,7 @@ export default function ProfileClient({
           projectIdsByCurrency={resolvedProjectIdsByCurrency}
           showTipAction
           refreshToken={feedRefreshToken}
-          initialFeed={screen === "profile" ? initialFeed : null}
+          initialFeed={initialFeed}
           headerColor={creator.themeColor || "#2563eb"}
           onSelectTipPost={handleSelectPostTip}
           onFocusWalletSection={openSupportSheet}
@@ -1222,72 +1138,41 @@ export default function ProfileClient({
     </div>
   );
 
-  const homeScreen = (
-    <div className="space-y-4">
-      {viewerState.isOwner && viewerAddress ? (
-        <PublicOwnerComposerCard
-          address={viewerAddress}
-          managementHref={ownerComposerManagementHref}
-          projectOptions={ownerProjectOptions}
-          onCreated={handleOwnerPostCreated}
-        />
-      ) : (
-        homeGuideCard
-      )}
-
-      <div id="timeline" ref={timelineRef}>
-        <CreatorFeedSection
-          creatorUsername={null}
-          viewerAddress={viewerAddress ?? null}
-          managedCreatorUsername={viewerState.creatorUsername}
-          managePostAddress={viewerState.hasCreator ? viewerAddress ?? null : null}
-          manageProjectOptions={ownerProjectOptions}
-          selectedPostId={selectedPostTipContext?.id ?? null}
-          projectIdsByCurrency={homeProjectIdsByCurrency}
-          showTipAction={false}
-          refreshToken={feedRefreshToken}
-          initialFeed={screen === "home" ? initialFeed : null}
-          headerColor={creator.themeColor || "#2563eb"}
-          onSelectTipPost={handleSelectPostTip}
-          onFocusWalletSection={openSupportSheet}
-        />
-      </div>
-    </div>
-  );
-
   const content = (
     <>
-      {screen === "home" ? homeScreen : profileScreen}
+      {profileScreen}
 
-      <SupportSheet
-        open={supportSheetOpen}
-        title={selectedPostTipContext ? "この投稿を応援" : `${displayName}を応援`}
-        description={
-          selectedPostTipContext
-            ? "金額と通貨を選んで、そのまま応援を送れます。"
-            : "金額と通貨を選んで、やさしく応援を送れます。"
-        }
-        onClose={closeSupportSheet}
-      >
-        {supportSheetLoaded ? (
-          <ProfileWalletClient
-            username={username}
-            creator={creator}
-            projectId={activeProjectId}
-            projectIdsByCurrency={resolvedProjectIdsByCurrency}
-            supportedJpycChainIds={supportedJpycChainIds}
-            supportedChainIdsByCurrency={supportedChainIdsByCurrency}
-            showLegacyCard={showLegacyCard}
-            headerColor={creator.themeColor || "#2563eb"}
-            selectedPostId={selectedPostTipContext?.id ?? null}
-            selectedPostSummary={selectedPostTipContext?.preview ?? null}
-            selectedPostCurrency={selectedPostTipContext?.preferredCurrency ?? null}
-            onClearSelectedPost={() => setSelectedPostTipContext(null)}
-            onPostContribution={postContribution}
-            onAfterSend={afterSendPipeline}
-          />
-        ) : null}
-      </SupportSheet>
+      {supportSheetLoaded || supportSheetOpen ? (
+        <SupportSheet
+          open={supportSheetOpen}
+          title={selectedPostTipContext ? "この投稿を応援" : `${displayName}を応援`}
+          description={
+            selectedPostTipContext
+              ? "金額と通貨を選んで、そのまま応援を送れます。"
+              : "金額と通貨を選んで、やさしく応援を送れます。"
+          }
+          onClose={closeSupportSheet}
+        >
+          {supportSheetLoaded ? (
+            <ProfileWalletClient
+              username={username}
+              creator={creator}
+              projectId={activeProjectId}
+              projectIdsByCurrency={resolvedProjectIdsByCurrency}
+              supportedJpycChainIds={supportedJpycChainIds}
+              supportedChainIdsByCurrency={supportedChainIdsByCurrency}
+              showLegacyCard={showLegacyCard}
+              headerColor={creator.themeColor || "#2563eb"}
+              selectedPostId={selectedPostTipContext?.id ?? null}
+              selectedPostSummary={selectedPostTipContext?.preview ?? null}
+              selectedPostCurrency={selectedPostTipContext?.preferredCurrency ?? null}
+              onClearSelectedPost={() => setSelectedPostTipContext(null)}
+              onPostContribution={postContribution}
+              onAfterSend={afterSendPipeline}
+            />
+          ) : null}
+        </SupportSheet>
+      ) : null}
     </>
   );
 

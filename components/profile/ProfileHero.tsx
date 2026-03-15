@@ -36,39 +36,39 @@ export function ProfileHero(props: ProfileHeroProps) {
     !socialEntries.some((entry) => entry.url === props.externalUrl);
 
   return (
-    <section className="surface-card overflow-hidden">
-      <div className="h-28 bg-[linear-gradient(135deg,#ffffff,rgba(240,241,244,0.92)_45%,rgba(229,231,235,0.72))]" />
-      <div className="-mt-10 px-5 pb-5 sm:px-6 sm:pb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <section className="panel-card overflow-hidden">
+      <div className="h-20 bg-[linear-gradient(135deg,#ffffff,rgba(240,241,244,0.92)_45%,rgba(229,231,235,0.72))]" />
+      <div className="-mt-8 px-4 pb-3.5 sm:px-5 sm:pb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <div className="inline-flex rounded-full border border-white bg-white p-1 shadow-sm">
               <Avatar
                 src={props.avatarUrl}
                 alt={`${props.displayName} のアイコン`}
                 fallbackText={getInitials(props.displayName)}
-                size={72}
+                size={58}
               />
             </div>
-            <div className="mt-4">
-              <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)]">
+            <div className="mt-2.5">
+              <h1 className="text-[1.25rem] font-semibold tracking-tight text-[var(--text)] sm:text-[1.4rem]">
                 {props.displayName}
               </h1>
-              <p className="mt-1 text-sm text-[var(--text-subtle)]">@{props.username}</p>
+              <p className="mt-0.5 text-[12px] text-[var(--text-subtle)]">@{props.username}</p>
             </div>
             {props.profile ? (
-              <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm leading-7 text-[var(--text)]">
+              <p className="line-clamp-3 mt-2 max-w-2xl whitespace-pre-wrap text-[12px] leading-5 text-[var(--text)]">
                 {props.profile}
               </p>
             ) : null}
             {socialEntries.length > 0 || shouldShowExternalUrl ? (
-              <div className="mt-4 flex flex-wrap items-center gap-3">
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 {socialEntries.map((entry) => (
                   <Link
                     key={entry.key}
                     href={entry.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-subtle)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-subtle)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
                     aria-label={entry.label}
                   >
                     <Image
@@ -85,7 +85,7 @@ export function ProfileHero(props: ProfileHeroProps) {
                     href={props.externalUrl ?? "#"}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-subtle)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-subtle)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
                     aria-label="外部リンク"
                   >
                     <Image
@@ -100,7 +100,7 @@ export function ProfileHero(props: ProfileHeroProps) {
               </div>
             ) : null}
             {props.communityContent ? (
-              <div className="mt-4 border-t border-[var(--line)] pt-4">
+              <div className="mt-2.5 border-t border-[var(--line)] pt-2.5">
                 {props.communityContent}
               </div>
             ) : null}

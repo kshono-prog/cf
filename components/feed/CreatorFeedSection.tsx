@@ -66,6 +66,8 @@ type Props = {
   onFocusWalletSection: () => void;
 };
 
+export type CreatorFeedSectionProps = Props;
+
 function createEmptyDetailState(): PostDetailState {
   return {
     loading: false,

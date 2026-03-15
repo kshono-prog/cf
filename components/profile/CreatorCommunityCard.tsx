@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Avatar } from "@/components/shared/Avatar";
 import type { PublicViewerState } from "@/lib/publicViewerState";
 
 type FollowPreview = {
@@ -100,11 +99,6 @@ function parseFollowSummary(value: unknown): FollowSummary {
       .map((item) => parsePreview(item))
       .filter((item): item is FollowPreview => item !== null),
   };
-}
-
-function previewInitials(name: string): string {
-  const trimmed = name.trim();
-  return trimmed.slice(0, 1).toUpperCase() || "?";
 }
 
 function countLabel(value: number): string {
@@ -277,18 +271,18 @@ export function CreatorCommunityCard(props: Props) {
   })();
 
   return (
-    <div id="community" className="space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-6">
+    <div id="community" className="space-y-2">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-5">
           <div>
             <div className="text-[11px] text-[var(--text-subtle)]">フォロワー</div>
-            <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+            <div className="mt-0.5 text-sm font-semibold text-[var(--text)]">
               {loading ? "-" : countLabel(summary?.counts.followers ?? 0)}
             </div>
           </div>
           <div>
             <div className="text-[11px] text-[var(--text-subtle)]">フォロー中</div>
-            <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+            <div className="mt-0.5 text-sm font-semibold text-[var(--text)]">
               {loading ? "-" : countLabel(summary?.counts.following ?? 0)}
             </div>
           </div>
@@ -298,33 +292,6 @@ export function CreatorCommunityCard(props: Props) {
 
       {error ? (
         <div className="text-xs text-rose-600">{error}</div>
-      ) : null}
-
-      {!loading && summary && summary.followers.length > 0 ? (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <div className="shrink-0 text-[11px] text-[var(--text-subtle)]">
-            最近のフォロワー
-          </div>
-          <div className="flex items-center gap-2">
-            {summary.followers.slice(0, 5).map((follower) => (
-              <Link
-                key={follower.id}
-                href={`/${follower.username}`}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-2 py-1 transition hover:bg-[var(--surface-subtle)]"
-              >
-                <Avatar
-                  src={follower.avatarUrl}
-                  alt={`${follower.displayName} のアイコン`}
-                  fallbackText={previewInitials(follower.displayName)}
-                  size={24}
-                />
-                <span className="max-w-[120px] truncate text-xs text-[var(--text)]">
-                  {follower.displayName}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
       ) : null}
     </div>
   );

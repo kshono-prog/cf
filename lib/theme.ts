@@ -37,19 +37,3 @@ export function getStoredThemePreference(): ThemePreference {
 export function getInitialResolvedTheme(): ResolvedTheme {
   return resolveTheme(getStoredThemePreference(), getSystemTheme());
 }
-
-export const THEME_INIT_SCRIPT = `
-(() => {
-  const key = ${JSON.stringify(THEME_STORAGE_KEY)};
-  const raw = window.localStorage.getItem(key);
-  const preference =
-    raw === "light" || raw === "dark" || raw === "system" ? raw : "system";
-  const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-  const resolved = preference === "system" ? systemTheme : preference;
-  document.documentElement.dataset.theme = resolved;
-  document.documentElement.dataset.themePreference = preference;
-  document.documentElement.style.colorScheme = resolved;
-})();
-`;

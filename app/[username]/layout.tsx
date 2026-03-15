@@ -20,7 +20,7 @@ export default async function UsernameLayout({ children, params }: Props) {
       <ThemeProvider>
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
           <AppHeader username={username} />
-          <div className="pb-[78px] pt-[60px] sm:px-6 sm:pb-[96px] sm:pt-[82px]">
+          <div className="px-3 pb-[78px] pt-[60px] sm:px-6 sm:pb-[96px] sm:pt-[82px]">
             <div className="mx-auto w-full max-w-[760px]">{children}</div>
           </div>
         </div>

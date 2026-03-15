@@ -1,10 +1,30 @@
-"use client";
-
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 
-import { HeaderUserMenu } from "@/components/layout/HeaderUserMenu";
-import { HeaderWalletMenu } from "@/components/layout/HeaderWalletMenu";
+const HeaderWalletMenu = dynamic(
+  () =>
+    import("@/components/layout/HeaderWalletMenu").then(
+      (module) => module.HeaderWalletMenu
+    ),
+  {
+    loading: () => (
+      <div className="menu-trigger opacity-80">
+        <span className="text-sm font-semibold">ウォレット</span>
+      </div>
+    ),
+  }
+);
+
+const HeaderUserMenu = dynamic(
+  () =>
+    import("@/components/layout/HeaderUserMenu").then(
+      (module) => module.HeaderUserMenu
+    ),
+  {
+    loading: () => null,
+  }
+);
 
 export function AppHeader({ username }: { username: string }) {
   return (

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
-import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Creator Founding",
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="ja" suppressHydrationWarning>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
         {children}
       </body>
     </html>

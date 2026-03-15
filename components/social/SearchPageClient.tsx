@@ -5,59 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
-import {
-  parseFeedListResponse,
-  type FeedPost,
-} from "@/components/feed/feedTypes";
+import type { FeedPost } from "@/components/feed/feedTypes";
+import type { DiscoverCreator } from "@/lib/discoverCreators";
 import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
-
-type SearchCreator = {
-  username: string;
-  displayName: string;
-  profile: string | null;
-  avatarUrl: string | null;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function parseCreators(value: unknown): SearchCreator[] {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .filter((item): item is Record<string, unknown> => isRecord(item))
-    .map((item) => {
-      const username = typeof item.username === "string" ? item.username : null;
-      const displayName =
-        typeof item.displayName === "string" ? item.displayName : null;
-      const profile =
-        item.profile === null
-          ? null
-          : typeof item.profile === "string"
-          ? item.profile
-          : null;
-      const avatarUrl =
-        item.avatarUrl === null
-          ? null
-          : typeof item.avatarUrl === "string"
-          ? item.avatarUrl
-          : null;
-
-      if (!username || !displayName) {
-        return null;
-      }
-
-      return {
-        username,
-        displayName,
-        profile,
-        avatarUrl,
-      };
-    })
-    .filter((item): item is SearchCreator => item !== null);
-}
 
 function matchesQuery(value: string, query: string): boolean {
   return value.toLowerCase().includes(query);
@@ -67,17 +18,31 @@ function buildPostPreview(body: string): string {
   return body.length > 120 ? `${body.slice(0, 119)}…` : body;
 }
 
+function formatTargetYen(value: number | null): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+
+  return `${Math.floor(value).toLocaleString("ja-JP")} JPYC`;
+}
+
+function buildSupportTitle(creator: DiscoverCreator): string {
+  return creator.supportTitle ?? `${creator.displayName}の活動を応援する`;
+}
+
 type SearchPageClientProps = {
   username: string;
+  initialCreators: DiscoverCreator[];
+  initialPosts: FeedPost[];
 };
 
 export function SearchPageClient(props: SearchPageClientProps) {
   const { address } = useAccount();
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [creators, setCreators] = useState<SearchCreator[]>([]);
-  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
+  const [creators] = useState<DiscoverCreator[]>(props.initialCreators);
+  const [posts] = useState<FeedPost[]>(props.initialPosts);
   const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
   const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
     typeof parsePublicViewerMeResponse
@@ -118,53 +83,6 @@ export function SearchPageClient(props: SearchPageClientProps) {
     };
   }, [address]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [creatorResponse, feedResponse] = await Promise.all([
-          fetch("/api/creators/random?limit=18", {
-            method: "GET",
-            cache: "no-store",
-          }),
-          fetch("/api/feed?limit=30", {
-            method: "GET",
-            cache: "no-store",
-          }),
-        ]);
-
-        const creatorsJson: unknown = await creatorResponse.json().catch(() => null);
-        const feedJson: unknown = await feedResponse.json().catch(() => null);
-
-        if (cancelled) return;
-
-        if (!creatorResponse.ok || !feedResponse.ok) {
-          throw new Error("FETCH_FAILED");
-        }
-
-        setCreators(parseCreators(creatorsJson));
-        setPosts(parseFeedListResponse(feedJson).items);
-      } catch {
-        if (!cancelled) {
-          setError("うまく読み込めませんでした。もう一度お試しください。");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const normalizedQuery = query.trim().toLowerCase();
   const filteredCreators = useMemo(() => {
     if (!normalizedQuery) return creators;
@@ -173,7 +91,10 @@ export function SearchPageClient(props: SearchPageClientProps) {
       return (
         matchesQuery(creator.displayName, normalizedQuery) ||
         matchesQuery(creator.username, normalizedQuery) ||
-        matchesQuery(creator.profile ?? "", normalizedQuery)
+        matchesQuery(creator.profile ?? "", normalizedQuery) ||
+        matchesQuery(creator.supportTitle ?? "", normalizedQuery) ||
+        matchesQuery(creator.supportDescription ?? "", normalizedQuery) ||
+        matchesQuery(formatTargetYen(creator.supportTargetJpyc) ?? "", normalizedQuery)
       );
     });
   }, [creators, normalizedQuery]);
@@ -189,6 +110,29 @@ export function SearchPageClient(props: SearchPageClientProps) {
       );
     });
   }, [normalizedQuery, posts]);
+
+  const filteredSupportCreators = useMemo(() => {
+    const supportSource = normalizedQuery ? creators : filteredCreators;
+
+    return supportSource.filter((creator) => {
+      const matchesSupportQuery =
+        !normalizedQuery ||
+        matchesQuery(creator.displayName, normalizedQuery) ||
+        matchesQuery(creator.username, normalizedQuery) ||
+        matchesQuery(creator.supportTitle ?? "", normalizedQuery) ||
+        matchesQuery(creator.supportDescription ?? "", normalizedQuery) ||
+        matchesQuery(formatTargetYen(creator.supportTargetJpyc) ?? "", normalizedQuery);
+
+      return (
+        matchesSupportQuery &&
+        Boolean(
+          creator.supportTitle ||
+            creator.supportDescription ||
+            creator.supportTargetJpyc
+        )
+      );
+    });
+  }, [creators, filteredCreators, normalizedQuery]);
 
   const viewerMode = (() => {
     if (!address) return "unconnected" as const;
@@ -400,6 +344,111 @@ export function SearchPageClient(props: SearchPageClientProps) {
                     </p>
                   </Link>
                 ))
+              )}
+            </div>
+          </section>
+
+          <section className="surface-card p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-base font-semibold text-[var(--text)]">
+                  みんなの応援してほしいこと
+                </div>
+                <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                  いま応援を求めている内容を、そのまま見比べられます。
+                </p>
+              </div>
+              <div className="text-sm text-[var(--text-subtle)]">
+                {filteredSupportCreators.length} 件
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              {filteredSupportCreators.length === 0 ? (
+                <div className="text-sm text-[var(--text-subtle)]">
+                  見つかりませんでした。
+                </div>
+              ) : (
+                filteredSupportCreators.map((creator) => {
+                  const targetLabel = formatTargetYen(creator.supportTargetJpyc);
+                  const description =
+                    creator.supportDescription ?? creator.profile;
+
+                  return (
+                    <div
+                      key={`${creator.username}-support`}
+                      className="panel-card px-4 py-4 sm:px-5"
+                    >
+                      <div className="grid gap-4 sm:grid-cols-[120px_minmax(0,1fr)]">
+                        <div className="flex flex-col items-center justify-center gap-2 text-center">
+                          <Link
+                            href={`/${creator.username}`}
+                            className="flex flex-col items-center gap-2 text-center transition hover:opacity-80"
+                          >
+                            <Avatar
+                              src={creator.avatarUrl}
+                              alt={`${creator.displayName} のアイコン`}
+                              fallbackText={creator.displayName.slice(0, 1)}
+                              size={44}
+                            />
+                            <div className="text-xs font-medium text-[var(--text-subtle)]">
+                              {creator.displayName}
+                            </div>
+                          </Link>
+                          <Link
+                            href={`/${creator.username}`}
+                            className="btn h-9 min-h-0 px-4 text-sm"
+                          >
+                            応援する
+                          </Link>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-lg font-semibold leading-7 text-[var(--text)]">
+                            {buildSupportTitle(creator)}
+                          </div>
+                          {description ? (
+                            <p className="mt-2 text-sm leading-7 text-[var(--text-subtle)]">
+                              {description}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="mt-4 grid gap-3 border-t border-[var(--line)] pt-3 sm:grid-cols-4">
+                        <div>
+                          <div className="text-[11px] font-medium tracking-[0.02em] text-[var(--text-subtle)]">
+                            集まった応援
+                          </div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">
+                            0 JPYC
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-medium tracking-[0.02em] text-[var(--text-subtle)]">
+                            目標
+                          </div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">
+                            {targetLabel ?? "-"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-medium tracking-[0.02em] text-[var(--text-subtle)]">
+                            進捗
+                          </div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">
+                            0%
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-medium tracking-[0.02em] text-[var(--text-subtle)]">
+                            状態
+                          </div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">
+                            受付中
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </section>

@@ -93,10 +93,44 @@ select {
   box-shadow: none;
 }
 
+.panel-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow-soft);
+}
+
 .surface-subtle {
   background: var(--surface-subtle);
   border: 1px solid rgba(229, 231, 235, 0.85);
   border-radius: var(--radius);
+}
+
+.compact-info-card {
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 .btn,
@@ -207,6 +241,11 @@ select {
 }
 
 html[data-theme="dark"] .surface-subtle {
+  border-color: var(--line);
+}
+
+html[data-theme="dark"] .panel-card,
+html[data-theme="dark"] .compact-info-card {
   border-color: var(--line);
 }
 

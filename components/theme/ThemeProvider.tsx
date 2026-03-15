@@ -1,7 +1,5 @@
 "use client";
 
-import "@/lib/appkitInstance";
-
 import {
   createContext,
   useCallback,
@@ -11,10 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useAppKitTheme } from "@reown/appkit/react";
 
 import {
-  getInitialResolvedTheme,
   getStoredThemePreference,
   getSystemTheme,
   resolveTheme,
@@ -58,7 +54,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(
     getInitialResolvedThemeFromDocument
   );
-  const { setThemeMode } = useAppKitTheme();
 
   useEffect(() => {
     setPreferenceState(getStoredThemePreference());
@@ -85,14 +80,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.dataset.theme = resolvedTheme;
     root.dataset.themePreference = preference;
     root.style.colorScheme = resolvedTheme;
-    setThemeMode(resolvedTheme);
 
     if (preference === "system") {
       window.localStorage.removeItem(THEME_STORAGE_KEY);
     } else {
       window.localStorage.setItem(THEME_STORAGE_KEY, preference);
     }
-  }, [preference, resolvedTheme, setThemeMode]);
+  }, [preference, resolvedTheme]);
 
   const setPreference = useCallback((nextPreference: ThemePreference) => {
     setPreferenceState(nextPreference);
@@ -124,8 +118,4 @@ export function useTheme(): ThemeContextValue {
     throw new Error("useTheme must be used within ThemeProvider");
   }
   return context;
-}
-
-export function getDefaultResolvedTheme(): ResolvedTheme {
-  return getInitialResolvedTheme();
 }

@@ -183,17 +183,18 @@ export async function getFeedListView(
 }
 
 const getInitialPublicFeedListCached = unstable_cache(
-  async (creatorUsername: string | null) =>
+  async (creatorUsername: string | null, limit: number) =>
     getFeedListView({
       creatorUsername,
-      limit: FEED_DEFAULT_LIMIT,
+      limit,
     }),
   ["initial-public-feed"],
   { revalidate: 15 }
 );
 
 export async function getInitialPublicFeedList(
-  creatorUsername: string | null
+  creatorUsername: string | null,
+  limit: number = FEED_DEFAULT_LIMIT
 ): Promise<FeedListView> {
-  return getInitialPublicFeedListCached(creatorUsername);
+  return getInitialPublicFeedListCached(creatorUsername, limit);
 }

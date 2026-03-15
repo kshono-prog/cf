@@ -1,4 +1,4 @@
-import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
+import { HomeClientSection } from "@/app/[username]/HomeClientSection";
 import { loadPublicPageData } from "@/lib/publicPageData";
 import { getInitialPublicFeedList } from "@/lib/feedList";
 
@@ -19,13 +19,12 @@ export default async function HomePage({
     ]);
 
   return (
-    <ProfileClientSection
+    <HomeClientSection
       username={username}
       creator={creator}
       projectId={projectId}
       projectIdsByCurrency={projectIdsByCurrency}
       initialFeed={initialFeed}
-      screen="home"
     />
   );
 }

@@ -9,7 +9,11 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import { getChainConfig, getDefaultChainId, isSupportedChainId } from "@/lib/chainConfig";
 import { formatReadableNumber } from "@/lib/numberFormat";
 import { clearPublicViewerIdentityCache } from "@/lib/publicViewerIdentityClient";
-import type { ThemePreference } from "@/lib/theme";
+import {
+  getSystemTheme,
+  resolveTheme,
+  type ThemePreference,
+} from "@/lib/theme";
 import type { WalletBalances } from "@/lib/walletService";
 
 function shortAddress(value: string): string {
@@ -44,6 +48,14 @@ const themeOptions: Array<{ value: ThemePreference; label: string }> = [
 function ThemeModeSection() {
   const { preference, setPreference } = useTheme();
 
+  async function handleThemeChange(nextPreference: ThemePreference): Promise<void> {
+    setPreference(nextPreference);
+
+    const nextResolvedTheme = resolveTheme(nextPreference, getSystemTheme());
+    const maybeAppKit = await import("@/lib/appkitInstance").catch(() => null);
+    maybeAppKit?.appkit.setThemeMode(nextResolvedTheme);
+  }
+
   return (
     <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
       <div className="text-[11px] font-semibold tracking-[0.16em] text-[var(--text-subtle)]">
@@ -57,7 +69,7 @@ function ThemeModeSection() {
             className={
               preference === option.value ? "action-pill-active" : "action-pill"
             }
-            onClick={() => setPreference(option.value)}
+            onClick={() => void handleThemeChange(option.value)}
           >
             {option.label}
           </button>
