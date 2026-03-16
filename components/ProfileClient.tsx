@@ -1018,6 +1018,7 @@ export default function ProfileClient({
         avatarUrl={creator.avatarUrl}
         profile={creator.profile}
         externalUrl={creator.url}
+        themeColor={creator.themeColor}
         socials={creator.socials}
         communityContent={
           <CreatorCommunityCard

@@ -86,7 +86,13 @@ export function ProfileHeader({
                   aria-label={label}
                   className="inline-flex h-9 w-9 items-center justify-center text-gray-600 transition hover:text-gray-900"
                 >
-                  <Image src={icon} alt={label} width={22} height={22} />
+                  <Image
+                    src={icon}
+                    alt={label}
+                    width={22}
+                    height={22}
+                    className="social-icon"
+                  />
                 </a>
               );
             })}

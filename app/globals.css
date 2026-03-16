@@ -133,6 +133,10 @@ select {
   overflow: hidden;
 }
 
+.social-icon {
+  transition: filter 150ms ease;
+}
+
 .btn,
 .btn-secondary,
 .chip-button {
@@ -521,6 +525,10 @@ html[data-theme="dark"] .text-gray-400 {
 html[data-theme="dark"] .border-gray-200,
 html[data-theme="dark"] .border-gray-300 {
   border-color: #334155 !important;
+}
+
+html[data-theme="dark"] .social-icon {
+  filter: brightness(0) invert(1);
 }
 
 html[data-theme="dark"] .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {

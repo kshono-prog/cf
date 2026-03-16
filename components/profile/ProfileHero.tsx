@@ -15,6 +15,7 @@ type ProfileHeroProps = {
   avatarUrl: string | null | undefined;
   profile: string | null | undefined;
   externalUrl: string | null | undefined;
+  themeColor?: string | null | undefined;
   socials?: SocialLinks | null | undefined;
   communityContent?: React.ReactNode;
 };
@@ -34,10 +35,18 @@ export function ProfileHero(props: ProfileHeroProps) {
   const shouldShowExternalUrl =
     !!props.externalUrl &&
     !socialEntries.some((entry) => entry.url === props.externalUrl);
+  const heroBackgroundStyle = props.themeColor
+    ? {
+        backgroundImage: `linear-gradient(135deg, ${props.themeColor}, color-mix(in srgb, ${props.themeColor} 58%, white) 45%, color-mix(in srgb, ${props.themeColor} 28%, white))`,
+      }
+    : undefined;
 
   return (
     <section className="panel-card overflow-hidden">
-      <div className="h-20 bg-[linear-gradient(135deg,#ffffff,rgba(240,241,244,0.92)_45%,rgba(229,231,235,0.72))]" />
+      <div
+        className="h-20 bg-[linear-gradient(135deg,#ffffff,rgba(240,241,244,0.92)_45%,rgba(229,231,235,0.72))]"
+        style={heroBackgroundStyle}
+      />
       <div className="-mt-8 px-4 pb-3.5 sm:px-5 sm:pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
@@ -56,7 +65,7 @@ export function ProfileHero(props: ProfileHeroProps) {
               <p className="mt-0.5 text-[12px] text-[var(--text-subtle)]">@{props.username}</p>
             </div>
             {props.profile ? (
-              <p className="line-clamp-3 mt-2 max-w-2xl whitespace-pre-wrap text-[12px] leading-5 text-[var(--text)]">
+              <p className="mt-2 max-w-2xl whitespace-pre-wrap text-[12px] leading-5 text-[var(--text)]">
                 {props.profile}
               </p>
             ) : null}
@@ -76,7 +85,7 @@ export function ProfileHero(props: ProfileHeroProps) {
                       alt={entry.label}
                       width={16}
                       height={16}
-                      className="h-4 w-4"
+                      className="social-icon h-4 w-4"
                     />
                   </Link>
                 ))}
@@ -93,7 +102,7 @@ export function ProfileHero(props: ProfileHeroProps) {
                       alt="外部リンク"
                       width={16}
                       height={16}
-                      className="h-4 w-4"
+                      className="social-icon h-4 w-4"
                     />
                   </Link>
                 ) : null}

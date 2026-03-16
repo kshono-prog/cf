@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 type BottomNavProps = {
   username: string;
+  themeColor?: string | null;
 };
 
 type NavItem = {
@@ -135,7 +136,7 @@ function isActive(pathname: string | null, item: NavItem): boolean {
   return pathname === item.href;
 }
 
-export default function BottomNav({ username }: BottomNavProps) {
+export default function BottomNav({ username, themeColor }: BottomNavProps) {
   const pathname = usePathname();
 
   const items: NavItem[] = [
@@ -151,7 +152,10 @@ export default function BottomNav({ username }: BottomNavProps) {
   ];
 
   return (
-    <nav className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line)] bg-[var(--surface)]">
+    <nav
+      className="bottom-nav-safe fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line)] bg-[var(--surface)]"
+      style={themeColor ? { borderTopColor: themeColor } : undefined}
+    >
       <div className="mx-auto flex max-w-[760px] items-center gap-0 px-1 py-1">
         {items.map((item) => {
           const active = isActive(pathname, item);
