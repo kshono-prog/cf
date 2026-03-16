@@ -1152,10 +1152,8 @@ export default function ProfileClient({
                 <button
                   key={currency}
                   type="button"
-                  className={`chip-button px-2.5 py-1 text-[11px] ${
-                    viewCurrency === currency
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : ""
+                  className={`px-2.5 py-1 text-[11px] ${
+                    viewCurrency === currency ? "action-pill-active" : "chip-button"
                   }`}
                   disabled={!supportProfileState.projectsByCurrency[currency]}
                   onClick={() => setViewCurrency(currency)}

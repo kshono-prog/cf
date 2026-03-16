@@ -9,7 +9,7 @@ export default function Loading() {
         alt="Creator Founding"
         width={240}
         height={64}
-        className="h-12 w-auto opacity-90"
+        className="loading-logo h-12 w-auto opacity-90"
       />
 
       <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gray-400">

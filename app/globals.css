@@ -137,6 +137,10 @@ select {
   transition: filter 150ms ease;
 }
 
+.loading-logo {
+  transition: filter 150ms ease;
+}
+
 .btn,
 .btn-secondary,
 .chip-button {
@@ -527,7 +531,52 @@ html[data-theme="dark"] .border-gray-300 {
   border-color: #334155 !important;
 }
 
+html[data-theme="dark"] .bg-sky-50 {
+  background-color: rgba(14, 165, 233, 0.14) !important;
+}
+
+html[data-theme="dark"] .border-sky-200,
+html[data-theme="dark"] .border-sky-300 {
+  border-color: rgba(125, 211, 252, 0.34) !important;
+}
+
+html[data-theme="dark"] .text-sky-700,
+html[data-theme="dark"] .text-sky-800 {
+  color: #c8e7ff !important;
+}
+
+html[data-theme="dark"] .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+}
+
+html[data-theme="dark"] .border-amber-200,
+html[data-theme="dark"] .border-amber-300 {
+  border-color: rgba(252, 211, 77, 0.36) !important;
+}
+
+html[data-theme="dark"] .text-amber-700,
+html[data-theme="dark"] .text-amber-800,
+html[data-theme="dark"] .text-amber-900 {
+  color: #fde68a !important;
+}
+
+html[data-theme="dark"] .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+}
+
+html[data-theme="dark"] .border-emerald-200 {
+  border-color: rgba(110, 231, 183, 0.34) !important;
+}
+
+html[data-theme="dark"] .text-emerald-700 {
+  color: #bbf7d0 !important;
+}
+
 html[data-theme="dark"] .social-icon {
+  filter: brightness(0) invert(1);
+}
+
+html[data-theme="dark"] .loading-logo {
   filter: brightness(0) invert(1);
 }
 

@@ -88,7 +88,7 @@ export function SupportProjectSummaryCard(
       className={`rounded-3xl border px-4 py-4 transition sm:px-5 ${
         isSelected
           ? "border-[var(--support)] bg-[var(--surface-subtle)]"
-          : "border-[var(--line)] bg-white"
+          : "border-[var(--line)] bg-[var(--surface)]"
       }`}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -170,7 +170,7 @@ export function SupportProjectSummaryCard(
               {progressPct}%
             </span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--surface)]">
             <div
               className="h-full rounded-full bg-[var(--support)]"
               style={{ width: `${clampPct(props.project.progressPct)}%` }}
