@@ -76,9 +76,12 @@
 - `useProjectSettlementPanel` を `bridge / distribution / execution` の state/action hook と runtime helper に分割
 - `NoUser` / `UserOnly` に onboarding progress shell を追加し、登録から申請までの導線を step ベースに整理
 - `creatorReady` に daily-work entry overview を追加し、first view を `今日やること / project health / quick shortcuts` に整理
+- `creatorReady` workspace navigation を `MVP / beta` 表示に寄せ、home でも日常導線と実験 / 高リスク導線を分離した
+- `creatorReady` route と heavy section を lazy-load し、`mypage` 初期 bundle を段階的に削減した
 - `AI Office` と `settlement` の internal label / status / message を user-facing copy に整理
 - `AI Office` を `Overview / Create / Inbox` 構成に分割し、`AiOfficePanel` を orchestration layer に整理
 - `AI Office` の task type select を action card に置き換え、`何をしたいか` ベースで選べる UI に整理
+- `AI Office` の create-side task config を shared module に寄せ、task 固有 input UI を dedicated component に分離した
 - `AI Office` Inbox を `承認待ちキュー -> 一括操作 -> 最近の履歴` の hierarchy に整理
 - `AI Office` の `Overview / Create / Inbox` で success / empty / error 表示パターンを共通化
 - `AI Office` の承認待ち導線を `Overview / Create / Inbox` をまたいで可視化

@@ -24,7 +24,6 @@ import {
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
 import {
-  CREATOR_READY_WORKSPACE_VIEWS,
   getCreatorReadyWorkspaceConfig,
   getCreatorReadyWorkspaceGroups,
 } from "@/components/mypage/creatorReadyWorkspaceConfig";

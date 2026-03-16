@@ -27,6 +27,7 @@ AI Office runtime note:
 - prefer aggregated dashboard reads over many small client-side API calls
 - keep task creation and approval as dedicated endpoints
 - keep read-side data composition in service modules
+- keep dashboard response parsing and runtime validation in dedicated helpers instead of inside `AiOfficePanel`
 
 Creator mypage runtime note:
 
@@ -40,6 +41,7 @@ Creator mypage runtime note:
 - render `loading / unconnected / noUser / userOnly / creatorReady` as separate containers instead of inline status branches
 - keep `creatorReady` workspace navigation explicit about `MVP` vs `beta` surfaces so experimental features do not blur into the main path
 - lazy-load `creatorReady` route views so opening one workspace does not eagerly ship all other route panels
+- keep `creatorReady` home view decision logic and dashboard parsing in dedicated helpers instead of inline UI branches
 - within `creatorReady`, keep `links`, `project management`, and `summary actions` as separate section containers
 - add `SNS・AI事務所` to the creator `support-page` as a localized accordion backed by dedicated mypage SNS routes so profile/project/settlement flows stay unchanged
 - within project management, keep `per-currency project blocks` and `AI Office` as separate composition units
