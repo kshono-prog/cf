@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
@@ -1223,14 +1222,27 @@ export default function ProfileClient({
               return (
                 <div key={`${video.url}-${index}`} className="space-y-2.5">
                   {videoId ? (
-                    <Link href={video.url} target="_blank" rel="noreferrer">
-                      <Image
-                        src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
-                        alt={video.title || "紹介動画"}
-                        width={1280}
-                        height={720}
-                        className="w-full rounded-2xl border border-[var(--line)]"
-                      />
+                    <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-black">
+                      <div className="aspect-video w-full">
+                        <iframe
+                          src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
+                          title={video.title || "紹介動画"}
+                          className="h-full w-full"
+                          loading="lazy"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          allowFullScreen
+                        />
+                      </div>
+                    </div>
+                  ) : video.url ? (
+                    <Link
+                      href={video.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex rounded-full border border-[var(--line)] px-3 py-2 text-sm text-[var(--text)] transition hover:bg-[var(--surface-subtle)]"
+                    >
+                      動画を開く
                     </Link>
                   ) : null}
                   <div>
