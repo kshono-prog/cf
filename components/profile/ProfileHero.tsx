@@ -68,7 +68,7 @@ export function ProfileHero(props: ProfileHeroProps) {
                     href={entry.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-subtle)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
+                    className="inline-flex h-8 w-8 items-center justify-center text-[var(--text-subtle)] transition hover:text-[var(--text)]"
                     aria-label={entry.label}
                   >
                     <Image
@@ -85,7 +85,7 @@ export function ProfileHero(props: ProfileHeroProps) {
                     href={props.externalUrl ?? "#"}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-subtle)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
+                    className="inline-flex h-8 w-8 items-center justify-center text-[var(--text-subtle)] transition hover:text-[var(--text)]"
                     aria-label="外部リンク"
                   >
                     <Image

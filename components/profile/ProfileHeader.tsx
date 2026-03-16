@@ -84,7 +84,7 @@ export function ProfileHeader({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 transition hover:border-gray-300 hover:text-gray-900"
+                  className="inline-flex h-9 w-9 items-center justify-center text-gray-600 transition hover:text-gray-900"
                 >
                   <Image src={icon} alt={label} width={22} height={22} />
                 </a>
