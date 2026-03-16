@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 
@@ -29,8 +30,10 @@ import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClien
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import {
   buildSupportProjectView,
+  type SupportProjectView,
   type SupportProfileView,
 } from "@/lib/supportProfileView";
+import { SupportProjectSummaryCard } from "@/components/support/SupportProjectSummaryCard";
 
 const ProfileWalletClient = dynamic(
   () =>
@@ -85,6 +88,7 @@ type Props = {
   } | null;
   publicSummary?: PublicSummaryLite | null;
   supportProfileView?: SupportProfileView | null;
+  recruitingProjects?: SupportProjectView[];
   initialFeed?: FeedListView | null;
   layout?: "full" | "content";
 };
@@ -182,10 +186,12 @@ export default function ProfileClient({
   projectId,
   projectIdsByCurrency,
   supportProfileView,
+  recruitingProjects = [],
   initialFeed = null,
   layout = "full",
 }: Props) {
   const { address: viewerAddress } = useAccount();
+  const searchParams = useSearchParams();
   const creator: CreatorProfile = useMemo(() => {
     const normalizedAddress =
       typeof creatorInput.address === "string" && creatorInput.address.length > 0
@@ -211,6 +217,7 @@ export default function ProfileClient({
   const attemptedThisViewRef = useRef<{ set: Set<string> }>({
     set: new Set<string>(),
   });
+  const handledSupportLinkRef = useRef<string | null>(null);
 
   const [supportProfileState, setSupportProfileState] =
     useState<SupportProfileView>(
@@ -236,6 +243,8 @@ export default function ProfileClient({
   const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
     typeof parsePublicViewerMeResponse
   > | null>(null);
+  const [selectedSupportProjectId, setSelectedSupportProjectId] =
+    useState<string | null>(null);
   const [selectedPostTipContext, setSelectedPostTipContext] =
     useState<SelectedPostTipContext | null>(null);
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
@@ -259,6 +268,43 @@ export default function ProfileClient({
     setSupportProfileState(supportProfileView);
   }, [supportProfileView]);
 
+  const recruitingProjectMap = useMemo(
+    () =>
+      new Map(
+        recruitingProjects.map((project) => [project.projectId, project] as const)
+      ),
+    [recruitingProjects]
+  );
+
+  const selectedSupportProject = useMemo(
+    () =>
+      selectedSupportProjectId
+        ? recruitingProjectMap.get(selectedSupportProjectId) ?? null
+        : null,
+    [recruitingProjectMap, selectedSupportProjectId]
+  );
+
+  useEffect(() => {
+    const requestedProjectId = searchParams.get("projectId");
+    if (!requestedProjectId) return;
+
+    const nextProject = recruitingProjectMap.get(requestedProjectId);
+    if (!nextProject) return;
+
+    setSelectedSupportProjectId(nextProject.projectId);
+    if (viewCurrency !== nextProject.currency) {
+      setViewCurrency(nextProject.currency);
+    }
+
+    const supportFlag = searchParams.get("support");
+    const supportKey = `${requestedProjectId}:${supportFlag ?? ""}`;
+    if (supportFlag === "1" && handledSupportLinkRef.current !== supportKey) {
+      handledSupportLinkRef.current = supportKey;
+      setSupportSheetLoaded(true);
+      setSupportSheetOpen(true);
+    }
+  }, [recruitingProjectMap, searchParams, viewCurrency]);
+
   const availableSupportCurrencies = useMemo(
     () =>
       (["JPYC", "USDC"] as const).filter(
@@ -268,6 +314,10 @@ export default function ProfileClient({
   );
 
   const activeSupportProject = useMemo(() => {
+    if (selectedSupportProject) {
+      return selectedSupportProject;
+    }
+
     const preferred = supportProfileState.projectsByCurrency[viewCurrency];
     if (preferred) return preferred;
     if (supportProfileState.activeCurrency) {
@@ -276,11 +326,17 @@ export default function ProfileClient({
     return availableSupportCurrencies.length > 0
       ? supportProfileState.projectsByCurrency[availableSupportCurrencies[0]]
       : null;
-  }, [availableSupportCurrencies, supportProfileState, viewCurrency]);
+  }, [
+    availableSupportCurrencies,
+    selectedSupportProject,
+    supportProfileState,
+    viewCurrency,
+  ]);
 
   const activeProjectId = activeSupportProject?.projectId ?? null;
 
   useEffect(() => {
+    if (selectedSupportProject) return;
     if (supportProfileState.mode !== "ready") return;
     if (supportProfileState.projectsByCurrency[viewCurrency]) return;
     if (supportProfileState.activeCurrency) {
@@ -290,7 +346,12 @@ export default function ProfileClient({
     if (availableSupportCurrencies[0]) {
       setViewCurrency(availableSupportCurrencies[0]);
     }
-  }, [availableSupportCurrencies, supportProfileState, viewCurrency]);
+  }, [
+    availableSupportCurrencies,
+    selectedSupportProject,
+    supportProfileState,
+    viewCurrency,
+  ]);
 
   useEffect(() => {
     if (!viewerAddress) {
@@ -722,18 +783,21 @@ export default function ProfileClient({
   const displayName = creator.displayName || username;
   const showLegacyCard = false;
   const supportMode = supportProfileState.mode;
+  const supportCardReady = activeSupportProject !== null;
   const supportTitle =
-    supportMode === "ready"
+    supportCardReady
       ? activeSupportProject?.title ?? `${displayName}の活動を応援する`
       : supportMode === "draft"
       ? supportProfileState.draft?.title ?? `${displayName}の公開ページは準備中です`
       : `${displayName}の公開ページは準備中です`;
   const supportDescription =
-    supportMode === "ready"
+    supportCardReady
       ? activeSupportProject?.description ?? null
       : supportMode === "draft"
       ? supportProfileState.draft?.description ?? null
       : "公開ページを準備中です。応援内容が整うと、ここから確認できます。";
+  const canOpenSupportSheet =
+    supportCardReady || recruitingProjects.length > 0;
 
   const ownerProjectOptions = useMemo(() => {
     const options: Array<{ id: string; label: string }> = [];
@@ -755,7 +819,7 @@ export default function ProfileClient({
   }, [resolvedProjectIdsByCurrency, supportProfileState.projectsByCurrency]);
 
   function openSupportSheet() {
-    if (supportProfileState.mode !== "ready") return;
+    if (!canOpenSupportSheet) return;
     setSupportSheetLoaded(true);
     setSupportSheetOpen(true);
   }
@@ -766,10 +830,27 @@ export default function ProfileClient({
   }
 
   function handleSelectPostTip(post: SelectedPostTipContext) {
-    if (supportProfileState.mode !== "ready") return;
+    if (!canOpenSupportSheet) return;
     setSelectedPostTipContext(post);
-    if (post.preferredCurrency) {
+    if (post.projectId) {
+      const linkedProject = recruitingProjectMap.get(post.projectId);
+      if (linkedProject) {
+        setSelectedSupportProjectId(linkedProject.projectId);
+        if (viewCurrency !== linkedProject.currency) {
+          setViewCurrency(linkedProject.currency);
+        }
+      }
+    } else if (post.preferredCurrency) {
       setViewCurrency(post.preferredCurrency);
+    }
+    openSupportSheet();
+  }
+
+  function handleOpenProjectSupport(project: SupportProjectView) {
+    setSelectedPostTipContext(null);
+    setSelectedSupportProjectId(project.projectId);
+    if (viewCurrency !== project.currency) {
+      setViewCurrency(project.currency);
     }
     openSupportSheet();
   }
@@ -859,18 +940,18 @@ export default function ProfileClient({
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-[var(--text)]">
-                {supportMode === "ready"
+                {canOpenSupportSheet
                   ? "応援はできます。投稿したいときはユーザー登録"
                   : "公開ページを準備中です。投稿したいときはユーザー登録"}
               </div>
               <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
-                {supportMode === "ready"
+                {canOpenSupportSheet
                   ? "まずは登録すると、自分のページと投稿機能を使い始められます。"
                   : "まずは登録すると、自分のページと投稿機能を使い始められます。応援内容は公開ページの準備が整うと表示されます。"}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {supportMode === "ready" ? (
+              {canOpenSupportSheet ? (
                 <button type="button" className="btn" onClick={openSupportSheet}>
                   応援する
                 </button>
@@ -890,18 +971,18 @@ export default function ProfileClient({
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-[var(--text)]">
-                {supportMode === "ready"
+                {canOpenSupportSheet
                   ? "自分の公開ページを作ると、投稿も始められます"
                   : "自分の公開ページを整えると、応援内容も表示できます"}
               </div>
               <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
-                {supportMode === "ready"
+                {canOpenSupportSheet
                   ? `いまは ${pageDisplayName} さんのページを見ています。自分のページを整えると投稿も始められます。`
                   : `いまは ${pageDisplayName} さんのページを見ています。自分のページを整えると、応援内容も自然に見せられます。`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {supportMode === "ready" ? (
+              {canOpenSupportSheet ? (
                 <button type="button" className="btn" onClick={openSupportSheet}>
                   応援する
                 </button>
@@ -951,142 +1032,187 @@ export default function ProfileClient({
       />
 
       {viewerState.mode !== "unconnected" ? profileGuideCard : null}
-      <section className="panel-card px-3.5 py-2.5 sm:px-4 sm:py-3">
-        <div className="grid gap-2.5 pb-2.5 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-3">
-          <div className="flex min-w-0 flex-col items-center justify-center gap-2 text-center">
-            <div className="flex min-w-0 flex-col items-center gap-2">
-              <Avatar
-                src={creator.avatarUrl}
-                alt={`${displayName} のアイコン`}
-                fallbackText={displayName.slice(0, 1) || "?"}
-                size={32}
-              />
-              <div className="text-[11px] font-medium text-[var(--text-subtle)]">
-                {displayName}
+      {recruitingProjects.length === 0 ? (
+        <section className="panel-card px-3.5 py-2.5 sm:px-4 sm:py-3">
+          <div className="grid gap-2.5 pb-2.5 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-3">
+            <div className="flex min-w-0 flex-col items-center justify-center gap-2 text-center">
+              <div className="flex min-w-0 flex-col items-center gap-2">
+                <Avatar
+                  src={creator.avatarUrl}
+                  alt={`${displayName} のアイコン`}
+                  fallbackText={displayName.slice(0, 1) || "?"}
+                  size={32}
+                />
+                <div className="text-[11px] font-medium text-[var(--text-subtle)]">
+                  {displayName}
+                </div>
+              </div>
+              <div>
+                {viewerState.isOwner ? (
+                  <Link
+                    href={viewerWorkspaceHref}
+                    className="btn-secondary px-3 py-1.5 text-[12px]"
+                  >
+                    公開ページを整える
+                  </Link>
+                ) : canOpenSupportSheet ? (
+                  <button
+                    type="button"
+                    className="btn px-3 py-1.5 text-[12px]"
+                    onClick={openSupportSheet}
+                  >
+                    応援する
+                  </button>
+                ) : null}
               </div>
             </div>
-            <div>
-              {viewerState.isOwner ? (
-                <Link
-                  href={viewerWorkspaceHref}
-                  className="btn-secondary px-3 py-1.5 text-[12px]"
-                >
-                  公開ページを整える
-                </Link>
-              ) : supportMode === "ready" ? (
-                <button
-                  type="button"
-                  className="btn px-3 py-1.5 text-[12px]"
-                  onClick={openSupportSheet}
-                >
-                  応援する
-                </button>
+            <div className="min-w-0">
+              <div className="text-[14px] font-semibold text-[var(--text)] sm:text-[15px]">
+                {supportTitle}
+              </div>
+              {supportDescription ? (
+                <p className="mt-0.5 whitespace-pre-wrap text-[11px] leading-4.5 text-[var(--text-subtle)] sm:mt-1 sm:text-[12px]">
+                  {supportDescription}
+                </p>
               ) : null}
             </div>
           </div>
-          <div className="min-w-0">
-            <div className="text-[14px] font-semibold text-[var(--text)] sm:text-[15px]">
-              {supportTitle}
-            </div>
-            {supportDescription ? (
-              <p className="mt-0.5 whitespace-pre-wrap text-[11px] leading-4.5 text-[var(--text-subtle)] sm:mt-1 sm:text-[12px]">
-                {supportDescription}
-              </p>
-            ) : null}
-          </div>
-        </div>
 
-        {supportMode !== "ready" ? (
-          <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[11px] leading-5 text-[var(--text-subtle)]">
-            {supportMode === "draft"
-              ? "公開ページを準備中です。応援内容が整うと、ここに進捗が表示されます。"
-              : "いまは応援内容を読み込めません。時間をおいてもう一度お試しください。"}
-          </div>
-        ) : progressLoading ? (
-          <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-sm text-[var(--text-subtle)]">
-            読み込み中です
-          </div>
-        ) : progressError ? (
-          <div className="alert-warn mt-1.5">
-            うまく読み込めませんでした。もう一度お試しください。
-          </div>
-        ) : (
-          <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-[var(--line)] pt-1.5 sm:grid-cols-4">
-            <div className="min-w-0">
-              <div className="text-[10px] font-medium text-[var(--text-subtle)]">集まった応援</div>
-              <div className="mt-0.5 text-[14px] font-semibold text-[var(--text)] sm:text-[1rem]">
-                {currentSupportLabel}
-              </div>
+          {!supportCardReady ? (
+            <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[11px] leading-5 text-[var(--text-subtle)]">
+              {supportMode === "draft"
+                ? "公開ページを準備中です。応援内容が整うと、ここに進捗が表示されます。"
+                : "いまは応援内容を読み込めません。時間をおいてもう一度お試しください。"}
             </div>
-            <div className="min-w-0">
-              <div className="text-[10px] font-medium text-[var(--text-subtle)]">目標</div>
-              <div className="mt-0.5 text-[14px] font-semibold text-[var(--text)] sm:text-[1rem]">
-                {targetSupportLabel}
-              </div>
+          ) : progressLoading ? (
+            <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-sm text-[var(--text-subtle)]">
+              読み込み中です
             </div>
-            <div className="min-w-0">
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="text-[10px] font-medium text-[var(--text-subtle)]">進捗</div>
-                <div className="text-[12px] font-semibold text-[var(--text)]">
-                  {activeSupportProject
-                    ? `${Math.floor(clampPct(activeSupportProject.progressPct))}%`
-                    : "-"}
+          ) : progressError ? (
+            <div className="alert-warn mt-1.5">
+              うまく読み込めませんでした。もう一度お試しください。
+            </div>
+          ) : (
+            <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-[var(--line)] pt-1.5 sm:grid-cols-4">
+              <div className="min-w-0">
+                <div className="text-[10px] font-medium text-[var(--text-subtle)]">集まった応援</div>
+                <div className="mt-0.5 text-[14px] font-semibold text-[var(--text)] sm:text-[1rem]">
+                  {currentSupportLabel}
                 </div>
               </div>
-              <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-                <div
-                  className="h-full rounded-full bg-[var(--support)]"
-                  style={{
-                    width: `${
-                      activeSupportProject
-                        ? clampPct(activeSupportProject.progressPct)
-                        : 0
-                    }%`,
+              <div className="min-w-0">
+                <div className="text-[10px] font-medium text-[var(--text-subtle)]">目標</div>
+                <div className="mt-0.5 text-[14px] font-semibold text-[var(--text)] sm:text-[1rem]">
+                  {targetSupportLabel}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="text-[10px] font-medium text-[var(--text-subtle)]">進捗</div>
+                  <div className="text-[12px] font-semibold text-[var(--text)]">
+                    {activeSupportProject
+                      ? `${Math.floor(clampPct(activeSupportProject.progressPct))}%`
+                      : "-"}
+                  </div>
+                </div>
+                <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--support)]"
+                    style={{
+                      width: `${
+                        activeSupportProject
+                          ? clampPct(activeSupportProject.progressPct)
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-medium text-[var(--text-subtle)]">状態</div>
+                <div className="mt-0.5 text-[13px] font-semibold text-[var(--text)]">
+                  {statusLabel}
+                </div>
+                {statusDetail ? (
+                  <div className="mt-0.5 text-[10px] leading-4 text-[var(--text-subtle)]">
+                    {statusDetail}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {supportCardReady && availableCurrencies.length > 1 ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 border-t border-[var(--line)] pt-1.5">
+              <div className="text-[10px] font-medium text-[var(--text-subtle)]">
+                表示通貨
+              </div>
+              {(["JPYC", "USDC"] as const).map((currency) => (
+                <button
+                  key={currency}
+                  type="button"
+                  className={`chip-button px-2.5 py-1 text-[11px] ${
+                    viewCurrency === currency
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : ""
+                  }`}
+                  disabled={!supportProfileState.projectsByCurrency[currency]}
+                  onClick={() => setViewCurrency(currency)}
+                >
+                  {currency}
+                </button>
+              ))}
+            </div>
+          ) : supportCardReady && availableCurrencies.length === 1 ? (
+            <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[10px] text-[var(--text-subtle)]">
+              表示通貨: {selectedCurrencyLabel}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {recruitingProjects.length > 0 ? (
+        <section className="panel-card px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-base font-semibold text-[var(--text)]">
+                募集中のプロジェクト
+              </div>
+              <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                いま応援を受け付けている project をまとめて見られます。
+              </p>
+            </div>
+            <div className="text-sm text-[var(--text-subtle)]">
+              {recruitingProjects.length} 件
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {recruitingProjects.map((project) => {
+              const isSelected = activeSupportProject?.projectId === project.projectId;
+
+              return (
+                <SupportProjectSummaryCard
+                  key={project.projectId}
+                  creator={{
+                    username,
+                    displayName,
+                    avatarUrl: creator.avatarUrl ?? null,
+                  }}
+                  project={project}
+                  isSelected={isSelected}
+                  actionLabel={
+                    isSelected ? "選択中の project" : "この project を応援"
+                  }
+                  onAction={() => {
+                    handleOpenProjectSupport(project);
                   }}
                 />
-              </div>
-            </div>
-            <div className="min-w-0">
-              <div className="text-[10px] font-medium text-[var(--text-subtle)]">状態</div>
-              <div className="mt-0.5 text-[13px] font-semibold text-[var(--text)]">
-                {statusLabel}
-              </div>
-              {statusDetail ? (
-                <div className="mt-0.5 text-[10px] leading-4 text-[var(--text-subtle)]">
-                  {statusDetail}
-                </div>
-              ) : null}
-            </div>
+              );
+            })}
           </div>
-        )}
-
-        {supportMode === "ready" && availableCurrencies.length > 1 ? (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 border-t border-[var(--line)] pt-1.5">
-            <div className="text-[10px] font-medium text-[var(--text-subtle)]">
-              表示通貨
-            </div>
-            {(["JPYC", "USDC"] as const).map((currency) => (
-              <button
-                key={currency}
-                type="button"
-                className={`chip-button px-2.5 py-1 text-[11px] ${
-                  viewCurrency === currency
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : ""
-                }`}
-                disabled={!supportProfileState.projectsByCurrency[currency]}
-                onClick={() => setViewCurrency(currency)}
-              >
-                {currency}
-              </button>
-            ))}
-          </div>
-        ) : supportMode === "ready" && availableCurrencies.length === 1 ? (
-          <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[10px] text-[var(--text-subtle)]">
-            表示通貨: {selectedCurrencyLabel}
-          </div>
-        ) : null}
-      </section>
+        </section>
+      ) : null}
 
       {creator.youtubeVideos && creator.youtubeVideos.length > 0 ? (
         <section className="panel-card px-4 py-4 sm:px-5 sm:py-5">
@@ -1134,7 +1260,7 @@ export default function ProfileClient({
           manageProjectOptions={ownerProjectOptions}
           selectedPostId={selectedPostTipContext?.id ?? null}
           projectIdsByCurrency={resolvedProjectIdsByCurrency}
-          showTipAction={supportMode === "ready"}
+          showTipAction={canOpenSupportSheet}
           refreshToken={feedRefreshToken}
           initialFeed={initialFeed}
           headerColor={creator.themeColor || "#2563eb"}
@@ -1151,13 +1277,21 @@ export default function ProfileClient({
     <>
       {profileScreen}
 
-      {supportMode === "ready" && (supportSheetLoaded || supportSheetOpen) ? (
+      {canOpenSupportSheet && (supportSheetLoaded || supportSheetOpen) ? (
         <SupportSheet
           open={supportSheetOpen}
-          title={selectedPostTipContext ? "この投稿を応援" : `${displayName}を応援`}
+          title={
+            selectedPostTipContext
+              ? "この投稿を応援"
+              : selectedSupportProject
+              ? `${selectedSupportProject.title}を応援`
+              : `${displayName}を応援`
+          }
           description={
             selectedPostTipContext
               ? "金額と通貨を選んで、そのまま応援を送れます。"
+              : selectedSupportProject
+              ? "選んだ project に向けて、そのまま応援を送れます。"
               : "金額と通貨を選んで、やさしく応援を送れます。"
           }
           onClose={closeSupportSheet}
@@ -1172,6 +1306,9 @@ export default function ProfileClient({
               supportedChainIdsByCurrency={supportedChainIdsByCurrency}
               showLegacyCard={showLegacyCard}
               headerColor={creator.themeColor || "#2563eb"}
+              selectedProjectId={selectedSupportProject?.projectId ?? null}
+              selectedProjectTitle={selectedSupportProject?.title ?? null}
+              selectedProjectCurrency={selectedSupportProject?.currency ?? null}
               selectedPostId={selectedPostTipContext?.id ?? null}
               selectedPostSummary={selectedPostTipContext?.preview ?? null}
               selectedPostCurrency={selectedPostTipContext?.preferredCurrency ?? null}

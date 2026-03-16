@@ -107,6 +107,7 @@ export type FeedReplyDeleteResponse = {
 export type SelectedPostTipContext = {
   id: string;
   preview: string;
+  projectId: string | null;
   projectTitle: string | null;
   preferredCurrency: Currency | null;
 };
@@ -498,7 +499,16 @@ export function toSelectedPostTipContext(post: FeedPost): SelectedPostTipContext
   return {
     id: post.id,
     preview,
+    projectId: post.projectId,
     projectTitle: post.project?.title ?? null,
     preferredCurrency,
   };
+}
+
+export function getFeedPostProjectSupportHref(post: FeedPost): string | null {
+  if (!post.project) return null;
+
+  return `/${encodeURIComponent(
+    post.creator.username
+  )}?projectId=${encodeURIComponent(post.project.id)}&support=1`;
 }

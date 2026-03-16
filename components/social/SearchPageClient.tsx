@@ -5,11 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
+import { SupportProjectSummaryCard } from "@/components/support/SupportProjectSummaryCard";
 import type { FeedPost } from "@/components/feed/feedTypes";
 import type { DiscoverCreator } from "@/lib/discoverCreators";
 import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
-import { getActiveSupportProject } from "@/lib/supportProfileView";
 
 function matchesQuery(value: string, query: string): boolean {
   return value.toLowerCase().includes(query);
@@ -95,19 +95,22 @@ export function SearchPageClient(props: SearchPageClientProps) {
     if (!normalizedQuery) return creators;
 
     return creators.filter((creator) => {
-      const activeSupport = getActiveSupportProject(creator.supportProfileView);
+      const matchesRecruitingProject = creator.recruitingProjects.some((project) => {
+        return (
+          matchesQuery(project.title, normalizedQuery) ||
+          matchesQuery(project.description ?? "", normalizedQuery) ||
+          matchesQuery(
+            formatSupportAmount(project.targetAmount, project.currency),
+            normalizedQuery
+          )
+        );
+      });
+
       return (
         matchesQuery(creator.displayName, normalizedQuery) ||
         matchesQuery(creator.username, normalizedQuery) ||
         matchesQuery(creator.profile ?? "", normalizedQuery) ||
-        matchesQuery(activeSupport?.title ?? "", normalizedQuery) ||
-        matchesQuery(activeSupport?.description ?? "", normalizedQuery) ||
-        matchesQuery(
-          activeSupport
-            ? formatSupportAmount(activeSupport.targetAmount, activeSupport.currency)
-            : "",
-          normalizedQuery
-        ) ||
+        matchesRecruitingProject ||
         matchesQuery(creator.supportProfileView.draft?.title ?? "", normalizedQuery) ||
         matchesQuery(
           creator.supportProfileView.draft?.description ?? "",
@@ -129,26 +132,28 @@ export function SearchPageClient(props: SearchPageClientProps) {
     });
   }, [normalizedQuery, posts]);
 
-  const filteredSupportCreators = useMemo(() => {
+  const filteredSupportProjects = useMemo(() => {
     const supportSource = normalizedQuery ? creators : filteredCreators;
 
-    return supportSource.filter((creator) => {
-      const activeSupport = getActiveSupportProject(creator.supportProfileView);
-      const matchesSupportQuery =
-        !normalizedQuery ||
-        matchesQuery(creator.displayName, normalizedQuery) ||
-        matchesQuery(creator.username, normalizedQuery) ||
-        matchesQuery(activeSupport?.title ?? "", normalizedQuery) ||
-        matchesQuery(activeSupport?.description ?? "", normalizedQuery) ||
-        matchesQuery(
-          activeSupport
-            ? formatSupportAmount(activeSupport.targetAmount, activeSupport.currency)
-            : "",
-          normalizedQuery
-        );
+    return supportSource.flatMap((creator) =>
+      creator.recruitingProjects
+        .filter((project) => {
+          if (!normalizedQuery) return true;
 
-      return matchesSupportQuery && creator.supportProfileView.mode === "ready";
-    });
+          return (
+            matchesQuery(creator.displayName, normalizedQuery) ||
+            matchesQuery(creator.username, normalizedQuery) ||
+            matchesQuery(creator.profile ?? "", normalizedQuery) ||
+            matchesQuery(project.title, normalizedQuery) ||
+            matchesQuery(project.description ?? "", normalizedQuery) ||
+            matchesQuery(
+              formatSupportAmount(project.targetAmount, project.currency),
+              normalizedQuery
+            )
+          );
+        })
+        .map((project) => ({ creator, project }))
+    );
   }, [creators, filteredCreators, normalizedQuery]);
 
   const viewerMode = (() => {
@@ -376,113 +381,31 @@ export function SearchPageClient(props: SearchPageClientProps) {
                 </p>
               </div>
               <div className="text-sm text-[var(--text-subtle)]">
-                {filteredSupportCreators.length} 件
+                {filteredSupportProjects.length} 件
               </div>
             </div>
             <div className="mt-4 space-y-3">
-              {filteredSupportCreators.length === 0 ? (
+              {filteredSupportProjects.length === 0 ? (
                 <div className="text-sm text-[var(--text-subtle)]">
                   見つかりませんでした。
                 </div>
               ) : (
-                filteredSupportCreators.map((creator) => {
-                  const activeSupport = getActiveSupportProject(
-                    creator.supportProfileView
-                  );
-                  if (!activeSupport) return null;
-
-                  const progressPct = Math.floor(
-                    Math.max(0, Math.min(100, activeSupport.progressPct))
-                  );
-                  const statusLabel =
-                    activeSupport.status === "ACHIEVED"
-                      ? "目標達成済み"
-                      : activeSupport.status === "NO_GOAL"
-                      ? "目標未設定"
-                      : "受付中";
-
+                filteredSupportProjects.map(({ creator, project }) => {
                   return (
-                    <div
-                      key={`${creator.username}-support`}
-                      className="panel-card px-4 py-4 sm:px-5"
-                    >
-                      <div className="grid gap-4 sm:grid-cols-[120px_minmax(0,1fr)]">
-                        <div className="flex flex-col items-center justify-center gap-2 text-center">
-                          <Link
-                            href={`/${creator.username}`}
-                            className="flex flex-col items-center gap-2 text-center transition hover:opacity-80"
-                          >
-                            <Avatar
-                              src={creator.avatarUrl}
-                              alt={`${creator.displayName} のアイコン`}
-                              fallbackText={creator.displayName.slice(0, 1)}
-                              size={44}
-                            />
-                            <div className="text-xs font-medium text-[var(--text-subtle)]">
-                              {creator.displayName}
-                            </div>
-                          </Link>
-                          <Link
-                            href={`/${creator.username}`}
-                            className="btn h-9 min-h-0 px-4 text-sm"
-                          >
-                            応援する
-                          </Link>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-lg font-semibold leading-7 text-[var(--text)]">
-                            {activeSupport.title}
-                          </div>
-                          {activeSupport.description ? (
-                            <p className="mt-2 text-sm leading-7 text-[var(--text-subtle)]">
-                              {activeSupport.description}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="mt-4 grid gap-3 border-t border-[var(--line)] pt-3 sm:grid-cols-4">
-                        <div>
-                          <div className="text-[11px] font-medium tracking-[0.02em] text-[var(--text-subtle)]">
-                            集まった応援
-                          </div>
-                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                            {formatSupportAmount(
-                              activeSupport.confirmedAmount,
-                              activeSupport.currency
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-medium tracking-[0.02em] text-[var(--text-subtle)]">
-                            目標
-                          </div>
-                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                            {activeSupport.targetAmount != null
-                              ? formatSupportAmount(
-                                  activeSupport.targetAmount,
-                                  activeSupport.currency
-                                )
-                              : "-"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-medium tracking-[0.02em] text-[var(--text-subtle)]">
-                            進捗
-                          </div>
-                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                            {progressPct}%
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-medium tracking-[0.02em] text-[var(--text-subtle)]">
-                            状態
-                          </div>
-                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                            {statusLabel}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <SupportProjectSummaryCard
+                      key={`${creator.username}-${project.projectId}`}
+                      creator={{
+                        username: creator.username,
+                        displayName: creator.displayName,
+                        avatarUrl: creator.avatarUrl,
+                        href: `/${creator.username}`,
+                      }}
+                      project={project}
+                      actionLabel="応援する"
+                      actionHref={`/${creator.username}?projectId=${encodeURIComponent(
+                        project.projectId
+                      )}&support=1`}
+                    />
                   );
                 })
               )}

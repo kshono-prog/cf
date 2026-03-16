@@ -4,7 +4,10 @@ import Link from "next/link";
 import { Suspense, lazy } from "react";
 
 import type { CreatorFeedSectionProps } from "@/components/feed/CreatorFeedSection";
-import type { FeedPost } from "@/components/feed/feedTypes";
+import {
+  getFeedPostProjectSupportHref,
+  type FeedPost,
+} from "@/components/feed/feedTypes";
 
 const CreatorFeedSection = lazy(async () => {
   const imported = await import("@/components/feed/CreatorFeedSection");
@@ -29,6 +32,8 @@ function FeedPreviewRow({
   post: FeedPost;
   showTipAction: boolean;
 }) {
+  const projectSupportHref = getFeedPostProjectSupportHref(post);
+
   return (
     <article className="px-3.5 py-2.5 sm:px-4 sm:py-3">
       <div className="flex items-start gap-2.5">
@@ -69,9 +74,18 @@ function FeedPreviewRow({
 
           {post.project ? (
             <div className="mt-1.5">
-              <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
-                {post.project.title} / {post.project.currency}
-              </span>
+              {projectSupportHref ? (
+                <Link
+                  href={projectSupportHref}
+                  className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+                >
+                  {post.project.title} / {post.project.currency}
+                </Link>
+              ) : (
+                <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                  {post.project.title} / {post.project.currency}
+                </span>
+              )}
             </div>
           ) : null}
 

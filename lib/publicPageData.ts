@@ -6,8 +6,13 @@ import { prisma } from "@/lib/prisma";
 import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { pickPublicSummaryLite, type PublicSummaryLite } from "@/lib/publicSummary";
-import { buildSupportProfileView, type SupportProfileView } from "@/lib/supportProfileView";
+import {
+  buildSupportProfileView,
+  type SupportProfileView,
+  type SupportProjectView,
+} from "@/lib/supportProfileView";
 import type { SummaryViewData } from "@/lib/mypage/accountPageTypes";
+import { loadRecruitingProjectViews } from "@/lib/recruitingProjects";
 
 type PublicPageData = {
   creator: NonNullable<Awaited<ReturnType<typeof getCreatorProfileByUsername>>>["creator"];
@@ -16,6 +21,7 @@ type PublicPageData = {
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
   publicSummary: PublicSummaryLite | null;
   supportProfileView: SupportProfileView;
+  recruitingProjects: SupportProjectView[];
 };
 
 async function loadPublicPageDataUncached(
@@ -33,6 +39,7 @@ async function loadPublicPageDataUncached(
     USDC: null,
   };
   let publicSummary: PublicSummaryLite | null = null;
+  let recruitingProjects: SupportProjectView[] = [];
   const summariesByCurrency: {
     JPYC: SummaryViewData | null;
     USDC: SummaryViewData | null;
@@ -41,6 +48,15 @@ async function loadPublicPageDataUncached(
     USDC: null,
   };
   let activeSummary: SummaryViewData | null = null;
+  const profileId = BigInt(profile.id);
+  const owner = profile.walletAddress?.toLowerCase() ?? null;
+  const projectWhereOr: Array<
+    { creatorProfileId: bigint } | { ownerAddress: string }
+  > = [{ creatorProfileId: profileId }];
+
+  if (owner) {
+    projectWhereOr.push({ ownerAddress: owner });
+  }
 
   projectIdsByCurrency = {
     JPYC: profile.activeProjectIdJpyc ?? null,
@@ -49,15 +65,6 @@ async function loadPublicPageDataUncached(
 
   if (!projectIdsByCurrency.JPYC || !projectIdsByCurrency.USDC) {
     try {
-      const profileId = BigInt(profile.id);
-      const owner = profile.walletAddress?.toLowerCase() ?? null;
-      const projectWhereOr: Array<
-        { creatorProfileId: bigint } | { ownerAddress: string }
-      > = [{ creatorProfileId: profileId }];
-      if (owner) {
-        projectWhereOr.push({ ownerAddress: owner });
-      }
-
       const [latestJpyc, latestUsdc] = await Promise.all([
         !projectIdsByCurrency.JPYC
           ? withPrismaRetry(() =>
@@ -92,6 +99,19 @@ async function loadPublicPageDataUncached(
       } else {
         console.error("Failed to backfill projectIds:", error);
       }
+    }
+  }
+
+  try {
+    recruitingProjects = await loadRecruitingProjectViews({
+      creatorProfileId: profileId,
+      ownerAddress: owner,
+    });
+  } catch (error) {
+    if (isPrismaUnavailableError(error)) {
+      console.warn("Failed to load recruiting projects due to DB unavailability");
+    } else {
+      console.error("Failed to load recruiting projects:", error);
     }
   }
 
@@ -144,6 +164,7 @@ async function loadPublicPageDataUncached(
     projectId,
     projectIdsByCurrency,
     publicSummary,
+    recruitingProjects,
     supportProfileView: buildSupportProfileView({
       creator,
       activeProjectId: projectId,

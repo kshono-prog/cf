@@ -3,7 +3,10 @@
 import Link from "next/link";
 import React from "react";
 
-import type { FeedPost } from "@/components/feed/feedTypes";
+import {
+  getFeedPostProjectSupportHref,
+  type FeedPost,
+} from "@/components/feed/feedTypes";
 
 type Props = {
   post: FeedPost;
@@ -78,6 +81,7 @@ export function FeedPostCard(props: Props) {
   const showEmbeddedVideo =
     youTubeEmbedUrl !== null &&
     (post.mediaType === "VIDEO" || post.mediaType === "LINK");
+  const projectSupportHref = getFeedPostProjectSupportHref(post);
 
   return (
     <article className="px-3.5 py-2.5 sm:px-4 sm:py-3">
@@ -125,9 +129,18 @@ export function FeedPostCard(props: Props) {
 
           <div className="mt-1 flex flex-wrap gap-1.5">
             {post.project ? (
-              <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
-                {post.project.title} / {post.project.currency}
-              </span>
+              projectSupportHref ? (
+                <Link
+                  href={projectSupportHref}
+                  className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+                >
+                  {post.project.title} / {post.project.currency}
+                </Link>
+              ) : (
+                <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                  {post.project.title} / {post.project.currency}
+                </span>
+              )
             ) : null}
             {post.aiGenerated ? (
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">

@@ -65,7 +65,14 @@ export async function generateMetadata({
 export default async function Page({ params }: { params: Promise<Params> }) {
   const { username } = await params;
   const [
-    { creator, projectId, projectIdsByCurrency, publicSummary, supportProfileView },
+    {
+      creator,
+      projectId,
+      projectIdsByCurrency,
+      publicSummary,
+      supportProfileView,
+      recruitingProjects,
+    },
     initialFeed,
   ] =
     await Promise.all([
@@ -82,6 +89,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         projectIdsByCurrency={projectIdsByCurrency}
         publicSummary={publicSummary}
         supportProfileView={supportProfileView}
+        recruitingProjects={recruitingProjects}
         initialFeed={initialFeed}
       />
     </div>

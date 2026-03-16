@@ -86,6 +86,9 @@ type Props = {
   } | null;
   showLegacyCard: boolean;
   headerColor: string;
+  selectedProjectId: string | null;
+  selectedProjectTitle: string | null;
+  selectedProjectCurrency: Currency | null;
   selectedPostId: string | null;
   selectedPostSummary: string | null;
   selectedPostCurrency: Currency | null;
@@ -105,6 +108,9 @@ export function ProfileWalletClient({
   supportedChainIdsByCurrency,
   showLegacyCard,
   headerColor,
+  selectedProjectId,
+  selectedProjectTitle,
+  selectedProjectCurrency,
   selectedPostId,
   selectedPostSummary,
   selectedPostCurrency,
@@ -167,8 +173,10 @@ export function ProfileWalletClient({
   const connected = account.status === "connected" && activeAddress.length > 0;
 
   const connectedChainId = currentChainId ?? null;
+  const explicitProjectId = selectedProjectId;
 
   const hasProject =
+    !!explicitProjectId ||
     !!fallbackProjectId ||
     !!resolvedProjectIdsByCurrency.JPYC ||
     !!resolvedProjectIdsByCurrency.USDC;
@@ -209,10 +217,17 @@ export function ProfileWalletClient({
   }, [allowedChainIdsForCurrency, DEFAULT_CHAIN]);
 
   useEffect(() => {
+    if (!selectedProjectCurrency || currency === selectedProjectCurrency) return;
+    setCurrency(selectedProjectCurrency);
+    setAmount(TOKENS[selectedProjectCurrency].presets[0]);
+  }, [currency, selectedProjectCurrency]);
+
+  useEffect(() => {
+    if (selectedProjectCurrency) return;
     if (!selectedPostCurrency || currency === selectedPostCurrency) return;
     setCurrency(selectedPostCurrency);
     setAmount(TOKENS[selectedPostCurrency].presets[0]);
-  }, [currency, selectedPostCurrency]);
+  }, [currency, selectedPostCurrency, selectedProjectCurrency]);
 
   useEffect(() => {
     if (selectableChainIds.length === 0) return;
@@ -678,6 +693,10 @@ export function ProfileWalletClient({
   }
 
   async function ensureActiveProjectIdForSend(): Promise<string | null> {
+    if (explicitProjectId) {
+      return explicitProjectId;
+    }
+
     const currentProjectId =
       resolvedProjectIdsByCurrency[currency] ?? fallbackProjectId ?? null;
     if (currentProjectId) {
@@ -1027,6 +1046,9 @@ export function ProfileWalletClient({
         showSendUI={connected && !onWrongChain}
         headerColor={headerColor}
         creatorDisplayName={creator.displayName || username}
+        selectedProjectTitle={selectedProjectTitle}
+        selectedProjectCurrency={selectedProjectCurrency}
+        currencyLocked={selectedProjectCurrency !== null}
         selectedPostSummary={selectedPostSummary}
         selectableChainIds={selectableChainIds}
         currency={currency}
@@ -1040,6 +1062,7 @@ export function ProfileWalletClient({
           setSelectedChainId(next as SupportedChainId);
         }}
         onChangeCurrency={(next) => {
+          if (selectedProjectCurrency) return;
           setCurrency(next);
           setAmount(TOKENS[next].presets[0]);
         }}

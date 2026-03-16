@@ -22,6 +22,9 @@ export type WalletSectionProps = {
   showSendUI: boolean;
   headerColor: string;
   creatorDisplayName: string;
+  selectedProjectTitle: string | null;
+  selectedProjectCurrency: Currency | null;
+  currencyLocked: boolean;
   selectedPostSummary: string | null;
   selectableChainIds: SupportedChainId[];
   currency: Currency;
@@ -175,6 +178,20 @@ export function WalletSection(props: WalletSectionProps) {
 
       {props.showSendUI ? (
         <div className="surface-card p-4 sm:p-5">
+          {props.selectedProjectTitle ? (
+            <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
+              <div className="text-sm font-semibold text-sky-900">
+                このプロジェクトを応援します
+              </div>
+              <p className="mt-1 text-sm leading-6 text-sky-800">
+                {props.selectedProjectTitle}
+                {props.selectedProjectCurrency
+                  ? ` / ${props.selectedProjectCurrency}`
+                  : ""}
+              </p>
+            </div>
+          ) : null}
+
           {props.selectedPostSummary ? (
             <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
               <div className="flex items-start justify-between gap-3">
@@ -227,6 +244,7 @@ export function WalletSection(props: WalletSectionProps) {
               <select
                 className="input mt-2"
                 value={props.currency}
+                disabled={props.currencyLocked}
                 onChange={(event) =>
                   props.onChangeCurrency(event.target.value as Currency)
                 }
@@ -234,6 +252,11 @@ export function WalletSection(props: WalletSectionProps) {
                 <option value="JPYC">JPYC</option>
                 <option value="USDC">USDC</option>
               </select>
+              {props.currencyLocked ? (
+                <p className="mt-2 text-xs text-[var(--text-subtle)]">
+                  この project に合わせて通貨を固定しています。
+                </p>
+              ) : null}
             </div>
           </div>
 

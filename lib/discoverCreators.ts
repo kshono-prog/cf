@@ -6,8 +6,10 @@ import { getProjectSummaryView } from "@/lib/projectSummary";
 import {
   buildSupportProfileView,
   type SupportProfileView,
+  type SupportProjectView,
 } from "@/lib/supportProfileView";
 import type { SummaryViewData } from "@/lib/mypage/accountPageTypes";
+import { loadRecruitingProjectViews } from "@/lib/recruitingProjects";
 
 export type DiscoverCreator = {
   username: string;
@@ -15,6 +17,7 @@ export type DiscoverCreator = {
   profile: string | null;
   avatarUrl: string | null;
   supportProfileView: SupportProfileView;
+  recruitingProjects: SupportProjectView[];
 };
 
 type CreatorRow = {
@@ -23,9 +26,11 @@ type CreatorRow = {
   profileText: string | null;
   avatarUrl: string | null;
   goalTitle: string | null;
+  walletAddress: string | null;
   activeProjectId: bigint | null;
   activeProjectIdJpyc: bigint | null;
   activeProjectIdUsdc: bigint | null;
+  id: bigint;
 };
 
 function toProjectIdString(value: bigint | null): string | null {
@@ -51,7 +56,8 @@ async function buildDiscoverCreator(row: CreatorRow): Promise<DiscoverCreator> {
   };
   const activeProjectId = toProjectIdString(row.activeProjectId);
 
-  const [jpycSummary, usdcSummary, activeSummary] = await Promise.all([
+  const [jpycSummary, usdcSummary, activeSummary, recruitingProjects] =
+    await Promise.all([
     loadSummaryIfPresent(projectIdsByCurrency.JPYC),
     loadSummaryIfPresent(projectIdsByCurrency.USDC),
     activeProjectId &&
@@ -59,6 +65,10 @@ async function buildDiscoverCreator(row: CreatorRow): Promise<DiscoverCreator> {
     activeProjectId !== projectIdsByCurrency.USDC
       ? loadSummaryIfPresent(activeProjectId)
       : Promise.resolve(null),
+    loadRecruitingProjectViews({
+      creatorProfileId: row.id,
+      ownerAddress: row.walletAddress,
+    }),
   ]);
 
   return {
@@ -66,6 +76,7 @@ async function buildDiscoverCreator(row: CreatorRow): Promise<DiscoverCreator> {
     displayName: row.displayName ?? row.username,
     profile: row.profileText ?? null,
     avatarUrl: row.avatarUrl ?? null,
+    recruitingProjects,
     supportProfileView: buildSupportProfileView({
       creator: {
         displayName: row.displayName ?? row.username,
@@ -92,11 +103,13 @@ async function getDiscoverCreatorsUncached(limit: number): Promise<DiscoverCreat
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       take: safeLimit,
       select: {
+        id: true,
         username: true,
         displayName: true,
         profileText: true,
         avatarUrl: true,
         goalTitle: true,
+        walletAddress: true,
         activeProjectId: true,
         activeProjectIdJpyc: true,
         activeProjectIdUsdc: true,
