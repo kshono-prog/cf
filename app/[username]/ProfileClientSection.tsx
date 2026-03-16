@@ -1,4 +1,3 @@
-import dynamic from "next/dynamic";
 import type { FeedListView } from "@/lib/feedList";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import type { PublicSummaryLite } from "@/lib/publicSummary";
@@ -6,14 +5,7 @@ import type {
   SupportProfileView,
   SupportProjectView,
 } from "@/lib/supportProfileView";
-
-const ProfileClient = dynamic(() => import("@/components/ProfileClient"), {
-  loading: () => (
-    <div className="px-4 pb-6 text-sm text-[var(--text-subtle)]">
-      追加情報を読み込み中…
-    </div>
-  ),
-});
+import ProfileClient from "@/components/ProfileClient";
 
 type ProfileClientSectionProps = {
   username: string;

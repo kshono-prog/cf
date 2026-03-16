@@ -1,11 +1,11 @@
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
-import { getProjectSummaryView } from "@/lib/projectSummary";
 import {
-  buildSupportProjectViewFromSummary,
+  buildSupportProjectView,
   type SupportProjectView,
 } from "@/lib/supportProfileView";
-import type { SummaryViewData } from "@/lib/mypage/accountPageTypes";
 
 export const PUBLIC_CLOSED_PROJECT_STATUSES = new Set<string>([
   "ARCHIVED",
@@ -15,12 +15,24 @@ export const PUBLIC_CLOSED_PROJECT_STATUSES = new Set<string>([
   "READY_TO_BRIDGE",
 ]);
 
-export function isRecruitingProjectSummary(summary: SummaryViewData): boolean {
-  if (PUBLIC_CLOSED_PROJECT_STATUSES.has(summary.project.status)) {
-    return false;
+const ZERO_DECIMAL = new Prisma.Decimal(0);
+
+function decimalToAmountByCurrency(
+  currency: "JPYC" | "USDC",
+  amountDecimal: Prisma.Decimal | null
+): number {
+  if (!amountDecimal) return 0;
+
+  if (currency === "USDC") {
+    const n = Number(amountDecimal.toString());
+    if (!Number.isFinite(n)) return 0;
+    return Number(n.toFixed(2));
   }
 
-  return summary.goal?.achievedAt == null;
+  const s = amountDecimal.toString();
+  const [i] = s.split(".");
+  const n = Number(i || "0");
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
 }
 
 export async function loadRecruitingProjectViews(args: {
@@ -43,24 +55,94 @@ export async function loadRecruitingProjectViews(args: {
           notIn: Array.from(PUBLIC_CLOSED_PROJECT_STATUSES),
         },
       },
-      select: { id: true },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        currency: true,
+        goal: {
+          select: {
+            targetAmountJpyc: true,
+            achievedAt: true,
+            deadline: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     })
   );
 
-  const projectSummaries = await Promise.all(
-    projectRows.map((row) => getProjectSummaryView(row.id).catch(() => null))
+  const supportedProjects = projectRows.filter(
+    (
+      project
+    ): project is typeof project & {
+      currency: "JPYC" | "USDC";
+    } => project.currency === "JPYC" || project.currency === "USDC"
   );
-  const seen = new Set<string>();
 
-  return projectSummaries
-    .filter((summary): summary is SummaryViewData => summary !== null)
-    .filter(isRecruitingProjectSummary)
-    .map((summary) => buildSupportProjectViewFromSummary(summary))
-    .filter((project): project is SupportProjectView => project !== null)
-    .filter((project) => {
-      if (seen.has(project.projectId)) return false;
-      seen.add(project.projectId);
-      return true;
+  if (supportedProjects.length === 0) {
+    return [];
+  }
+
+  const contributionRows = await withPrismaRetry(() =>
+    prisma.contribution.groupBy({
+      by: ["projectId", "currency"],
+      where: {
+        projectId: { in: supportedProjects.map((project) => project.id) },
+        status: "CONFIRMED",
+      },
+      _sum: { amountDecimal: true },
+    })
+  );
+
+  const totalsByProject = new Map<
+    string,
+    { JPYC: Prisma.Decimal; USDC: Prisma.Decimal }
+  >();
+
+  for (const row of contributionRows) {
+    if (row.currency !== "JPYC" && row.currency !== "USDC") {
+      continue;
+    }
+
+    const projectKey = row.projectId.toString();
+    const current = totalsByProject.get(projectKey) ?? {
+      JPYC: ZERO_DECIMAL,
+      USDC: ZERO_DECIMAL,
+    };
+
+    current[row.currency] = row._sum.amountDecimal ?? ZERO_DECIMAL;
+    totalsByProject.set(projectKey, current);
+  }
+
+  return supportedProjects
+    .filter((project) => project.goal?.achievedAt == null)
+    .map((project) => {
+      const currency = project.currency;
+      const totals = totalsByProject.get(project.id.toString()) ?? {
+        JPYC: ZERO_DECIMAL,
+        USDC: ZERO_DECIMAL,
+      };
+      const confirmedAmount = decimalToAmountByCurrency(
+        currency,
+        totals[currency]
+      );
+      const targetAmount = project.goal?.targetAmountJpyc ?? null;
+      const progressPct =
+        targetAmount && targetAmount > 0
+          ? Math.min(100, (confirmedAmount / targetAmount) * 100)
+          : 0;
+
+      return buildSupportProjectView({
+        projectId: project.id.toString(),
+        currency,
+        title: project.title,
+        description: project.description ?? null,
+        targetAmount,
+        confirmedAmount,
+        progressPct,
+        achievedAt: null,
+        deadline: project.goal?.deadline?.toISOString() ?? null,
+      });
     });
 }

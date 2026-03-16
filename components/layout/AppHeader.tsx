@@ -1,30 +1,6 @@
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-
-const HeaderWalletMenu = dynamic(
-  () =>
-    import("@/components/layout/HeaderWalletMenu").then(
-      (module) => module.HeaderWalletMenu
-    ),
-  {
-    loading: () => (
-      <div className="menu-trigger opacity-80">
-        <span className="text-sm font-semibold">ウォレット</span>
-      </div>
-    ),
-  }
-);
-
-const HeaderUserMenu = dynamic(
-  () =>
-    import("@/components/layout/HeaderUserMenu").then(
-      (module) => module.HeaderUserMenu
-    ),
-  {
-    loading: () => null,
-  }
-);
+import { AppHeaderMenus } from "@/components/layout/AppHeaderMenus";
 
 export function AppHeader({
   username,
@@ -36,7 +12,7 @@ export function AppHeader({
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--line)] bg-[var(--surface)]">
       <div className="mx-auto flex h-[60px] w-full max-w-[760px] items-center justify-between px-3 sm:px-6">
-        <Link href={`/${username}/home`} className="shrink-0">
+        <Link href={`/${username}`} className="shrink-0">
           <div className="flex items-center">
             {avatarUrl ? (
               <Image
@@ -59,8 +35,7 @@ export function AppHeader({
         </Link>
 
         <div className="flex items-center gap-2">
-          <HeaderWalletMenu username={username} />
-          <HeaderUserMenu />
+          <AppHeaderMenus username={username} />
         </div>
       </div>
     </header>

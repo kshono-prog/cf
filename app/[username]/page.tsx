@@ -3,9 +3,10 @@
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 import { loadPublicPageData } from "@/lib/publicPageData";
-import { getInitialPublicFeedList } from "@/lib/feedList";
 
 type Params = { username: string };
+
+export const revalidate = 120;
 
 const SITE_BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || "https://nagesen-v2.vercel.app";
@@ -64,21 +65,14 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<Params> }) {
   const { username } = await params;
-  const [
-    {
-      creator,
-      projectId,
-      projectIdsByCurrency,
-      publicSummary,
-      supportProfileView,
-      recruitingProjects,
-    },
-    initialFeed,
-  ] =
-    await Promise.all([
-      loadPublicPageData(username, { includePublicSummary: true }),
-      getInitialPublicFeedList(username),
-    ]);
+  const {
+    creator,
+    projectId,
+    projectIdsByCurrency,
+    publicSummary,
+    supportProfileView,
+    recruitingProjects,
+  } = await loadPublicPageData(username, { includePublicSummary: true });
 
   return (
     <div className="space-y-4">
@@ -90,7 +84,6 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         publicSummary={publicSummary}
         supportProfileView={supportProfileView}
         recruitingProjects={recruitingProjects}
-        initialFeed={initialFeed}
       />
     </div>
   );

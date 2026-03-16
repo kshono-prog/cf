@@ -115,10 +115,11 @@ export function HeaderUserMenu() {
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        className="menu-trigger pl-2 pr-3"
+        className="menu-trigger px-2"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label="自分のメニュー"
       >
         <span className="overflow-hidden rounded-full border border-[var(--line)]">
           <Avatar
@@ -128,7 +129,6 @@ export function HeaderUserMenu() {
             size={28}
           />
         </span>
-        <span className="hidden text-sm font-semibold sm:inline">自分</span>
         <MenuCaret open={open} />
       </button>
 
@@ -210,6 +210,17 @@ export function HeaderUserMenu() {
                 >
                   <span className="text-sm">自分の投稿</span>
                   <span className="text-xs text-[var(--text-subtle)]">見る</span>
+                </Link>
+              ) : null}
+
+              {selfPageHref ? (
+                <Link
+                  href={selfPageHref}
+                  className="menu-item"
+                  onClick={() => setOpen(false)}
+                >
+                  <span className="text-sm">自分のページ</span>
+                  <span className="text-xs text-[var(--text-subtle)]">開く</span>
                 </Link>
               ) : null}
 

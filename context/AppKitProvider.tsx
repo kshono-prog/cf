@@ -12,9 +12,9 @@ export default function AppKitProvider({
   cookies,
 }: {
   children: ReactNode;
-  cookies: string | null;
+  cookies?: string | null;
 }) {
-  const initial = cookieToInitialState(wagmiConfig as Config, cookies);
+  const initial = cookieToInitialState(wagmiConfig as Config, cookies ?? null);
 
   return (
     <WagmiProvider

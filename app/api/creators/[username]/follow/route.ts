@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { isRecord, toAddressOrNull } from "@/lib/api/guards";
+import {
+  findTargetCreator,
+  getCreatorFollowSummary,
+} from "@/lib/creatorFollow";
 import { findCreatorByWalletAddress } from "@/lib/social";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,98 +20,6 @@ type RouteContext = {
 type FollowMutationBody = {
   address?: unknown;
 };
-
-type CreatorPreviewRow = {
-  id: bigint;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
-};
-
-function serializePreview(row: CreatorPreviewRow) {
-  return {
-    id: row.id.toString(),
-    username: row.username,
-    displayName: row.displayName,
-    avatarUrl: row.avatarUrl,
-  };
-}
-
-async function findTargetCreator(username: string): Promise<CreatorPreviewRow | null> {
-  return prisma.creatorProfile.findUnique({
-    where: { username },
-    select: {
-      id: true,
-      username: true,
-      displayName: true,
-      avatarUrl: true,
-    },
-  });
-}
-
-async function buildFollowSummary(args: {
-  username: string;
-  viewerAddress: string | null;
-}) {
-  const creator = await findTargetCreator(args.username);
-  if (!creator) return null;
-
-  const viewer =
-    args.viewerAddress != null
-      ? await findCreatorByWalletAddress(args.viewerAddress)
-      : null;
-  const isOwner = viewer?.id === creator.id;
-
-  const [followerCount, followingCount, followerRows, viewerFollow] =
-    await Promise.all([
-      prisma.creatorFollow.count({
-        where: { followingProfileId: creator.id },
-      }),
-      prisma.creatorFollow.count({
-        where: { followerProfileId: creator.id },
-      }),
-      prisma.creatorFollow.findMany({
-        where: { followingProfileId: creator.id },
-        orderBy: { createdAt: "desc" },
-        take: 6,
-        select: {
-          followerProfile: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              avatarUrl: true,
-            },
-          },
-        },
-      }),
-      viewer && !isOwner
-        ? prisma.creatorFollow.findUnique({
-            where: {
-              followerProfileId_followingProfileId: {
-                followerProfileId: viewer.id,
-                followingProfileId: creator.id,
-              },
-            },
-            select: { id: true },
-          })
-        : Promise.resolve(null),
-    ]);
-
-  return {
-    creator: serializePreview(creator),
-    counts: {
-      followers: followerCount,
-      following: followingCount,
-    },
-    viewer: {
-      hasUser: viewer !== null,
-      isOwner,
-      follows: viewerFollow !== null,
-    },
-    followers: followerRows.map((row) => serializePreview(row.followerProfile)),
-  };
-}
 
 async function readViewerAddress(req: NextRequest): Promise<string | null> {
   const raw: unknown = await req.json().catch(() => null);
@@ -127,7 +39,7 @@ export async function GET(
     const viewerAddress = toAddressOrNull(
       new URL(req.url).searchParams.get("viewerAddress")
     );
-    const payload = await buildFollowSummary({
+    const payload = await getCreatorFollowSummary({
       username,
       viewerAddress: viewerAddress ? viewerAddress.toLowerCase() : null,
     });
@@ -172,7 +84,7 @@ export async function POST(
       }
     }
 
-    const payload = await buildFollowSummary({
+    const payload = await getCreatorFollowSummary({
       username,
       viewerAddress,
     });
@@ -207,7 +119,7 @@ export async function DELETE(
       },
     });
 
-    const payload = await buildFollowSummary({
+    const payload = await getCreatorFollowSummary({
       username,
       viewerAddress,
     });

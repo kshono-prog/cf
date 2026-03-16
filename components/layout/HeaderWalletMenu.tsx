@@ -210,9 +210,7 @@ export function HeaderWalletMenu({ username }: { username: string }) {
             strokeLinecap="round"
           />
         </svg>
-        <span className="text-sm font-semibold">
-          {isConnected ? "ウォレット" : "ウォレット接続"}
-        </span>
+        <span className="text-sm font-semibold">ウォレット</span>
         <MenuCaret open={open} />
       </button>
 

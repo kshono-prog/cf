@@ -670,11 +670,25 @@ export function CreatorFeedSection(props: Props) {
       return;
     }
 
+    const nextLiked = !post.viewerHasLiked;
+    const optimisticLikeCount = Math.max(
+      0,
+      post.counts.likes + (nextLiked ? 1 : -1)
+    );
+
     setPendingPostLikeIds((current) => new Set<string>(current).add(post.id));
+    updatePostInAllStates(post.id, (currentPost) => ({
+      ...currentPost,
+      counts: {
+        ...currentPost.counts,
+        likes: optimisticLikeCount,
+      },
+      viewerHasLiked: nextLiked,
+    }));
 
     try {
       const response = await fetch(`/api/posts/${encodeURIComponent(post.id)}/like`, {
-        method: post.viewerHasLiked ? "DELETE" : "POST",
+        method: nextLiked ? "POST" : "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: viewerAddress }),
       });
@@ -699,6 +713,14 @@ export function CreatorFeedSection(props: Props) {
       }));
       setNotice(null);
     } catch (mutationError) {
+      updatePostInAllStates(post.id, (currentPost) => ({
+        ...currentPost,
+        counts: {
+          ...currentPost.counts,
+          likes: post.counts.likes,
+        },
+        viewerHasLiked: post.viewerHasLiked,
+      }));
       setNotice(
         mutationError instanceof Error
           ? mutationError.message
@@ -719,6 +741,12 @@ export function CreatorFeedSection(props: Props) {
       return;
     }
 
+    const nextLiked = !reply.viewerHasLiked;
+    const optimisticLikeCount = Math.max(
+      0,
+      reply.likeCount + (nextLiked ? 1 : -1)
+    );
+
     setDetailByPostId((current) => {
       const detail = current[postId] ?? createEmptyDetailState();
       const nextPending = new Set<string>(detail.pendingReplyLikeIds);
@@ -727,6 +755,15 @@ export function CreatorFeedSection(props: Props) {
         ...current,
         [postId]: {
           ...detail,
+          replies: detail.replies.map((currentReply) =>
+            currentReply.id === reply.id
+              ? {
+                  ...currentReply,
+                  likeCount: optimisticLikeCount,
+                  viewerHasLiked: nextLiked,
+                }
+              : currentReply
+          ),
           pendingReplyLikeIds: nextPending,
         },
       };
@@ -736,7 +773,7 @@ export function CreatorFeedSection(props: Props) {
       const response = await fetch(
         `/api/replies/${encodeURIComponent(reply.id)}/like`,
         {
-          method: reply.viewerHasLiked ? "DELETE" : "POST",
+          method: nextLiked ? "POST" : "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address: viewerAddress }),
         }
@@ -773,6 +810,25 @@ export function CreatorFeedSection(props: Props) {
       });
       setNotice(null);
     } catch (mutationError) {
+      setDetailByPostId((current) => {
+        const detail = current[postId];
+        if (!detail) return current;
+        return {
+          ...current,
+          [postId]: {
+            ...detail,
+            replies: detail.replies.map((currentReply) =>
+              currentReply.id === reply.id
+                ? {
+                    ...currentReply,
+                    likeCount: reply.likeCount,
+                    viewerHasLiked: reply.viewerHasLiked,
+                  }
+                : currentReply
+            ),
+          },
+        };
+      });
       setNotice(
         mutationError instanceof Error
           ? mutationError.message

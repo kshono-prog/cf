@@ -43,6 +43,10 @@ const nextConfig: NextConfig = {
         __dirname,
         "shims/async-storage.ts"
       ),
+      "@walletconnect/environment": path.resolve(
+        __dirname,
+        "shims/walletconnect-environment.ts"
+      ),
     };
 
     return config;

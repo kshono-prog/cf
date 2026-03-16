@@ -274,18 +274,24 @@ export function CreatorCommunityCard(props: Props) {
     <div id="community" className="space-y-2">
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-5">
-          <div>
+          <Link
+            href={`/${props.username}/follows?tab=followers`}
+            className="rounded-2xl px-2 py-1 transition hover:bg-[var(--surface-subtle)]"
+          >
             <div className="text-[11px] text-[var(--text-subtle)]">フォロワー</div>
             <div className="mt-0.5 text-sm font-semibold text-[var(--text)]">
               {loading ? "-" : countLabel(summary?.counts.followers ?? 0)}
             </div>
-          </div>
-          <div>
+          </Link>
+          <Link
+            href={`/${props.username}/follows?tab=following`}
+            className="rounded-2xl px-2 py-1 transition hover:bg-[var(--surface-subtle)]"
+          >
             <div className="text-[11px] text-[var(--text-subtle)]">フォロー中</div>
             <div className="mt-0.5 text-sm font-semibold text-[var(--text)]">
               {loading ? "-" : countLabel(summary?.counts.following ?? 0)}
             </div>
-          </div>
+          </Link>
         </div>
         {actionButton}
       </div>
