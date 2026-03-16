@@ -5,6 +5,7 @@ import {
   errMyPageMutationResponse,
   okMyPageMutationResponse,
 } from "@/lib/mypageApiResponses";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,6 +31,8 @@ export async function POST(req: NextRequest) {
     }
 
     const walletAddress = rawAddress.toLowerCase().trim();
+    const ownerSession = await requireOwnerSession(req, walletAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     // ❶ ウォレットで既存プロフィールを探す（誰のウォレットかを確定）
     const byWallet = await prisma.creatorProfile.findUnique({

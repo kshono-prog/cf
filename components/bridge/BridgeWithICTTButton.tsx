@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useAccount, useChainId, useWalletClient } from "wagmi";
 import { isAddress, parseUnits } from "viem";
 import type { Address } from "viem";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 /**
  * ===== IMPORTANT =====
@@ -169,19 +170,23 @@ export function BridgeWithICTTButton(props: {
   }, [address, walletClient, busy, disabled]);
 
   const postPrepare = useCallback(async (): Promise<PrepareResponse> => {
-    const res = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/bridge/prepare`,
-      {
+    if (!address) {
+      return { ok: false, error: "ADDRESS_REQUIRED" };
+    }
+
+    const res = await ownerAuthFetch({
+      address,
+      url: `/api/projects/${encodeURIComponent(projectId)}/bridge/prepare`,
+      init: {
         method: "POST",
         headers: { "content-type": "application/json" },
         cache: "no-store",
         body: JSON.stringify({
-          address, // owner check
+          address,
           currency: currencyProp ?? "JPYC",
-          // dryRun/force/note が必要ならここで追加
         }),
-      }
-    );
+      },
+    });
 
     const json: unknown = await res.json().catch(() => null);
 
@@ -284,19 +289,24 @@ export function BridgeWithICTTButton(props: {
       bridgeRunId: string,
       bridgeTxHash: `0x${string}`
     ): Promise<RunResponse> => {
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(projectId)}/bridge/run`,
-        {
+      if (!address) {
+        return { ok: false, error: "ADDRESS_REQUIRED" };
+      }
+
+      const res = await ownerAuthFetch({
+        address,
+        url: `/api/projects/${encodeURIComponent(projectId)}/bridge/run`,
+        init: {
           method: "POST",
           headers: { "content-type": "application/json" },
           cache: "no-store",
           body: JSON.stringify({
-            address, // owner check
+            address,
             bridgeRunId,
             bridgeTxHash,
           }),
-        }
-      );
+        },
+      });
 
       const json: unknown = await res.json().catch(() => null);
 
@@ -329,19 +339,22 @@ export function BridgeWithICTTButton(props: {
   );
 
   const postReverify = useCallback(async (): Promise<ReverifyResponse> => {
-    const res = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/bridge/reverify`,
-      {
+    if (!address) {
+      return { ok: false, error: "ADDRESS_REQUIRED" };
+    }
+
+    const res = await ownerAuthFetch({
+      address,
+      url: `/api/projects/${encodeURIComponent(projectId)}/bridge/reverify`,
+      init: {
         method: "POST",
         headers: { "content-type": "application/json" },
         cache: "no-store",
         body: JSON.stringify({
-          address, // owner check
-          // reverify は現状「最新の未confirmed run を探す」実装なので bridgeRunId は不要
-          // bridgeRunId を使う実装にした場合はここで送る
+          address,
         }),
-      }
-    );
+      },
+    });
 
     const json: unknown = await res.json().catch(() => null);
 

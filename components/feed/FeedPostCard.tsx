@@ -7,6 +7,122 @@ import {
   getFeedPostProjectSupportHref,
   type FeedPost,
 } from "@/components/feed/feedTypes";
+import { Avatar } from "@/components/shared/Avatar";
+
+export function ReplyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="feed-action-icon" aria-hidden="true">
+      <path
+        d="M7 10.5c0-3.59 3.13-6.5 7-6.5s7 2.91 7 6.5-3.13 6.5-7 6.5c-.72 0-1.42-.1-2.07-.29L6 19l1.57-4.2A6.08 6.08 0 0 1 7 10.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+export function LikeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="feed-action-icon" aria-hidden="true">
+      <path
+        d="M12 20.4 4.9 13.6A4.67 4.67 0 0 1 11.6 7l.4.41.4-.4a4.67 4.67 0 0 1 6.6 6.6L12 20.4Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+export function ShareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="feed-action-icon" aria-hidden="true">
+      <path
+        d="M8 12h8m0 0-3-3m3 3-3 3"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M13 5h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-3"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+export function TipIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="feed-action-icon" aria-hidden="true">
+      <path
+        d="M12 3v18m-5-5 5 5 5-5M7 8l5-5 5 5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+type FeedActionControlProps = {
+  label: string;
+  icon: React.ReactNode;
+  count?: number;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  tone?: "default" | "reply" | "like" | "tip";
+};
+
+export function FeedActionControl(props: FeedActionControlProps) {
+  const {
+    label,
+    icon,
+    count,
+    active = false,
+    disabled = false,
+    onClick,
+    tone = "default",
+  } = props;
+  const className = active ? "feed-action feed-action-active" : "feed-action";
+  const content = (
+    <>
+      <span className="feed-action-icon-wrap">{icon}</span>
+      {typeof count === "number" ? <span className="feed-action-count">{count}</span> : null}
+    </>
+  );
+
+  if (!onClick) {
+    return (
+      <div className={`${className} pointer-events-none`} aria-label={label} data-tone={tone}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      data-tone={tone}
+    >
+      {content}
+    </button>
+  );
+}
 
 type Props = {
   post: FeedPost;
@@ -91,18 +207,12 @@ export function FeedPostCard(props: Props) {
           className="transition hover:opacity-80"
           aria-label={`${post.creator.displayName} のページを見る`}
         >
-          {post.creator.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={post.creator.avatarUrl}
-              alt={post.creator.displayName}
-              className="h-9.5 w-9.5 rounded-full border border-gray-200 object-cover"
-            />
-          ) : (
-            <div className="flex h-9.5 w-9.5 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-semibold text-gray-500">
-              {post.creator.displayName.slice(0, 1)}
-            </div>
-          )}
+          <Avatar
+            src={post.creator.avatarUrl}
+            alt={post.creator.displayName}
+            fallbackText={post.creator.displayName.slice(0, 1)}
+            size={38}
+          />
         </Link>
 
         <div className="min-w-0 flex-1">
@@ -206,59 +316,40 @@ export function FeedPostCard(props: Props) {
       ) : null}
 
       <div
-        className={`mt-3 grid gap-1.5 ${
-          showTipAction ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
-        }`}
+        className={`mt-3 flex flex-wrap items-center gap-5 sm:gap-6`}
       >
-        <button
-          type="button"
-          className={`${
-            repliesOpen
-              ? "action-pill-active"
-              : "action-pill"
-          }`}
+        <FeedActionControl
+          label="返信を見る"
+          icon={<ReplyIcon />}
+          count={post.counts.replies}
+          active={repliesOpen}
+          tone="reply"
           onClick={onToggleReplies}
           disabled={detailLoading}
-        >
-          返信 {post.counts.replies}
-        </button>
+        />
 
-        <button
-          type="button"
-          className={`${
-            post.viewerHasLiked
-              ? "action-pill-active"
-              : "action-pill"
-          }`}
+        <FeedActionControl
+          label={post.viewerHasLiked ? "いいね済み" : "いいね"}
+          icon={<LikeIcon />}
+          count={post.counts.likes}
+          active={post.viewerHasLiked}
+          tone="like"
           onClick={onToggleLike}
           disabled={liking}
-        >
-          いいね {post.counts.likes}
-        </button>
+        />
 
-        <button
-          type="button"
-          className="action-pill"
-          onClick={onShare}
-        >
-          共有
-        </button>
+        <FeedActionControl label="共有" icon={<ShareIcon />} onClick={onShare} />
 
         {showTipAction ? (
-          <button
-            type="button"
-            className={`${
-              canTip
-                ? selectedForTip
-                  ? "action-pill-active"
-                  : "btn"
-                : "action-pill cursor-not-allowed text-gray-400"
-            }`}
-            onClick={onTip}
+          <FeedActionControl
+            label={selectedForTip ? "応援先を確認" : "応援する"}
+            icon={<TipIcon />}
+            count={post.counts.tips}
+            active={selectedForTip}
+            tone="tip"
+            onClick={canTip ? onTip : undefined}
             disabled={!canTip}
-          >
-            {selectedForTip ? "応援先を確認" : `応援 ${post.counts.tips}`}
-          </button>
+          />
         ) : null}
       </div>
 

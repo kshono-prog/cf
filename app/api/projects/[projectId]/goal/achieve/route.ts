@@ -15,6 +15,7 @@ import {
   recomputeProjectSettlement,
 } from "@/lib/projectSettlement";
 import { ensureCctpJobForGoalAchieved } from "@/lib/cctpBridgeJobs";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ export async function POST(
     const raw: unknown = await req.json().catch(() => null);
     const addr = isRecord(raw) ? toAddressOrNull(raw.address) : null;
     if (!addr) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, addr);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },

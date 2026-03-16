@@ -16,6 +16,8 @@ import {
   nextRetryDateFromAttempts,
   syncCctpJobsFromGoal,
 } from "@/lib/cctpBridgeJobs";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { resolveProjectOwnerAddress } from "@/lib/ownerScopedResources";
 
 type Params = { projectId: string };
 
@@ -124,12 +126,19 @@ async function assertProjectOwner(projectId: bigint, wallet: string) {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
     const { projectId: projectIdStr } = await ctx.params;
     const projectId = toBigIntOrThrow(projectIdStr, "PROJECT_ID_INVALID");
+
+    const ownerLookup = await resolveProjectOwnerAddress(projectId);
+    if (!ownerLookup.found) return errJson("PROJECT_NOT_FOUND", 404);
+    if (!ownerLookup.ownerAddress) return errJson("FORBIDDEN_NOT_OWNER", 403);
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const jobs = await prisma.cctpBridgeJob.findMany({
       where: { projectId },
@@ -160,6 +169,8 @@ export async function POST(
 
     const address = toAddressOrNull(raw.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const ownerCheck = await assertProjectOwner(projectId, address);
     if (!ownerCheck.ok) {

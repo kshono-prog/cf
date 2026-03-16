@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { findCreatorByWalletAddress } from "@/lib/social";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,14 +49,16 @@ function formatContributionAmount(
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
-  const address = searchParams.get("address");
-
-  if (!address) {
-    return NextResponse.json({ ok: false, error: "ADDRESS_REQUIRED" }, { status: 400 });
+  const ownerSession = await requireOwnerSession(
+    req,
+    searchParams.get("address") ?? undefined
+  );
+  if (!ownerSession.ok) {
+    return ownerSession.response;
   }
 
   try {
-    const creator = await findCreatorByWalletAddress(address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) {
       return NextResponse.json(
         { ok: false, error: "CREATOR_NOT_FOUND" },

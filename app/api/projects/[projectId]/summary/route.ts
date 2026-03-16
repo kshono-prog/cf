@@ -2,18 +2,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errJson, okJson } from "@/lib/api/responses";
 import { toBigIntOrThrow } from "@/lib/api/guards";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { resolveProjectOwnerAddress } from "@/lib/ownerScopedResources";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 
 export const dynamic = "force-dynamic";
 
 type Params = { projectId: string };
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
     const { projectId: projectIdStr } = await ctx.params;
     const projectId = toBigIntOrThrow(projectIdStr, "PROJECT_ID_INVALID");
+
+    const ownerLookup = await resolveProjectOwnerAddress(projectId);
+    if (!ownerLookup.found) return errJson("PROJECT_NOT_FOUND", 404);
+    if (!ownerLookup.ownerAddress) return errJson("FORBIDDEN_NOT_OWNER", 403);
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
+
     const summary = await getProjectSummaryView(projectId);
     if (!summary) return errJson("PROJECT_NOT_FOUND", 404);
     return okJson(summary);

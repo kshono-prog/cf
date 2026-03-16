@@ -2,22 +2,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isEventCategory } from "@/lib/creatorTaxonomy";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 type Ctx = {
   params: Promise<{ username: string }>;
 };
 
-export async function GET(_req: NextRequest, ctx: Ctx): Promise<NextResponse> {
+export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   const { username } = await ctx.params;
 
   try {
     const creator = await prisma.creatorProfile.findUnique({
       where: { username },
-      select: { id: true },
+      select: { id: true, walletAddress: true },
     });
 
     if (!creator) {
       return NextResponse.json({ events: [] });
+    }
+
+    if (!creator.walletAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, creator.walletAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     // 管理画面は公開/非公開すべて返す

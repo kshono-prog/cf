@@ -10,6 +10,7 @@ import {
   toNonEmptyString,
 } from "@/lib/api/guards";
 import { isHash } from "viem";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ export async function POST(
 
     const addr = toAddressOrNull(raw.address);
     if (!addr) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, addr);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const bridgeRunId = toNonEmptyString(raw.bridgeRunId);
     if (!bridgeRunId) return errJson("BRIDGE_RUN_ID_REQUIRED", 400);

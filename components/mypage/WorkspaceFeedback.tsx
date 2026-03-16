@@ -103,3 +103,17 @@ export function WorkspaceEmptyState(props: {
     </div>
   );
 }
+
+export function WorkspaceLoadingCard(props: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="text-sm font-semibold text-gray-900">{props.title}</div>
+      <div className="mt-2 text-xs text-gray-500">
+        {props.description ?? "必要な面だけを順番に読み込んでいます。"}
+      </div>
+    </div>
+  );
+}

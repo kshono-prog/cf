@@ -11,6 +11,7 @@ import {
   serializePost,
   serializeReply,
 } from "@/lib/social";
+import { getOptionalOwnerSessionAddress } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,8 +27,12 @@ export async function GET(
     if (!isUuidString(postId)) return errJson("POST_ID_INVALID", 400);
 
     const { searchParams } = new URL(req.url);
+    const viewerAddress = searchParams.get("viewerAddress");
+    const authenticatedViewerAddress = viewerAddress
+      ? await getOptionalOwnerSessionAddress(req, viewerAddress)
+      : null;
     const viewerCreatorProfileId = await resolveViewerCreatorProfileId(
-      searchParams.get("viewerAddress")
+      authenticatedViewerAddress
     );
     const replyLimit = parsePositiveInt(
       searchParams.get("replyLimit"),

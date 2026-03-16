@@ -113,7 +113,11 @@ export async function fetchPendingContributions(params: {
   const url = `/api/projects/${encodeURIComponent(
     params.projectId
   )}/contributions?status=PENDING`;
-  const res = await fetch(url, { method: "GET", cache: "no-store" });
+  const res = await fetch(url, {
+    method: "GET",
+    cache: "no-store",
+    credentials: "include",
+  });
   const json: unknown = await res.json().catch(() => null);
 
   if (!res.ok) {

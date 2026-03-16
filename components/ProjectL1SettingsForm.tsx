@@ -2,6 +2,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useAccount } from "wagmi";
+
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 /**
  * ProjectL1SettingsForm.tsx（完成版・全量）
@@ -868,6 +871,7 @@ function L1Actions(props: {
 export default function ProjectL1SettingsForm(
   props: ProjectL1SettingsFormProps
 ) {
+  const { address } = useAccount();
   const currency = props.defaultCurrency ?? "JPYC";
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -956,14 +960,20 @@ export default function ProjectL1SettingsForm(
     setError(null);
 
     try {
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(props.projectId)}/l1`,
-        {
+      if (!address) {
+        setLoading(false);
+        return;
+      }
+
+      const res = await ownerAuthFetch({
+        address,
+        url: `/api/projects/${encodeURIComponent(props.projectId)}/l1`,
+        init: {
           method: "GET",
           headers: { "content-type": "application/json" },
           cache: "no-store",
-        }
-      );
+        },
+      });
 
       const json: unknown = await res.json().catch(() => null);
       const parsed = parseL1GetResponse(json);
@@ -1007,7 +1017,7 @@ export default function ProjectL1SettingsForm(
       setError("L1_GET_FAILED");
       setLoading(false);
     }
-  }, [props.projectId]);
+  }, [address, props.projectId]);
 
   useEffect(() => {
     void fetchL1();
@@ -1018,6 +1028,12 @@ export default function ProjectL1SettingsForm(
     setError(null);
 
     try {
+      if (!address) {
+        setError("WALLET_NOT_CONNECTED");
+        setSaving(false);
+        return;
+      }
+
       // Normalize & validate (strong guards)
       const chainEvent = normalizeChainIdOrThrow(
         parseNumberOrNull(eventFundingChainId),
@@ -1087,14 +1103,15 @@ export default function ProjectL1SettingsForm(
         icttTokenRemote: tokenRemote,
       };
 
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(props.projectId)}/l1`,
-        {
+      const res = await ownerAuthFetch({
+        address,
+        url: `/api/projects/${encodeURIComponent(props.projectId)}/l1`,
+        init: {
           method: "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify(body),
-        }
-      );
+        },
+      });
 
       const json: unknown = await res.json().catch(() => null);
       const parsed = parseL1GetResponse(json);
@@ -1118,6 +1135,7 @@ export default function ProjectL1SettingsForm(
       setSaving(false);
     }
   }, [
+    address,
     props.projectId,
     eventFundingChainId,
     liquidityChainId,
@@ -1137,14 +1155,21 @@ export default function ProjectL1SettingsForm(
     setError(null);
 
     try {
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(props.projectId)}/bridge`,
-        {
+      if (!address) {
+        setError("WALLET_NOT_CONNECTED");
+        setLoadingAudit(false);
+        return;
+      }
+
+      const res = await ownerAuthFetch({
+        address,
+        url: `/api/projects/${encodeURIComponent(props.projectId)}/bridge`,
+        init: {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ currency }),
-        }
-      );
+        },
+      });
 
       const json: unknown = await res.json().catch(() => null);
       const parsed = parseBridgeResponse(json);
@@ -1162,7 +1187,7 @@ export default function ProjectL1SettingsForm(
       setBridgeRaw({ ok: false, error: "BRIDGE_CALL_FAILED" });
       setLoadingAudit(false);
     }
-  }, [props.projectId, currency]);
+  }, [address, props.projectId, currency]);
 
   // ---------------------------
   // Render

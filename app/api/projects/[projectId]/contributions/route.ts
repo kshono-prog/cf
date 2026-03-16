@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { toBigIntOrThrow } from "@/lib/api/guards";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { resolveProjectOwnerAddress } from "@/lib/ownerScopedResources";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,16 @@ export async function GET(
     const statusRaw = pickQueryParam(req, "status");
     const status = statusRaw ? toStatus(statusRaw) : null;
     if (statusRaw && !status) return errJson("STATUS_INVALID", 400);
+
+    const requiresOwnerSession = status !== "CONFIRMED";
+    if (requiresOwnerSession) {
+      const ownerLookup = await resolveProjectOwnerAddress(projectId);
+      if (!ownerLookup.found) return errJson("PROJECT_NOT_FOUND", 404);
+      if (!ownerLookup.ownerAddress) return errJson("FORBIDDEN_NOT_OWNER", 403);
+
+      const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+      if (!ownerSession.ok) return ownerSession.response;
+    }
 
     const rows = await prisma.contribution.findMany({
       where: {
@@ -76,6 +88,7 @@ export async function GET(
       projectId: projectId.toString(),
       status: status ?? null,
       count: contributions.length,
+      items: contributions,
       contributions,
     });
   } catch (e) {

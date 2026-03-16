@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { Project } from "@prisma/client";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -211,7 +212,7 @@ function parsePatchBody(raw: unknown): ParsePatch {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
@@ -227,6 +228,18 @@ export async function GET(
         { ok: false, error: "PROJECT_NOT_FOUND" },
         { status: 404 }
       );
+    }
+
+    if (!project.ownerAddress) {
+      return NextResponse.json(
+        { ok: false, error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, project.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     return NextResponse.json({
@@ -278,6 +291,18 @@ export async function PATCH(
         { ok: false, error: "PROJECT_NOT_FOUND" },
         { status: 404 }
       );
+    }
+
+    if (!project.ownerAddress) {
+      return NextResponse.json(
+        { ok: false, error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, project.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     // Prisma update input (safe)

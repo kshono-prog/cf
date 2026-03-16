@@ -1,20 +1,68 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import type { Address } from "viem";
 
 import type { SnsProjectOption } from "@/lib/mypage/snsApi";
-import { PostComposerCard } from "@/components/mypage/PostComposerCard";
-import { MyPostsCard } from "@/components/mypage/MyPostsCard";
-import { AiAgencyCard } from "@/components/mypage/AiAgencyCard";
-import { AnalyticsSummaryCard } from "@/components/mypage/AnalyticsSummaryCard";
-import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import {
+  WorkspaceLoadingCard,
+  WorkspaceStatusNotice,
+} from "@/components/mypage/WorkspaceFeedback";
 
 type Props = {
   address: Address | undefined;
   username: string;
   projectOptions: SnsProjectOption[];
 };
+
+const PostComposerCard = dynamic(
+  () =>
+    import("@/components/mypage/PostComposerCard").then(
+      (mod) => mod.PostComposerCard
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="投稿 composer を読み込んでいます" />
+    ),
+  }
+);
+
+const AnalyticsSummaryCard = dynamic(
+  () =>
+    import("@/components/mypage/AnalyticsSummaryCard").then(
+      (mod) => mod.AnalyticsSummaryCard
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="analytics summary を読み込んでいます" />
+    ),
+  }
+);
+
+const MyPostsCard = dynamic(
+  () =>
+    import("@/components/mypage/MyPostsCard").then(
+      (mod) => mod.MyPostsCard
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="投稿一覧を読み込んでいます" />
+    ),
+  }
+);
+
+const AiAgencyCard = dynamic(
+  () =>
+    import("@/components/mypage/AiAgencyCard").then(
+      (mod) => mod.AiAgencyCard
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="AI 事務所の拡張を読み込んでいます" />
+    ),
+  }
+);
 
 export function SnsAiOfficeSection(props: Props) {
   const [refreshToken, setRefreshToken] = React.useState(0);

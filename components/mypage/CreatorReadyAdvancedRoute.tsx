@@ -1,11 +1,26 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 
-import { CreatorAdvancedSettingsSection } from "@/components/mypage/CreatorAdvancedSettingsSection";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
-import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import {
+  WorkspaceLoadingCard,
+  WorkspaceStatusNotice,
+} from "@/components/mypage/WorkspaceFeedback";
 import { useCreatorReadyProjectDashboards } from "@/components/mypage/useCreatorReadyProjectDashboards";
+
+const CreatorAdvancedSettingsSection = dynamic(
+  () =>
+    import("@/components/mypage/CreatorAdvancedSettingsSection").then(
+      (mod) => mod.CreatorAdvancedSettingsSection
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="精算と詳細設定を読み込んでいます" />
+    ),
+  }
+);
 
 export function CreatorReadyAdvancedRoute() {
   const workspace = useCreatorReadyWorkspace();

@@ -6,6 +6,12 @@ import { AiOfficeCreateSection } from "@/components/mypage/AiOfficeCreateSection
 import { AiOfficeStatusNotice } from "@/components/mypage/AiOfficeFeedback";
 import { AiOfficeInboxSection } from "@/components/mypage/AiOfficeInboxSection";
 import { AiOfficeOverviewSection } from "@/components/mypage/AiOfficeOverviewSection";
+import {
+  buildAiOfficeTaskInput,
+  normalizeAiOfficeTaskDraft,
+  validateAiOfficeTaskDraft,
+  type AiOfficeTaskDraft,
+} from "@/components/mypage/aiOfficeTaskConfig";
 import type {
   AgentTaskView,
   AiOfficeView,
@@ -24,6 +30,7 @@ import {
   getAgentTaskTypeCopy,
   getAiOfficeMessageState,
 } from "@/lib/uxCopy";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -189,58 +196,6 @@ function parseMetricTrends(json: unknown): MetricTrendDayView[] {
   return out;
 }
 
-function buildTaskInput(params: {
-  taskType: TaskType;
-  translationInput: string;
-  translationLang: TranslationLang;
-  reportingWindowDays: number;
-  draftTone: DraftTone;
-  announcementChannel: AnnouncementChannel;
-  includeMetricsSummary: boolean;
-  includeSupportSummary: boolean;
-  supporterMessagePurpose: SupporterMessagePurpose;
-}): Record<string, unknown> {
-  const common = {
-    source: "mypage",
-    requestedAt: new Date().toISOString(),
-  };
-
-  switch (params.taskType) {
-    case "TRANSLATE":
-      return {
-        ...common,
-        text: params.translationInput.trim(),
-        from: "auto",
-        to: [params.translationLang],
-      };
-    case "WEEKLY_REPORT":
-      return {
-        ...common,
-        reportingWindowDays: params.reportingWindowDays,
-      };
-    case "ANNOUNCEMENT_DRAFT":
-      return {
-        ...common,
-        channel: params.announcementChannel,
-        tone: params.draftTone,
-        reportingWindowDays: params.reportingWindowDays,
-        includeMetricsSummary: params.includeMetricsSummary,
-        includeSupportSummary: params.includeSupportSummary,
-      };
-    case "SUPPORTER_MESSAGE_DRAFT":
-      return {
-        ...common,
-        purpose: params.supporterMessagePurpose,
-        tone: params.draftTone,
-        reportingWindowDays: params.reportingWindowDays,
-        includeMetricsSummary: params.includeMetricsSummary,
-        includeSupportSummary: params.includeSupportSummary,
-      };
-    default:
-      return common;
-  }
-}
-
 export function AiOfficePanel(props: {
   walletAddress: string | null;
   projectId: string | null;
@@ -311,6 +266,34 @@ export function AiOfficePanel(props: {
         .map((task) => task.id),
     [tasks]
   );
+  const taskDraft = useMemo<AiOfficeTaskDraft>(
+    () => ({
+      taskType,
+      translationInput,
+      translationLang,
+      reportingWindowDays,
+      draftTone,
+      announcementChannel,
+      includeMetricsSummary,
+      includeSupportSummary,
+      supporterMessagePurpose,
+    }),
+    [
+      announcementChannel,
+      draftTone,
+      includeMetricsSummary,
+      includeSupportSummary,
+      reportingWindowDays,
+      supporterMessagePurpose,
+      taskType,
+      translationInput,
+      translationLang,
+    ]
+  );
+  const normalizedTaskDraft = useMemo(
+    () => normalizeAiOfficeTaskDraft(taskDraft),
+    [taskDraft]
+  );
 
   const headers = useMemo(() => ({ "Content-Type": "application/json" }), []);
 
@@ -325,12 +308,13 @@ export function AiOfficePanel(props: {
     setMessage(null);
 
     try {
-      const dashboardRes = await fetch(
-        `/api/ai-office/dashboard?address=${encodeURIComponent(walletAddress)}${
+      const dashboardRes = await ownerAuthFetch({
+        address: walletAddress,
+        url: `/api/ai-office/dashboard?address=${encodeURIComponent(walletAddress)}${
           projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""
         }&metricLimit=20&trendDays=7&taskLimit=30`,
-        { cache: "no-store" }
-      );
+        init: { cache: "no-store" },
+      });
       const dashboardJson: unknown = await dashboardRes.json().catch(() => null);
 
       if (!dashboardRes.ok || !isRecord(dashboardJson)) {
@@ -361,26 +345,28 @@ export function AiOfficePanel(props: {
   }, [waitingTaskIds]);
 
   useEffect(() => {
-    if (taskType === "WEEKLY_REPORT" && reportingWindowDays !== 7) {
-      setReportingWindowDays(7);
+    if (normalizedTaskDraft.reportingWindowDays !== reportingWindowDays) {
+      setReportingWindowDays(normalizedTaskDraft.reportingWindowDays);
     }
-    if (taskType === "ANNOUNCEMENT_DRAFT") {
-      if (reportingWindowDays !== 7) setReportingWindowDays(7);
-      if (announcementChannel !== "SUPPORTERS") setAnnouncementChannel("SUPPORTERS");
-      if (!includeMetricsSummary) setIncludeMetricsSummary(true);
-      if (!includeSupportSummary) setIncludeSupportSummary(true);
+    if (normalizedTaskDraft.announcementChannel !== announcementChannel) {
+      setAnnouncementChannel(normalizedTaskDraft.announcementChannel);
     }
-    if (taskType === "SUPPORTER_MESSAGE_DRAFT") {
-      if (reportingWindowDays !== 30) setReportingWindowDays(30);
-      if (includeMetricsSummary) setIncludeMetricsSummary(false);
-      if (!includeSupportSummary) setIncludeSupportSummary(true);
+    if (
+      normalizedTaskDraft.includeMetricsSummary !== includeMetricsSummary
+    ) {
+      setIncludeMetricsSummary(normalizedTaskDraft.includeMetricsSummary);
+    }
+    if (
+      normalizedTaskDraft.includeSupportSummary !== includeSupportSummary
+    ) {
+      setIncludeSupportSummary(normalizedTaskDraft.includeSupportSummary);
     }
   }, [
     announcementChannel,
     includeMetricsSummary,
     includeSupportSummary,
+    normalizedTaskDraft,
     reportingWindowDays,
-    taskType,
   ]);
 
   async function addConnection(): Promise<void> {
@@ -396,14 +382,18 @@ export function AiOfficePanel(props: {
     setMessage(null);
 
     try {
-      const res = await fetch("/api/social/connections", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          address: walletAddress,
-          platform,
-          accountHandle: handle,
-        }),
+      const res = await ownerAuthFetch({
+        address: walletAddress,
+        url: "/api/social/connections",
+        init: {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            address: walletAddress,
+            platform,
+            accountHandle: handle,
+          }),
+        },
       });
 
       const json: unknown = await res.json().catch(() => null);
@@ -430,13 +420,17 @@ export function AiOfficePanel(props: {
     setMessage(null);
 
     try {
-      const res = await fetch("/api/metrics/collect", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          address: walletAddress,
-          projectId,
-        }),
+      const res = await ownerAuthFetch({
+        address: walletAddress,
+        url: "/api/metrics/collect",
+        init: {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            address: walletAddress,
+            projectId,
+          }),
+        },
       });
 
       const json: unknown = await res.json().catch(() => null);
@@ -458,40 +452,32 @@ export function AiOfficePanel(props: {
   async function createTask(): Promise<void> {
     if (!walletAddress) return;
 
-    setLoading(true);
-    setMessage(null);
-
-    const taskInput = buildTaskInput({
-      taskType,
-      translationInput,
-      translationLang,
-      reportingWindowDays,
-      draftTone,
-      announcementChannel,
-      includeMetricsSummary,
-      includeSupportSummary,
-      supporterMessagePurpose,
-    });
-
-    if (
-      taskType === "TRANSLATE" &&
-      (typeof taskInput.text !== "string" || taskInput.text.length === 0)
-    ) {
-      setMessage("TRANSLATE タスクには翻訳テキストが必要です。");
+    const validationError = validateAiOfficeTaskDraft(normalizedTaskDraft);
+    if (validationError) {
+      setMessage(validationError);
       return;
     }
 
+    setLoading(true);
+    setMessage(null);
+
+    const taskInput = buildAiOfficeTaskInput(normalizedTaskDraft);
+
     try {
-      const res = await fetch("/api/agent/tasks", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          address: walletAddress,
-          projectId,
-          taskType,
-          input: taskInput,
-          requiresApproval,
-        }),
+      const res = await ownerAuthFetch({
+        address: walletAddress,
+        url: "/api/agent/tasks",
+        init: {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            address: walletAddress,
+            projectId,
+            taskType,
+            input: taskInput,
+            requiresApproval,
+          }),
+        },
       });
 
       const json: unknown = await res.json().catch(() => null);
@@ -532,17 +518,21 @@ export function AiOfficePanel(props: {
     setMessage(null);
 
     try {
-      const res = await fetch("/api/agent/tasks", {
-        method: "PATCH",
-        headers,
-        body: JSON.stringify({
-          address: walletAddress,
-          ...(taskIds.length === 1
-            ? { taskId: taskIds[0] }
-            : { taskIds }),
-          action,
-          note: approvalNote.trim() || null,
-        }),
+      const res = await ownerAuthFetch({
+        address: walletAddress,
+        url: "/api/agent/tasks",
+        init: {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({
+            address: walletAddress,
+            ...(taskIds.length === 1
+              ? { taskId: taskIds[0] }
+              : { taskIds }),
+            action,
+            note: approvalNote.trim() || null,
+          }),
+        },
       });
       const json: unknown = await res.json().catch(() => null);
       if (!res.ok) {
@@ -602,14 +592,18 @@ export function AiOfficePanel(props: {
     setTranslationResult("");
 
     try {
-      const res = await fetch("/api/translation", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          address: walletAddress,
-          text,
-          to: [translationLang],
-        }),
+      const res = await ownerAuthFetch({
+        address: walletAddress,
+        url: "/api/translation",
+        init: {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            address: walletAddress,
+            text,
+            to: [translationLang],
+          }),
+        },
       });
       const json: unknown = await res.json().catch(() => null);
       if (!res.ok) {

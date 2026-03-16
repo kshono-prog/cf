@@ -2,16 +2,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+
+type Params = { username: string };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 export async function POST(
   req: NextRequest,
-  context: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  context: { params: Promise<Params> }
 ) {
-  const { username } = (context.params ?? {}) as { username: string };
+  const { username } = await context.params;
 
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) {
+    const body: unknown = await req.json().catch(() => null);
+    if (!isRecord(body)) {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
@@ -47,6 +54,8 @@ export async function POST(
     }
 
     const walletAddress = rawAddress.toLowerCase();
+    const ownerSession = await requireOwnerSession(req, walletAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const existingByUsername = await prisma.creatorProfile.findUnique({
       where: { username },

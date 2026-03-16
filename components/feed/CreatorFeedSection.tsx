@@ -23,6 +23,7 @@ import {
   deleteMySnsPost,
   updateMySnsPostContent,
 } from "@/lib/mypage/snsApi";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 type CurrencyProjectIds = {
   JPYC: string | null;
@@ -511,13 +512,17 @@ export function CreatorFeedSection(props: Props) {
     setReplyEditError(null);
 
     try {
-      const response = await fetch(`/api/replies/${encodeURIComponent(reply.id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: managePostAddress,
-          body: trimmedBody,
-        }),
+      const response = await ownerAuthFetch({
+        address: managePostAddress,
+        url: `/api/replies/${encodeURIComponent(reply.id)}`,
+        init: {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: managePostAddress,
+            body: trimmedBody,
+          }),
+        },
       });
       const json = await readJsonSafe(response);
       if (!response.ok) {
@@ -575,12 +580,16 @@ export function CreatorFeedSection(props: Props) {
     setNotice(null);
 
     try {
-      const response = await fetch(`/api/replies/${encodeURIComponent(reply.id)}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: managePostAddress,
-        }),
+      const response = await ownerAuthFetch({
+        address: managePostAddress,
+        url: `/api/replies/${encodeURIComponent(reply.id)}`,
+        init: {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: managePostAddress,
+          }),
+        },
       });
       const json = await readJsonSafe(response);
       if (!response.ok) {
@@ -687,10 +696,14 @@ export function CreatorFeedSection(props: Props) {
     }));
 
     try {
-      const response = await fetch(`/api/posts/${encodeURIComponent(post.id)}/like`, {
-        method: nextLiked ? "POST" : "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: viewerAddress }),
+      const response = await ownerAuthFetch({
+        address: viewerAddress,
+        url: `/api/posts/${encodeURIComponent(post.id)}/like`,
+        init: {
+          method: nextLiked ? "POST" : "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: viewerAddress }),
+        },
       });
       const json = await readJsonSafe(response);
       if (!response.ok) {
@@ -770,14 +783,15 @@ export function CreatorFeedSection(props: Props) {
     });
 
     try {
-      const response = await fetch(
-        `/api/replies/${encodeURIComponent(reply.id)}/like`,
-        {
+      const response = await ownerAuthFetch({
+        address: viewerAddress,
+        url: `/api/replies/${encodeURIComponent(reply.id)}/like`,
+        init: {
           method: nextLiked ? "POST" : "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address: viewerAddress }),
-        }
-      );
+        },
+      });
       const json = await readJsonSafe(response);
       if (!response.ok) {
         throw new Error(
@@ -873,17 +887,18 @@ export function CreatorFeedSection(props: Props) {
     }));
 
     try {
-      const response = await fetch(
-        `/api/posts/${encodeURIComponent(postId)}/replies`,
-        {
+      const response = await ownerAuthFetch({
+        address: viewerAddress,
+        url: `/api/posts/${encodeURIComponent(postId)}/replies`,
+        init: {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             address: viewerAddress,
             body,
           }),
-        }
-      );
+        },
+      });
       const json = await readJsonSafe(response);
       if (!response.ok) {
         throw new Error(

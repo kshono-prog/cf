@@ -9,6 +9,7 @@ import {
   toBool,
   toNonEmptyString,
 } from "@/lib/api/guards";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const address = toAddressOrNull(body.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     let projectId: bigint | null = null;
     try {

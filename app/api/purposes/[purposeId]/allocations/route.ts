@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Allocation } from "@prisma/client";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { resolvePurposeOwnerAddress } from "@/lib/ownerScopedResources";
 
 export const dynamic = "force-dynamic";
 
@@ -61,12 +63,28 @@ function serializeAllocation(a: Allocation) {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
     const { purposeId: purposeIdStr } = await ctx.params;
     const purposeId = toBigIntOrThrow(purposeIdStr, "PURPOSE_ID_INVALID");
+
+    const ownerLookup = await resolvePurposeOwnerAddress(purposeId);
+    if (!ownerLookup.found) {
+      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+    }
+    if (!ownerLookup.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
+    }
 
     const rows = await prisma.allocation.findMany({
       where: { purposeId },
@@ -100,6 +118,22 @@ export async function POST(
   try {
     const { purposeId: purposeIdStr } = await ctx.params;
     const purposeId = toBigIntOrThrow(purposeIdStr, "PURPOSE_ID_INVALID");
+
+    const ownerLookup = await resolvePurposeOwnerAddress(purposeId);
+    if (!ownerLookup.found) {
+      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+    }
+    if (!ownerLookup.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
+    }
 
     const json = (await req.json().catch(() => null)) as unknown;
     if (!isRecord(json)) {

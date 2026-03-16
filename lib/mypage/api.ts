@@ -17,12 +17,12 @@ import type { ProjectSettlementData } from "../../lib/projectSettlementView";
 import type { WorkspaceView } from "../../lib/mypage/workspaceView";
 import type {
   MyPageCreatorMutationOk,
-  MyPageMutationOk,
 } from "../../lib/mypageApiResponses";
 import {
   getErrorFromApiJson,
   isRecord,
 } from "../../lib/mypage/helpers";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 /**
  * wagmi/viem の Address (`0x${string}`) をそのまま受け取る
@@ -35,14 +35,18 @@ export async function fetchMe(args: {
   address: Address;
 }): Promise<{ ok: true; data: MeStatus } | { ok: false; error: string }> {
   const params = new URLSearchParams({ address: args.address });
-  const res = await fetch(`${args.apiBase}/api/me?${params.toString()}`, {
-    cache: "no-store",
+  const res = await ownerAuthFetch({
+    address: args.address,
+    apiBase: args.apiBase,
+    url: `${args.apiBase}/api/me?${params.toString()}`,
+    init: { cache: "no-store" },
   });
   if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
 
   const data: unknown = await res.json().catch(() => null);
-  // MeStatus の shape を厳密に検証したいなら型ガードを追加可能
-  return { ok: true, data: data as MeStatus };
+  const parsed = parseMeStatus(data);
+  if (!parsed) return { ok: false, error: "ME_RESPONSE_INVALID" };
+  return { ok: true, data: parsed };
 }
 
 export async function fetchMyPageDashboard(args: {
@@ -54,12 +58,14 @@ export async function fetchMyPageDashboard(args: {
     address: args.address,
     view: args.view,
   });
-  const res = await fetch(
-    `${args.apiBase}/api/mypage/dashboard?${params.toString()}`,
-    {
+  const res = await ownerAuthFetch({
+    address: args.address,
+    apiBase: args.apiBase,
+    url: `${args.apiBase}/api/mypage/dashboard?${params.toString()}`,
+    init: {
       cache: "no-store",
-    }
-  );
+    },
+  });
   if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
 
   const data: unknown = await res.json().catch(() => null);
@@ -71,19 +77,97 @@ async function requestJson(args: {
   method?: "GET" | "POST" | "PUT" | "PATCH";
   body?: unknown;
   cache?: RequestCache;
+  authAddress?: Address | string;
+  apiBase?: string;
 }): Promise<{ res: Response; json: unknown }> {
-  const res = await fetch(args.url, {
+  const requestInit: RequestInit = {
     method: args.method ?? "GET",
     headers: args.body ? { "Content-Type": "application/json" } : undefined,
     body: args.body === undefined ? undefined : JSON.stringify(args.body),
     cache: args.cache,
-  });
+    credentials: "include",
+  };
+  const res = args.authAddress
+    ? await ownerAuthFetch({
+        address: String(args.authAddress),
+        apiBase: args.apiBase,
+        url: args.url,
+        init: requestInit,
+      })
+    : await fetch(args.url, requestInit);
   const json: unknown = await res.json().catch(() => null);
   return { res, json };
 }
 
 function toApiError(json: unknown, fallback: string): string {
   return getErrorFromApiJson(json) ?? fallback;
+}
+
+function asBooleanOrNull(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function parseMeStatusPayload(value: unknown): MeStatus | null {
+  if (!isRecord(value)) return null;
+
+  const hasUser = asBooleanOrNull(value.hasUser);
+  const hasCreator = asBooleanOrNull(value.hasCreator);
+  if (hasUser === null || hasCreator === null) return null;
+
+  let user: MeStatus["user"] = null;
+  if (value.user === null) {
+    user = null;
+  } else if (isRecord(value.user)) {
+    const username = asStringOrNull(value.user.username);
+    const displayName = asStringOrNull(value.user.displayName);
+    const profile =
+      value.user.profile === null ? null : asStringOrNull(value.user.profile);
+    if (!username || !displayName || typeof profile === "undefined") return null;
+    user = { username, displayName, profile };
+  } else {
+    return null;
+  }
+
+  const projectId =
+    value.projectId === null ? null : asStringOrNull(value.projectId);
+  if (typeof projectId === "undefined") return null;
+
+  if (!isRecord(value.projectIdsByCurrency)) return null;
+  const jpyc =
+    value.projectIdsByCurrency.JPYC === null
+      ? null
+      : asStringOrNull(value.projectIdsByCurrency.JPYC);
+  const usdc =
+    value.projectIdsByCurrency.USDC === null
+      ? null
+      : asStringOrNull(value.projectIdsByCurrency.USDC);
+  if (typeof jpyc === "undefined" || typeof usdc === "undefined") return null;
+
+  let creator: MeStatus["creator"] = null;
+  if (value.creator === null) {
+    creator = null;
+  } else if (isRecord(value.creator)) {
+    creator = value.creator as CreatorProfile;
+  } else {
+    return null;
+  }
+
+  return {
+    hasUser,
+    hasCreator,
+    user,
+    creator,
+    projectId,
+    projectIdsByCurrency: {
+      JPYC: jpyc,
+      USDC: usdc,
+    },
+  };
+}
+
+function parseMeStatus(value: unknown): MeStatus | null {
+  if (!isRecord(value) || value.ok !== true) return null;
+  return parseMeStatusPayload(value);
 }
 
 export type MyPageProjectRecord = {
@@ -151,6 +235,8 @@ export async function saveMyPageUser(args: {
       displayName: args.displayName,
       profile: args.profile,
     },
+    authAddress: args.address,
+    apiBase: args.apiBase,
   });
 
   if (!res.ok) {
@@ -161,7 +247,8 @@ export async function saveMyPageUser(args: {
     };
   }
 
-  if (!isRecord(json) || json.ok !== true || !isRecord(json.me)) {
+  const parsed = isRecord(json) && json.ok === true ? parseMeStatusPayload(json.me) : null;
+  if (!parsed) {
     return {
       ok: false,
       error: "USER_SAVE_RESPONSE_INVALID",
@@ -169,7 +256,7 @@ export async function saveMyPageUser(args: {
     };
   }
 
-  return { ok: true, data: (json as MyPageMutationOk).me as MeStatus };
+  return { ok: true, data: parsed };
 }
 
 export async function requestCreatorApply(args: {
@@ -180,6 +267,8 @@ export async function requestCreatorApply(args: {
     url: `${args.apiBase}/api/creator/apply`,
     method: "POST",
     body: { address: args.address },
+    authAddress: args.address,
+    apiBase: args.apiBase,
   });
 
   if (!res.ok) {
@@ -190,7 +279,8 @@ export async function requestCreatorApply(args: {
     };
   }
 
-  if (!isRecord(json) || json.ok !== true || !isRecord(json.me)) {
+  const parsed = isRecord(json) && json.ok === true ? parseMeStatusPayload(json.me) : null;
+  if (!parsed) {
     return {
       ok: false,
       error: "CREATOR_APPLY_RESPONSE_INVALID",
@@ -198,7 +288,7 @@ export async function requestCreatorApply(args: {
     };
   }
 
-  return { ok: true, data: (json as MyPageMutationOk).me as MeStatus };
+  return { ok: true, data: parsed };
 }
 
 export async function updateMyPageCreatorProfile(args: {
@@ -233,6 +323,7 @@ export async function updateMyPageCreatorProfile(args: {
         description: video.description.trim(),
       })),
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -243,7 +334,8 @@ export async function updateMyPageCreatorProfile(args: {
     };
   }
 
-  if (!isRecord(json) || json.ok !== true || !isRecord(json.me)) {
+  const parsed = isRecord(json) && json.ok === true ? parseMeStatusPayload(json.me) : null;
+  if (!parsed) {
     return {
       ok: false,
       error: "CREATOR_UPDATE_RESPONSE_INVALID",
@@ -253,7 +345,7 @@ export async function updateMyPageCreatorProfile(args: {
 
   return {
     ok: true,
-    data: (json as MyPageCreatorMutationOk).me as MeStatus,
+    data: parsed,
     creator: (json as MyPageCreatorMutationOk).creator ?? null,
   };
 }
@@ -310,6 +402,7 @@ export async function fetchProjectSummary(args: {
 
 export async function fetchProjectSettlement(args: {
   projectId: string;
+  address: string;
 }): Promise<
   | { ok: true; data: ProjectSettlementData }
   | { ok: false; error: string; httpStatus: number }
@@ -317,6 +410,7 @@ export async function fetchProjectSettlement(args: {
   const { res, json } = await requestJson({
     url: `/api/projects/${encodeURIComponent(args.projectId)}/settlement`,
     cache: "no-store",
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -362,6 +456,7 @@ export async function saveProjectGoal(args: {
       targetAmountJpyc: args.targetAmount,
       deadline: args.deadline,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -385,6 +480,7 @@ export async function achieveProjectGoal(args: {
     body: {
       address: args.address,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -400,11 +496,13 @@ export async function achieveProjectGoal(args: {
 
 export async function recomputeProjectSettlement(args: {
   projectId: string;
+  address: string;
 }): Promise<{ ok: true } | { ok: false; error: string; httpStatus: number }> {
   const { res, json } = await requestJson({
     url: `/api/projects/${encodeURIComponent(args.projectId)}/settlement`,
     method: "PUT",
     body: { action: "RECOMPUTE" },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -440,6 +538,7 @@ export async function recordProjectSettlementBridge(args: {
       completedAt: args.completedAt,
       memo: args.memo,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -472,6 +571,7 @@ export async function saveProjectSettlementDistributions(args: {
       address: args.address,
       entries: args.entries,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -508,6 +608,7 @@ export async function saveProjectSettlementDistributionResult(args: {
       txHash: args.txHash,
       errorReason: args.errorReason,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -548,6 +649,7 @@ export async function runProjectCctpAction(args: {
       action: args.action,
       ...(args.payload ?? {}),
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -578,6 +680,7 @@ export async function prepareProjectBridge(args: {
       currency: args.currency,
       provider: args.provider ?? "MANUAL",
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -605,6 +708,7 @@ export async function saveProjectBridgeRun(args: {
       bridgeRunId: args.bridgeRunId,
       bridgeTxHash: args.bridgeTxHash,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -633,6 +737,7 @@ export async function reverifyProjectBridge(args: {
       address: args.address,
       bridgeRunId: args.bridgeRunId,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -648,6 +753,7 @@ export async function reverifyProjectBridge(args: {
 
 export async function fetchMyPageProject(args: {
   projectId: string;
+  ownerAddress: string;
   apiBase?: string;
 }): Promise<
   | { ok: true; data: MyPageProjectRecord }
@@ -656,6 +762,8 @@ export async function fetchMyPageProject(args: {
   const { res, json } = await requestJson({
     url: `${args.apiBase ?? ""}/api/projects/${encodeURIComponent(args.projectId)}`,
     cache: "no-store",
+    authAddress: args.ownerAddress,
+    apiBase: args.apiBase,
   });
 
   if (!res.ok) {
@@ -707,6 +815,8 @@ export async function createMyPageProject(args: {
       purposeMode: args.purposeMode,
       currency: args.currency,
     },
+    authAddress: args.ownerAddress,
+    apiBase: args.apiBase,
   });
 
   if (!res.ok) {
@@ -744,6 +854,7 @@ export async function createMyPageProject(args: {
 
 export async function updateMyPageProject(args: {
   projectId: string;
+  ownerAddress: string;
   title: string;
   description: string | null;
   purposeMode: string;
@@ -760,6 +871,8 @@ export async function updateMyPageProject(args: {
       description: args.description,
       purposeMode: args.purposeMode,
     },
+    authAddress: args.ownerAddress,
+    apiBase: args.apiBase,
   });
 
   if (!res.ok) {
@@ -802,6 +915,7 @@ export async function saveProjectDistributionPlan(args: {
       address: args.address,
       plan: args.plan,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -835,6 +949,7 @@ export async function saveProjectDistributionResult(args: {
       dryRun: args.dryRun,
       note: args.note,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {

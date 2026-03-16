@@ -11,6 +11,7 @@ import {
   toLanguageCode,
   type LanguageCode,
 } from "@/lib/translation";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const address = toAddressOrNull(body.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const text = toNonEmptyString(body.text);
     if (!text) return errJson("TEXT_REQUIRED", 400);

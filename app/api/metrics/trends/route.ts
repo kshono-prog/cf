@@ -6,6 +6,7 @@ import {
   toBigIntOrThrow,
   toNonEmptyString,
 } from "@/lib/api/guards";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -128,7 +129,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
 
-    const address = toAddressOrNull(searchParams.get("address"));
+    const ownerSession = await requireOwnerSession(
+      req,
+      searchParams.get("address") ?? undefined
+    );
+    if (!ownerSession.ok) return ownerSession.response;
+
+    const address = toAddressOrNull(ownerSession.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
 
     const creatorId = await resolveCreatorId(address);

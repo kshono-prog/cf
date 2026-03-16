@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Project, Goal, Purpose } from "@prisma/client";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ function serializePurpose(p: Purpose) {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
@@ -63,6 +64,18 @@ export async function GET(
 
     if (!project) {
       return NextResponse.json({ error: "PROJECT_NOT_FOUND" }, { status: 404 });
+    }
+
+    if (!project.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, project.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     return NextResponse.json({

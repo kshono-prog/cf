@@ -1,16 +1,42 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 
 import { PublicReadinessPanel } from "@/components/mypage/PublicReadinessPanel";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
-import { CreatorProjectManagementSection } from "@/components/mypage/CreatorProjectManagementSection";
 import { MyPageAccordion } from "@/components/mypage/MyPageAccordion";
-import { SnsAiOfficeSection } from "@/components/mypage/SnsAiOfficeSection";
-import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import {
+  WorkspaceLoadingCard,
+  WorkspaceStatusNotice,
+} from "@/components/mypage/WorkspaceFeedback";
 import { buildPublicReadiness } from "@/lib/mypage/publicReadiness";
 import { useCreatorReadyProjectDashboards } from "@/components/mypage/useCreatorReadyProjectDashboards";
 import type { SnsProjectOption } from "@/lib/mypage/snsApi";
+
+const CreatorProjectManagementSection = dynamic(
+  () =>
+    import("@/components/mypage/CreatorProjectManagementSection").then(
+      (mod) => mod.CreatorProjectManagementSection
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="プロフィールと支援設定を読み込んでいます" />
+    ),
+  }
+);
+
+const SnsAiOfficeSection = dynamic(
+  () =>
+    import("@/components/mypage/SnsAiOfficeSection").then(
+      (mod) => mod.SnsAiOfficeSection
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="SNS・AI事務所の拡張面を読み込んでいます" />
+    ),
+  }
+);
 
 export function CreatorReadySupportPageRoute() {
   const workspace = useCreatorReadyWorkspace();
@@ -130,6 +156,13 @@ export function CreatorReadySupportPageRoute() {
           sectionKey="sns"
           title="SNS・AI事務所"
         >
+          <div className="mb-3">
+            <WorkspaceStatusNotice
+              tone="info"
+              title="投稿運営を優先しつつ、AI 事務所の拡張は beta として追加しています"
+              description="公開ページと支援導線を崩さずに、投稿管理・analytics・AI 下書きの拡張だけをこの枠に分けています。"
+            />
+          </div>
           <SnsAiOfficeSection
             address={workspace.address}
             username={workspace.meCreatorUsername}

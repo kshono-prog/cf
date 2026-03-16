@@ -18,8 +18,16 @@ import {
 } from "@/lib/mypage/dashboardTypes";
 import { buildPublicReadiness } from "@/lib/mypage/publicReadiness";
 import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 type QuickAction = {
+  title: string;
+  body: string;
+  actionLabel: string;
+  onAction: () => void;
+};
+
+type BetaWorkspaceAction = {
   title: string;
   body: string;
   actionLabel: string;
@@ -277,6 +285,23 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
       props.onOpenPublicPage,
     ]
   );
+  const betaActions = React.useMemo<BetaWorkspaceAction[]>(
+    () => [
+      {
+        title: "metrics と拡張下書き",
+        body: "承認待ちの確認を優先したうえで、metrics や拡張ドラフトを使って次の運営を広げる枠です。",
+        actionLabel: "下書きと承認を開く",
+        onAction: props.onOpenSupporterResponse,
+      },
+      {
+        title: "精算と高リスク設定",
+        body: "配分、gas support、bridge / CCTP のような判断コストが高い操作は日常導線と分けて扱います。",
+        actionLabel: "精算と詳細設定を開く",
+        onAction: props.onOpenAdvancedSettings,
+      },
+    ],
+    [props.onOpenAdvancedSettings, props.onOpenSupporterResponse]
+  );
 
   React.useEffect(() => {
     if (!props.isConnected || !props.walletAddress) {
@@ -293,16 +318,17 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
       setAiSummaryError(null);
 
       try {
-        const response = await fetch(
-          `/api/ai-office/dashboard?address=${encodeURIComponent(
+        const response = await ownerAuthFetch({
+          address: walletAddress,
+          url: `/api/ai-office/dashboard?address=${encodeURIComponent(
             walletAddress
           )}${
             props.projectId
               ? `&projectId=${encodeURIComponent(props.projectId)}`
               : ""
           }&taskLimit=20`,
-          { cache: "no-store" }
-        );
+          init: { cache: "no-store" },
+        });
         const json: unknown = await response.json().catch(() => null);
 
         if (!response.ok) {
@@ -407,13 +433,9 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
                 最初に1つだけ選んで進める前提で並べています。
               </div>
             </div>
-            <button
-              type="button"
-              className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:border-slate-900 hover:text-slate-950"
-              onClick={props.onOpenAdvancedSettings}
-            >
-              精算と詳細設定
-            </button>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+              MVP
+            </span>
           </div>
           <div className="mt-3 grid gap-3">
             {quickActions.map((action) => (
@@ -440,6 +462,44 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
         </div>
 
         <div className="space-y-4">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-amber-950">
+                  Beta / Advanced
+                </div>
+                <p className="mt-1 text-xs leading-5 text-amber-800">
+                  実験導線と高リスク設定は、日常運営とは別の枠で確認します。
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-800">
+                Beta
+              </span>
+            </div>
+            <div className="mt-3 space-y-3">
+              {betaActions.map((action) => (
+                <div
+                  key={action.title}
+                  className="rounded-2xl border border-amber-200 bg-white/90 p-4"
+                >
+                  <div className="text-sm font-semibold text-amber-950">
+                    {action.title}
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-amber-800">
+                    {action.body}
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-3 inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 transition hover:border-amber-500"
+                    onClick={action.onAction}
+                  >
+                    {action.actionLabel}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
             <div className="text-sm font-semibold text-slate-950">下書きと承認の状況</div>
             <p className="mt-1 text-xs leading-5 text-slate-600">

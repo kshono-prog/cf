@@ -8,6 +8,7 @@ import {
   parsePositiveInt,
 } from "@/lib/social";
 import { getFeedListView } from "@/lib/feedList";
+import { getOptionalOwnerSessionAddress } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const creatorIdRaw = searchParams.get("creatorId");
     const projectIdRaw = searchParams.get("projectId");
     const viewerAddress = searchParams.get("viewerAddress");
+    const authenticatedViewerAddress = viewerAddress
+      ? await getOptionalOwnerSessionAddress(req, viewerAddress)
+      : null;
 
     let creatorId: bigint | null = null;
     if (creatorIdRaw) {
@@ -55,7 +59,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       creatorUsername,
       creatorId,
       projectId,
-      viewerAddress,
+      viewerAddress: authenticatedViewerAddress,
     });
 
     return okJson(result);

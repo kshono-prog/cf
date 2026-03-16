@@ -1,6 +1,7 @@
 // app/api/projects/[projectId]/goal/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -117,7 +118,7 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
   }
 }
 
-export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
+export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
   try {
     const { projectId } = await ctx.params;
     const pid = toBigIntOrThrow(projectId, "PROJECT_ID_INVALID");
@@ -142,6 +143,8 @@ export async function PUT(req: Request, ctx: { params: Promise<Params> }) {
         { status: 400 }
       );
     }
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
     if (targetAmount == null || targetAmount <= 0) {
       return NextResponse.json(
         { ok: false, error: "TARGET_INVALID" },

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { isRecord } from "@/lib/api/guards";
 import { findCreatorByWalletAddress, isUuidString } from "@/lib/social";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,8 +27,10 @@ export async function POST(
     const raw: unknown = await req.json().catch(() => null);
     const address = parseAddress(raw);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
 
-    const creator = await findCreatorByWalletAddress(address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const reply = await prisma.reply.findFirst({
@@ -111,8 +114,10 @@ export async function DELETE(
     const raw: unknown = await req.json().catch(() => null);
     const address = parseAddress(raw);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
 
-    const creator = await findCreatorByWalletAddress(address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const reply = await prisma.reply.findUnique({

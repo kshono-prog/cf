@@ -97,7 +97,6 @@ export function HeaderUserMenu() {
     (address ? shortAddress(address) : "自分");
   const viewerUsername = viewer?.creator?.username ?? viewer?.user?.username ?? null;
   const avatarUrl = viewer?.creator?.avatarUrl ?? null;
-  const myPostsHref = viewerUsername ? `/${viewerUsername}/home#timeline` : null;
   const publicSettingsHref = viewerUsername
     ? `/${viewerUsername}/mypage#public-page`
     : null;
@@ -201,17 +200,6 @@ export function HeaderUserMenu() {
                   </div>
                 </div>
               )}
-
-              {hasCreator && myPostsHref ? (
-                <Link
-                  href={myPostsHref}
-                  className="menu-item"
-                  onClick={() => setOpen(false)}
-                >
-                  <span className="text-sm">自分の投稿</span>
-                  <span className="text-xs text-[var(--text-subtle)]">見る</span>
-                </Link>
-              ) : null}
 
               {selfPageHref ? (
                 <Link

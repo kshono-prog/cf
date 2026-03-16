@@ -9,6 +9,10 @@ import {
 } from "@/lib/creatorFollow";
 import { findCreatorByWalletAddress } from "@/lib/social";
 import { prisma } from "@/lib/prisma";
+import {
+  getOptionalOwnerSessionAddress,
+  requireOwnerSession,
+} from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,12 +40,15 @@ export async function GET(
 ): Promise<NextResponse> {
   try {
     const { username } = await context.params;
-    const viewerAddress = toAddressOrNull(
+    const requestedViewerAddress = toAddressOrNull(
       new URL(req.url).searchParams.get("viewerAddress")
     );
+    const viewerAddress = requestedViewerAddress
+      ? await getOptionalOwnerSessionAddress(req, requestedViewerAddress)
+      : null;
     const payload = await getCreatorFollowSummary({
       username,
-      viewerAddress: viewerAddress ? viewerAddress.toLowerCase() : null,
+      viewerAddress,
     });
     if (!payload) return errJson("CREATOR_NOT_FOUND", 404);
     return okJson(payload);
@@ -59,10 +66,12 @@ export async function POST(
     const { username } = await context.params;
     const viewerAddress = await readViewerAddress(req);
     if (!viewerAddress) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, viewerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const [creator, viewer] = await Promise.all([
       findTargetCreator(username),
-      findCreatorByWalletAddress(viewerAddress),
+      findCreatorByWalletAddress(ownerSession.address),
     ]);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
     if (!viewer) return errJson("VIEWER_NOT_REGISTERED", 404);
@@ -86,7 +95,7 @@ export async function POST(
 
     const payload = await getCreatorFollowSummary({
       username,
-      viewerAddress,
+      viewerAddress: ownerSession.address,
     });
     if (!payload) return errJson("CREATOR_NOT_FOUND", 404);
     return okJson(payload);
@@ -104,10 +113,12 @@ export async function DELETE(
     const { username } = await context.params;
     const viewerAddress = await readViewerAddress(req);
     if (!viewerAddress) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, viewerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const [creator, viewer] = await Promise.all([
       findTargetCreator(username),
-      findCreatorByWalletAddress(viewerAddress),
+      findCreatorByWalletAddress(ownerSession.address),
     ]);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
     if (!viewer) return errJson("VIEWER_NOT_REGISTERED", 404);
@@ -121,7 +132,7 @@ export async function DELETE(
 
     const payload = await getCreatorFollowSummary({
       username,
-      viewerAddress,
+      viewerAddress: ownerSession.address,
     });
     if (!payload) return errJson("CREATOR_NOT_FOUND", 404);
     return okJson(payload);

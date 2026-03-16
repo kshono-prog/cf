@@ -1,6 +1,7 @@
 import type { Address } from "viem";
 
 import { getErrorFromApiJson, isRecord } from "@/lib/mypage/helpers";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 export type SnsProjectOption = {
   id: string;
@@ -615,13 +616,22 @@ async function requestJson(args: {
   url: string;
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
+  authAddress?: Address | string;
 }): Promise<{ res: Response; json: unknown }> {
-  const res = await fetch(args.url, {
+  const requestInit: RequestInit = {
     method: args.method ?? "GET",
     headers: args.body ? { "Content-Type": "application/json" } : undefined,
     body: args.body === undefined ? undefined : JSON.stringify(args.body),
     cache: "no-store",
-  });
+    credentials: "include",
+  };
+  const res = args.authAddress
+    ? await ownerAuthFetch({
+        address: String(args.authAddress),
+        url: args.url,
+        init: requestInit,
+      })
+    : await fetch(args.url, requestInit);
   const json: unknown = await res.json().catch(() => null);
   return { res, json };
 }
@@ -647,6 +657,7 @@ export async function createSnsPost(args: {
       ...(typeof args.mediaUrl !== "undefined" ? { mediaUrl: args.mediaUrl } : {}),
       ...(typeof args.projectId !== "undefined" ? { projectId: args.projectId } : {}),
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -678,6 +689,7 @@ export async function fetchMySnsPosts(args: {
 
   const { res, json } = await requestJson({
     url: `/api/mypage/sns/posts?${params.toString()}`,
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -703,6 +715,7 @@ export async function updateMySnsPostStatus(args: {
       address: args.address,
       status: args.status,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -736,6 +749,7 @@ export async function updateMySnsPostContent(args: {
       mediaUrl: args.mediaUrl,
       projectId: args.projectId,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -764,6 +778,7 @@ export async function deleteMySnsPost(args: {
     body: {
       address: args.address,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -783,6 +798,7 @@ export async function fetchSnsAnalyticsSummary(args: {
   const params = new URLSearchParams({ address: args.address });
   const { res, json } = await requestJson({
     url: `/api/mypage/sns/summary?${params.toString()}`,
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -802,6 +818,7 @@ export async function fetchAiAgents(args: {
   const params = new URLSearchParams({ address: args.address });
   const { res, json } = await requestJson({
     url: `/api/mypage/sns/agents?${params.toString()}`,
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -828,6 +845,7 @@ export async function createAiAgent(args: {
       name: args.name,
       role: args.role,
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -849,6 +867,7 @@ export async function fetchAiJobs(args: {
   const params = new URLSearchParams({ address: args.address });
   const { res, json } = await requestJson({
     url: `/api/mypage/sns/jobs?${params.toString()}`,
+    authAddress: args.address,
   });
 
   if (!res.ok) {
@@ -877,6 +896,7 @@ export async function createAiJob(args: {
         ? { aiAgentId: args.aiAgentId }
         : {}),
     },
+    authAddress: args.address,
   });
 
   if (!res.ok) {

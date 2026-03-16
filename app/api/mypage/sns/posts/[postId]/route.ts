@@ -14,6 +14,7 @@ import {
   toManagedPostStatus,
   toPostMediaType,
 } from "@/lib/social";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,6 +55,8 @@ export async function PATCH(
 
     const body = raw as PatchBody;
     if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, body.address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const nextStatus =
       typeof body.status === "undefined"
@@ -128,7 +131,7 @@ export async function PATCH(
       return errJson("UPDATE_FIELDS_REQUIRED", 400);
     }
 
-    const creator = await findCreatorByWalletAddress(body.address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const existing = await prisma.post.findFirst({
@@ -250,8 +253,10 @@ export async function DELETE(
 
     const body = raw as DeleteBody;
     if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, body.address);
+    if (!ownerSession.ok) return ownerSession.response;
 
-    const creator = await findCreatorByWalletAddress(body.address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const existing = await prisma.post.findFirst({

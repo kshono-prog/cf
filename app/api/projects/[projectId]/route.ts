@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { toBigIntOrThrow } from "@/lib/api/guards";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { resolveProjectOwnerAddress } from "@/lib/ownerScopedResources";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,7 @@ function hasKey(obj: Record<string, unknown>, key: string): boolean {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
@@ -57,6 +59,15 @@ export async function GET(
     });
 
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+
+    if (!project.ownerAddress) {
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
+    }
+
+    const ownerSession = await requireOwnerSession(req, project.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
+    }
 
     return okJson({
       project: {
@@ -167,6 +178,19 @@ export async function PUT(
 
     if (Object.keys(data).length === 0) {
       return errJson("NO_FIELDS_TO_UPDATE", 400);
+    }
+
+    const ownerLookup = await resolveProjectOwnerAddress(projectId);
+    if (!ownerLookup.found) {
+      return errJson("PROJECT_NOT_FOUND", 404);
+    }
+    if (!ownerLookup.ownerAddress) {
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
+    }
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     const updated = await prisma.project.update({

@@ -34,7 +34,7 @@ export async function fetchMeResponseCached(
     return cached.value;
   }
 
-  const promise = fetch(`/api/me?address=${encodeURIComponent(address)}`, {
+  const promise = fetch(`/api/public/viewer?address=${encodeURIComponent(address)}`, {
     method: "GET",
     cache: "no-store",
   })

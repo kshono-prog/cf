@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Allocation } from "@prisma/client";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { resolveAllocationOwnerAddress } from "@/lib/ownerScopedResources";
 
 export const dynamic = "force-dynamic";
 
@@ -73,12 +75,31 @@ function dbRecipientTypeOrThrow(v: string): RecipientType {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
     const { allocationId: idStr } = await ctx.params;
     const id = toBigIntOrThrow(idStr, "ALLOCATION_ID_INVALID");
+
+    const ownerLookup = await resolveAllocationOwnerAddress(id);
+    if (!ownerLookup.found) {
+      return NextResponse.json(
+        { error: "ALLOCATION_NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+    if (!ownerLookup.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
+    }
 
     const row = await prisma.allocation.findUnique({ where: { id } });
     if (!row) {
@@ -115,6 +136,25 @@ export async function PATCH(
   try {
     const { allocationId: idStr } = await ctx.params;
     const id = toBigIntOrThrow(idStr, "ALLOCATION_ID_INVALID");
+
+    const ownerLookup = await resolveAllocationOwnerAddress(id);
+    if (!ownerLookup.found) {
+      return NextResponse.json(
+        { error: "ALLOCATION_NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+    if (!ownerLookup.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
+    }
 
     const json = (await req.json().catch(() => null)) as unknown;
     if (!isRecord(json)) {
@@ -262,12 +302,31 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
     const { allocationId: idStr } = await ctx.params;
     const id = toBigIntOrThrow(idStr, "ALLOCATION_ID_INVALID");
+
+    const ownerLookup = await resolveAllocationOwnerAddress(id);
+    if (!ownerLookup.found) {
+      return NextResponse.json(
+        { error: "ALLOCATION_NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+    if (!ownerLookup.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
+    }
 
     await prisma.allocation.delete({ where: { id } });
     return NextResponse.json({ ok: true });

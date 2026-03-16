@@ -3,16 +3,6 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(__dirname),
-  env: {
-    POLYGON_RPC_URL: process.env.POLYGON_RPC_URL,
-    NEXT_PUBLIC_POLYGON_RPC_URL: process.env.NEXT_PUBLIC_POLYGON_RPC_URL ?? process.env.POLYGON_RPC_URL,
-    AVALANCHE_RPC_URL: process.env.AVALANCHE_RPC_URL,
-    NEXT_PUBLIC_AVALANCHE_RPC_URL:
-      process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL ?? process.env.AVALANCHE_RPC_URL,
-    ETHEREUM_RPC_URL: process.env.ETHEREUM_RPC_URL,
-    NEXT_PUBLIC_ETHEREUM_RPC_URL:
-      process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL ?? process.env.ETHEREUM_RPC_URL,
-  },
   images: {
     remotePatterns: [
       {

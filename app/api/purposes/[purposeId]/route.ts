@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Purpose } from "@prisma/client";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { resolvePurposeOwnerAddress } from "@/lib/ownerScopedResources";
 
 export const dynamic = "force-dynamic";
 
@@ -64,12 +66,28 @@ function toOptionalNumber(v: unknown): number | undefined {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
     const { purposeId: purposeIdStr } = await ctx.params;
     const purposeId = toBigIntOrThrow(purposeIdStr);
+
+    const ownerLookup = await resolvePurposeOwnerAddress(purposeId);
+    if (!ownerLookup.found) {
+      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+    }
+    if (!ownerLookup.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
+    }
 
     const purpose = await prisma.purpose.findUnique({
       where: { id: purposeId },
@@ -99,6 +117,22 @@ export async function PATCH(
   try {
     const { purposeId: purposeIdStr } = await ctx.params;
     const purposeId = toBigIntOrThrow(purposeIdStr);
+
+    const ownerLookup = await resolvePurposeOwnerAddress(purposeId);
+    if (!ownerLookup.found) {
+      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+    }
+    if (!ownerLookup.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
+    }
 
     const raw = (await req.json().catch(() => null)) as unknown;
     if (!raw || typeof raw !== "object") {

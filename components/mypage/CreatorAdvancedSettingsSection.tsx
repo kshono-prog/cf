@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 
-import { GasSupportTabs } from "@/components/mypage/GasSupportTabs";
-import { ProjectSettlementPanel } from "@/components/mypage/ProjectSettlementPanel";
 import {
+  WorkspaceLoadingCard,
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
@@ -23,6 +23,30 @@ type Props = {
   walletAddress: string | null;
   isConnected: boolean;
 };
+
+const ProjectSettlementPanel = dynamic(
+  () =>
+    import("@/components/mypage/ProjectSettlementPanel").then(
+      (mod) => mod.ProjectSettlementPanel
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="配分と精算の状態を読み込んでいます" />
+    ),
+  }
+);
+
+const GasSupportTabs = dynamic(
+  () =>
+    import("@/components/mypage/GasSupportTabs").then(
+      (mod) => mod.GasSupportTabs
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="ガス代支援の状態を読み込んでいます" />
+    ),
+  }
+);
 
 function SettlementWorkspaceCard(props: {
   currency: CurrencyCode;

@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { isAddress } from "viem";
 import type { Address } from "viem";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 type Provider = "WORMHOLE_UI" | "MANUAL";
 type Currency = "JPYC" | "USDC";
@@ -137,9 +138,14 @@ export function BridgeWithWormholeOrManualButton(props: {
   }, [bridgeRunId, busy, destTxHashInput]);
 
   const postPrepare = useCallback(async (): Promise<PrepareResponse> => {
-    const res = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/bridge/prepare`,
-      {
+    if (!address) {
+      return { ok: false, error: "ADDRESS_REQUIRED" };
+    }
+
+    const res = await ownerAuthFetch({
+      address,
+      url: `/api/projects/${encodeURIComponent(projectId)}/bridge/prepare`,
+      init: {
         method: "POST",
         headers: { "content-type": "application/json" },
         cache: "no-store",
@@ -148,8 +154,8 @@ export function BridgeWithWormholeOrManualButton(props: {
           currency,
           provider,
         }),
-      }
-    );
+      },
+    });
 
     const json: unknown = await res.json().catch(() => null);
 
@@ -240,9 +246,14 @@ export function BridgeWithWormholeOrManualButton(props: {
       runId: string,
       bridgeTxHash: `0x${string}`
     ): Promise<RunResponse> => {
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(projectId)}/bridge/run`,
-        {
+      if (!address) {
+        return { ok: false, error: "ADDRESS_REQUIRED" };
+      }
+
+      const res = await ownerAuthFetch({
+        address,
+        url: `/api/projects/${encodeURIComponent(projectId)}/bridge/run`,
+        init: {
           method: "POST",
           headers: { "content-type": "application/json" },
           cache: "no-store",
@@ -251,8 +262,8 @@ export function BridgeWithWormholeOrManualButton(props: {
             bridgeRunId: runId,
             bridgeTxHash,
           }),
-        }
-      );
+        },
+      });
 
       const json: unknown = await res.json().catch(() => null);
 
@@ -285,9 +296,14 @@ export function BridgeWithWormholeOrManualButton(props: {
 
   const postReverify = useCallback(
     async (runId: string): Promise<ReverifyResponse> => {
-      const res = await fetch(
-        `/api/projects/${encodeURIComponent(projectId)}/bridge/reverify`,
-        {
+      if (!address) {
+        return { ok: false, error: "ADDRESS_REQUIRED" };
+      }
+
+      const res = await ownerAuthFetch({
+        address,
+        url: `/api/projects/${encodeURIComponent(projectId)}/bridge/reverify`,
+        init: {
           method: "POST",
           headers: { "content-type": "application/json" },
           cache: "no-store",
@@ -295,8 +311,8 @@ export function BridgeWithWormholeOrManualButton(props: {
             address,
             bridgeRunId: runId,
           }),
-        }
-      );
+        },
+      });
 
       const json: unknown = await res.json().catch(() => null);
 

@@ -86,7 +86,10 @@ export function useProjectSection(args: UseProjectSectionArgs) {
       setMsg(null);
 
       try {
-        const result = await fetchMyPageProject({ projectId });
+        const result = await fetchMyPageProject({
+          projectId,
+          ownerAddress,
+        });
         if (!result.ok) {
           setProject(null);
           setMsg(result.error);
@@ -98,7 +101,7 @@ export function useProjectSection(args: UseProjectSectionArgs) {
         setLoading(false);
       }
     },
-    [applyProject]
+    [applyProject, ownerAddress]
   );
 
   useEffect(() => {
@@ -180,6 +183,7 @@ export function useProjectSection(args: UseProjectSectionArgs) {
     try {
       const result = await updateMyPageProject({
         projectId: activeProjectId,
+        ownerAddress,
         title: editTitle,
         description: editDescription.trim().length > 0 ? editDescription : null,
         purposeMode: editPurposeMode,
@@ -204,6 +208,7 @@ export function useProjectSection(args: UseProjectSectionArgs) {
     editDescription,
     editPurposeMode,
     editTitle,
+    ownerAddress,
     saving,
   ]);
 

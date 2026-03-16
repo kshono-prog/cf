@@ -26,6 +26,7 @@ import {
   resolvePublicViewerState,
 } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import {
   buildSupportProjectView,
@@ -511,18 +512,19 @@ export default function ProfileClient({
   }, [activeProjectId, creator.displayName, creator.profile, username]);
 
   async function achieveGoalSafe(): Promise<GoalAchievePost | null> {
-    if (!activeProjectId) return null;
+    if (!activeProjectId || !viewerAddress) return null;
 
     try {
-      const response = await fetch(
-        `/api/projects/${encodeURIComponent(activeProjectId)}/goal/achieve`,
-        {
+      const response = await ownerAuthFetch({
+        address: viewerAddress,
+        url: `/api/projects/${encodeURIComponent(activeProjectId)}/goal/achieve`,
+        init: {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
-          body: JSON.stringify({}),
-        }
-      );
+          body: JSON.stringify({ address: viewerAddress }),
+        },
+      });
 
       if (!response.ok) {
         return null;
@@ -545,15 +547,24 @@ export default function ProfileClient({
         {
           method: "GET",
           cache: "no-store",
+          credentials: "include",
         }
       );
       if (!response.ok) return [];
       const json: unknown = await response.json().catch(() => null);
-      if (!isRecord(json) || json.ok !== true || !Array.isArray(json.items)) {
+      const rows =
+        isRecord(json) && json.ok === true
+          ? Array.isArray(json.contributions)
+            ? json.contributions
+            : Array.isArray(json.items)
+              ? json.items
+              : null
+          : null;
+      if (!rows) {
         return [];
       }
 
-      return json.items
+      return rows
         .filter((row): row is Record<string, unknown> => isRecord(row))
         .map((row) => row.txHash)
         .filter(

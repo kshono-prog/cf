@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 type CreateProjectOk = { id: string };
 type CreateProjectNg = { error: string };
@@ -87,15 +88,19 @@ export function ProjectCreateCard({
     setIsCreating(true);
 
     try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: t,
-          description: description.trim() === "" ? null : description.trim(),
-          purposeMode,
-          ownerAddress: owner,
-        }),
+      const res = await ownerAuthFetch({
+        address: owner,
+        url: "/api/projects",
+        init: {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: t,
+            description: description.trim() === "" ? null : description.trim(),
+            purposeMode,
+            ownerAddress: owner,
+          }),
+        },
       });
 
       const json = (await res.json()) as unknown;

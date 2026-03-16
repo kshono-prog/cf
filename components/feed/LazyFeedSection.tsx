@@ -5,9 +5,17 @@ import { Suspense, lazy } from "react";
 
 import type { CreatorFeedSectionProps } from "@/components/feed/CreatorFeedSection";
 import {
+  FeedActionControl,
+  LikeIcon,
+  ReplyIcon,
+  ShareIcon,
+  TipIcon,
+} from "@/components/feed/FeedPostCard";
+import {
   getFeedPostProjectSupportHref,
   type FeedPost,
 } from "@/components/feed/feedTypes";
+import { Avatar } from "@/components/shared/Avatar";
 
 const CreatorFeedSection = lazy(async () => {
   const imported = await import("@/components/feed/CreatorFeedSection");
@@ -42,18 +50,12 @@ function FeedPreviewRow({
           className="transition hover:opacity-80"
           aria-label={`${post.creator.displayName} のページを見る`}
         >
-          {post.creator.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={post.creator.avatarUrl}
-              alt={post.creator.displayName}
-              className="h-9.5 w-9.5 rounded-full border border-gray-200 object-cover"
-            />
-          ) : (
-            <div className="flex h-9.5 w-9.5 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-semibold text-gray-500">
-              {post.creator.displayName.slice(0, 1)}
-            </div>
-          )}
+          <Avatar
+            src={post.creator.avatarUrl}
+            alt={post.creator.displayName}
+            fallbackText={post.creator.displayName.slice(0, 1)}
+            size={38}
+          />
         </Link>
 
         <div className="min-w-0 flex-1">
@@ -94,21 +96,28 @@ function FeedPreviewRow({
           </div>
 
           <div
-            className={`mt-3 grid gap-1.5 ${
-              showTipAction ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
-            }`}
+            className="mt-3 flex flex-wrap items-center gap-5 sm:gap-6"
           >
-            <div className="action-pill pointer-events-none">
-              返信 {post.counts.replies}
-            </div>
-            <div className="action-pill pointer-events-none">
-              いいね {post.counts.likes}
-            </div>
-            <div className="action-pill pointer-events-none">共有</div>
+            <FeedActionControl
+              label="返信"
+              icon={<ReplyIcon />}
+              count={post.counts.replies}
+              tone="reply"
+            />
+            <FeedActionControl
+              label="いいね"
+              icon={<LikeIcon />}
+              count={post.counts.likes}
+              tone="like"
+            />
+            <FeedActionControl label="共有" icon={<ShareIcon />} />
             {showTipAction ? (
-              <div className="action-pill pointer-events-none">
-                応援 {post.counts.tips}
-              </div>
+              <FeedActionControl
+                label="応援"
+                icon={<TipIcon />}
+                count={post.counts.tips}
+                tone="tip"
+              />
             ) : null}
           </div>
         </div>

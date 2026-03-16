@@ -10,6 +10,7 @@ import {
   REPLY_BODY_MAX_LENGTH,
   serializeReply,
 } from "@/lib/social";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,8 @@ export async function PATCH(
 
     const body = raw as ReplyPatchBody;
     if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, body.address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const replyBody = normalizeTextBody(body.body, REPLY_BODY_MAX_LENGTH);
     if (!replyBody) {
@@ -50,7 +53,7 @@ export async function PATCH(
       );
     }
 
-    const creator = await findCreatorByWalletAddress(body.address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const existing = await prisma.reply.findFirst({
@@ -113,8 +116,10 @@ export async function DELETE(
 
     const body = raw as ReplyDeleteBody;
     if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, body.address);
+    if (!ownerSession.ok) return ownerSession.response;
 
-    const creator = await findCreatorByWalletAddress(body.address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const existing = await prisma.reply.findFirst({

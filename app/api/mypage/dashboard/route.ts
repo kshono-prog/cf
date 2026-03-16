@@ -4,6 +4,7 @@ import { errJson, okJson } from "@/lib/api/responses";
 import { toAddressOrNull } from "@/lib/api/guards";
 import { getMyPageDashboard } from "@/lib/mypageDashboard";
 import { resolveWorkspaceView } from "@/lib/mypage/workspaceView";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,7 +12,10 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const address = toAddressOrNull(searchParams.get("address"));
+    const addressRaw = searchParams.get("address");
+    const ownerSession = await requireOwnerSession(req, addressRaw ?? undefined);
+    if (!ownerSession.ok) return ownerSession.response;
+    const address = toAddressOrNull(ownerSession.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
     const view = resolveWorkspaceView(searchParams.get("view"));
 

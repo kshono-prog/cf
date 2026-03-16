@@ -15,6 +15,7 @@ import {
   errMyPageMutationResponse,
   okMyPageMutationResponse,
 } from "@/lib/mypageApiResponses";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -166,6 +167,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     if (!rawAddress) return jsonErr("ADDRESS_REQUIRED", 400);
 
     const walletAddress = normalizeAddress(rawAddress);
+    const ownerSession = await requireOwnerSession(req, walletAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const displayName = toOptionalString(json.displayName);
     const profile = toOptionalString(json.profile);
@@ -194,78 +197,75 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       youtubeVideos = parseYoutubeVideosOrThrow(youtubeRaw);
     }
 
-    // ① CreatorProfile を取得
-    const creator = await prisma.creatorProfile.findUnique({
-      where: { walletAddress },
-    });
-    if (!creator) {
-      return jsonErr("CREATOR_NOT_FOUND", 404);
-    }
-
-    // ② CreatorProfile 本体更新
-    await prisma.creatorProfile.update({
-      where: { id: creator.id },
-      data: {
-        displayName: displayName ?? creator.displayName,
-        profileText: profile ?? creator.profileText,
-        avatarUrl: avatarUrl === undefined ? creator.avatarUrl : avatarUrl,
-        externalUrl:
-          externalUrl === undefined ? creator.externalUrl : externalUrl,
-        themeColor: themeColor === undefined ? creator.themeColor : themeColor,
-        creatorType:
-          creatorType === undefined ? creator.creatorType : creatorType,
-      },
-    });
-
-    // ③ socials（指定された場合のみ全入れ替え）
-    if (socialsSpecified) {
-      await prisma.creatorSocialLink.deleteMany({
-        where: { profileId: creator.id },
+    const result = await prisma.$transaction(async (tx) => {
+      const creator = await tx.creatorProfile.findUnique({
+        where: { walletAddress },
       });
-
-      const socialData = Object.entries(socials ?? {})
-        .filter(([type, url]) => {
-          if (!url || !url.trim()) return false;
-          if (!isAllowedSocialType(type)) return false;
-          return true;
-        })
-        .map(([type, url]) => ({
-          profileId: creator.id,
-          type,
-          label: null as string | null,
-          url: url!.trim(),
-        }));
-
-      if (socialData.length > 0) {
-        await prisma.creatorSocialLink.createMany({ data: socialData });
+      if (!creator) {
+        throw new Error("CREATOR_NOT_FOUND");
       }
-    }
 
-    // ④ youtubeVideos（指定された場合のみ全入れ替え）
-    if (youtubeSpecified) {
-      await prisma.creatorYoutubeVideo.deleteMany({
-        where: { profileId: creator.id },
+      await tx.creatorProfile.update({
+        where: { id: creator.id },
+        data: {
+          displayName: displayName ?? creator.displayName,
+          profileText: profile ?? creator.profileText,
+          avatarUrl: avatarUrl === undefined ? creator.avatarUrl : avatarUrl,
+          externalUrl:
+            externalUrl === undefined ? creator.externalUrl : externalUrl,
+          themeColor:
+            themeColor === undefined ? creator.themeColor : themeColor,
+          creatorType:
+            creatorType === undefined ? creator.creatorType : creatorType,
+        },
       });
 
-      const videoData =
-        (youtubeVideos ?? [])
-          .filter((v) => v.url && v.url.trim())
-          .map((v) => ({
+      if (socialsSpecified) {
+        await tx.creatorSocialLink.deleteMany({
+          where: { profileId: creator.id },
+        });
+
+        const socialData = Object.entries(socials ?? {})
+          .filter(([type, url]) => {
+            if (!url || !url.trim()) return false;
+            if (!isAllowedSocialType(type)) return false;
+            return true;
+          })
+          .map(([type, url]) => ({
             profileId: creator.id,
-            url: v.url.trim(),
-            title: v.title?.trim() || null,
-            description: v.description?.trim() || null,
-          })) ?? [];
+            type,
+            label: null as string | null,
+            url: url.trim(),
+          }));
 
-      if (videoData.length > 0) {
-        await prisma.creatorYoutubeVideo.createMany({ data: videoData });
+        if (socialData.length > 0) {
+          await tx.creatorSocialLink.createMany({ data: socialData });
+        }
       }
-    }
 
-    // ⑤ 返却用に再取得（関連含む）
-    const result = await prisma.creatorProfile.findUnique({
-      where: { id: creator.id },
-      include: { socialLinks: true, youtubeVideos: true },
+      if (youtubeSpecified) {
+        await tx.creatorYoutubeVideo.deleteMany({
+          where: { profileId: creator.id },
+        });
+
+        const videoData = (youtubeVideos ?? [])
+          .filter((video) => video.url.trim().length > 0)
+          .map((video) => ({
+            profileId: creator.id,
+            url: video.url.trim(),
+            title: video.title?.trim() || null,
+            description: video.description?.trim() || null,
+          }));
+
+        if (videoData.length > 0) {
+          await tx.creatorYoutubeVideo.createMany({ data: videoData });
+        }
+      }
+
+      return tx.creatorProfile.findUnique({
+        where: { id: creator.id },
+        include: { socialLinks: true, youtubeVideos: true },
+      });
     });
 
     if (!result) {
@@ -308,6 +308,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   } catch (e: unknown) {
     console.error("CREATOR_UPDATE_ERROR", e);
     if (e instanceof Error) {
+      if (e.message === "CREATOR_NOT_FOUND") {
+        return jsonErr("CREATOR_NOT_FOUND", 404);
+      }
       if (e.message === "CREATOR_TYPE_INVALID") {
         return jsonErr(e.message, 400, e.message);
       }

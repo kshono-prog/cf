@@ -11,6 +11,7 @@ import {
   toNonEmptyString,
   toBool,
 } from "@/lib/api/guards";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,8 @@ export async function POST(
 
     const addr = toAddressOrNull(raw.address);
     if (!addr) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, addr);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const currency = toCurrency(raw.currency) ?? "JPYC";
     const dryRun = toBool(raw.dryRun);

@@ -8,6 +8,7 @@ import {
   toBigIntOrThrow,
   lowerOrNull,
 } from "@/lib/api/guards";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ function isJsonObjectOrArray(
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
@@ -35,9 +36,14 @@ export async function GET(
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, ownerAddress: true },
     });
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+
+    if (!project.ownerAddress) return errJson("FORBIDDEN_NOT_OWNER", 403);
+
+    const ownerSession = await requireOwnerSession(req, project.ownerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     // ✅ 最新の PLAN_ONLY を取得（あればそれが plan）
     const latestPlan = await prisma.distributionRun.findFirst({
@@ -78,6 +84,8 @@ export async function PUT(
 
     const addr = toAddressOrNull((raw as PutBody).address);
     if (!addr) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, addr);
+    if (!ownerSession.ok) return ownerSession.response;
 
     if (!("plan" in raw)) return errJson("PLAN_REQUIRED", 400);
     const plan = (raw as PutBody).plan;

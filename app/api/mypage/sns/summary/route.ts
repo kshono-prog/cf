@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { findCreatorByWalletAddress } from "@/lib/social";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,10 +15,13 @@ function toDecimalString(value: { toString(): string } | null): string {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const address = searchParams.get("address");
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(
+      req,
+      searchParams.get("address") ?? undefined
+    );
+    if (!ownerSession.ok) return ownerSession.response;
 
-    const creator = await findCreatorByWalletAddress(address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const [

@@ -135,7 +135,15 @@ export function useProjectSettlementPanel(
     setLoading(true);
     setMessage(null);
     try {
-      const result = await fetchProjectSettlement({ projectId });
+      if (!walletAddress) {
+        setMessage("WALLET_NOT_CONNECTED");
+        return;
+      }
+
+      const result = await fetchProjectSettlement({
+        projectId,
+        address: walletAddress,
+      });
       if (!result.ok) {
         setMessage(result.error);
         return;
@@ -147,7 +155,7 @@ export function useProjectSettlementPanel(
     } finally {
       setLoading(false);
     }
-  }, [applySettlementData, clearLoadedData, projectId]);
+  }, [applySettlementData, clearLoadedData, projectId, walletAddress]);
 
   useEffect(() => {
     refreshRef.current = refresh;
@@ -166,12 +174,15 @@ export function useProjectSettlementPanel(
   }, [applySettlementData, clearLoadedData, initialData, projectId, refresh]);
 
   const recompute = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || !walletAddress) return;
 
     setLoading(true);
     setMessage(null);
     try {
-      const result = await recomputeProjectSettlement({ projectId });
+      const result = await recomputeProjectSettlement({
+        projectId,
+        address: walletAddress,
+      });
       if (!result.ok) {
         setMessage(result.error);
         return;
@@ -184,7 +195,7 @@ export function useProjectSettlementPanel(
     } finally {
       setLoading(false);
     }
-  }, [projectId, refresh]);
+  }, [projectId, refresh, walletAddress]);
 
   return {
     canUse,

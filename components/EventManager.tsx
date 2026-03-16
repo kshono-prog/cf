@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAccount } from "wagmi";
+
 import { EventDateTime } from "@/components/EventDateTime";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import {
   EVENT_CATEGORY_LABELS,
   EVENT_CATEGORY_OPTIONS,
@@ -40,6 +43,7 @@ export default function EventManager({
   themeColor,
   baseUrl = "",
 }: Props) {
+  const { address } = useAccount();
   // 変更系（作成/更新/削除）は既存 route.ts を利用
   const API_MUTATE = useMemo(
     () => `${baseUrl}/api/creators/${encodeURIComponent(username)}/events`,
@@ -79,11 +83,21 @@ export default function EventManager({
   // ========== 削除 ==========
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(API_LIST, { cache: "no-store" });
+      if (!address) {
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
+
+      const res = await ownerAuthFetch({
+        address,
+        url: API_LIST,
+        init: { cache: "no-store" },
+      });
       if (!res.ok) {
         const t = await res.text();
         throw new Error(`EVENT_LIST_FAILED: ${res.status} ${t}`);
@@ -95,12 +109,11 @@ export default function EventManager({
     } finally {
       setLoading(false);
     }
-  }
+  }, [API_LIST, address]);
 
   useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void reload();
+  }, [reload]);
 
   function resetCreateForm() {
     setCreateTitle("");
@@ -118,6 +131,10 @@ export default function EventManager({
       setError("タイトルと開催日時は必須です。");
       return;
     }
+    if (!address) {
+      setError("ウォレット接続が必要です。");
+      return;
+    }
 
     setCreating(true);
     try {
@@ -130,10 +147,14 @@ export default function EventManager({
         isPublished: createPublished,
       };
 
-      const res = await fetch(API_MUTATE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const res = await ownerAuthFetch({
+        address,
+        url: API_MUTATE,
+        init: {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
       });
 
       if (!res.ok) {
@@ -174,6 +195,10 @@ export default function EventManager({
       setError("タイトルと開催日時は必須です。");
       return;
     }
+    if (!address) {
+      setError("ウォレット接続が必要です。");
+      return;
+    }
 
     setSavingId(editingId);
     try {
@@ -187,10 +212,14 @@ export default function EventManager({
         isPublished: editPublished,
       };
 
-      const res = await fetch(API_MUTATE, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const res = await ownerAuthFetch({
+        address,
+        url: API_MUTATE,
+        init: {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
       });
 
       if (!res.ok) {
@@ -212,11 +241,19 @@ export default function EventManager({
 
     const ok = confirm("このイベントを削除します。よろしいですか？");
     if (!ok) return;
+    if (!address) {
+      setError("ウォレット接続が必要です。");
+      return;
+    }
 
     setDeletingId(id);
     try {
-      const res = await fetch(`${API_MUTATE}?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
+      const res = await ownerAuthFetch({
+        address,
+        url: `${API_MUTATE}?id=${encodeURIComponent(id)}`,
+        init: {
+          method: "DELETE",
+        },
       });
 
       if (!res.ok) {

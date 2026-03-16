@@ -6,6 +6,7 @@ import {
   toAddressOrNull,
   toNonEmptyString,
 } from "@/lib/api/guards";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +70,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
     const addressRaw = searchParams.get("address");
-    const address = toAddressOrNull(addressRaw);
+    const ownerSession = await requireOwnerSession(req, addressRaw ?? undefined);
+    if (!ownerSession.ok) return ownerSession.response;
+    const address = toAddressOrNull(ownerSession.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
 
     const profileId = await resolveCreatorProfileIdByAddress(address);
@@ -109,6 +112,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const address = toAddressOrNull(body.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const platform = toPlatform(body.platform);
     if (!platform) return errJson("PLATFORM_INVALID", 400);

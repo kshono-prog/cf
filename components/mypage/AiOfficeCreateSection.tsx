@@ -3,6 +3,11 @@
 import React from "react";
 
 import { AiOfficeEmptyState } from "@/components/mypage/AiOfficeFeedback";
+import { AiOfficeTaskInputFields } from "@/components/mypage/AiOfficeTaskInputFields";
+import {
+  AI_OFFICE_TASK_TIER_HELPER,
+  getAiOfficeTaskChoiceGroups,
+} from "@/components/mypage/aiOfficeTaskConfig";
 import type {
   AnnouncementChannel,
   DraftTone,
@@ -11,17 +16,12 @@ import type {
   TranslationLang,
 } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
+import { PRODUCT_TIER_META } from "@/lib/productTiers";
 import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
 
 type TaskTypeCopy = {
   label: string;
   helper?: string;
-};
-
-type TaskChoice = {
-  taskType: TaskType;
-  eyebrow: string;
-  whenToUse: string;
 };
 
 type Props = {
@@ -60,40 +60,12 @@ type Props = {
   onTranslateText: () => void;
 };
 
-const TASK_CHOICES: TaskChoice[] = [
-  {
-    taskType: "PROPOSE",
-    eyebrow: "次の一手",
-    whenToUse: "次に何を投稿・告知・改善するか迷っているとき",
-  },
-  {
-    taskType: "ANALYZE",
-    eyebrow: "振り返り",
-    whenToUse: "最近の反応や変化を整理したいとき",
-  },
-  {
-    taskType: "WEEKLY_REPORT",
-    eyebrow: "週次共有",
-    whenToUse: "今週の活動や進捗をまとめたいとき",
-  },
-  {
-    taskType: "ANNOUNCEMENT_DRAFT",
-    eyebrow: "告知",
-    whenToUse: "支援者やフォロワー向けの告知文を作りたいとき",
-  },
-  {
-    taskType: "SUPPORTER_MESSAGE_DRAFT",
-    eyebrow: "下書きと承認",
-    whenToUse: "お礼や再案内のメッセージを作りたいとき",
-  },
-  {
-    taskType: "TRANSLATE",
-    eyebrow: "翻訳",
-    whenToUse: "既存の文章を別の言語向けに言い換えたいとき",
-  },
-];
-
 export function AiOfficeCreateSection(props: Props) {
+  const taskChoiceGroups = React.useMemo(
+    () => getAiOfficeTaskChoiceGroups(),
+    []
+  );
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-gray-200 bg-white p-4">
@@ -163,40 +135,73 @@ export function AiOfficeCreateSection(props: Props) {
           </AiOfficeEmptyState>
         ) : null}
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {TASK_CHOICES.map((choice) => {
-            const copy = getAgentTaskTypeCopy(choice.taskType);
-            const isActive = props.taskType === choice.taskType;
-            return (
-              <button
-                key={choice.taskType}
-                type="button"
-                className={`rounded-2xl border p-4 text-left transition ${
-                  isActive
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-gray-200 bg-white text-gray-900 hover:border-slate-400"
-                }`}
-                onClick={() => props.onTaskTypeChange(choice.taskType)}
-                disabled={props.loading}
-              >
-                <div
-                  className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                    isActive ? "text-white/70" : "text-gray-500"
+        <div className="space-y-4">
+          {taskChoiceGroups.map((group) => (
+            <div key={group.tier} className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                    group.tier === "BETA"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-slate-100 text-slate-800"
                   }`}
                 >
-                  {choice.eyebrow}
-                </div>
-                <div className="mt-2 text-sm font-semibold">{copy.label}</div>
-                <div
-                  className={`mt-2 text-xs leading-5 ${
-                    isActive ? "text-white/80" : "text-gray-600"
-                  }`}
-                >
-                  {choice.whenToUse}
-                </div>
-              </button>
-            );
-          })}
+                  {PRODUCT_TIER_META[group.tier].label}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {AI_OFFICE_TASK_TIER_HELPER[group.tier]}
+                </span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {group.choices.map((choice) => {
+                  const copy = getAgentTaskTypeCopy(choice.taskType);
+                  const isActive = props.taskType === choice.taskType;
+                  return (
+                    <button
+                      key={choice.taskType}
+                      type="button"
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        isActive
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-gray-200 bg-white text-gray-900 hover:border-slate-400"
+                      }`}
+                      onClick={() => props.onTaskTypeChange(choice.taskType)}
+                      disabled={props.loading}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div
+                          className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                            isActive ? "text-white/70" : "text-gray-500"
+                          }`}
+                        >
+                          {choice.eyebrow}
+                        </div>
+                        {choice.tier === "BETA" ? (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              isActive
+                                ? "bg-white/15 text-white"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            Beta
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 text-sm font-semibold">{copy.label}</div>
+                      <div
+                        className={`mt-2 text-xs leading-5 ${
+                          isActive ? "text-white/80" : "text-gray-600"
+                        }`}
+                      >
+                        {choice.whenToUse}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -233,233 +238,30 @@ export function AiOfficeCreateSection(props: Props) {
 
         <div className="rounded-2xl border border-gray-200 p-4 space-y-3">
           <div className="text-xs text-gray-500">入力</div>
-
-          {props.taskType === "TRANSLATE" ? (
-            <>
-              <textarea
-                className="w-full rounded-xl border px-3 py-2 text-sm"
-                value={props.translationInput}
-                onChange={(e) => props.onTranslationInputChange(e.target.value)}
-                placeholder="翻訳したい文章"
-                disabled={props.loading}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  className="rounded-xl border px-3 py-2 text-sm"
-                  value={props.translationLang}
-                  onChange={(e) =>
-                    props.onTranslationLangChange(
-                      e.target.value as TranslationLang
-                    )
-                  }
-                  disabled={props.loading}
-                >
-                  <option value="ja">日本語</option>
-                  <option value="en">English</option>
-                  <option value="ko">한국어</option>
-                  <option value="zh">中文</option>
-                </select>
-                <button
-                  type="button"
-                  className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 disabled:opacity-40"
-                  onClick={props.onTranslateText}
-                  disabled={props.loading}
-                >
-                  先に翻訳を試す
-                </button>
-              </div>
-              {props.translationResult ? (
-                <pre className="whitespace-pre-wrap rounded-xl bg-gray-50 p-3 text-xs text-gray-700">
-                  {props.translationResult}
-                </pre>
-              ) : (
-                <AiOfficeEmptyState
-                  compact
-                  title="ここに翻訳案が表示されます"
-                  description="文章を入力して「先に翻訳を試す」を押すと、結果を確認できます。"
-                />
-              )}
-            </>
-          ) : null}
-
-          {props.taskType === "WEEKLY_REPORT" ? (
-            <label className="grid gap-1 text-xs text-gray-700">
-              <span>集計期間（日数）</span>
-              <input
-                className="rounded-xl border px-3 py-2 text-sm"
-                type="number"
-                min={1}
-                max={31}
-                value={props.reportingWindowDays}
-                onChange={(e) =>
-                  props.onReportingWindowDaysChange(
-                    Math.max(1, Math.min(31, Number(e.target.value) || 7))
-                  )
-                }
-                disabled={props.loading}
-              />
-            </label>
-          ) : null}
-
-          {props.taskType === "ANNOUNCEMENT_DRAFT" ? (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <label className="grid gap-1 text-xs text-gray-700">
-                <span>届け先</span>
-                <select
-                  className="rounded-xl border px-3 py-2 text-sm"
-                  value={props.announcementChannel}
-                  onChange={(e) =>
-                    props.onAnnouncementChannelChange(
-                      e.target.value as AnnouncementChannel
-                    )
-                  }
-                  disabled={props.loading}
-                >
-                  <option value="SUPPORTERS">支援者向け</option>
-                  <option value="GENERAL">一般公開向け</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs text-gray-700">
-                <span>文体</span>
-                <select
-                  className="rounded-xl border px-3 py-2 text-sm"
-                  value={props.draftTone}
-                  onChange={(e) =>
-                    props.onDraftToneChange(e.target.value as DraftTone)
-                  }
-                  disabled={props.loading}
-                >
-                  <option value="warm">あたたかめ</option>
-                  <option value="formal">丁寧</option>
-                  <option value="casual">カジュアル</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs text-gray-700">
-                <span>根拠に使う期間（日数）</span>
-                <input
-                  className="rounded-xl border px-3 py-2 text-sm"
-                  type="number"
-                  min={1}
-                  max={31}
-                  value={props.reportingWindowDays}
-                  onChange={(e) =>
-                    props.onReportingWindowDaysChange(
-                      Math.max(1, Math.min(31, Number(e.target.value) || 7))
-                    )
-                  }
-                  disabled={props.loading}
-                />
-              </label>
-              <div className="flex flex-col justify-end gap-2 text-xs text-gray-700">
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={props.includeMetricsSummary}
-                    onChange={(e) =>
-                      props.onIncludeMetricsSummaryChange(e.target.checked)
-                    }
-                    disabled={props.loading}
-                  />
-                  指標サマリーを含める
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={props.includeSupportSummary}
-                    onChange={(e) =>
-                      props.onIncludeSupportSummaryChange(e.target.checked)
-                    }
-                    disabled={props.loading}
-                  />
-                  支援状況を含める
-                </label>
-              </div>
-            </div>
-          ) : null}
-
-          {props.taskType === "SUPPORTER_MESSAGE_DRAFT" ? (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <label className="grid gap-1 text-xs text-gray-700">
-                <span>メッセージの目的</span>
-                <select
-                  className="rounded-xl border px-3 py-2 text-sm"
-                  value={props.supporterMessagePurpose}
-                  onChange={(e) =>
-                    props.onSupporterMessagePurposeChange(
-                      e.target.value as SupporterMessagePurpose
-                    )
-                  }
-                  disabled={props.loading}
-                >
-                  <option value="THANK_YOU">お礼を伝える</option>
-                  <option value="REENGAGEMENT">再度案内する</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs text-gray-700">
-                <span>文体</span>
-                <select
-                  className="rounded-xl border px-3 py-2 text-sm"
-                  value={props.draftTone}
-                  onChange={(e) =>
-                    props.onDraftToneChange(e.target.value as DraftTone)
-                  }
-                  disabled={props.loading}
-                >
-                  <option value="warm">あたたかめ</option>
-                  <option value="formal">丁寧</option>
-                  <option value="casual">カジュアル</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs text-gray-700">
-                <span>根拠に使う期間（日数）</span>
-                <input
-                  className="rounded-xl border px-3 py-2 text-sm"
-                  type="number"
-                  min={1}
-                  max={90}
-                  value={props.reportingWindowDays}
-                  onChange={(e) =>
-                    props.onReportingWindowDaysChange(
-                      Math.max(1, Math.min(90, Number(e.target.value) || 30))
-                    )
-                  }
-                  disabled={props.loading}
-                />
-              </label>
-              <div className="flex flex-col justify-end gap-2 text-xs text-gray-700">
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={props.includeMetricsSummary}
-                    onChange={(e) =>
-                      props.onIncludeMetricsSummaryChange(e.target.checked)
-                    }
-                    disabled={props.loading}
-                  />
-                  指標サマリーを含める
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={props.includeSupportSummary}
-                    onChange={(e) =>
-                      props.onIncludeSupportSummaryChange(e.target.checked)
-                    }
-                    disabled={props.loading}
-                  />
-                  支援状況を含める
-                </label>
-              </div>
-            </div>
-          ) : null}
-
-          {(props.taskType === "ANALYZE" || props.taskType === "PROPOSE") && (
-            <AiOfficeEmptyState
-              compact
-              title="追加の入力は不要です"
-              description="project と最近の指標をもとに、自動で内容を作成します。"
-            />
-          )}
+          <AiOfficeTaskInputFields
+            loading={props.loading}
+            taskType={props.taskType}
+            translationInput={props.translationInput}
+            translationLang={props.translationLang}
+            reportingWindowDays={props.reportingWindowDays}
+            draftTone={props.draftTone}
+            announcementChannel={props.announcementChannel}
+            includeMetricsSummary={props.includeMetricsSummary}
+            includeSupportSummary={props.includeSupportSummary}
+            supporterMessagePurpose={props.supporterMessagePurpose}
+            translationResult={props.translationResult}
+            onTranslationInputChange={props.onTranslationInputChange}
+            onTranslationLangChange={props.onTranslationLangChange}
+            onReportingWindowDaysChange={props.onReportingWindowDaysChange}
+            onDraftToneChange={props.onDraftToneChange}
+            onAnnouncementChannelChange={props.onAnnouncementChannelChange}
+            onIncludeMetricsSummaryChange={props.onIncludeMetricsSummaryChange}
+            onIncludeSupportSummaryChange={props.onIncludeSupportSummaryChange}
+            onSupporterMessagePurposeChange={
+              props.onSupporterMessagePurposeChange
+            }
+            onTranslateText={props.onTranslateText}
+          />
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
   toAiPromotionJobType,
   toNullableUuidString,
 } from "@/lib/social";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,10 +24,13 @@ type PostBody = {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const address = searchParams.get("address");
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(
+      req,
+      searchParams.get("address") ?? undefined
+    );
+    if (!ownerSession.ok) return ownerSession.response;
 
-    const creator = await findCreatorByWalletAddress(address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const rows = await prisma.aiPromotionJob.findMany({
@@ -83,6 +87,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const body = raw as PostBody;
     if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, body.address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const jobType = toAiPromotionJobType(body.jobType);
     if (!jobType) return errJson("JOB_TYPE_INVALID", 400);
@@ -97,7 +103,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return errJson("POST_ID_INVALID", 400);
     }
 
-    const creator = await findCreatorByWalletAddress(body.address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     if (aiAgentId) {

@@ -18,6 +18,7 @@ import {
   type Address,
 } from "viem";
 import { avalanche, avalancheFuji } from "viem/chains";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,8 @@ export async function POST(
 
     const addr = toAddressOrNull(raw.address);
     if (!addr) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, addr);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },

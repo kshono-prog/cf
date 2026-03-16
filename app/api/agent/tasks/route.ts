@@ -20,6 +20,7 @@ import {
   toTaskType,
   validateTaskInput,
 } from "@/lib/agentTasks";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,10 @@ function toRequiresApproval(v: unknown): boolean {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const address = toAddressOrNull(searchParams.get("address"));
+    const addressRaw = searchParams.get("address");
+    const ownerSession = await requireOwnerSession(req, addressRaw ?? undefined);
+    if (!ownerSession.ok) return ownerSession.response;
+    const address = toAddressOrNull(ownerSession.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
     const status = toTaskStatus(searchParams.get("status"));
     if (searchParams.get("status") && !status) {
@@ -101,6 +105,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const address = toAddressOrNull(body.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const taskType = toTaskType(body.taskType);
     if (!taskType) return errJson("TASK_TYPE_INVALID", 400);
@@ -164,6 +170,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const body = raw as PatchBody;
     const address = toAddressOrNull(body.address);
     if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const taskId = toNonEmptyString(body.taskId);
     const taskIdsRaw = body.taskIds == null ? null : parseTaskIds(body.taskIds);

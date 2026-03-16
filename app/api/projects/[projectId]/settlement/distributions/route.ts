@@ -14,6 +14,7 @@ import {
   recomputeProjectSettlement,
   toAtomicDecimalOrNull,
 } from "@/lib/projectSettlement";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,7 @@ function parseEntry(v: unknown): {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
@@ -90,6 +91,7 @@ export async function GET(
       where: { id: projectId },
       select: {
         id: true,
+        ownerAddress: true,
         distributionEntries: {
           orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
         },
@@ -97,6 +99,11 @@ export async function GET(
     });
 
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+
+    if (!project.ownerAddress) return errJson("FORBIDDEN_NOT_OWNER", 403);
+
+    const ownerSession = await requireOwnerSession(req, project.ownerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     return okJson({
       projectId: project.id.toString(),
@@ -133,6 +140,8 @@ export async function PUT(
 
     const wallet = toAddressOrNull((raw as Body).address);
     if (!wallet) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, wallet);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const entriesRaw = (raw as Body).entries;
     if (!Array.isArray(entriesRaw)) return errJson("ENTRIES_REQUIRED", 400);

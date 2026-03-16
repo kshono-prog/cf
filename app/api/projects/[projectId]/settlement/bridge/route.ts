@@ -15,6 +15,7 @@ import {
   recomputeProjectSettlement,
   toAtomicDecimalOrNull,
 } from "@/lib/projectSettlement";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,8 @@ export async function POST(
 
     const wallet = toAddressOrNull((raw as Body).address);
     if (!wallet) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, wallet);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const sourceChain = toSourceChain((raw as Body).sourceChain);
     if (!sourceChain) return errJson("SOURCE_CHAIN_INVALID", 400);

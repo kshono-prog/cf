@@ -1,6 +1,7 @@
 // app/api/projects/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 
@@ -81,6 +82,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    const ownerSession = await requireOwnerSession(req, ownerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const creator = await prisma.creatorProfile.findUnique({
       where: { walletAddress: ownerAddress },

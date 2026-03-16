@@ -5,6 +5,7 @@ import {
   type MyPageMePayload,
   normalizeMyPageMePayload,
 } from "@/lib/mypageApiResponses";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,11 +50,13 @@ export async function GET(req: NextRequest): Promise<NextResponse<MeRes>> {
   const { searchParams } = new URL(req.url);
   const addressRaw = searchParams.get("address");
 
-  // “未接続”はエラーにしない（UI側が扱いやすい）
-  if (!addressRaw) return okEmpty();
+  const ownerSession = await requireOwnerSession(req, addressRaw ?? undefined);
+  if (!ownerSession.ok) {
+    return ownerSession.response as NextResponse<MeRes>;
+  }
 
   try {
-    const me = await getMeStatusByAddress(addressRaw);
+    const me = await getMeStatusByAddress(ownerSession.address);
     if (!me.hasUser) return okEmpty();
     return NextResponse.json({
       ok: true,

@@ -6,6 +6,7 @@ import {
   isEventCategory,
   type EventCategory,
 } from "@/lib/creatorTaxonomy";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 type EventPostBody = {
   title?: string;
@@ -144,12 +145,24 @@ export async function POST(
     const creator = await withPrismaRetry(() =>
       prisma.creatorProfile.findUnique({
         where: { username },
-        select: { id: true },
+        select: { id: true, walletAddress: true },
       })
     );
 
     if (!creator) {
       return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
+    }
+
+    if (!creator.walletAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, creator.walletAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     const startAt = new Date(date);
@@ -214,11 +227,23 @@ export async function PUT(
     const creator = await withPrismaRetry(() =>
       prisma.creatorProfile.findUnique({
         where: { username },
-        select: { id: true },
+        select: { id: true, walletAddress: true },
       })
     );
     if (!creator) {
       return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
+    }
+
+    if (!creator.walletAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, creator.walletAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     // 自分のイベントのみ更新できるようにガード
@@ -297,11 +322,23 @@ export async function DELETE(
     const creator = await withPrismaRetry(() =>
       prisma.creatorProfile.findUnique({
         where: { username },
-        select: { id: true },
+        select: { id: true, walletAddress: true },
       })
     );
     if (!creator) {
       return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
+    }
+
+    if (!creator.walletAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, creator.walletAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     const eventId = BigInt(id);

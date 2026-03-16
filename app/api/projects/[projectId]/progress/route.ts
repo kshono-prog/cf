@@ -26,11 +26,6 @@ function decToString(d: Prisma.Decimal | null | undefined): string | null {
   return d.toString();
 }
 
-function bigToString(v: bigint | null | undefined): string | null {
-  if (v == null) return null;
-  return v.toString();
-}
-
 function decimalToAmountByCurrency(
   currency: Currency,
   amountDecimal: Prisma.Decimal | null
@@ -208,8 +203,6 @@ export async function GET(
         title: project.title,
         description: project.description ?? null,
         purposeMode: project.purposeMode,
-        creatorProfileId: bigToString(project.creatorProfileId),
-        ownerAddress: project.ownerAddress ?? null,
         createdAt: project.createdAt.toISOString(),
         updatedAt: project.updatedAt.toISOString(),
       },

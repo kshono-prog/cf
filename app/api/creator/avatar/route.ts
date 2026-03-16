@@ -1,11 +1,13 @@
 // app/api/creator/avatar/route.ts
+import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { StorageError } from "@supabase/storage-js";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const rawAddress = formData.get("address");
@@ -19,6 +21,8 @@ export async function POST(req: Request) {
     }
 
     const walletAddress = rawAddress.toLowerCase().trim();
+    const ownerSession = await requireOwnerSession(req, walletAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;

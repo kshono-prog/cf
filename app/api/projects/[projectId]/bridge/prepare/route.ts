@@ -12,6 +12,7 @@ import {
   toBool,
 } from "@/lib/api/guards";
 import { isAddress, getAddress, type Address } from "viem";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,8 @@ export async function POST(
 
     const addr = toAddressOrNull(raw.address);
     if (!addr) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, addr);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const currency = toCurrency(raw.currency) ?? "JPYC";
     const provider = toProvider(raw.provider) ?? "WORMHOLE_UI";

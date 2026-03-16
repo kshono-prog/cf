@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Goal, Project } from "@prisma/client";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,18 @@ export async function PATCH(
 
     if (!project) {
       return NextResponse.json({ error: "PROJECT_NOT_FOUND" }, { status: 404 });
+    }
+
+    if (!project.ownerAddress) {
+      return NextResponse.json(
+        { error: "FORBIDDEN_NOT_OWNER" },
+        { status: 403 }
+      );
+    }
+
+    const ownerSession = await requireOwnerSession(req, project.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     if (!isDraftStatus(project.status)) {

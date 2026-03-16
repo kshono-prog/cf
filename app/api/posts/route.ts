@@ -11,6 +11,7 @@ import {
   toNullableTrimmedString,
   toPostMediaType,
 } from "@/lib/social";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const body = raw as PostBody;
     if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, body.address);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const postBody = normalizeTextBody(body.body, POST_BODY_MAX_LENGTH);
     if (!postBody) {
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const creator = await findCreatorByWalletAddress(body.address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     if (projectId) {

@@ -13,6 +13,7 @@ import {
   ensureProjectSettlement,
   recomputeProjectSettlement,
 } from "@/lib/projectSettlement";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,8 @@ export async function POST(
 
     const wallet = toAddressOrNull((raw as Body).address);
     if (!wallet) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, wallet);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const entryId = toId((raw as Body).entryId);
     if (!entryId) return errJson("ENTRY_ID_REQUIRED", 400);

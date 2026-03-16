@@ -38,6 +38,8 @@ Creator mypage runtime note:
 - keep profile form state in a dedicated hook and shell UI state in a separate shell hook
 - normalize primary mypage mutation responses to `ok + me` so the client can treat save/apply/update uniformly
 - render `loading / unconnected / noUser / userOnly / creatorReady` as separate containers instead of inline status branches
+- keep `creatorReady` workspace navigation explicit about `MVP` vs `beta` surfaces so experimental features do not blur into the main path
+- lazy-load `creatorReady` route views so opening one workspace does not eagerly ship all other route panels
 - within `creatorReady`, keep `links`, `project management`, and `summary actions` as separate section containers
 - add `SNS・AI事務所` to the creator `support-page` as a localized accordion backed by dedicated mypage SNS routes so profile/project/settlement flows stay unchanged
 - within project management, keep `per-currency project blocks` and `AI Office` as separate composition units
@@ -90,6 +92,7 @@ Supporting parts:
 - input parser and normalization
 - task definition registry
 - output renderer registry
+- shared create-side task config for action cards, tier labeling, defaults, and task input building
 - dashboard aggregation service for read-side composition
 - metrics and contribution data as optional context
 

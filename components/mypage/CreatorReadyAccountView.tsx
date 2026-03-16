@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { Address } from "viem";
 
@@ -18,14 +19,17 @@ import type {
 } from "@/lib/mypage/accountPageTypes";
 import { CreatorReadyWorkspaceProvider } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
-import { CreatorReadyAdvancedRoute } from "@/components/mypage/CreatorReadyAdvancedRoute";
-import { CreatorReadyHomeRoute } from "@/components/mypage/CreatorReadyHomeRoute";
-import { CreatorReadyPublicRoute } from "@/components/mypage/CreatorReadyPublicRoute";
-import { CreatorReadySupportersRoute } from "@/components/mypage/CreatorReadySupportersRoute";
-import { CreatorReadySupportPageRoute } from "@/components/mypage/CreatorReadySupportPageRoute";
-import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
-import { CREATOR_READY_WORKSPACE_VIEWS } from "@/components/mypage/creatorReadyWorkspaceConfig";
+import {
+  WorkspaceLoadingCard,
+  WorkspaceStatusNotice,
+} from "@/components/mypage/WorkspaceFeedback";
+import {
+  CREATOR_READY_WORKSPACE_VIEWS,
+  getCreatorReadyWorkspaceConfig,
+  getCreatorReadyWorkspaceGroups,
+} from "@/components/mypage/creatorReadyWorkspaceConfig";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
+import { PRODUCT_TIER_META } from "@/lib/productTiers";
 
 type Props = {
   initialWorkspaceView: WorkspaceView;
@@ -68,6 +72,66 @@ type Props = {
   openSections: OpenSections;
   onToggleSection: (key: SectionKey) => void;
 };
+
+const CreatorReadyHomeRoute = dynamic(
+  () =>
+    import("@/components/mypage/CreatorReadyHomeRoute").then(
+      (mod) => mod.CreatorReadyHomeRoute
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="やること一覧を読み込んでいます" />
+    ),
+  }
+);
+
+const CreatorReadySupportPageRoute = dynamic(
+  () =>
+    import("@/components/mypage/CreatorReadySupportPageRoute").then(
+      (mod) => mod.CreatorReadySupportPageRoute
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="公開ページと投稿の設定を読み込んでいます" />
+    ),
+  }
+);
+
+const CreatorReadySupportersRoute = dynamic(
+  () =>
+    import("@/components/mypage/CreatorReadySupportersRoute").then(
+      (mod) => mod.CreatorReadySupportersRoute
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="下書きと承認を読み込んでいます" />
+    ),
+  }
+);
+
+const CreatorReadyPublicRoute = dynamic(
+  () =>
+    import("@/components/mypage/CreatorReadyPublicRoute").then(
+      (mod) => mod.CreatorReadyPublicRoute
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="公開ページ確認を読み込んでいます" />
+    ),
+  }
+);
+
+const CreatorReadyAdvancedRoute = dynamic(
+  () =>
+    import("@/components/mypage/CreatorReadyAdvancedRoute").then(
+      (mod) => mod.CreatorReadyAdvancedRoute
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="精算と詳細設定を読み込んでいます" />
+    ),
+  }
+);
 
 export function CreatorReadyAccountView(props: Props) {
   const router = useRouter();
@@ -181,8 +245,14 @@ export function CreatorReadyAccountView(props: Props) {
     ]
   );
 
-  const activeWorkspace = CREATOR_READY_WORKSPACE_VIEWS.find(
-    (view) => view.id === activeView
+  const activeWorkspace = getCreatorReadyWorkspaceConfig(activeView);
+  const workspaceGroups = React.useMemo(
+    () =>
+      getCreatorReadyWorkspaceGroups().map((group) => ({
+        ...group,
+        meta: PRODUCT_TIER_META[group.tier],
+      })),
+    []
   );
 
   return (
@@ -211,27 +281,73 @@ export function CreatorReadyAccountView(props: Props) {
                 </button>
               </div>
             </div>
-            <div className="grid gap-2 md:grid-cols-5">
-              {CREATOR_READY_WORKSPACE_VIEWS.map((view) => (
-                <button
-                  key={view.id}
-                  type="button"
-                  className={`rounded-2xl border px-4 py-3 text-left transition ${
-                    activeView === view.id
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-gray-200 bg-white text-gray-900"
-                  }`}
-                  onClick={() => navigateToView(view.id)}
-                >
-                  <div className="text-sm font-semibold">{view.label}</div>
-                  <div
-                    className={`mt-1 text-xs ${
-                      activeView === view.id ? "text-white/80" : "text-gray-500"
-                    }`}
-                  >
-                    {view.description}
+            <div className="space-y-3">
+              {workspaceGroups.map((group) => (
+                <div key={group.tier} className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        group.tier === "BETA"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-slate-100 text-slate-800"
+                      }`}
+                    >
+                      {group.meta.label}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {group.meta.description}
+                    </span>
                   </div>
-                </button>
+                  <div className="grid gap-2 md:grid-cols-5">
+                    {group.views.map((view) => (
+                      <button
+                        key={view.id}
+                        type="button"
+                        className={`rounded-2xl border px-4 py-3 text-left transition ${
+                          activeView === view.id
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-gray-200 bg-white text-gray-900"
+                        }`}
+                        onClick={() => navigateToView(view.id)}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-sm font-semibold">{view.label}</div>
+                          {view.betaNote ? (
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                activeView === view.id
+                                  ? "bg-white/15 text-white"
+                                  : "bg-amber-100 text-amber-800"
+                              }`}
+                            >
+                              Beta を含む
+                            </span>
+                          ) : null}
+                        </div>
+                        <div
+                          className={`mt-1 text-xs ${
+                            activeView === view.id
+                              ? "text-white/80"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {view.description}
+                        </div>
+                        {view.betaNote ? (
+                          <div
+                            className={`mt-2 text-[11px] ${
+                              activeView === view.id
+                                ? "text-white/70"
+                                : "text-amber-700"
+                            }`}
+                          >
+                            {view.betaNote}
+                          </div>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -239,6 +355,17 @@ export function CreatorReadyAccountView(props: Props) {
           {props.error && (
             <WorkspaceStatusNotice tone="error" title={props.error} />
           )}
+          {activeWorkspace?.betaNote ? (
+            <WorkspaceStatusNotice
+              tone={activeWorkspace.tier === "BETA" ? "attention" : "info"}
+              title={
+                activeWorkspace.tier === "BETA"
+                  ? "この面には beta / 高リスク設定が含まれます"
+                  : "この面には beta 機能が一部含まれます"
+              }
+              description={activeWorkspace.betaNote}
+            />
+          ) : null}
 
           {activeView === "home" ? (
             <CreatorReadyHomeRoute

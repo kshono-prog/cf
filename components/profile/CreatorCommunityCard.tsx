@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import type { PublicViewerState } from "@/lib/publicViewerState";
 
 type FollowPreview = {
@@ -177,14 +178,15 @@ export function CreatorCommunityCard(props: Props) {
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/creators/${encodeURIComponent(props.username)}/follow`,
-        {
+      const response = await ownerAuthFetch({
+        address: props.viewerAddress,
+        url: `/api/creators/${encodeURIComponent(props.username)}/follow`,
+        init: {
           method: summary.viewer.follows ? "DELETE" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address: props.viewerAddress }),
-        }
-      );
+        },
+      });
       const json: unknown = await response.json().catch(() => null);
       if (!response.ok) {
         const errorCode =

@@ -1,6 +1,8 @@
 "use client";
 
+import { FeedActionControl, LikeIcon } from "@/components/feed/FeedPostCard";
 import type { FeedReply } from "@/components/feed/feedTypes";
+import { Avatar } from "@/components/shared/Avatar";
 
 type Props = {
   replies: FeedReply[];
@@ -64,18 +66,12 @@ export function ReplyList(props: Props) {
           className="rounded-2xl border border-gray-200 bg-white px-3.5 py-3"
         >
           <div className="flex items-start gap-2.5">
-            {reply.creator.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={reply.creator.avatarUrl}
-                alt={reply.creator.displayName}
-                className="h-8.5 w-8.5 rounded-full border border-gray-200 object-cover"
-              />
-            ) : (
-              <div className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-[11px] font-semibold text-gray-500">
-                {reply.creator.displayName.slice(0, 1)}
-              </div>
-            )}
+            <Avatar
+              src={reply.creator.avatarUrl}
+              alt={reply.creator.displayName}
+              fallbackText={reply.creator.displayName.slice(0, 1)}
+              size={34}
+            />
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -162,16 +158,16 @@ export function ReplyList(props: Props) {
                 </p>
               )}
 
-              <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
-                <span>いいね {reply.likeCount}</span>
-                <button
-                  type="button"
-                  className={reply.viewerHasLiked ? "action-pill-active" : "action-pill"}
+              <div className="mt-3 flex items-center">
+                <FeedActionControl
+                  label={reply.viewerHasLiked ? "いいね済み" : "いいね"}
+                  icon={<LikeIcon />}
+                  count={reply.likeCount}
+                  active={reply.viewerHasLiked}
+                  tone="like"
                   onClick={() => onToggleLike(reply)}
                   disabled={pendingReplyLikeIds.has(reply.id)}
-                >
-                  {reply.viewerHasLiked ? "いいね済み" : "いいね"}
-                </button>
+                />
               </div>
             </div>
           </div>

@@ -5,6 +5,7 @@ import {
   errMyPageMutationResponse,
   okMyPageMutationResponse,
 } from "@/lib/mypageApiResponses";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!walletAddress) {
       return errMyPageMutationResponse("ADDRESS_REQUIRED", 400);
     }
+    const ownerSession = await requireOwnerSession(req, walletAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const creator = await prisma.creatorProfile.findUnique({
       where: { walletAddress },

@@ -8,6 +8,7 @@ import {
   serializeAiAgent,
   toAiAgentRole,
 } from "@/lib/social";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,10 +22,13 @@ type PostBody = {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const address = searchParams.get("address");
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(
+      req,
+      searchParams.get("address") ?? undefined
+    );
+    if (!ownerSession.ok) return ownerSession.response;
 
-    const creator = await findCreatorByWalletAddress(address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const rows = await prisma.aiAgent.findMany({
@@ -66,6 +70,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const body = raw as PostBody;
     if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSession(req, body.address);
+    if (!ownerSession.ok) return ownerSession.response;
     if (typeof body.name !== "string" || body.name.trim().length === 0) {
       return errJson("NAME_REQUIRED", 400);
     }
@@ -74,7 +80,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const role = toAiAgentRole(body.role);
     if (!role) return errJson("ROLE_INVALID", 400);
 
-    const creator = await findCreatorByWalletAddress(body.address);
+    const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     const row = await prisma.aiAgent.create({

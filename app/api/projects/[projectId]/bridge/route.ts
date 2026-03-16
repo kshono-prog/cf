@@ -8,6 +8,7 @@ import {
   getEventRpcUrl,
   isSupportedEventChainId,
 } from "@/lib/eventChainConfig";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs"; // Buffer を使うため（Edge回避）
@@ -184,6 +185,15 @@ export async function POST(
 
     if (!project) {
       return NextResponse.json({ error: "PROJECT_NOT_FOUND" }, { status: 404 });
+    }
+
+    if (!project.ownerAddress) {
+      return NextResponse.json({ error: "FORBIDDEN_NOT_OWNER" }, { status: 403 });
+    }
+
+    const ownerSession = await requireOwnerSession(req, project.ownerAddress);
+    if (!ownerSession.ok) {
+      return ownerSession.response;
     }
 
     const goal = project.goal ?? null;

@@ -11,6 +11,8 @@ import {
   buildFallbackSettlement,
   getProjectSettlementView,
 } from "@/lib/projectSettlementView";
+import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { resolveProjectOwnerAddress } from "@/lib/ownerScopedResources";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +27,19 @@ function toAction(v: unknown): "RECOMPUTE" | null {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<Params> }
 ): Promise<NextResponse> {
   try {
     const { projectId: projectIdStr } = await ctx.params;
     const projectId = toBigIntOrThrow(projectIdStr, "PROJECT_ID_INVALID");
+    const ownerLookup = await resolveProjectOwnerAddress(projectId);
+    if (!ownerLookup.found) return errJson("PROJECT_NOT_FOUND", 404);
+    if (!ownerLookup.ownerAddress) return errJson("FORBIDDEN_NOT_OWNER", 403);
+
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
+
     const data = await getProjectSettlementView(projectId);
     if (!data) return errJson("PROJECT_NOT_FOUND", 404);
     return okJson(data);
@@ -55,12 +64,12 @@ export async function PUT(
 
     if (!action) return errJson("ACTION_INVALID", 400);
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { id: true },
-    });
+    const ownerLookup = await resolveProjectOwnerAddress(projectId);
+    if (!ownerLookup.found) return errJson("PROJECT_NOT_FOUND", 404);
+    if (!ownerLookup.ownerAddress) return errJson("FORBIDDEN_NOT_OWNER", 403);
 
-    if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+    const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
+    if (!ownerSession.ok) return ownerSession.response;
 
     const settlement = await (async () => {
       await ensureProjectSettlement(prisma, projectId);

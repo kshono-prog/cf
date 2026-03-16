@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
 
@@ -181,13 +182,14 @@ export function NotificationsPageClient({ username }: { username: string }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `/api/notifications?address=${encodeURIComponent(connectedAddress)}`,
-          {
+        const response = await ownerAuthFetch({
+          address: connectedAddress,
+          url: `/api/notifications?address=${encodeURIComponent(connectedAddress)}`,
+          init: {
             method: "GET",
             cache: "no-store",
-          }
-        );
+          },
+        });
         const json: unknown = await response.json().catch(() => null);
 
         if (!response.ok) {
