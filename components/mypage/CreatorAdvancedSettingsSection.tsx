@@ -2,12 +2,18 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
+import { usePathname, useRouter } from "next/navigation";
 
+import { AiSuggestionsCard } from "@/components/mypage/AiSuggestionsCard";
 import {
   WorkspaceLoadingCard,
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import {
+  getNextActionSuggestions,
+  type NextActionSuggestion,
+} from "@/lib/creator-ai/nextActionSuggestions";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
 
@@ -55,6 +61,9 @@ function SettlementWorkspaceCard(props: {
   walletAddress: string | null;
   isConnected: boolean;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   if (!props.projectId) {
     return (
       <WorkspaceEmptyState
@@ -63,6 +72,67 @@ function SettlementWorkspaceCard(props: {
       />
     );
   }
+
+  const summary = props.dashboard?.summary ?? null;
+  const isOwner =
+    !!summary?.project.ownerAddress &&
+    !!props.walletAddress &&
+    summary.project.ownerAddress.toLowerCase() === props.walletAddress;
+  const suggestions = getNextActionSuggestions({
+    summary,
+    isOwner,
+  });
+  const currencyKey = props.currency.toLowerCase();
+  const workspaceBasePath = (() => {
+    if (!pathname) {
+      return null;
+    }
+
+    const myPageIndex = pathname.indexOf("/mypage");
+    if (myPageIndex === -1) {
+      return null;
+    }
+
+    return pathname.slice(0, myPageIndex + "/mypage".length);
+  })();
+
+  const handleSelectSuggestion = (suggestion: NextActionSuggestion) => {
+    if (!workspaceBasePath) {
+      return;
+    }
+
+    if (
+      suggestion.recommendedUiTarget === "bridge" ||
+      suggestion.recommendedUiTarget === "plan" ||
+      suggestion.recommendedUiTarget === "distributionResult"
+    ) {
+      const anchorId =
+        suggestion.recommendedUiTarget === "bridge"
+          ? `settlement-bridge-${currencyKey}`
+          : suggestion.recommendedUiTarget === "plan"
+            ? `settlement-plan-${currencyKey}`
+            : `settlement-distribution-result-${currencyKey}`;
+
+      window.requestAnimationFrame(() => {
+        document.getElementById(anchorId)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+      return;
+    }
+
+    const anchorId =
+      suggestion.recommendedUiTarget === "goal"
+        ? `goal-input-${currencyKey}`
+        : suggestion.recommendedUiTarget === "achieve"
+          ? `goal-achieve-${currencyKey}`
+          : `goal-summary-${currencyKey}`;
+
+    router.push(`${workspaceBasePath}/support-page#${anchorId}`, {
+      scroll: true,
+    });
+  };
 
   return (
     <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -77,6 +147,12 @@ function SettlementWorkspaceCard(props: {
           目標達成後の資金移動、配分、実行結果の確認を行います。
         </div>
       </div>
+
+      <AiSuggestionsCard
+        suggestions={suggestions}
+        emptyLabel="この段階での追加提案はありません"
+        onSelectSuggestion={handleSelectSuggestion}
+      />
 
       <ProjectSettlementPanel
         projectId={props.projectId}

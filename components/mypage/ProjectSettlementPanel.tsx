@@ -86,6 +86,11 @@ export function ProjectSettlementPanel(props: Props) {
     projectCurrency = "JPYC",
     initialData = null,
   } = props;
+  const currencyKey = projectCurrency.toLowerCase();
+  const bridgeAnchorId = `settlement-bridge-${currencyKey}`;
+  const planAnchorId = `settlement-plan-${currencyKey}`;
+  const distributionResultAnchorId =
+    `settlement-distribution-result-${currencyKey}`;
   const emptyStatusCopy = getSettlementStatusCopy("NOT_READY");
 
   const panel = useProjectSettlementPanel({
@@ -115,15 +120,6 @@ export function ProjectSettlementPanel(props: Props) {
   const executeRef = React.useRef<HTMLDivElement | null>(null);
   const reviewRef = React.useRef<HTMLDivElement | null>(null);
 
-  if (!panel.canUse) {
-    return (
-      <WorkspaceEmptyState
-        title="project を作成すると精算設定が始まります"
-        description="目標達成後のブリッジや配分準備は、project を作成してからこの画面で進めます。"
-      />
-    );
-  }
-
   const settlementStatusCopy = getSettlementStatusCopy(
     panel.settlement?.status ?? "NOT_READY"
   );
@@ -146,16 +142,18 @@ export function ProjectSettlementPanel(props: Props) {
     executionCompleted,
   });
 
-  const stepRefs: Record<
-    SettlementFlowStepId,
-    React.RefObject<HTMLDivElement | null>
-  > = {
-    BRIDGE: bridgeRef,
-    DRAFT: draftRef,
-    PREFLIGHT: preflightRef,
-    EXECUTE: executeRef,
-    REVIEW: reviewRef,
-  };
+  const stepRefs = React.useMemo<
+    Record<SettlementFlowStepId, React.RefObject<HTMLDivElement | null>>
+  >(
+    () => ({
+      BRIDGE: bridgeRef,
+      DRAFT: draftRef,
+      PREFLIGHT: preflightRef,
+      EXECUTE: executeRef,
+      REVIEW: reviewRef,
+    }),
+    []
+  );
 
   const steps: SettlementFlowStep[] = [
     {
@@ -261,12 +259,56 @@ export function ProjectSettlementPanel(props: Props) {
     },
   };
 
-  const scrollToStep = (stepId: string) => {
+  const scrollToStep = React.useCallback((stepId: string) => {
     const ref = stepRefs[stepId as SettlementFlowStepId];
     window.requestAnimationFrame(() => {
       ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  };
+  }, [stepRefs]);
+
+  React.useEffect(() => {
+    if (!panel.canUse) {
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hash = window.location.hash.replace(/^#/, "");
+    if (!hash) {
+      return;
+    }
+
+    if (hash === bridgeAnchorId) {
+      scrollToStep("BRIDGE");
+      return;
+    }
+
+    if (hash === planAnchorId) {
+      scrollToStep("DRAFT");
+      return;
+    }
+
+    if (hash === distributionResultAnchorId) {
+      scrollToStep("REVIEW");
+    }
+  }, [
+    bridgeAnchorId,
+    distributionResultAnchorId,
+    panel.canUse,
+    planAnchorId,
+    scrollToStep,
+  ]);
+
+  if (!panel.canUse) {
+    return (
+      <WorkspaceEmptyState
+        title="project を作成すると精算設定が始まります"
+        description="目標達成後のブリッジや配分準備は、project を作成してからこの画面で進めます。"
+      />
+    );
+  }
 
   return (
     <div className="space-y-4 rounded-xl border bg-white p-4">
@@ -338,7 +380,11 @@ export function ProjectSettlementPanel(props: Props) {
         </button>
       </WorkspaceStatusNotice>
 
-      <div ref={bridgeRef} className="scroll-mt-24">
+      <div
+        ref={bridgeRef}
+        id={bridgeAnchorId}
+        className="scroll-mt-24"
+      >
         <ProjectSettlementStepSection
           stepNumber={1}
           title="Bridge"
@@ -359,7 +405,11 @@ export function ProjectSettlementPanel(props: Props) {
         </ProjectSettlementStepSection>
       </div>
 
-      <div ref={draftRef} className="scroll-mt-24">
+      <div
+        ref={draftRef}
+        id={planAnchorId}
+        className="scroll-mt-24"
+      >
         <ProjectSettlementStepSection
           stepNumber={2}
           title="Draft"
@@ -398,7 +448,11 @@ export function ProjectSettlementPanel(props: Props) {
         </ProjectSettlementStepSection>
       </div>
 
-      <div ref={reviewRef} className="scroll-mt-24">
+      <div
+        ref={reviewRef}
+        id={distributionResultAnchorId}
+        className="scroll-mt-24"
+      >
         <ProjectSettlementStepSection
           stepNumber={5}
           title="Review"

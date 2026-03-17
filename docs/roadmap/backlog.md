@@ -14,12 +14,16 @@
 - `Phase 1 UX`: `creatorReady` の入口改善を踏まえて section label / CTA hierarchy を揃える
 - `Phase 2 UX`: advanced 扱いへ落とした `settlement` controls を手動確認して、通常フローとの境界を微調整する
 - `Phase 2 UX`: `settlement` の mobile guided flow を手動確認して、step overview と section 操作行の詰まりを微調整する
+- `AI Office`: `Manager Agent` と distribution plan draft の source-of-truth を docs と registry で固定する
+- `AI Office`: x402 候補 surface と非対象 surface の安全境界を固定する
 
 ## Next
 
 - `Phase 2 UX`: `AI Office` の guided flow をさらに強めるか手動確認で判断する
 - `Phase 2 UX`: 公開プロフィールの支援後フローと confidence copy を整える
 - `Phase 2 UX`: `settlement` advanced section の見え方を mobile でさらに整える
+- `AI Office`: role-based agent output を `AgentTask` へ段階的に接続する
+- `Platform`: low-risk internal AI API の billable surface を設計し、x402 readiness を評価する
 
 ## Later
 

@@ -38,7 +38,7 @@ export function getMyPageDashboardLoadOptions(
     case "support-page":
       return { includeSummary: true, includeSettlement: false };
     case "advanced":
-      return { includeSummary: false, includeSettlement: true };
+      return { includeSummary: true, includeSettlement: true };
     case "supporters":
     case "public":
       return { includeSummary: false, includeSettlement: false };

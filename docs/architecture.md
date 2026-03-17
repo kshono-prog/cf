@@ -28,6 +28,8 @@ AI Office runtime note:
 - keep task creation and approval as dedicated endpoints
 - keep read-side data composition in service modules
 - keep dashboard response parsing and runtime validation in dedicated helpers instead of inside `AiOfficePanel`
+- stage role-based agents behind the existing approval model before introducing external or billable execution paths
+- treat x402 as a future boundary for low-risk intelligence APIs, not for bridge or distribution execution
 
 Creator mypage runtime note:
 
@@ -104,3 +106,4 @@ Supporting parts:
 - high-risk funding and bridge logic must remain explicit
 - DB-affecting changes must explain migration impact
 - AI-generated changes must stay within narrow scopes
+- machine-billable surfaces must stay separate from custody-like or funds-movement operations

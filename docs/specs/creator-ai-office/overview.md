@@ -28,6 +28,12 @@
 - `ANNOUNCEMENT_DRAFT`
 - `SUPPORTER_MESSAGE_DRAFT`
 
+将来の段階計画:
+
+- role-based `Manager / Promotion / Finance / Fan Relation` agent へ広げる
+- x402 は low-risk な analysis / draft API のみ候補にする
+- 詳細は `docs/specs/creator-ai-office/ai-office-x402-rollout.md`
+
 ## v1 の対象外
 
 - 完全自動投稿
