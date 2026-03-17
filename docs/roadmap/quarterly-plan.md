@@ -23,11 +23,15 @@
 - 投稿案 / 告知案 / 翻訳案の安定化
 - metrics の表示整理
 - 承認待ちタスク一覧の強化
+- `Manager Agent` recommendation task の追加
+- distribution plan draft の追加
+- role-based AI Office surface の整理
 
 完了条件:
 
 - クリエイターが週次運営に使える
 - AI出力履歴が比較できる
+- recommendation と draft が AI Office 内で review できる
 
 ## 2026 Q3
 
@@ -56,4 +60,3 @@
 
 - AI が定常業務を継続的に支える
 - お金まわりと対外公開は人の最終承認のまま
-

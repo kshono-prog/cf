@@ -10,6 +10,11 @@ import {
 import type { TaskType } from "@/lib/agentTaskParsers";
 import { isJsonValueForStorage, toTaskType } from "@/lib/agentTaskParsers";
 import {
+  buildManagerAgentTaskOutput,
+  normalizeManagerAgentTaskInput,
+} from "@/lib/creator-ai/managerAgentTask";
+import { getProjectSummaryView } from "@/lib/projectSummary";
+import {
   buildTranslationsOutput,
   parseTranslationTaskInput,
 } from "@/lib/translation";
@@ -128,6 +133,23 @@ function validateWeeklyReportInput(input: unknown): TaskInputValidationResult {
           : new Date().toISOString(),
       reportingWindowDays,
     } as Prisma.InputJsonValue,
+  };
+}
+
+function validateManagerNextActionsInput(
+  input: unknown
+): TaskInputValidationResult {
+  const normalized = normalizeManagerAgentTaskInput(input);
+  if (!normalized) {
+    return { ok: false, error: "TASK_INPUT_INVALID" };
+  }
+
+  return {
+    ok: true,
+    value: {
+      source: normalized.source,
+      requestedAt: normalized.requestedAt,
+    },
   };
 }
 
@@ -994,6 +1016,55 @@ async function buildSupporterMessageDraftOutput(params: {
 }
 
 const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
+  MANAGER_NEXT_ACTIONS: {
+    validateInput: validateManagerNextActionsInput,
+    outputSchema: {
+      kind: "MANAGER_NEXT_ACTIONS",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "Manager Agent による次アクション要約",
+        },
+        suggestedActions: {
+          type: "array",
+          required: true,
+          description: "summary をもとに整理した next action 候補",
+        },
+        evidence: {
+          type: "object",
+          required: true,
+          description: "判断根拠となる project summary の圧縮情報",
+        },
+        projectSnapshot: {
+          type: "object",
+          required: false,
+          description: "参照した project / goal / progress の要約",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => {
+      const normalizedInput =
+        normalizeManagerAgentTaskInput(params.input) ?? {
+          source: "mypage",
+          requestedAt: new Date().toISOString(),
+        };
+      const summary = params.projectId
+        ? await getProjectSummaryView(params.projectId)
+        : null;
+
+      return buildManagerAgentTaskOutput({
+        summary,
+        input: normalizedInput,
+        isOwner: true,
+      });
+    },
+  },
   ANALYZE: {
     validateInput: validateGenericJsonInput,
     outputSchema: {

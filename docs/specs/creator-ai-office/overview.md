@@ -14,7 +14,7 @@
 ## コアフロー
 
 1. 活動データと支援データを集める
-2. AI が分析または提案 task を作る
+2. AI が分析、提案、または `Manager Agent` recommendation task を作る
 3. クリエイターが task を承認または差し戻す
 4. 承認済み task を限定的に実行する
 5. 結果を履歴として保存する
@@ -22,6 +22,7 @@
 ## v1 の対象
 
 - `ANALYZE`
+- `MANAGER_NEXT_ACTIONS`
 - `PROPOSE`
 - `TRANSLATE`
 - `WEEKLY_REPORT`
@@ -33,6 +34,7 @@
 - role-based `Manager / Promotion / Finance / Fan Relation` agent へ広げる
 - x402 は low-risk な analysis / draft API のみ候補にする
 - 詳細は `docs/specs/creator-ai-office/ai-office-x402-rollout.md`
+- Phase 1 実行計画は `docs/specs/creator-ai-office/phase1-delivery-plan.md`
 
 ## v1 の対象外
 

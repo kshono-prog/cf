@@ -31,6 +31,12 @@ export type AiOfficeTaskDraft = {
 
 export const AI_OFFICE_TASK_CHOICES: readonly AiOfficeTaskChoice[] = [
   {
+    taskType: "MANAGER_NEXT_ACTIONS",
+    eyebrow: "Manager",
+    whenToUse: "いまの project 状態から次の一手を整理したいとき",
+    tier: "MVP",
+  },
+  {
     taskType: "PROPOSE",
     eyebrow: "次の一手",
     whenToUse: "次に何を投稿・告知・改善するか迷っているとき",

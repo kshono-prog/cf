@@ -13,6 +13,11 @@ type MessageState = {
 };
 
 const TASK_TYPE_COPY: Record<TaskType, Copy> = {
+  MANAGER_NEXT_ACTIONS: {
+    label: "Manager Agent の次アクションを整理する",
+    helper:
+      "現在の project summary を見て、達成・plan・bridge 前後の次アクションを整理します。",
+  },
   ANALYZE: {
     label: "活動を分析する",
     helper: "最近の指標を見て、動きや改善点を整理します。",

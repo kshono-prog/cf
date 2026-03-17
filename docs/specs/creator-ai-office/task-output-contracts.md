@@ -31,6 +31,31 @@ task type によって、本文系・分析系・補助項目を追加する。
 
 ## Task Contracts
 
+### `MANAGER_NEXT_ACTIONS`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `suggestedActions[]`
+- `evidence`
+- `projectSnapshot`
+- `basedOn`
+
+metrics 依存:
+
+- なし
+- ただし `Project / Goal / Summary / Distribution` の summary view を利用する
+
+fallback:
+
+- `projectId` がない、または summary が取得できない場合でも task 自体は失敗させない
+- その場合は `suggestedActions` を空にし、summary 不足を伝える文面を返す
+
 ### `TRANSLATE`
 
 input:
@@ -156,4 +181,5 @@ fallback:
 2. `lib/agentTaskExecutors.ts`
 3. `components/mypage/AgentTaskOutputViews.tsx`
 4. `components/mypage/AiOfficePanel.tsx`
-5. この spec
+5. `components/mypage/aiOfficeTaskConfig.ts`
+6. この spec

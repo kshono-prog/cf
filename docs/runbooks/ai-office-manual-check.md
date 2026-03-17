@@ -6,6 +6,7 @@
 
 ## 対象
 
+- `MANAGER_NEXT_ACTIONS`
 - `TRANSLATE`
 - `WEEKLY_REPORT`
 - `ANNOUNCEMENT_DRAFT`
@@ -26,7 +27,25 @@
 3. `AI事務所（Phase1）` セクションが表示されることを確認する
 4. 必要なら `metrics収集` を1回実行する
 
-## チェック 1: TRANSLATE
+## チェック 1: MANAGER_NEXT_ACTIONS
+
+1. task type を `MANAGER_NEXT_ACTIONS` に切り替える
+2. `AIタスク作成` を押す
+3. project がある場合は、現在の summary に沿った next action が出るか確認する
+
+期待結果:
+
+- エラーにならない
+- `Latest AI Tasks` に `MANAGER_NEXT_ACTIONS` が追加される
+- task を開くと `summary / suggested actions / evidence` が structured view で表示される
+
+確認してほしい点:
+
+- support-page に出ている AI Suggestions と大きく矛盾していないか
+- evidence の `progress / goal / plan / bridge / result` が current state とズレていないか
+- project が未選択のときも task 作成自体は失敗せず、安全な fallback になるか
+
+## チェック 2: TRANSLATE
 
 1. task type を `TRANSLATE` に切り替える
 2. `Task Input` に短い日本語または英語を入れる
@@ -44,7 +63,7 @@
 - 翻訳結果が読みやすいか
 - task input の見せ方が自然か
 
-## チェック 2: WEEKLY_REPORT
+## チェック 3: WEEKLY_REPORT
 
 1. task type を `WEEKLY_REPORT` に切り替える
 2. `reporting window days` を確認する
@@ -62,7 +81,7 @@
 - metrics が少ない場合、空状態の文面が不自然でないか
 - 支援状況がある project で support summary が違和感ないか
 
-## チェック 3: ANNOUNCEMENT_DRAFT
+## チェック 4: ANNOUNCEMENT_DRAFT
 
 1. task type を `ANNOUNCEMENT_DRAFT` に切り替える
 2. `channel / tone / reporting window days` を確認する
@@ -81,7 +100,7 @@
 - 口調がプロダクトの想定に合うか
 - 支援や metrics を本文に入れたときに過不足がないか
 
-## チェック 4: SUPPORTER_MESSAGE_DRAFT
+## チェック 5: SUPPORTER_MESSAGE_DRAFT
 
 1. task type を `SUPPORTER_MESSAGE_DRAFT` に切り替える
 2. `purpose / tone / reporting window days` を確認する
@@ -100,7 +119,7 @@
 - 支援者向けメッセージとして押しつけがましくないか
 - 支援実績が少ない場合でも不自然な文にならないか
 
-## チェック 5: 承認フロー
+## チェック 6: 承認フロー
 
 1. `承認必要` をオンにして task を1件作る
 2. `Latest AI Tasks` で `WAITING_APPROVAL` になることを確認する

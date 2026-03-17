@@ -259,6 +259,244 @@ function ProposeOutputCard(props: { output: ProposeOutputView }) {
   );
 }
 
+type ManagerSuggestedActionView = {
+  id: string;
+  title: string;
+  reason: string;
+  priority: "high" | "medium" | "low";
+  recommendedUiTarget:
+    | "project"
+    | "goal"
+    | "summary"
+    | "plan"
+    | "distributionResult"
+    | "bridge"
+    | "achieve";
+  requiresHumanApproval: boolean;
+};
+
+type ManagerNextActionsOutputView = {
+  summary: string;
+  suggestedActions: ManagerSuggestedActionView[];
+  evidence: {
+    projectStatus: string | null;
+    confirmedJpyc: number;
+    targetJpyc: number | null;
+    progressPct: number;
+    goalConfigured: boolean;
+    goalAchieved: boolean;
+    distributionPlanMissing: boolean;
+    bridgeReflected: boolean;
+    distributionResultSaved: boolean;
+    bridgeRunCount: number;
+    distributionRunCount: number;
+  } | null;
+  projectSnapshot: {
+    projectId: string;
+    title: string;
+    currency: string | null;
+    status: string;
+    goalId: string | null;
+    goalTargetJpyc: number | null;
+    achievedAt: string | null;
+    deadline: string | null;
+  } | null;
+};
+
+function isSuggestionPriority(
+  value: unknown
+): value is ManagerSuggestedActionView["priority"] {
+  return value === "high" || value === "medium" || value === "low";
+}
+
+function isManagerTarget(
+  value: unknown
+): value is ManagerSuggestedActionView["recommendedUiTarget"] {
+  return (
+    value === "project" ||
+    value === "goal" ||
+    value === "summary" ||
+    value === "plan" ||
+    value === "distributionResult" ||
+    value === "bridge" ||
+    value === "achieve"
+  );
+}
+
+function parseManagerNextActionsOutput(
+  v: unknown
+): ManagerNextActionsOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+
+  const suggestedActionsRaw = asArray(v.suggestedActions);
+  const suggestedActions: ManagerSuggestedActionView[] = [];
+  for (const item of suggestedActionsRaw) {
+    if (!isRecord(item)) continue;
+    const id = asStringOrNull(item.id);
+    const title = asStringOrNull(item.title);
+    const reason = asStringOrNull(item.reason);
+    const priority = item.priority;
+    const recommendedUiTarget = item.recommendedUiTarget;
+    if (
+      !id ||
+      !title ||
+      !reason ||
+      !isSuggestionPriority(priority) ||
+      !isManagerTarget(recommendedUiTarget)
+    ) {
+      continue;
+    }
+
+    suggestedActions.push({
+      id,
+      title,
+      reason,
+      priority,
+      recommendedUiTarget,
+      requiresHumanApproval: item.requiresHumanApproval !== false,
+    });
+  }
+
+  const evidenceRaw = isRecord(v.evidence) ? v.evidence : null;
+  const evidence = evidenceRaw
+    ? {
+        projectStatus: asStringOrNull(evidenceRaw.projectStatus),
+        confirmedJpyc: asNumberOrNull(evidenceRaw.confirmedJpyc) ?? 0,
+        targetJpyc: asNumberOrNull(evidenceRaw.targetJpyc),
+        progressPct: asNumberOrNull(evidenceRaw.progressPct) ?? 0,
+        goalConfigured: evidenceRaw.goalConfigured === true,
+        goalAchieved: evidenceRaw.goalAchieved === true,
+        distributionPlanMissing: evidenceRaw.distributionPlanMissing === true,
+        bridgeReflected: evidenceRaw.bridgeReflected === true,
+        distributionResultSaved: evidenceRaw.distributionResultSaved === true,
+        bridgeRunCount: asNumberOrNull(evidenceRaw.bridgeRunCount) ?? 0,
+        distributionRunCount:
+          asNumberOrNull(evidenceRaw.distributionRunCount) ?? 0,
+      }
+    : null;
+
+  const snapshotRaw = isRecord(v.projectSnapshot) ? v.projectSnapshot : null;
+  const projectSnapshot =
+    snapshotRaw &&
+    asStringOrNull(snapshotRaw.projectId) &&
+    asStringOrNull(snapshotRaw.title) &&
+    asStringOrNull(snapshotRaw.status)
+      ? {
+          projectId: asStringOrNull(snapshotRaw.projectId) ?? "",
+          title: asStringOrNull(snapshotRaw.title) ?? "",
+          currency: asStringOrNull(snapshotRaw.currency),
+          status: asStringOrNull(snapshotRaw.status) ?? "",
+          goalId: asStringOrNull(snapshotRaw.goalId),
+          goalTargetJpyc: asNumberOrNull(snapshotRaw.goalTargetJpyc),
+          achievedAt: asStringOrNull(snapshotRaw.achievedAt),
+          deadline: asStringOrNull(snapshotRaw.deadline),
+        }
+      : null;
+
+  return {
+    summary,
+    suggestedActions,
+    evidence,
+    projectSnapshot,
+  };
+}
+
+function managerPriorityBadgeClass(
+  priority: ManagerSuggestedActionView["priority"]
+): string {
+  if (priority === "high") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+  if (priority === "medium") {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+  return "border-gray-200 bg-gray-100 text-gray-700";
+}
+
+function ManagerNextActionsOutputCard(props: {
+  output: ManagerNextActionsOutputView;
+}) {
+  const { output } = props;
+  return (
+    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
+      <div className="font-medium text-gray-800">{output.summary}</div>
+      {output.projectSnapshot ? (
+        <div className="rounded border bg-white p-2 text-gray-700">
+          <div className="font-medium text-gray-800">
+            {output.projectSnapshot.title}
+          </div>
+          <div className="mt-1 text-[10px]">
+            status: {output.projectSnapshot.status}
+            {output.projectSnapshot.currency
+              ? ` / currency: ${output.projectSnapshot.currency}`
+              : ""}
+            {output.projectSnapshot.goalTargetJpyc != null
+              ? ` / target: ${output.projectSnapshot.goalTargetJpyc.toLocaleString()}`
+              : ""}
+          </div>
+        </div>
+      ) : null}
+      {output.evidence ? (
+        <div className="flex flex-wrap gap-1">
+          <span className="rounded-full border bg-white px-2 py-1">
+            progress: {Math.floor(output.evidence.progressPct)}%
+          </span>
+          <span className="rounded-full border bg-white px-2 py-1">
+            goal: {output.evidence.goalConfigured ? "set" : "missing"}
+          </span>
+          <span className="rounded-full border bg-white px-2 py-1">
+            achieved: {output.evidence.goalAchieved ? "yes" : "no"}
+          </span>
+          <span className="rounded-full border bg-white px-2 py-1">
+            plan: {output.evidence.distributionPlanMissing ? "missing" : "ready"}
+          </span>
+          <span className="rounded-full border bg-white px-2 py-1">
+            bridge: {output.evidence.bridgeReflected ? "reflected" : "pending"}
+          </span>
+          <span className="rounded-full border bg-white px-2 py-1">
+            result:{" "}
+            {output.evidence.distributionResultSaved ? "saved" : "pending"}
+          </span>
+        </div>
+      ) : null}
+      {output.suggestedActions.length > 0 ? (
+        <div className="grid gap-1">
+          {output.suggestedActions.slice(0, 3).map((action) => (
+            <div
+              key={action.id}
+              className="rounded border bg-white px-2 py-2 text-gray-800"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-medium">{action.title}</div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] ${managerPriorityBadgeClass(
+                    action.priority
+                  )}`}
+                >
+                  {action.priority}
+                </span>
+              </div>
+              <div className="mt-1 text-[10px] text-gray-500">
+                target: {action.recommendedUiTarget}
+                {action.requiresHumanApproval ? " / approval required" : ""}
+              </div>
+              <div className="mt-1 text-[10px] whitespace-pre-wrap text-gray-700">
+                {action.reason}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded border border-dashed bg-white px-2 py-2 text-gray-600">
+          追加の next action はありません。
+        </div>
+      )}
+    </div>
+  );
+}
+
 type TranslateOutputView = {
   summary: string;
   translations: Array<{
@@ -507,6 +745,12 @@ type OutputRenderer = {
 };
 
 const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
+  MANAGER_NEXT_ACTIONS: {
+    render: (output) => {
+      const parsed = parseManagerNextActionsOutput(output);
+      return parsed ? <ManagerNextActionsOutputCard output={parsed} /> : null;
+    },
+  },
   ANALYZE: {
     render: (output) => {
       const parsed = parseAnalyzeOutput(output);

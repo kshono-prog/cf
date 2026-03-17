@@ -1,6 +1,7 @@
 import { isRecord, toBigIntOrThrow, toNonEmptyString } from "@/lib/api/guards";
 
 export type TaskType =
+  | "MANAGER_NEXT_ACTIONS"
   | "ANALYZE"
   | "PROPOSE"
   | "TRANSLATE"
@@ -16,6 +17,7 @@ export type TaskStatus =
 export type TaskApprovalAction = "APPROVE" | "REJECT";
 
 export const ALLOWED_TASK_TYPES: readonly TaskType[] = [
+  "MANAGER_NEXT_ACTIONS",
   "ANALYZE",
   "PROPOSE",
   "TRANSLATE",

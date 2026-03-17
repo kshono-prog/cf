@@ -71,7 +71,7 @@ export function AiOfficePanel(props: {
 
   const [platform, setPlatform] = useState<Platform>("YOUTUBE");
   const [accountHandle, setAccountHandle] = useState<string>("");
-  const [taskType, setTaskType] = useState<TaskType>("PROPOSE");
+  const [taskType, setTaskType] = useState<TaskType>("MANAGER_NEXT_ACTIONS");
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("ALL");
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [translationInput, setTranslationInput] = useState<string>("");
