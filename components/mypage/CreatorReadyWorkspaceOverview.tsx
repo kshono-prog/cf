@@ -56,8 +56,8 @@ function ProjectHealthCard({
   if (!dashboard?.summary) {
     return (
       <WorkspaceEmptyState
-        title={`${currency} の project はまだありません`}
-        description="この通貨で支援を受ける予定があるなら、まずは project を作成して目標を設定します。"
+        title={`${currency} の支援設定はまだありません`}
+        description="この通貨で支援を受ける場合は、詳細設定からプロジェクトと目標金額を設定してください。"
       />
     );
   }
@@ -112,7 +112,7 @@ function ProjectHealthCard({
           <dd className="font-medium text-gray-900">{goalLabel}</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <dt>次の運営ステータス</dt>
+          <dt>精算状況</dt>
           <dd className="font-medium text-gray-900">{settlementState}</dd>
         </div>
       </dl>
@@ -212,7 +212,7 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
 
         if (!response.ok) {
           if (!cancelled) {
-            setAiSummaryError("下書きと承認の状況を取得できませんでした。");
+            setAiSummaryError("AIの提案状況を取得できませんでした。");
             setWaitingTasks([]);
           }
           return;
@@ -223,7 +223,7 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
         }
       } catch {
         if (!cancelled) {
-          setAiSummaryError("下書きと承認の状況を取得できませんでした。");
+          setAiSummaryError("AIの提案状況を取得できませんでした。");
           setWaitingTasks([]);
         }
       } finally {
@@ -244,15 +244,11 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
     <section className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-700">
-            Weekly Home
-          </div>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950">
-            今ここで進めること
+          <h2 className="text-xl font-semibold text-slate-950">
+            今日の運営状況
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-700">
-            {props.username} のプロフィール、支援状況、承認待ちをここから確認します。
-            最初にやることを1つ決めて進み、詳細な設定は下の管理セクションで必要なときだけ開きます。
+            支援の進み具合、AIからの提案、承認待ちを一覧で確認できます。
           </p>
         </div>
         <a
@@ -261,7 +257,7 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
           rel="noreferrer"
           className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
         >
-          公開ページを別タブで開く
+          公開ページを確認する
         </a>
       </div>
 
@@ -269,15 +265,15 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
         <div className="mt-6">
           <WorkspaceStatusNotice
             tone="attention"
-            title="目標達成後の確認が必要な project があります"
-            description="配分や精算の準備が必要な project があるため、通常の運営と分けて確認します。"
+            title="目標を達成したプロジェクトがあります"
+            description="配分や受け取りの手続きが必要です。精算・詳細設定から確認してください。"
           >
             <button
               type="button"
               className="inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 transition hover:border-amber-500"
               onClick={props.onOpenAdvancedSettings}
             >
-              精算と詳細設定を開く
+              精算・詳細設定を開く
             </button>
           </WorkspaceStatusNotice>
         </div>
@@ -286,17 +282,17 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
       <div className="mt-6">
         <PublicReadinessPanel
           compact
-          title="公開準備の進捗"
-          description="公開ページに必要な項目がどこまで揃っているかを確認します。"
+          title="公開ページの準備状況"
+          description="支援者が訪れたとき必要な情報が揃っているか確認できます。"
           readiness={publicReadiness}
           actions={[
             {
-              label: "プロフィールと支援設定を開く",
+              label: "プロフィール・支援設定を整える",
               onClick: props.onOpenSupportPage,
               tone: "primary",
             },
             {
-              label: "公開ページ確認を開く",
+              label: "公開ページを確認する",
               onClick: props.onOpenPublicPage,
             },
           ]}
@@ -307,14 +303,11 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
         <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-slate-950">今やること</div>
+              <div className="text-sm font-semibold text-slate-950">次にやること</div>
               <div className="mt-1 text-xs leading-5 text-slate-600">
-                最初に1つだけ選んで進める前提で並べています。
+                優先度の高い順に並べています。
               </div>
             </div>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-              MVP
-            </span>
           </div>
           <div className="mt-3 grid gap-3">
             {quickActions.map((action) => (
@@ -345,14 +338,14 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-amber-950">
-                  Beta / Advanced
+                  試験中の機能
                 </div>
                 <p className="mt-1 text-xs leading-5 text-amber-800">
-                  実験導線と高リスク設定は、日常運営とは別の枠で確認します。
+                  通常使う機能とは別に、試験版の機能や詳しい設定はこちらから確認できます。
                 </p>
               </div>
               <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-800">
-                Beta
+                試験中
               </span>
             </div>
             <div className="mt-3 space-y-3">
@@ -380,9 +373,9 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
           </div>
 
           <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
-            <div className="text-sm font-semibold text-slate-950">下書きと承認の状況</div>
+            <div className="text-sm font-semibold text-slate-950">AIの提案・承認待ち</div>
             <p className="mt-1 text-xs leading-5 text-slate-600">
-              承認待ちと下書きの状態だけを先に見ます。
+              AIが作成した告知・お礼などの提案を確認・承認できます。
             </p>
             <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
               <div className="flex items-start justify-between gap-3">
@@ -399,29 +392,29 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
                   className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:border-slate-900 hover:text-slate-950"
                   onClick={props.onOpenSupporterResponse}
                 >
-                  下書きと承認を開く
+                  提案を確認する
                 </button>
               </div>
               <p className="mt-2 text-xs leading-5 text-gray-600">
                 {waitingApprovalCount > 0
-                  ? "承認待ちが残っているので、まずここを処理すると運営が進めやすくなります。"
-                  : "今は承認待ちはありません。必要なら新しい下書きを作れます。"}
+                  ? "承認を待っている提案があります。確認して承認または却下してください。"
+                  : "現在、承認待ちの提案はありません。必要なら新しい下書きを作れます。"}
               </p>
               <div className="mt-3 space-y-2">
                 {loadingAiSummary ? (
                   <div className="rounded-xl bg-gray-50 px-3 py-2 text-[11px] text-gray-600">
-                    下書きと承認の状況を読み込んでいます。
+                    AIの提案状況を読み込んでいます。
                   </div>
                 ) : aiSummaryError ? (
                   <WorkspaceEmptyState
                     compact
-                    title="下書きと承認の状況を取得できませんでした"
+                    title="AIの提案状況を取得できませんでした"
                     description={aiSummaryError}
                   />
                 ) : waitingTasks.length === 0 ? (
                   <WorkspaceEmptyState
                     compact
-                    title="いまは承認待ちの下書きはありません"
+                    title="いまは承認待ちの提案はありません"
                     description="告知やお礼の下書きを作ると、ここからすぐ確認できます。"
                   />
                 ) : (
@@ -439,9 +432,9 @@ export function CreatorReadyWorkspaceOverview(props: Props) {
           </div>
 
           <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
-            <div className="text-sm font-semibold text-slate-950">支援状況</div>
+            <div className="text-sm font-semibold text-slate-950">支援の進み具合</div>
             <p className="mt-1 text-xs leading-5 text-slate-600">
-              どの通貨の project が進んでいて、次に何を詰めるべきかを見ます。
+              各通貨の支援額・目標・達成状況を確認できます。
             </p>
             <div className="mt-4 grid gap-3">
               {(["JPYC", "USDC"] as const).map((currency) => (

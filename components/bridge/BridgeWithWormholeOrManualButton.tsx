@@ -8,7 +8,9 @@ import type { Address } from "viem";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 type Provider = "WORMHOLE_UI" | "MANUAL";
-type Currency = "JPYC" | "USDC";
+import { toCurrency, type CurrencyCode } from "@/lib/currencyUtils";
+
+type Currency = CurrencyCode;
 
 type PrepareOk = {
   ok: true;
@@ -80,10 +82,6 @@ function toNumber(v: unknown): number | null {
 
 function toProvider(v: unknown): Provider | null {
   return v === "WORMHOLE_UI" || v === "MANUAL" ? (v as Provider) : null;
-}
-
-function toCurrency(v: unknown): Currency | null {
-  return v === "JPYC" || v === "USDC" ? (v as Currency) : null;
 }
 
 function toAddress(v: unknown): Address | null {

@@ -6,6 +6,7 @@ import {
   buildSupportProjectView,
   type SupportProjectView,
 } from "@/lib/supportProfileView";
+import { decimalToAmountByCurrency } from "@/lib/currencyUtils";
 
 export const PUBLIC_CLOSED_PROJECT_STATUSES = new Set<string>([
   "ARCHIVED",
@@ -16,24 +17,6 @@ export const PUBLIC_CLOSED_PROJECT_STATUSES = new Set<string>([
 ]);
 
 const ZERO_DECIMAL = new Prisma.Decimal(0);
-
-function decimalToAmountByCurrency(
-  currency: "JPYC" | "USDC",
-  amountDecimal: Prisma.Decimal | null
-): number {
-  if (!amountDecimal) return 0;
-
-  if (currency === "USDC") {
-    const n = Number(amountDecimal.toString());
-    if (!Number.isFinite(n)) return 0;
-    return Number(n.toFixed(2));
-  }
-
-  const s = amountDecimal.toString();
-  const [i] = s.split(".");
-  const n = Number(i || "0");
-  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
-}
 
 export async function loadRecruitingProjectViews(args: {
   creatorProfileId: bigint;

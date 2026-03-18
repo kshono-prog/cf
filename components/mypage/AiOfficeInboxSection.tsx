@@ -287,8 +287,8 @@ export function AiOfficeInboxSection(props: Props) {
     if (staleRole) {
       return {
         tone: "attention" as const,
-        title: `${staleRole.label} に保留が長い task があります`,
-        description: `承認待ち ${staleRole.waitingApprovalCount} 件のうち、${staleRole.ignoredCount} 件は長く止まっています。先にこの role の下書きを確認すると詰まりが減ります。`,
+        title: `${staleRole.label} に保留が長い提案があります`,
+        description: `承認待ち ${staleRole.waitingApprovalCount} 件のうち、${staleRole.ignoredCount} 件は長く止まっています。先にこの担当の提案を確認すると詰まりが減ります。`,
         roleId: staleRole.roleId,
       };
     }
@@ -308,7 +308,7 @@ export function AiOfficeInboxSection(props: Props) {
     return {
       tone: "info" as const,
       title: `${waitingRole.label} の承認待ちが先頭です`,
-      description: `この role では承認待ちが ${waitingRole.waitingApprovalCount} 件あります。まず role をまたいで承認待ちを減らしてから、新しい下書きに進めます。`,
+      description: `この担当では承認待ちが ${waitingRole.waitingApprovalCount} 件あります。先に承認待ちを減らしてから、新しい下書きに進めます。`,
       roleId: waitingRole.roleId,
     };
   }, [props.usefulness.roleBreakdown]);
@@ -320,7 +320,7 @@ export function AiOfficeInboxSection(props: Props) {
           <div>
             <div className="text-sm font-semibold text-gray-900">承認待ち</div>
             <div className="mt-1 text-xs text-gray-500">
-              まず role をまたいだ承認待ちを処理し、その後に最近の履歴を確認する流れに整理しています。
+              AIが作成した提案を確認して、承認または却下できます。
             </div>
           </div>
           <div className="grid min-w-[240px] gap-2 sm:grid-cols-2">
@@ -360,7 +360,7 @@ export function AiOfficeInboxSection(props: Props) {
             onClick={() => props.onRoleFilterChange(prioritizedRoleNotice.roleId)}
             disabled={props.loading}
           >
-            この role で絞る
+            この担当で絞る
           </button>
         </AiOfficeStatusNotice>
       ) : null}
@@ -368,10 +368,10 @@ export function AiOfficeInboxSection(props: Props) {
       {recentRoleShortcuts.length > 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-4">
           <div className="text-sm font-semibold text-gray-900">
-            最近使った role 導線
+            最近使った担当
           </div>
           <div className="mt-1 text-xs text-gray-500">
-            さっき開いていた role の `Create / Inbox` に、そのまま戻れます。
+            さっき開いていた担当の下書きや承認待ちに、そのまま戻れます。
           </div>
           <div className="mt-3 space-y-2">
             {recentRoleShortcuts.map((shortcut, index) => (
@@ -425,7 +425,7 @@ export function AiOfficeInboxSection(props: Props) {
                     }
                     disabled={props.loading}
                   >
-                    この role の承認待ちを開く
+                    この担当の承認待ちを開く
                   </button>
                   <button
                     type="button"
@@ -435,7 +435,7 @@ export function AiOfficeInboxSection(props: Props) {
                     }
                     disabled={props.loading}
                   >
-                    この role で下書きを開く
+                    この担当で下書きを作る
                   </button>
                   <button
                     type="button"
@@ -450,8 +450,8 @@ export function AiOfficeInboxSection(props: Props) {
                     disabled={props.loading}
                   >
                     {copiedLinkKey === `${shortcut.roleId}:INBOX:recent`
-                      ? "Inbox リンクをコピー済み"
-                      : "Inbox リンクをコピー"}
+                      ? "承認待ちリンクをコピー済み"
+                      : "承認待ちリンクをコピー"}
                   </button>
                   <button
                     type="button"
@@ -466,8 +466,8 @@ export function AiOfficeInboxSection(props: Props) {
                     disabled={props.loading}
                   >
                     {copiedLinkKey === `${shortcut.roleId}:CREATE:recent`
-                      ? "Create リンクをコピー済み"
-                      : "Create リンクをコピー"}
+                      ? "下書きリンクをコピー済み"
+                      : "下書きリンクをコピー"}
                   </button>
                 </div>
               </div>
@@ -479,10 +479,10 @@ export function AiOfficeInboxSection(props: Props) {
       {recentCopiedRoleLinkCards.length > 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-4">
           <div className="text-sm font-semibold text-gray-900">
-            最近コピーした role link
+            コピーしたリンク履歴
           </div>
           <div className="mt-1 text-xs text-gray-500">
-            共有や運用メモで使った `Inbox / Create` の link を、ここから再コピーできます。
+            共有や運用メモで使った承認待ち・下書きのリンクを、ここから再コピーできます。
           </div>
           <div className="mt-3 space-y-2">
             {recentCopiedRoleLinkCards.map((link) => (
@@ -495,7 +495,7 @@ export function AiOfficeInboxSection(props: Props) {
                     {link.label}
                   </div>
                   <span className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700">
-                    {link.activeView === "INBOX" ? "Inbox" : "Create"}
+                    {link.activeView === "INBOX" ? "承認待ち" : "下書き"}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-600">
@@ -513,8 +513,8 @@ export function AiOfficeInboxSection(props: Props) {
                     disabled={props.loading}
                   >
                     {link.activeView === "INBOX"
-                      ? "この Inbox を開く"
-                      : "この Create を開く"}
+                      ? "承認待ちを開く"
+                      : "下書きを作る"}
                   </button>
                   <button
                     type="button"
@@ -530,7 +530,7 @@ export function AiOfficeInboxSection(props: Props) {
                   >
                     {copiedLinkKey === `${link.roleId}:${link.activeView}:copied`
                       ? "リンクをコピー済み"
-                      : "この link を再コピー"}
+                      : "もう一度コピー"}
                   </button>
                 </div>
               </div>
@@ -546,7 +546,7 @@ export function AiOfficeInboxSection(props: Props) {
               承認待ちキュー
             </div>
             <div className="mt-1 text-xs text-gray-500">
-              まずここで、各 role から上がっている承認待ちタスクだけを確認します。
+              各担当から上がっている承認待ちの提案を確認します。
             </div>
           </div>
           <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-medium text-amber-800">
@@ -565,7 +565,7 @@ export function AiOfficeInboxSection(props: Props) {
             onClick={() => props.onRoleFilterChange(null)}
             disabled={props.loading}
           >
-            すべての role
+            すべての担当
           </button>
           {props.usefulness.roleBreakdown.map((role) => (
             <button
@@ -596,7 +596,7 @@ export function AiOfficeInboxSection(props: Props) {
               }
               description={
                 selectedRoleBreakdown
-                  ? "別の role に切り替えるか、新しい下書きが承認待ちになるとここに表示されます。"
+                  ? "別の担当に切り替えるか、新しい下書きが承認待ちになるとここに表示されます。"
                   : "新しい下書きが承認待ちになると、ここに優先して表示されます。"
               }
             >
@@ -609,7 +609,7 @@ export function AiOfficeInboxSection(props: Props) {
                   }
                   disabled={props.loading}
                 >
-                  この role で下書きを作る
+                  この担当で下書きを作る
                 </button>
               ) : null}
             </AiOfficeEmptyState>
@@ -761,7 +761,7 @@ export function AiOfficeInboxSection(props: Props) {
               }
               description={
                 selectedRoleBreakdown
-                  ? "role を切り替えるか、この role の task を承認または却下するとここに履歴が残ります。"
+                  ? "担当を切り替えるか、この担当の提案を承認または却下するとここに履歴が残ります。"
                   : "承認や却下を行うと、ここに最近の履歴が残ります。"
               }
             >
@@ -774,7 +774,7 @@ export function AiOfficeInboxSection(props: Props) {
                   }
                   disabled={props.loading}
                 >
-                  この role で最初の下書きを作る
+                  この担当で最初の下書きを作る
                 </button>
               ) : null}
             </AiOfficeEmptyState>

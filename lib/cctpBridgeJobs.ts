@@ -5,7 +5,8 @@ import {
   type TxClient,
 } from "@/lib/projectSettlement";
 
-type Currency = "JPYC" | "USDC";
+import { toCurrency } from "@/lib/currencyUtils";
+
 type BridgeSourceChain = "POLYGON" | "ETHEREUM";
 
 type ProjectForJob = {
@@ -14,10 +15,6 @@ type ProjectForJob = {
   goal: { achievedAt: Date | null } | null;
   eventFundingChainId: number | null;
 };
-
-function toCurrency(v: string): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
-}
 
 function toSourceChain(chainId: number | null | undefined): BridgeSourceChain {
   return chainId === 1 || chainId === 11155111 ? "ETHEREUM" : "POLYGON";

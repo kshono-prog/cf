@@ -9,7 +9,7 @@ import {
   claimGasSupport,
   fetchGasEligibility,
   fetchGasNonce,
-} from "@/lib/mypage/api";
+} from "@/lib/api/gas";
 import type { GasEligibility } from "@/lib/mypage/types";
 import { getChainConfig } from "@/lib/chainConfig";
 
@@ -29,7 +29,6 @@ type ChainOption = {
 };
 
 const GAS_SUPPORT_CHAIN_IDS = [137, 43114] as const;
-const API_BASE = "";
 
 const EMPTY_STATE: GasState = {
   data: null,
@@ -88,11 +87,7 @@ export function GasSupportTabs() {
       const addr: Address = address;
       updateGasState(chainId, { loading: true, error: null });
       try {
-        const res = await fetchGasEligibility({
-          apiBase: API_BASE,
-          address: addr,
-          chainId,
-        });
+        const res = await fetchGasEligibility({ address: addr, chainId });
         if (res.ok) {
           updateGasState(chainId, { data: res.data });
         } else {
@@ -116,17 +111,12 @@ export function GasSupportTabs() {
       const addr: Address = address;
       updateGasState(chainId, { claiming: true, txHash: null, error: null });
       try {
-        const nonce = await fetchGasNonce({
-          apiBase: API_BASE,
-          address: addr,
-          chainId,
-        });
+        const nonce = await fetchGasNonce({ address: addr, chainId });
         if (!nonce.ok) throw new Error(nonce.error);
 
         const signature = await signMessageAsync({ message: nonce.message });
 
         const claimed = await claimGasSupport({
-          apiBase: API_BASE,
           address: addr,
           message: nonce.message,
           signature,

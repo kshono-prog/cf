@@ -1,11 +1,18 @@
 // app/api/projects/[projectId]/goal/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { errJson, okJson } from "@/lib/api/responses";
+import {
+  isRecord,
+  toBigIntOrThrow,
+  toNonEmptyString,
+} from "@/lib/api/guards";
+import { toCurrency, type CurrencyCode } from "@/lib/currencyUtils";
 
 export const dynamic = "force-dynamic";
 
-type Currency = "JPYC" | "USDC";
+type Currency = CurrencyCode;
 
 type GoalPayload = {
   id: string;
@@ -19,27 +26,8 @@ type GoalPayload = {
   updatedAt: string;
 };
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function toBigIntOrThrow(v: string, code: string): bigint {
-  try {
-    return BigInt(v);
-  } catch {
-    throw new Error(code);
-  }
-}
-
-function toOptionalString(v: unknown): string | null {
-  return typeof v === "string" ? v : null;
-}
-
 function toOptionalNumber(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
-}
-function toCurrency(v: string): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
 }
 
 function lower(v: string): string {
@@ -79,17 +67,11 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
       select: { id: true, currency: true },
     });
     if (!project) {
-      return NextResponse.json(
-        { ok: false, error: "PROJECT_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("PROJECT_NOT_FOUND", 404);
     }
     const unitCurrency = toCurrency(project.currency);
     if (!unitCurrency) {
-      return NextResponse.json(
-        { ok: false, error: "PROJECT_CURRENCY_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PROJECT_CURRENCY_INVALID", 400);
     }
 
     const goal = await prisma.goal.findUnique({
@@ -106,15 +88,9 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
       },
     });
 
-    return NextResponse.json({
-      ok: true,
-      goal: goal ? serializeGoal(goal, unitCurrency) : null,
-    });
+    return okJson({ goal: goal ? serializeGoal(goal, unitCurrency) : null });
   } catch {
-    return NextResponse.json(
-      { ok: false, error: "GOAL_GET_FAILED" },
-      { status: 500 }
-    );
+    return errJson("GOAL_GET_FAILED", 500);
   }
 }
 
@@ -125,31 +101,22 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
 
     const body: unknown = await req.json().catch(() => null);
     if (!isRecord(body)) {
-      return NextResponse.json(
-        { ok: false, error: "BODY_INVALID" },
-        { status: 400 }
-      );
+      return errJson("BODY_INVALID", 400);
     }
 
-    const address = toOptionalString(body.address);
+    const address = toNonEmptyString(body.address);
     const targetAmount =
       toOptionalNumber(body.targetAmount) ??
       toOptionalNumber(body.targetAmountJpyc);
-    const deadline = toOptionalString(body.deadline); // ISO string or null
+    const deadline = toNonEmptyString(body.deadline); // ISO string or null
 
     if (!address) {
-      return NextResponse.json(
-        { ok: false, error: "ADDRESS_REQUIRED" },
-        { status: 400 }
-      );
+      return errJson("ADDRESS_REQUIRED", 400);
     }
     const ownerSession = await requireOwnerSession(req, address);
     if (!ownerSession.ok) return ownerSession.response;
     if (targetAmount == null || targetAmount <= 0) {
-      return NextResponse.json(
-        { ok: false, error: "TARGET_INVALID" },
-        { status: 400 }
-      );
+      return errJson("TARGET_INVALID", 400);
     }
 
     const project = await prisma.project.findUnique({
@@ -157,25 +124,16 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
       select: { id: true, ownerAddress: true, currency: true },
     });
     if (!project) {
-      return NextResponse.json(
-        { ok: false, error: "PROJECT_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("PROJECT_NOT_FOUND", 404);
     }
 
     const owner = project.ownerAddress ? lower(project.ownerAddress) : null;
     if (!owner || owner !== lower(address)) {
-      return NextResponse.json(
-        { ok: false, error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
     const unitCurrency = toCurrency(project.currency);
     if (!unitCurrency) {
-      return NextResponse.json(
-        { ok: false, error: "PROJECT_CURRENCY_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PROJECT_CURRENCY_INVALID", 400);
     }
 
     const deadlineDate =
@@ -205,11 +163,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
       },
     });
 
-    return NextResponse.json({ ok: true, goal: serializeGoal(saved, unitCurrency) });
+    return okJson({ goal: serializeGoal(saved, unitCurrency) });
   } catch {
-    return NextResponse.json(
-      { ok: false, error: "GOAL_SAVE_FAILED" },
-      { status: 500 }
-    );
+    return errJson("GOAL_SAVE_FAILED", 500);
   }
 }

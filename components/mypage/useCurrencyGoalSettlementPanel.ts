@@ -120,14 +120,8 @@ export function useCurrencyGoalSettlementPanel(
   const goalIsSet = !!summary?.goal;
   const goalAchieved = !!summary?.goal?.achievedAt;
 
-  const canAchieve =
-    isOwner &&
-    goalIsSet &&
-    !goalAchieved &&
-    (summary?.progress.targetAmount ?? summary?.progress.targetJpyc ?? null) !=
-      null &&
-    (summary?.progress.confirmedTotal ?? summary?.progress.confirmedJpyc) >=
-      (summary?.progress.targetAmount ?? summary?.progress.targetJpyc ?? 0);
+  // ボタン表示制御のみ。進捗チェックは API 側（goal/achieve）が行う。
+  const canAchieve = isOwner && goalIsSet && !goalAchieved;
 
   const onSaveGoal = useCallback(async () => {
     setMsg(null);

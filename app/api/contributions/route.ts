@@ -30,6 +30,8 @@ import { mainnet, polygon, avalanche } from "viem/chains";
 import { isSupportedChainId, type SupportedChainId } from "@/lib/chainConfig";
 import { getTokenOnChain } from "@/lib/tokenRegistry";
 
+import { toCurrency, type CurrencyCode } from "@/lib/currencyUtils";
+
 export const dynamic = "force-dynamic";
 
 const TRANSFER_EVENT = parseAbiItem(
@@ -46,7 +48,7 @@ const ERC20_DECIMALS_ABI = [
   },
 ] as const;
 
-type Currency = "JPYC" | "USDC";
+type Currency = CurrencyCode;
 
 type ContributionPostBody = {
   contributionId?: unknown; // UUID string
@@ -60,10 +62,6 @@ type ContributionPostBody = {
   amount?: unknown; // human string
   postId?: unknown; // UUID string|null|undefined
 };
-
-function toCurrency(v: unknown): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
-}
 
 function toChainId(v: unknown): number | null {
   if (typeof v !== "number") return null;

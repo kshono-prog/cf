@@ -36,10 +36,10 @@ export function CreatorReadyAdvancedRoute() {
     <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div>
         <div className="text-sm font-semibold text-gray-900">
-          精算と詳細設定
+          精算・詳細設定
         </div>
         <div className="mt-1 text-xs leading-5 text-gray-600">
-          配分、精算、ガス代支援などの高リスク操作をここでまとめて扱います。
+          目標達成後の配分・精算・ガス代支援など、上級者向けの設定をまとめています。
         </div>
       </div>
       {dashboardError ? (

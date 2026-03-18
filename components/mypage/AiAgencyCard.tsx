@@ -180,16 +180,16 @@ export function AiAgencyCard(props: Props) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div>
-        <div className="text-sm font-semibold text-gray-900">AI事務所</div>
+        <div className="text-sm font-semibold text-gray-900">AIアシスタント</div>
         <div className="mt-1 text-xs leading-5 text-gray-600">
-          投稿・分析・告知の担当 agent を整理し、将来の自動化ジョブの土台をここで管理します。
+          投稿・分析・告知の担当AIを整理し、将来の自動化処理の土台をここで管理します。
         </div>
       </div>
 
       <div className="mt-4 space-y-4">
         <form className="rounded-2xl border border-gray-200 bg-gray-50 p-4" onSubmit={handleCreateAgent}>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
-            AI Agent
+            AIエージェント
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>

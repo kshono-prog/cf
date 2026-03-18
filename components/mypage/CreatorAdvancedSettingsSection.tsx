@@ -68,7 +68,7 @@ function SettlementWorkspaceCard(props: {
     return (
       <WorkspaceEmptyState
         title={`${props.currency} の配分と精算はまだ始められません`}
-        description="この通貨の project を作成すると、必要なときにここでブリッジや配分を進められます。"
+        description="この通貨のプロジェクトを作成すると、必要なときにここで精算や送金を進められます。"
       />
     );
   }
@@ -175,15 +175,15 @@ export function CreatorAdvancedSettingsSection(props: Props) {
     <div className="space-y-4">
       <WorkspaceStatusNotice
         tone="attention"
-        title="高リスク操作は日常運営と分けて扱います"
-        description="資金移動、配分実行、ガス代支援は通常の公開面編集とは別の判断が必要です。必要なときだけここを開いて進めます。"
+        title="送金や精算は通常の運営と分けて確認します"
+        description="送金・配分の実行・ガス代の申請は、通常のプロフィール編集とは別に慎重な確認が必要です。必要なときだけここを開いて進めます。"
       />
 
       <div className="space-y-3">
         <div>
           <div className="text-sm font-semibold text-gray-900">配分と精算</div>
           <div className="mt-1 text-xs leading-5 text-gray-600">
-            project ごとの配分フローと実行ログをここで確認します。
+            通貨ごとの配分フローと実行ログを確認します。
           </div>
         </div>
 
@@ -202,8 +202,8 @@ export function CreatorAdvancedSettingsSection(props: Props) {
           </div>
         ) : (
           <WorkspaceEmptyState
-            title="まだ配分と精算を設定する project はありません"
-            description="先にプロフィールと支援設定で project と goal を整えると、必要なときにここから精算フローへ進めます。"
+            title="まだ配分と精算を設定するプロジェクトはありません"
+            description="先にプロフィールと支援設定でプロジェクトと目標を整えると、必要なときにここから精算フローへ進めます。"
           />
         )}
       </div>
@@ -212,7 +212,7 @@ export function CreatorAdvancedSettingsSection(props: Props) {
         <div>
           <div className="text-sm font-semibold text-gray-900">ガス代支援</div>
           <div className="mt-1 text-xs leading-5 text-gray-600">
-            必要なときだけ申請や確認を行います。日常運営の導線とは分けて置きます。
+            必要なときだけ申請や確認を行います。通常の運営画面とは分けて置いています。
           </div>
         </div>
         <GasSupportTabs />

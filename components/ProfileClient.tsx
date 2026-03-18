@@ -3,37 +3,29 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 
 import type { FeedListView } from "@/lib/feedList";
 import type { CreatorProfile } from "@/lib/profileTypes";
-import { autoReverifyPending, postReverify } from "@/lib/reverifyClient";
 import {
   clampPct,
-  getErrorMessage,
   type Currency,
 } from "@/components/profile/profileClientHelpers";
-import {
-  isRecord,
-  type PublicSummaryLite,
-} from "@/lib/publicSummary";
+import type { PublicSummaryLite } from "@/lib/publicSummary";
 import type { SelectedPostTipContext } from "@/components/feed/feedTypes";
 import { LazyFeedSection } from "@/components/feed/LazyFeedSection";
 import { Avatar } from "@/components/shared/Avatar";
-import {
-  parsePublicViewerMeResponse,
-  resolvePublicViewerState,
-} from "@/lib/publicViewerState";
-import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
-import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import {
-  buildSupportProjectView,
   type SupportProjectView,
   type SupportProfileView,
 } from "@/lib/supportProfileView";
 import { SupportProjectSummaryCard } from "@/components/support/SupportProjectSummaryCard";
+import { useWalletResume } from "@/components/profile/useWalletResume";
+import { useProjectProgress } from "@/components/profile/useProjectProgress";
+import { useContributionFlow } from "@/components/profile/useContributionFlow";
+import { parseProfileDeepLinkParams } from "@/lib/deepLink";
 
 const ProfileWalletClient = dynamic(
   () =>
@@ -93,75 +85,6 @@ type Props = {
   layout?: "full" | "content";
 };
 
-type ProgressSupportedChainIdsByCurrency = {
-  JPYC: number[];
-  USDC: number[];
-};
-
-type ProgressByChainRow = {
-  chainId: number;
-  confirmedAmountDecimal: string | null;
-  confirmedAmountJpyc: number;
-};
-
-type PurposeDto = { id: string; title?: string | null };
-
-type ProjectProgressApi = {
-  ok: true;
-  project: { id: string; status: string; title?: string | null };
-  goal: {
-    id: string;
-    unitCurrency?: Currency;
-    targetAmount?: number;
-    targetAmountJpyc: number;
-    achievedAt: string | null;
-    deadline?: string | null;
-  } | null;
-  progress: {
-    currency?: Currency;
-    confirmedJpyc: number;
-    confirmedTotal?: number;
-    confirmedByCurrency?: {
-      JPYC: number;
-      USDC: number;
-    };
-    targetAmount?: number | null;
-    targetJpyc: number | null;
-    progressPct: number;
-    supportedChainIds?: number[];
-    supportedJpycChainIds: number[];
-    supportedChainIdsByCurrency?: ProgressSupportedChainIdsByCurrency;
-    byChain: ProgressByChainRow[];
-    byChainByCurrency?: {
-      JPYC: ProgressByChainRow[];
-      USDC: ProgressByChainRow[];
-    };
-    totalsAllChains: {
-      JPYC: string | null;
-      USDC: string | null;
-    };
-    perPurpose: Array<{
-      purposeId: string;
-      code: string | null;
-      label: string | null;
-      description: string | null;
-      confirmedAmountDecimal: string | null;
-      confirmedAmountJpyc: number;
-    }>;
-    noPurposeConfirmedJpyc: number;
-  };
-  purposes: PurposeDto[];
-};
-
-type GoalAchievePost = {
-  ok: true;
-  achieved: boolean;
-  alreadyAchieved?: boolean;
-  reason?: string;
-  project?: unknown;
-  goal?: unknown;
-  progress?: unknown;
-};
 
 function formatSupportAmount(value: number, currency: Currency): string {
   if (!Number.isFinite(value)) return currency === "USDC" ? "0.00" : "0";
@@ -213,36 +136,20 @@ export default function ProfileClient({
     [projectId, projectIdsByCurrency]
   );
   const timelineRef = useRef<HTMLDivElement | null>(null);
-  const reverifyOnViewBusyRef = useRef(false);
-  const attemptedThisViewRef = useRef<{ set: Set<string> }>({
-    set: new Set<string>(),
-  });
   const handledSupportLinkRef = useRef<string | null>(null);
 
   const [supportProfileState, setSupportProfileState] =
     useState<SupportProfileView>(
       supportProfileView ?? {
-        mode:
-          creator.goalTitle || creator.profile ? "draft" : "unavailable",
+        mode: creator.profile ? "draft" : "unavailable",
         activeCurrency: null,
         activeProjectId: null,
-        projectsByCurrency: {
-          JPYC: null,
-          USDC: null,
-        },
-        draft:
-          creator.goalTitle || creator.profile
-            ? {
-                title: creator.goalTitle ?? null,
-                description: creator.profile ?? null,
-              }
-            : null,
+        projectsByCurrency: { JPYC: null, USDC: null },
+        draft: creator.profile
+          ? { title: null, description: creator.profile ?? null }
+          : null,
       }
     );
-  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
-  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
-    typeof parsePublicViewerMeResponse
-  > | null>(null);
   const [selectedSupportProjectId, setSelectedSupportProjectId] =
     useState<string | null>(null);
   const [selectedPostTipContext, setSelectedPostTipContext] =
@@ -250,18 +157,6 @@ export default function ProfileClient({
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
   const [supportSheetLoaded, setSupportSheetLoaded] = useState(false);
-  const [progressLoading, setProgressLoading] = useState(false);
-  const [progressError, setProgressError] = useState<string | null>(null);
-  const [goalAchievedAt, setGoalAchievedAt] = useState<string | null>(null);
-  const [supportedJpycChainIds, setSupportedJpycChainIds] = useState<number[]>(
-    []
-  );
-  const [supportedChainIdsByCurrency, setSupportedChainIdsByCurrency] =
-    useState<ProgressSupportedChainIdsByCurrency>({
-      JPYC: [],
-      USDC: [],
-    });
-  const [autoReverifyRunning, setAutoReverifyRunning] = useState(false);
 
   useEffect(() => {
     if (!supportProfileView) return;
@@ -285,7 +180,10 @@ export default function ProfileClient({
   );
 
   useEffect(() => {
-    const requestedProjectId = searchParams.get("projectId");
+    const linkParams = parseProfileDeepLinkParams(
+      new URLSearchParams(searchParams.toString())
+    );
+    const { projectId: requestedProjectId, support: supportFlag } = linkParams;
     if (!requestedProjectId) return;
 
     const nextProject = recruitingProjectMap.get(requestedProjectId);
@@ -296,7 +194,6 @@ export default function ProfileClient({
       setViewCurrency(nextProject.currency);
     }
 
-    const supportFlag = searchParams.get("support");
     const supportKey = `${requestedProjectId}:${supportFlag ?? ""}`;
     if (supportFlag === "1" && handledSupportLinkRef.current !== supportKey) {
       handledSupportLinkRef.current = supportKey;
@@ -353,442 +250,41 @@ export default function ProfileClient({
     viewCurrency,
   ]);
 
-  useEffect(() => {
-    if (!viewerAddress) {
-      setViewerIdentity(null);
-      setViewerIdentityResolved(true);
-      return;
-    }
-
-    const connectedAddress = viewerAddress;
-    let cancelled = false;
-
-    async function fetchViewerIdentity(): Promise<void> {
-      setViewerIdentityResolved(false);
-      try {
-        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
-        if (!cancelled) {
-          setViewerIdentity(identity);
-        }
-      } catch {
-        if (!cancelled) {
-          setViewerIdentity(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setViewerIdentityResolved(true);
-        }
-      }
-    }
-
-    void fetchViewerIdentity();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [viewerAddress]);
-
-  const viewerState = resolvePublicViewerState({
+  // ── P1-5: useWalletResume ────────────────────────────────────────────────
+  const { viewerState } = useWalletResume({
     pageUsername: username,
     pageCreatorAddress: creator.address ?? null,
     viewerAddress: viewerAddress ?? null,
-    identity: viewerIdentity,
-    identityResolved: viewerIdentityResolved,
   });
-  const shouldPrefetchProjectProgress = Boolean(activeProjectId);
 
-  const fetchProjectProgressSafe = useCallback(async (): Promise<ProjectProgressApi | null> => {
-    if (!activeProjectId) return null;
-
-    setProgressLoading(true);
-    setProgressError(null);
-
-    try {
-      const response = await fetch(
-        `/api/projects/${encodeURIComponent(activeProjectId)}/progress`,
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("うまく読み込めませんでした");
-      }
-
-      const json = (await response.json()) as unknown;
-
-      if (
-        !isRecord(json) ||
-        json.ok !== true ||
-        !isRecord(json.project) ||
-        !isRecord(json.progress)
-      ) {
-        throw new Error("うまく読み込めませんでした");
-      }
-
-      const typed = json as ProjectProgressApi;
-      const confirmed = Number(
-        typed.progress.confirmedTotal ?? typed.progress.confirmedJpyc ?? 0
-      );
-      const target =
-        typed.progress.targetAmount ?? typed.progress.targetJpyc ?? null;
-      const idsLegacy = Array.isArray(typed.progress.supportedJpycChainIds)
-        ? typed.progress.supportedJpycChainIds.filter(
-            (value): value is number =>
-              typeof value === "number" && Number.isFinite(value)
-          )
-        : [];
-      const idsAll = Array.isArray(typed.progress.supportedChainIds)
-        ? typed.progress.supportedChainIds.filter(
-            (value): value is number =>
-              typeof value === "number" && Number.isFinite(value)
-          )
-        : [];
-
-      setSupportProfileState((current) => {
-        const currency = typed.progress.currency === "USDC" ? "USDC" : "JPYC";
-        const nextProject = buildSupportProjectView({
-          projectId: typed.project.id,
-          currency,
-          title:
-            typeof typed.project.title === "string" && typed.project.title.length > 0
-              ? typed.project.title
-              : `${creator.displayName || username}の活動を応援する`,
-          description: creator.profile ?? null,
-          targetAmount:
-            typeof target === "number" && Number.isFinite(target) ? target : null,
-          confirmedAmount: Number.isFinite(confirmed) ? confirmed : 0,
-          progressPct:
-            typeof typed.progress.progressPct === "number" &&
-            Number.isFinite(typed.progress.progressPct)
-              ? typed.progress.progressPct
-              : 0,
-          achievedAt: typed.goal?.achievedAt ?? null,
-          deadline: typed.goal?.deadline ?? null,
-        });
-
-        return {
-          mode: "ready",
-          activeCurrency: current.activeCurrency ?? currency,
-          activeProjectId: typed.project.id,
-          projectsByCurrency: {
-            ...current.projectsByCurrency,
-            [currency]: nextProject,
-          },
-          draft: null,
-        };
-      });
-      setGoalAchievedAt(typed.goal?.achievedAt ?? null);
-      setSupportedJpycChainIds(idsAll.length > 0 ? idsAll : idsLegacy);
-
-      const byCurrency = typed.progress.supportedChainIdsByCurrency;
-      if (
-        isRecord(byCurrency) &&
-        Array.isArray(byCurrency.JPYC) &&
-        Array.isArray(byCurrency.USDC)
-      ) {
-        setSupportedChainIdsByCurrency({
-          JPYC: byCurrency.JPYC.filter(
-            (value): value is number =>
-              typeof value === "number" && Number.isFinite(value)
-          ),
-          USDC: byCurrency.USDC.filter(
-            (value): value is number =>
-              typeof value === "number" && Number.isFinite(value)
-          ),
-        });
-      } else {
-        setSupportedChainIdsByCurrency({ JPYC: idsLegacy, USDC: [] });
-      }
-
-      return typed;
-    } catch (error) {
-      setProgressError(getErrorMessage(error));
-      return null;
-    } finally {
-      setProgressLoading(false);
-    }
-  }, [activeProjectId, creator.displayName, creator.profile, username]);
-
-  async function achieveGoalSafe(): Promise<GoalAchievePost | null> {
-    if (!activeProjectId || !viewerAddress) return null;
-
-    try {
-      const response = await ownerAuthFetch({
-        address: viewerAddress,
-        url: `/api/projects/${encodeURIComponent(activeProjectId)}/goal/achieve`,
-        init: {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify({ address: viewerAddress }),
-        },
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const result = (await response.json()) as GoalAchievePost;
-      await fetchProjectProgressSafe();
-      return result;
-    } catch {
-      return null;
-    }
-  }
-
-  const fetchPendingTxHashesSafe = useCallback(async (): Promise<`0x${string}`[]> => {
-    if (!activeProjectId) return [];
-
-    try {
-      const response = await fetch(
-        `/api/projects/${encodeURIComponent(activeProjectId)}/contributions?status=PENDING`,
-        {
-          method: "GET",
-          cache: "no-store",
-          credentials: "include",
-        }
-      );
-      if (!response.ok) return [];
-      const json: unknown = await response.json().catch(() => null);
-      const rows =
-        isRecord(json) && json.ok === true
-          ? Array.isArray(json.contributions)
-            ? json.contributions
-            : Array.isArray(json.items)
-              ? json.items
-              : null
-          : null;
-      if (!rows) {
-        return [];
-      }
-
-      return rows
-        .filter((row): row is Record<string, unknown> => isRecord(row))
-        .map((row) => row.txHash)
-        .filter(
-          (txHash): txHash is `0x${string}` =>
-            typeof txHash === "string" && /^0x[0-9a-fA-F]{64}$/.test(txHash)
-        );
-    } catch {
-      return [];
-    }
-  }, [activeProjectId]);
-
-  const autoReverifyPendingOnView = useCallback(async (): Promise<void> => {
-    if (!activeProjectId) return;
-    if (reverifyOnViewBusyRef.current) return;
-
-    reverifyOnViewBusyRef.current = true;
-    try {
-      const result = await autoReverifyPending({
-        projectId: activeProjectId,
-        cooldownMs: 60_000,
-        maxPerView: 3,
-      });
-
-      if (result.verified.length > 0) {
-        await fetchProjectProgressSafe();
-      }
-    } finally {
-      reverifyOnViewBusyRef.current = false;
-    }
-  }, [activeProjectId, fetchProjectProgressSafe]);
-
-  useEffect(() => {
-    if (!activeProjectId || !shouldPrefetchProjectProgress) return;
-
-    attemptedThisViewRef.current.set.clear();
-    void fetchProjectProgressSafe();
-    if (viewerState.isOwner) {
-      void autoReverifyPendingOnView();
-    }
-  }, [
-    activeProjectId,
-    autoReverifyPendingOnView,
-    fetchProjectProgressSafe,
-    shouldPrefetchProjectProgress,
-    viewerState.isOwner,
-  ]);
-
-  useEffect(() => {
-    if (!activeProjectId || !viewerState.isOwner) return;
-    if (progressLoading || autoReverifyRunning) return;
-
-    let cancelled = false;
-    const keyPrefix = "cf:reverify:lastAttempt:";
-    const maxPerLoad = 5;
-    const cooldownMs = 20_000;
-
-    function getLastAttempt(txHash: string): number {
-      try {
-        const value = localStorage.getItem(keyPrefix + txHash);
-        if (!value) return 0;
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : 0;
-      } catch {
-        return 0;
-      }
-    }
-
-    function setLastAttempt(txHash: string, value: number) {
-      try {
-        localStorage.setItem(keyPrefix + txHash, String(value));
-      } catch {
-        // ignore storage errors
-      }
-    }
-
-    async function run(): Promise<void> {
-      setAutoReverifyRunning(true);
-      try {
-        const pending = await fetchPendingTxHashesSafe();
-        if (cancelled || pending.length === 0) return;
-
-        const now = Date.now();
-        const candidates: `0x${string}`[] = [];
-
-        for (const txHash of pending) {
-          if (attemptedThisViewRef.current.set.has(txHash)) continue;
-          if (now - getLastAttempt(txHash) < cooldownMs) continue;
-
-          candidates.push(txHash);
-          if (candidates.length >= maxPerLoad) break;
-        }
-
-        if (candidates.length === 0) return;
-
-        for (const txHash of candidates) {
-          attemptedThisViewRef.current.set.add(txHash);
-          setLastAttempt(txHash, now);
-        }
-
-        let anyConfirmed = false;
-        for (const txHash of candidates) {
-          if (cancelled) return;
-          const result = await postReverify(txHash);
-          if (result.verified === true) {
-            anyConfirmed = true;
-          }
-        }
-
-        if (anyConfirmed && !cancelled) {
-          await fetchProjectProgressSafe();
-        }
-      } finally {
-        if (!cancelled) {
-          setAutoReverifyRunning(false);
-        }
-      }
-    }
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    activeProjectId,
-    activeSupportProject?.confirmedAmount,
-    autoReverifyRunning,
-    fetchPendingTxHashesSafe,
-    fetchProjectProgressSafe,
+  // ── P1-5: useProjectProgress ─────────────────────────────────────────────
+  const {
     progressLoading,
-    viewerState.isOwner,
-  ]);
+    progressError,
+    goalAchievedAt,
+    supportedJpycChainIds,
+    supportedChainIdsByCurrency,
+    fetchProjectProgressSafe,
+  } = useProjectProgress({
+    activeProjectId,
+    creatorDisplayName: creator.displayName || username,
+    creatorProfile: creator.profile ?? null,
+    username,
+    viewerIsOwner: viewerState.isOwner,
+    activeSupportProjectConfirmedAmount: activeSupportProject?.confirmedAmount,
+    onSupportProfileUpdate: setSupportProfileState,
+  });
 
-  async function postContribution(args: {
-    contributionId?: string;
-    projectId?: string;
-    purposeId?: string;
-    postId?: string;
-    chainId: number;
-    currency: Currency;
-    tokenAddress: string;
-    txHash: string;
-    fromAddress: string;
-    toAddress: string;
-    amount: string;
-  }): Promise<{ ok: true } | { ok: false; reason: string }> {
-    if (!args.projectId) return { ok: false, reason: "PROJECT_ID_MISSING" };
-
-    try {
-      const response = await fetch("/api/contributions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-        body: JSON.stringify({
-          ...(args.contributionId
-            ? { contributionId: String(args.contributionId) }
-            : {}),
-          projectId: String(args.projectId),
-          ...(args.purposeId === undefined
-            ? {}
-            : {
-                purposeId:
-                  args.purposeId === null ? null : String(args.purposeId),
-              }),
-          ...(args.postId ? { postId: args.postId } : {}),
-          chainId: args.chainId,
-          currency: args.currency,
-          txHash: args.txHash,
-          fromAddress: args.fromAddress,
-          toAddress: args.toAddress,
-          amount: String(args.amount),
-        }),
-      });
-
-      if (!response.ok) {
-        return { ok: false, reason: `HTTP_${response.status}` };
-      }
-
-      return { ok: true };
-    } catch {
-      return { ok: false, reason: "FETCH_FAILED" };
-    }
-  }
-
-  async function afterSendPipeline(txHash: string, postId?: string | null) {
-    if (!activeProjectId) return;
-
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const result = await postReverify(txHash as `0x${string}`);
-      if (result.verified === true) break;
-      await new Promise((resolve) => setTimeout(resolve, 900));
-    }
-
-    const progress = await fetchProjectProgressSafe();
-    const achievedAt =
-      (progress?.goal?.achievedAt && progress.goal.achievedAt.length > 0
-        ? progress.goal.achievedAt
-        : null) ?? goalAchievedAt;
-    const targetRaw =
-      progress?.progress.targetAmount ?? progress?.progress.targetJpyc ?? null;
-    const confirmedRaw =
-      progress?.progress.confirmedTotal ?? progress?.progress.confirmedJpyc ?? 0;
-    const target =
-      typeof targetRaw === "number" && Number.isFinite(targetRaw)
-        ? targetRaw
-        : null;
-    const confirmed =
-      typeof confirmedRaw === "number" && Number.isFinite(confirmedRaw)
-        ? confirmedRaw
-        : 0;
-    const reached = target != null && target > 0 ? confirmed >= target : null;
-
-    if (reached === true && !achievedAt) {
-      await achieveGoalSafe();
-    }
-
-    const tippedPostId = postId ?? selectedPostTipContext?.id ?? null;
-    if (tippedPostId) {
-      setFeedRefreshToken((current) => current + 1);
-      setSelectedPostTipContext((current) =>
-        current?.id === tippedPostId ? null : current
-      );
-    }
-  }
+  // ── P1-5: useContributionFlow ────────────────────────────────────────────
+  const { postContribution, afterSendPipeline } = useContributionFlow({
+    activeProjectId,
+    viewerAddress: viewerAddress ?? null,
+    goalAchievedAt,
+    selectedPostTipContext,
+    fetchProjectProgressSafe,
+    setFeedRefreshToken,
+    setSelectedPostTipContext,
+  });
 
   const displayName = creator.displayName || username;
   const showLegacyCard = false;

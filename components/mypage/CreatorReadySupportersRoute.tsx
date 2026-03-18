@@ -16,7 +16,7 @@ const AiOfficeManagementSection = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="下書きと承認の面を読み込んでいます" />
+      <WorkspaceLoadingCard title="AIの提案と確認を読み込んでいます" />
     ),
   }
 );
@@ -27,15 +27,15 @@ export function CreatorReadySupportersRoute() {
   return (
     <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div>
-        <div className="text-sm font-semibold text-gray-900">下書きと承認</div>
+        <div className="text-sm font-semibold text-gray-900">AIの提案と確認</div>
         <div className="mt-1 text-xs leading-5 text-gray-600">
-          告知やお礼の下書き作成、承認待ちの確認、指標の取り込みを行います。
+          AIが作成した告知・お礼の下書きを確認して承認または却下できます。
         </div>
       </div>
       <WorkspaceStatusNotice
         tone="info"
-        title="日常導線を基本にしつつ、metrics と拡張下書きは beta として扱います"
-        description="まずは承認待ちと core task を進め、必要なときだけ metrics や拡張ドラフトを使う前提で整理しています。"
+        title="承認するまで自動投稿や送金は行われません"
+        description="AIが提案した内容を確認してから承認することで、実際の動作に反映されます。まずは承認待ちの提案から確認してください。"
       />
       <AiOfficeManagementSection
         walletAddress={workspace.address ?? null}

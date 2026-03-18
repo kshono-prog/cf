@@ -11,12 +11,9 @@ import type { Prisma, PrismaClient } from "@prisma/client";
  * - この関数は $transaction を呼びません（TransactionClient でも動作させるため）
  * - トランザクション制御は呼び出し側で行ってください
  */
-export type DbLike = PrismaClient | Prisma.TransactionClient;
-type Currency = "JPYC" | "USDC";
+import { toCurrency } from "@/lib/currencyUtils";
 
-function toCurrency(v: string): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
-}
+export type DbLike = PrismaClient | Prisma.TransactionClient;
 
 // Decimal(38,18) を「円（floor）」として扱う（既存ロジックと揃える）
 function decimalToJpycIntFloor(amountDecimal: Prisma.Decimal | null): number {

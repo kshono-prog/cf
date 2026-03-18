@@ -16,6 +16,7 @@ import {
   okMyPageMutationResponse,
 } from "@/lib/mypageApiResponses";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { isRecord, toOptionalString } from "@/lib/api/guards";
 
 export const dynamic = "force-dynamic";
 
@@ -47,14 +48,6 @@ function isAllowedSocialType(value: string): value is AllowedSocialType {
 /* =========================
    Guards / helpers (no any)
 ========================= */
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function toOptionalString(v: unknown): string | undefined {
-  return typeof v === "string" ? v : undefined;
-}
 
 function toOptionalNullableString(v: unknown): string | null | undefined {
   if (v === null) return null;

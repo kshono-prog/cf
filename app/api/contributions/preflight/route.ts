@@ -12,9 +12,11 @@ import { isSupportedChainId, type SupportedChainId } from "@/lib/chainConfig";
 import { getTokenOnChain } from "@/lib/tokenRegistry";
 import { isUuidString } from "@/lib/social";
 
+import { toCurrency, type CurrencyCode } from "@/lib/currencyUtils";
+
 export const dynamic = "force-dynamic";
 
-type Currency = "JPYC" | "USDC";
+type Currency = CurrencyCode;
 
 type ContributionPreflightBody = {
   projectId?: unknown;
@@ -28,10 +30,6 @@ type ContributionPreflightBody = {
   amountRaw?: unknown;
   decimals?: unknown;
 };
-
-function toCurrency(value: unknown): Currency | null {
-  return value === "JPYC" || value === "USDC" ? value : null;
-}
 
 function toChainId(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {

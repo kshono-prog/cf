@@ -38,14 +38,14 @@ function BridgeCard(props: BridgeCardProps) {
       </div>
       <input
         className="w-full rounded border px-3 py-2 text-sm sm:px-2 sm:py-1.5 sm:text-xs"
-        placeholder="ブリッジ済み金額（atomic 単位）"
+        placeholder="ブリッジ済み金額（最小単位）"
         value={props.amount}
         onChange={(e) => props.onChangeAmount(e.target.value)}
         inputMode="numeric"
       />
       <input
         className="w-full rounded border px-3 py-2 text-sm font-mono sm:px-2 sm:py-1.5 sm:text-xs"
-        placeholder="txHash（任意）"
+        placeholder="トランザクションハッシュ（任意）"
         value={props.txHash}
         onChange={(e) => props.onChangeTxHash(e.target.value)}
       />

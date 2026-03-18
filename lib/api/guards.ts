@@ -47,3 +47,9 @@ export function isJsonObjectOrArray(
   if (Array.isArray(v)) return true;
   return typeof v === "object" && v !== null;
 }
+
+export function toOptionalString(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const s = v.trim();
+  return s.length > 0 ? s : undefined;
+}

@@ -49,8 +49,8 @@ export function ProjectSettlementDistributionExecutionSection(
       </div>
       <div className="text-[11px] leading-5 text-gray-500 sm:text-xs">
         {props.hasCheckedPreflight
-          ? "送信前チェック完了後に、接続ウォレットの署名で1件ずつ送金します。"
-          : "先に Step 3 の送信前チェックを行ってから配分を開始します。"}
+          ? "送信前確認完了後に、接続ウォレットの署名で1件ずつ送金します。"
+          : "先に手順3の送信前確認を実行してから配分を開始します。"}
       </div>
     </div>
   );

@@ -7,12 +7,11 @@ import type {
   SummaryProject,
 } from "@/lib/mypage/accountPageTypes";
 import {
-  createMyPageProject,
   fetchMyPageProject,
-  hydrateMyPageProjectRecord,
   updateMyPageProject,
+  hydrateMyPageProjectRecord,
   type MyPageProjectRecord,
-} from "@/lib/mypage/api";
+} from "@/lib/api/project";
 
 export type ProjectSectionMode = "VIEW" | "EDIT" | "CREATE";
 
@@ -24,20 +23,11 @@ type UseProjectSectionArgs = {
   onActiveProjectIdChange?: (projectId: string, currency: CurrencyCode) => void;
 };
 
-function createEmptyCreateDraft() {
-  return {
-    title: "",
-    description: "",
-    purposeMode: "OPTIONAL",
-  };
-}
-
 export function useProjectSection(args: UseProjectSectionArgs) {
   const {
     ownerAddress,
     activeProjectId,
     initialProject = null,
-    currency = "JPYC",
     onActiveProjectIdChange,
   } = args;
 
@@ -52,11 +42,6 @@ export function useProjectSection(args: UseProjectSectionArgs) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [purposeMode, setPurposeMode] = useState("OPTIONAL");
-  const [creating, setCreating] = useState(false);
-
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editPurposeMode, setEditPurposeMode] = useState("OPTIONAL");
@@ -67,13 +52,6 @@ export function useProjectSection(args: UseProjectSectionArgs) {
     setEditTitle(nextProject.title);
     setEditDescription(nextProject.description ?? "");
     setEditPurposeMode(nextProject.purposeMode);
-  }, []);
-
-  const resetCreateDraft = useCallback(() => {
-    const empty = createEmptyCreateDraft();
-    setTitle(empty.title);
-    setDescription(empty.description);
-    setPurposeMode(empty.purposeMode);
   }, []);
 
   useEffect(() => {
@@ -127,53 +105,6 @@ export function useProjectSection(args: UseProjectSectionArgs) {
     void fetchProject(activeProjectId);
   }, [activeProjectId, applyProject, fetchProject, initialProject, project?.id]);
 
-  const onCreate = useCallback(async () => {
-    if (creating) return;
-
-    setCreating(true);
-    setMsg(null);
-
-    try {
-      const result = await createMyPageProject({
-        ownerAddress,
-        title,
-        description: description.trim().length > 0 ? description : null,
-        purposeMode,
-        currency,
-      });
-
-      if (!result.ok) {
-        setMsg(result.error);
-        return;
-      }
-
-      if (result.project) {
-        applyProject(result.project);
-      }
-
-      onActiveProjectIdChange?.(result.projectId, currency);
-      setMsg(
-        "新しい Project に切り替えました。Goal は Project ごとで、新ProjectはGoal未設定です（旧Goalは旧Projectに残ります）。"
-      );
-      resetCreateDraft();
-      setMode("VIEW");
-    } catch {
-      setMsg("PROJECT_CREATE_FAILED");
-    } finally {
-      setCreating(false);
-    }
-  }, [
-    applyProject,
-    creating,
-    currency,
-    description,
-    onActiveProjectIdChange,
-    ownerAddress,
-    purposeMode,
-    resetCreateDraft,
-    title,
-  ]);
-
   const onSaveEdit = useCallback(async () => {
     if (!activeProjectId || saving) return;
 
@@ -212,6 +143,18 @@ export function useProjectSection(args: UseProjectSectionArgs) {
     saving,
   ]);
 
+  const handleCreated = useCallback(
+    (projectId: string) => {
+      const currency = args.currency ?? "JPYC";
+      onActiveProjectIdChange?.(projectId, currency);
+      setMsg(
+        "新しい Project に切り替えました。Goal は Project ごとで、新ProjectはGoal未設定です（旧Goalは旧Projectに残ります）。"
+      );
+      setMode("VIEW");
+    },
+    [args.currency, onActiveProjectIdChange]
+  );
+
   return {
     hasActive: !!activeProjectId,
     mode,
@@ -219,16 +162,7 @@ export function useProjectSection(args: UseProjectSectionArgs) {
     project,
     loading,
     msg,
-    createDraft: {
-      title,
-      setTitle,
-      description,
-      setDescription,
-      purposeMode,
-      setPurposeMode,
-      creating,
-      onCreate,
-    },
+    handleCreated,
     editDraft: {
       title: editTitle,
       setTitle: setEditTitle,

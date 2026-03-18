@@ -63,9 +63,11 @@ async function loadPublicPageDataUncached(
     USDC: profile.activeProjectIdUsdc ?? null,
   };
 
-  if (!projectIdsByCurrency.JPYC || !projectIdsByCurrency.USDC) {
-    try {
-      const [latestJpyc, latestUsdc] = await Promise.all([
+  const backfillNeeded =
+    !projectIdsByCurrency.JPYC || !projectIdsByCurrency.USDC;
+
+  const backfillPromise = backfillNeeded
+    ? Promise.all([
         !projectIdsByCurrency.JPYC
           ? withPrismaRetry(() =>
               prisma.project.findFirst({
@@ -84,35 +86,38 @@ async function loadPublicPageDataUncached(
               })
             )
           : Promise.resolve(null),
-      ]);
+      ]).catch((error) => {
+        if (isPrismaUnavailableError(error)) {
+          console.warn("Failed to backfill projectIds due to DB unavailability");
+        } else {
+          console.error("Failed to backfill projectIds:", error);
+        }
+        return [null, null] as [null, null];
+      })
+    : Promise.resolve([null, null] as [null, null]);
 
-      if (!projectIdsByCurrency.JPYC) {
-        projectIdsByCurrency.JPYC = latestJpyc?.id?.toString() ?? null;
-      }
-
-      if (!projectIdsByCurrency.USDC) {
-        projectIdsByCurrency.USDC = latestUsdc?.id?.toString() ?? null;
-      }
-    } catch (error) {
-      if (isPrismaUnavailableError(error)) {
-        console.warn("Failed to backfill projectIds due to DB unavailability");
-      } else {
-        console.error("Failed to backfill projectIds:", error);
-      }
-    }
-  }
-
-  try {
-    recruitingProjects = await loadRecruitingProjectViews({
-      creatorProfileId: profileId,
-      ownerAddress: owner,
-    });
-  } catch (error) {
+  const recruitingPromise = loadRecruitingProjectViews({
+    creatorProfileId: profileId,
+    ownerAddress: owner,
+  }).catch((error) => {
     if (isPrismaUnavailableError(error)) {
       console.warn("Failed to load recruiting projects due to DB unavailability");
     } else {
       console.error("Failed to load recruiting projects:", error);
     }
+    return [] as SupportProjectView[];
+  });
+
+  const [[latestJpyc, latestUsdc], resolvedRecruitingProjects] =
+    await Promise.all([backfillPromise, recruitingPromise]);
+
+  recruitingProjects = resolvedRecruitingProjects;
+
+  if (!projectIdsByCurrency.JPYC) {
+    projectIdsByCurrency.JPYC = latestJpyc?.id?.toString() ?? null;
+  }
+  if (!projectIdsByCurrency.USDC) {
+    projectIdsByCurrency.USDC = latestUsdc?.id?.toString() ?? null;
   }
 
   projectId =
@@ -145,8 +150,8 @@ async function loadPublicPageDataUncached(
         ) ?? null;
 
       activeSummary = activeCurrency
-        ? summariesByCurrency[activeCurrency]
-        : await getProjectSummaryView(BigInt(projectId));
+        ? (summariesByCurrency[activeCurrency] ?? null)
+        : (summariesByCurrency.JPYC ?? summariesByCurrency.USDC ?? null);
 
       publicSummary = activeSummary ? pickPublicSummaryLite(activeSummary) : null;
     } catch (error) {

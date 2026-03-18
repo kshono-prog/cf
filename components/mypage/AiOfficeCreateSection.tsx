@@ -26,7 +26,6 @@ import type {
 } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
-import { PRODUCT_TIER_META } from "@/lib/productTiers";
 import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
 
 type TaskTypeCopy = {
@@ -105,9 +104,9 @@ export function AiOfficeCreateSection(props: Props) {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-gray-200 bg-white p-4">
-        <div className="text-sm font-semibold text-gray-900">1. 下準備</div>
+        <div className="text-sm font-semibold text-gray-900">1. 投稿の状況を確認する</div>
         <div className="mt-1 text-xs text-gray-500">
-          外部SNS連携ではなく、Creator Founding 内の投稿と反応を土台に下書きを作ります。
+          このアプリ内の投稿と反応をもとにAIが下書きを作成します。
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
@@ -136,19 +135,19 @@ export function AiOfficeCreateSection(props: Props) {
             onClick={props.onCollectMetrics}
             disabled={props.loading}
           >
-            Creator Founding の投稿指標を更新
+            投稿指標を更新する
           </button>
           <div className="text-xs leading-5 text-gray-500">
-            投稿がまだない場合でも `MANAGER_NEXT_ACTIONS` と配分 draft は使えます。告知系の下書き精度は、投稿後に上がります。
+            投稿がまだない場合でも次のアクション提案や配分の下書きは使えます。告知系の下書き精度は、投稿後に上がります。
           </div>
         </div>
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-4">
         <div>
-          <div className="text-sm font-semibold text-gray-900">2. 役割から選ぶ</div>
+          <div className="text-sm font-semibold text-gray-900">2. 担当を選ぶ</div>
           <div className="mt-1 text-xs text-gray-500">
-            `Manager / Promotion / Finance / Fan Relation` の役割から近いものを選ぶと、AI が project と Creator Founding 内の投稿指標をもとに下書きを作ります。
+            告知・宣伝・財務・ファン対応などの担当から近いものを選ぶと、AIがプロジェクトの状況と投稿をもとに下書きを作ります。
           </div>
         </div>
 
@@ -186,7 +185,7 @@ export function AiOfficeCreateSection(props: Props) {
                   : "text-slate-600"
             }`}
           >
-            role guidance
+            担当からの提案
           </div>
           <div
             className={`mt-1 text-sm font-semibold ${
@@ -235,7 +234,7 @@ export function AiOfficeCreateSection(props: Props) {
                 }}
                 disabled={props.loading}
               >
-                この role を選ぶ
+                この担当を選ぶ
               </button>
             ) : null}
           </div>
@@ -272,7 +271,7 @@ export function AiOfficeCreateSection(props: Props) {
                           : "bg-slate-100 text-slate-800"
                     }`}
                   >
-                    {PRODUCT_TIER_META[role.tier].label}
+                    {role.tier === "BETA" ? "試験中" : "通常"}
                   </span>
                 </div>
                 <div
@@ -293,7 +292,7 @@ export function AiOfficeCreateSection(props: Props) {
                       : `対応率 ${(roleUsefulness.followThroughRate * 100).toFixed(
                           0
                         )}% / 承認 ${roleUsefulness.approvedCount} 件`
-                    : `${role.executionBoundary === "advisory_only" ? "提案中心" : "承認前提"} / task ${role.taskChoices.length}件`}
+                    : `${role.executionBoundary === "advisory_only" ? "提案中心" : "承認前提"} / ${role.taskChoices.length}種類`}
                 </div>
               </button>
             );
@@ -319,7 +318,7 @@ export function AiOfficeCreateSection(props: Props) {
                       : "bg-slate-100 text-slate-800"
                   }`}
                 >
-                  {PRODUCT_TIER_META[selectedRole.tier].label}
+                  {selectedRole.tier === "BETA" ? "試験中" : "通常"}
                 </span>
                 <span className="text-xs text-gray-500">
                   {selectedRole.executionBoundary === "advisory_only"
@@ -347,7 +346,7 @@ export function AiOfficeCreateSection(props: Props) {
                     description={
                       selectedRoleUsefulness.ignoredCount > 0
                         ? `承認待ち ${selectedRoleUsefulness.waitingApprovalCount} 件のうち ${selectedRoleUsefulness.ignoredCount} 件は長く止まっています。先に確認してから新しい下書きへ進めます。`
-                        : `この role では承認待ちが ${selectedRoleUsefulness.waitingApprovalCount} 件あります。内容確認を先に済ませると、新しい下書きが重なりにくくなります。`
+                        : `この担当では承認待ちが ${selectedRoleUsefulness.waitingApprovalCount} 件あります。内容確認を先に済ませると、新しい下書きが重なりにくくなります。`
                     }
                   >
                     <button
@@ -356,7 +355,7 @@ export function AiOfficeCreateSection(props: Props) {
                       onClick={() => props.onOpenInbox(selectedRole.roleId)}
                       disabled={props.loading}
                     >
-                      この role の承認待ちを見る
+                      この担当の承認待ちを見る
                     </button>
                   </AiOfficeStatusNotice>
                 </div>
@@ -396,7 +395,7 @@ export function AiOfficeCreateSection(props: Props) {
                                 : "bg-amber-100 text-amber-800"
                             }`}
                           >
-                            Beta
+                            試験中
                           </span>
                         ) : null}
                       </div>

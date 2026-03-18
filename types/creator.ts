@@ -23,8 +23,10 @@ export type CreatorProfile = {
   profile?: string | null;
   qrcode?: string | null;
   url?: string | null;
-  goalTitle?: string | null;
-  goalTargetJpyc?: number | null;
+  /** @deprecated 旧Goal。Project Goal を正本とする。編集不可。 */
+  readonly goalTitle?: string | null;
+  /** @deprecated 旧Goal。Project Goal を正本とする。編集不可。 */
+  readonly goalTargetJpyc?: number | null;
   themeColor?: string | null;
   creatorType?: CreatorType | null;
   socials?: SocialLinks;

@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { errJson, okJson } from "@/lib/api/responses";
 import { toBigIntOrThrow } from "@/lib/api/guards";
+import {
+  toCurrency,
+  decToString,
+  decimalToAmountByCurrency,
+  type CurrencyCode,
+} from "@/lib/currencyUtils";
 
 import {
   getSupportedViemChains,
@@ -14,33 +20,8 @@ import { getTokenOnChain } from "@/lib/tokenRegistry";
 
 export const dynamic = "force-dynamic";
 
-type Currency = "JPYC" | "USDC";
+type Currency = CurrencyCode;
 type Params = { projectId: string };
-
-function toCurrency(v: string): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
-}
-
-function decToString(d: Prisma.Decimal | null | undefined): string | null {
-  if (d == null) return null;
-  return d.toString();
-}
-
-function decimalToAmountByCurrency(
-  currency: Currency,
-  amountDecimal: Prisma.Decimal | null
-): number {
-  if (!amountDecimal) return 0;
-  if (currency === "USDC") {
-    const n = Number(amountDecimal.toString());
-    if (!Number.isFinite(n)) return 0;
-    return Number(n.toFixed(2));
-  }
-  const s = amountDecimal.toString();
-  const [i] = s.split(".");
-  const n = Number(i || "0");
-  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
-}
 
 function getSupportedChainIdsForCurrency(currency: Currency): SupportedChainId[] {
   const chains = getSupportedViemChains();

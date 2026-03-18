@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import ProfileClient from "@/components/ProfileClient";
+import { isRecord, toOptionalString } from "@/lib/api/guards";
 
 // ---- 型（ProfileClient に渡す形に寄せる） ----
 type SocialLinks = Partial<
@@ -45,13 +46,6 @@ type CreatorWithProject = CreatorProfile & {
 const API_BASE = "";
 
 // ---- runtime guards ----
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function toOptionalString(v: unknown): string | undefined {
-  return typeof v === "string" ? v : undefined;
-}
 
 function toNullOrString(v: unknown): string | null {
   return typeof v === "string" ? v : null;

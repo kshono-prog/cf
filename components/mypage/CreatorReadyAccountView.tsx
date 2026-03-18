@@ -25,10 +25,9 @@ import {
 } from "@/components/mypage/WorkspaceFeedback";
 import {
   getCreatorReadyWorkspaceConfig,
-  getCreatorReadyWorkspaceGroups,
+  CREATOR_READY_WORKSPACE_VIEWS,
 } from "@/components/mypage/creatorReadyWorkspaceConfig";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
-import { PRODUCT_TIER_META } from "@/lib/productTiers";
 
 type Props = {
   initialWorkspaceView: WorkspaceView;
@@ -79,7 +78,7 @@ const CreatorReadyHomeRoute = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="やること一覧を読み込んでいます" />
+      <WorkspaceLoadingCard title="ホームを読み込んでいます" />
     ),
   }
 );
@@ -91,7 +90,7 @@ const CreatorReadySupportPageRoute = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="公開ページと投稿の設定を読み込んでいます" />
+      <WorkspaceLoadingCard title="公開ページ・プロフィール設定を読み込んでいます" />
     ),
   }
 );
@@ -103,7 +102,7 @@ const CreatorReadySupportersRoute = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="下書きと承認を読み込んでいます" />
+      <WorkspaceLoadingCard title="AIの提案と確認を読み込んでいます" />
     ),
   }
 );
@@ -115,7 +114,7 @@ const CreatorReadyPublicRoute = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="公開ページ確認を読み込んでいます" />
+      <WorkspaceLoadingCard title="公開ページを読み込んでいます" />
     ),
   }
 );
@@ -127,7 +126,7 @@ const CreatorReadyAdvancedRoute = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="精算と詳細設定を読み込んでいます" />
+      <WorkspaceLoadingCard title="精算・詳細設定を読み込んでいます" />
     ),
   }
 );
@@ -248,14 +247,6 @@ export function CreatorReadyAccountView(props: Props) {
   );
 
   const activeWorkspace = getCreatorReadyWorkspaceConfig(activeView);
-  const workspaceGroups = React.useMemo(
-    () =>
-      getCreatorReadyWorkspaceGroups().map((group) => ({
-        ...group,
-        meta: PRODUCT_TIER_META[group.tier],
-      })),
-    []
-  );
 
   return (
     <MyPageShell headerColor={promoHeaderColor}>
@@ -264,7 +255,7 @@ export function CreatorReadyAccountView(props: Props) {
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h1 className="text-lg font-semibold">
-                {activeWorkspace?.label ?? "やること一覧"}
+                {activeWorkspace?.label ?? "ホーム"}
               </h1>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -283,73 +274,31 @@ export function CreatorReadyAccountView(props: Props) {
                 </button>
               </div>
             </div>
-            <div className="space-y-3">
-              {workspaceGroups.map((group) => (
-                <div key={group.tier} className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              {CREATOR_READY_WORKSPACE_VIEWS.map((view) => (
+                <button
+                  key={view.id}
+                  type="button"
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                    activeView === view.id
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-400 hover:text-gray-900"
+                  }`}
+                  onClick={() => navigateToView(view.id)}
+                >
+                  {view.label}
+                  {view.tier === "BETA" ? (
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                        group.tier === "BETA"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-slate-100 text-slate-800"
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                        activeView === view.id
+                          ? "bg-white/20 text-white"
+                          : "bg-amber-100 text-amber-700"
                       }`}
                     >
-                      {group.meta.label}
+                      試験中
                     </span>
-                    <span className="text-xs text-gray-500">
-                      {group.meta.description}
-                    </span>
-                  </div>
-                  <div className="grid gap-2 md:grid-cols-5">
-                    {group.views.map((view) => (
-                      <button
-                        key={view.id}
-                        type="button"
-                        className={`rounded-2xl border px-4 py-3 text-left transition ${
-                          activeView === view.id
-                            ? "border-slate-900 bg-slate-900 text-white"
-                            : "border-gray-200 bg-white text-gray-900"
-                        }`}
-                        onClick={() => navigateToView(view.id)}
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="text-sm font-semibold">{view.label}</div>
-                          {view.betaNote ? (
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                activeView === view.id
-                                  ? "bg-white/15 text-white"
-                                  : "bg-amber-100 text-amber-800"
-                              }`}
-                            >
-                              Beta を含む
-                            </span>
-                          ) : null}
-                        </div>
-                        <div
-                          className={`mt-1 text-xs ${
-                            activeView === view.id
-                              ? "text-white/80"
-                              : "text-gray-500"
-                          }`}
-                        >
-                          {view.description}
-                        </div>
-                        {view.betaNote ? (
-                          <div
-                            className={`mt-2 text-[11px] ${
-                              activeView === view.id
-                                ? "text-white/70"
-                                : "text-amber-700"
-                            }`}
-                          >
-                            {view.betaNote}
-                          </div>
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                  ) : null}
+                </button>
               ))}
             </div>
           </div>
@@ -362,8 +311,8 @@ export function CreatorReadyAccountView(props: Props) {
               tone={activeWorkspace.tier === "BETA" ? "attention" : "info"}
               title={
                 activeWorkspace.tier === "BETA"
-                  ? "この面には beta / 高リスク設定が含まれます"
-                  : "この面には beta 機能が一部含まれます"
+                  ? "この画面には試験中の機能が含まれます"
+                  : "この画面には試験提供中の機能が一部含まれます"
               }
               description={activeWorkspace.betaNote}
             />
@@ -379,15 +328,15 @@ export function CreatorReadyAccountView(props: Props) {
           ) : (
             <>
               <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <div className="text-sm text-gray-700">
-                  {`${props.workspaceBasePath}/${activeView}`} でこの面を直接開けます。
+                <div className="text-sm text-gray-500">
+                  直接 URL でアクセスできます：{`${props.workspaceBasePath}/${activeView}`}
                 </div>
                 <button
                   type="button"
                   className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800"
                   onClick={() => navigateToView("home")}
                 >
-                  やること一覧へ戻る
+                  ホームに戻る
                 </button>
               </div>
               {activeView === "support-page" ? (

@@ -26,7 +26,7 @@ const AiOfficeManagementSection = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="AI事務所（Phase1）を読み込んでいます" />
+      <WorkspaceLoadingCard title="AIアシスタント機能を読み込んでいます" />
     ),
   }
 );
@@ -107,26 +107,18 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)]">
-              設定
+              プロフィール設定
             </h1>
             <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              公開ページの見え方、応援の見せ方、ウォレット状態を整えるための画面です。
+              公開ページに表示されるプロフィール情報や応援設定を管理します。
             </p>
           </div>
           <button type="button" className="btn" onClick={props.onStartEditProfile}>
-            公開ページを整える
+            プロフィールを編集する
           </button>
         </div>
         {props.error ? <div className="alert-warn mt-4">{props.error}</div> : null}
         {dashboardError ? <div className="alert-warn mt-4">{dashboardError}</div> : null}
-        <div className="mt-4 surface-subtle px-4 py-4">
-          <div className="text-sm font-semibold text-[var(--text)]">
-            いまは公開ページまで準備できています
-          </div>
-          <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-            次は、見に来た人に何を伝えたいか、どんな応援を受け付けたいかを整えていく段階です。
-          </p>
-        </div>
       </section>
 
       <section id="basic-info" className="surface-card p-5 sm:p-6">
@@ -134,7 +126,7 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
           <div>
             <h2 className="text-lg font-semibold text-[var(--text)]">基本情報</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              まずは、あなたがどんな人か分かる最小情報を整えます。
+              公開ページに表示される名前・アイコン・紹介文です。
             </p>
           </div>
           <button
@@ -185,9 +177,9 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
       <section id="public-page" className="surface-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--text)]">公開ページ</h2>
+            <h2 className="text-lg font-semibold text-[var(--text)]">応援の設定</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              見に来た人が、何を応援できるのかを迷わず理解できるように整えます。
+              支援者に何を伝えたいか、目標金額や外部リンクを設定できます。
             </p>
           </div>
           <button
@@ -195,7 +187,7 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
             className="btn-secondary"
             onClick={props.onStartEditProfile}
           >
-            公開ページを整える
+            設定を編集する
           </button>
         </div>
 
@@ -228,9 +220,9 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
             </div>
           </div>
           <div className="surface-subtle px-4 py-4">
-            <div className="text-sm text-[var(--text-subtle)]">公開ページの素材</div>
+            <div className="text-sm text-[var(--text-subtle)]">リンク・動画</div>
             <div className="mt-2 text-sm text-[var(--text)]">
-              SNSリンク {Object.values(props.socials).filter(Boolean).length} 件 / 紹介動画{" "}
+              SNSリンク {Object.values(props.socials).filter(Boolean).length} 件 ／ 紹介動画{" "}
               {props.youtubeVideos.filter((video) => video.url.trim()).length} 件
             </div>
           </div>
@@ -248,25 +240,25 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-[var(--text)]">
-              AI事務所（Phase1）
+              AIアシスタント
             </h2>
             <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              現在の project 状態をもとに、次の一手、下書き、承認待ちをここで確認できます。
+              告知文や返信の下書きを自動生成し、確認してから使えます。承認待ちの提案があればここで確認できます。
             </p>
           </div>
           <a
             href={`${props.workspaceBasePath}/supporters`}
             className="btn-secondary"
           >
-            専用画面で開く
+            提案を確認する
           </a>
         </div>
         <div className="mt-4 surface-subtle px-4 py-4">
           <div className="text-sm font-semibold text-[var(--text)]">
-            まずは recommendation と draft を承認付きで使います
+            AIが提案・下書きを作成します。承認するまで自動投稿や送金は行いません。
           </div>
           <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-            自動投稿や資金移動は行わず、保存可能な task として review できる範囲から始めます。
+            内容を確認して承認または却下することで、実際の動作に反映されます。
           </p>
         </div>
         <div className="mt-4">
@@ -315,10 +307,10 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
         open={false}
       >
         <summary className="cursor-pointer list-none text-lg font-semibold text-[var(--text)]">
-          詳細な設定を開く
+          詳細設定（上級者向け）
         </summary>
         <p className="mt-2 text-sm leading-6 text-[var(--text-subtle)]">
-          Project 作成、Goal 保存、Summary、Bridge、Distribution、txHash 管理などの高度機能はここにまとめています。
+          プロジェクト作成・目標金額の設定・配分管理など、詳しい設定をまとめています。
         </p>
         <div className="mt-4 space-y-4">
           <div className="space-y-4">

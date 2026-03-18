@@ -1,5 +1,6 @@
 // app/api/projects/[projectId]/distribution/plan/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
@@ -9,6 +10,7 @@ import {
   lowerOrNull,
 } from "@/lib/api/guards";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import type { DistributionPlanJson } from "@/types/distribution";
 
 export const dynamic = "force-dynamic";
 
@@ -109,8 +111,8 @@ export async function PUT(
         mode: "PLAN_ONLY",
         chainId: 0, // plan保存段階では未確定でも良いので 0
         currency: "JPYC",
-        planJson: plan as never,
-        txHashes: [] as never,
+        planJson: plan as DistributionPlanJson as Prisma.InputJsonValue,
+        txHashes: [] as Prisma.InputJsonValue,
         dryRun: true,
         note: "plan saved",
       },

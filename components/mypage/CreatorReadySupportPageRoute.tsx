@@ -33,7 +33,7 @@ const PostingAiOfficeSection = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="投稿・AI事務所の拡張面を読み込んでいます" />
+      <WorkspaceLoadingCard title="投稿・AIアシスタント機能を読み込んでいます" />
     ),
   }
 );
@@ -80,9 +80,9 @@ export function CreatorReadySupportPageRoute() {
       options.push({
         id: projectId,
         currency,
-        title: summaryProject?.title ?? `${currency} project`,
+        title: summaryProject?.title ?? `${currency} プロジェクト`,
         status: summaryProject?.status ?? "ACTIVE",
-        label: `${currency} / ${summaryProject?.title ?? `${currency} project`}`,
+        label: `${currency} / ${summaryProject?.title ?? `${currency} プロジェクト`}`,
       });
     }
 
@@ -93,18 +93,18 @@ export function CreatorReadySupportPageRoute() {
     <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div>
         <div className="text-sm font-semibold text-gray-900">
-          公開ページと投稿の設定
+          公開ページ・プロフィール設定
         </div>
         <div className="mt-1 text-xs leading-5 text-gray-600">
-          プロフィール、project、goal、投稿導線を整えて、公開ページの土台を更新します。
+          プロフィール・目標金額・外部リンクを整えて、支援者に伝わる公開ページを作ります。
         </div>
       </div>
       {dashboardError ? (
         <WorkspaceStatusNotice tone="error" title={dashboardError} />
       ) : null}
       <PublicReadinessPanel
-        title="公開準備チェック"
-        description="未設定の項目を上から埋めると、公開ページの理解しやすさと支援しやすさが上がります。"
+        title="公開ページの準備状況"
+        description="未設定の項目を上から順に埋めると、支援者に伝わりやすい公開ページになります。"
         readiness={publicReadiness}
         actions={[
           {
@@ -155,13 +155,13 @@ export function CreatorReadySupportPageRoute() {
           open={workspace.openSections}
           onToggle={workspace.onToggleSection}
           sectionKey="sns"
-          title="投稿・AI事務所"
+          title="投稿・AIアシスタント"
         >
           <div className="mb-3">
             <WorkspaceStatusNotice
               tone="info"
-              title="Creator Founding 内の投稿運営を優先しつつ、AI 事務所の拡張は beta として追加しています"
-              description="公開ページと支援導線を崩さずに、投稿管理・analytics・AI 下書きをこの枠でまとめて扱います。"
+              title="投稿の作成とAIによる提案作成を利用できます"
+              description="公開ページの支援設定はそのままに、投稿管理とAIアシスタントをここからまとめて操作できます。"
             />
           </div>
           <PostingAiOfficeSection

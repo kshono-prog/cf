@@ -16,14 +16,12 @@ import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
+import { toCurrency, type CurrencyCode } from "@/lib/currencyUtils";
+
 type Params = { projectId: string };
-type Currency = "JPYC" | "USDC";
+type Currency = CurrencyCode;
 
 type Provider = "WORMHOLE_UI" | "MANUAL";
-
-function toCurrency(v: unknown): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
-}
 
 function toProvider(v: unknown): Provider | null {
   return v === "WORMHOLE_UI" || v === "MANUAL" ? v : null;

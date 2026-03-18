@@ -17,14 +17,11 @@ import {
 import { ensureCctpJobForGoalAchieved } from "@/lib/cctpBridgeJobs";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
+import { toCurrency } from "@/lib/currencyUtils";
+
 export const dynamic = "force-dynamic";
 
 type Params = { projectId: string };
-type Currency = "JPYC" | "USDC";
-
-function toCurrency(v: string): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
-}
 
 function decimalToJpycIntFloor(amountDecimal: Prisma.Decimal | null): number {
   if (!amountDecimal) return 0;

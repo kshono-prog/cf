@@ -83,38 +83,38 @@ export function buildCreatorReadyQuickActions(params: {
 
   if (params.waitingApprovalCount > 0) {
     actions.push({
-      title: "承認待ちを先に片づける",
-      body: "公開前に確認が必要な下書きがあります。まず承認待ちを処理すると、日々の運営が止まりません。",
-      actionLabel: "下書きと承認を開く",
+      title: "AIの承認待ちを確認する",
+      body: "確認が必要な提案や下書きがあります。承認すると日々の運営がスムーズに進みます。",
+      actionLabel: "提案を確認する",
       onAction: params.onOpenSupporterResponse,
     });
   } else if (missingProject) {
     actions.push({
-      title: "最初のプロフィールと支援設定を準備する",
-      body: "支援を受ける通貨を決めて、まずは project と公開情報の土台を作ります。",
-      actionLabel: "プロフィールと支援設定を開く",
+      title: "プロフィールと支援設定を準備する",
+      body: "支援を受ける通貨を決めて、プロフィールと公開情報の土台を作ります。",
+      actionLabel: "プロフィール・支援設定を開く",
       onAction: params.onOpenSupportPage,
     });
   } else if (missingGoal) {
     actions.push({
       title: "目標金額を設定する",
-      body: "何を目指しているかが伝わるように、goal を先に固めます。",
-      actionLabel: "プロフィールと支援設定を開く",
+      body: "何を目指しているかが支援者に伝わるよう、目標金額を設定します。",
+      actionLabel: "プロフィール・支援設定を開く",
       onAction: params.onOpenSupportPage,
     });
   } else {
     actions.push({
-      title: "今週の告知やお礼を進める",
-      body: "今の支援状況を見ながら、支援者向けの下書きと告知を更新する段階です。",
-      actionLabel: "下書きと承認を開く",
+      title: "告知やお礼の下書きを進める",
+      body: "支援者向けの告知・お礼をAIと一緒に準備できます。",
+      actionLabel: "AIの提案を確認する",
       onAction: params.onOpenSupporterResponse,
     });
   }
 
   actions.push({
     title: "プロフィールと支援設定を見直す",
-    body: "プロフィール、goal、公開情報が今の活動内容とずれていないか確認します。",
-    actionLabel: "プロフィールと支援設定を開く",
+    body: "プロフィール・目標金額・公開情報が現在の活動内容と合っているか確認します。",
+    actionLabel: "プロフィール・支援設定を開く",
     onAction: params.onOpenSupportPage,
   });
 
@@ -134,15 +134,15 @@ export function buildCreatorReadyBetaActions(params: {
 }): CreatorReadyBetaWorkspaceAction[] {
   return [
     {
-      title: "metrics と拡張下書き",
-      body: "承認待ちの確認を優先したうえで、metrics や拡張ドラフトを使って次の運営を広げる枠です。",
-      actionLabel: "下書きと承認を開く",
+      title: "分析・拡張機能",
+      body: "支援状況の分析や、高度な下書き機能を試せます（試験提供中）。",
+      actionLabel: "AIの提案を確認する",
       onAction: params.onOpenSupporterResponse,
     },
     {
-      title: "精算と高リスク設定",
-      body: "配分、gas support、bridge / CCTP のような判断コストが高い操作は日常導線と分けて扱います。",
-      actionLabel: "精算と詳細設定を開く",
+      title: "精算・送金設定",
+      body: "目標達成後の配分・精算・ブリッジなど、高度な操作をまとめています。",
+      actionLabel: "精算・詳細設定を開く",
       onAction: params.onOpenAdvancedSettings,
     },
   ];

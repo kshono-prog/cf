@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import type { Allocation } from "@prisma/client";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 import { resolvePurposeOwnerAddress } from "@/lib/ownerScopedResources";
+import {
+  isRecord,
+  toBigIntOrThrow,
+  toOptionalString,
+} from "@/lib/api/guards";
 
 export const dynamic = "force-dynamic";
 
@@ -11,22 +16,6 @@ type Params = { purposeId: string };
 
 type RecipientType = "ADDRESS" | "CONTRACT";
 type AmountType = "FIXED" | "RATIO_BPS";
-
-function toBigIntOrThrow(v: string, code: string): bigint {
-  try {
-    return BigInt(v);
-  } catch {
-    throw new Error(code);
-  }
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function toOptionalString(v: unknown): string | undefined {
-  return typeof v === "string" ? v : undefined;
-}
 
 function toOptionalNumber(v: unknown): number | undefined {
   return typeof v === "number" && Number.isFinite(v) ? v : undefined;

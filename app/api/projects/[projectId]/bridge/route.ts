@@ -9,6 +9,12 @@ import {
   isSupportedEventChainId,
 } from "@/lib/eventChainConfig";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import {
+  isRecord,
+  toBigIntOrThrow as _toBigIntOrThrow,
+  toOptionalString,
+} from "@/lib/api/guards";
+import { decToString } from "@/lib/currencyUtils";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs"; // Buffer を使うため（Edge回避）
@@ -17,21 +23,8 @@ type Params = { projectId: string };
 
 type Currency = "JPYC";
 
-// ===== runtime guards =====
 function toBigIntOrThrow(v: string): bigint {
-  try {
-    return BigInt(v);
-  } catch {
-    throw new Error("PROJECT_ID_INVALID");
-  }
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function toOptionalString(v: unknown): string | undefined {
-  return typeof v === "string" ? v : undefined;
+  return _toBigIntOrThrow(v, "PROJECT_ID_INVALID");
 }
 
 function toOptionalBoolean(v: unknown): boolean | undefined {
@@ -57,11 +50,6 @@ function normalizeChainIdOrThrow(
   const n = Math.trunc(v);
   if (!Number.isFinite(n) || n < 0) throw new Error(code);
   return n;
-}
-
-function decToString(d: Prisma.Decimal | null | undefined): string | null {
-  if (d == null) return null;
-  return d.toString();
 }
 
 // "100.0000..." -> 100（JPYC 目標判定/カード用）

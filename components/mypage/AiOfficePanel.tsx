@@ -230,7 +230,7 @@ export function AiOfficePanel(props: {
       const dashboardJson: unknown = await dashboardRes.json().catch(() => null);
 
       if (!dashboardRes.ok || !isRecord(dashboardJson)) {
-        setMessage("下書きと承認の状況を取得できませんでした。");
+        setMessage("AIの提案状況を取得できませんでした。");
         return;
       }
 
@@ -243,7 +243,7 @@ export function AiOfficePanel(props: {
       setContentSummary(parseAiOfficeContentSummary(dashboardJson.content));
       setUsefulness(parseAiOfficeUsefulnessSummary(dashboardJson.usefulness));
     } catch {
-      setMessage("下書きと承認の状況を取得できませんでした。");
+      setMessage("AIの提案状況を取得できませんでした。");
     } finally {
       setLoading(false);
     }
@@ -458,10 +458,10 @@ export function AiOfficePanel(props: {
       }
 
       const collected = isRecord(json) && typeof json.collected === "number" ? json.collected : 0;
-      setMessage(`Creator Founding の投稿指標を ${collected} 件更新しました。`);
+      setMessage(`投稿の指標を ${collected} 件更新しました。`);
       await refresh();
     } catch {
-      setMessage("metrics 収集に失敗しました。");
+      setMessage("指標の取得に失敗しました。");
     } finally {
       setLoading(false);
     }
@@ -506,10 +506,10 @@ export function AiOfficePanel(props: {
         return;
       }
 
-      setMessage("AIタスクを作成しました。");
+      setMessage("AIが下書きを作成しました。");
       await refresh();
     } catch {
-      setMessage("AIタスク作成に失敗しました。");
+      setMessage("下書きの作成に失敗しました。");
     } finally {
       setLoading(false);
     }
@@ -518,7 +518,7 @@ export function AiOfficePanel(props: {
   async function approveTasks(taskIds: string[], action: "APPROVE" | "REJECT"): Promise<void> {
     if (!walletAddress) return;
     if (taskIds.length === 0) {
-      setMessage("対象タスクを選択してください。");
+      setMessage("処理する提案を選択してください。");
       return;
     }
     if (action === "REJECT" && approvalNote.trim().length === 0) {
@@ -569,14 +569,14 @@ export function AiOfficePanel(props: {
           : 1;
       setMessage(
         action === "APPROVE"
-          ? `タスクを承認しました (${updatedCount}件)。`
-          : `タスクを却下しました (${updatedCount}件)。`
+          ? `提案を承認しました（${updatedCount}件）。`
+          : `提案を却下しました（${updatedCount}件）。`
       );
       setApprovalNote("");
       setSelectedTaskIds([]);
       await refresh();
     } catch {
-      setMessage("タスク承認処理に失敗しました。");
+      setMessage("処理に失敗しました。");
     } finally {
       setLoading(false);
     }
@@ -645,7 +645,7 @@ export function AiOfficePanel(props: {
       }
       setTranslationResult(first.text);
     } catch {
-      setMessage("翻訳API呼び出しに失敗しました。");
+      setMessage("翻訳に失敗しました。");
     } finally {
       setLoading(false);
     }
@@ -659,17 +659,17 @@ export function AiOfficePanel(props: {
     {
       id: "OVERVIEW",
       label: "状況",
-      helper: "今日見るべき数値と role ごとの入口を確認する",
+      helper: "AIの状況と担当ごとの提案をまとめて確認する",
     },
     {
       id: "CREATE",
       label: "下書きを作る",
-      helper: "role を選んで、内部投稿の指標をもとに下書きを作る",
+      helper: "担当を選んで告知・お礼などの下書きを作る",
     },
     {
       id: "INBOX",
       label: "承認待ち",
-      helper: "承認待ちや最近の下書きを確認する",
+      helper: "承認待ちの提案や最近の下書きを確認する",
     },
   ];
 
@@ -760,14 +760,14 @@ export function AiOfficePanel(props: {
     <div className="rounded-xl border bg-white p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">AI事務所（Role-Based Phase1）</h3>
+          <h3 className="font-semibold">AIアシスタント</h3>
           <p className="text-xs text-gray-500 mt-1">
-            `Manager / Promotion / Finance / Fan Relation` の役割で、下書き作成、承認待ち確認、内部指標の確認をまとめて進めます。
+            告知・お礼・分析・資金管理などの担当別に、下書き作成と承認待ち確認をまとめて行えます。
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded border px-2 py-1 text-[11px] text-gray-700">
-            承認待ち: {waitingApprovalCount}
+            承認待ち {waitingApprovalCount}件
           </span>
           <button
             type="button"
@@ -775,7 +775,7 @@ export function AiOfficePanel(props: {
             onClick={() => void refresh()}
             disabled={loading || !canUse}
           >
-            更新
+            再読み込み
           </button>
         </div>
       </div>
@@ -833,8 +833,8 @@ export function AiOfficePanel(props: {
           {waitingApprovalCount > 0 && activeView !== "INBOX" ? (
             <AiOfficeStatusNotice
               tone="attention"
-              title={`承認待ちの下書きが ${waitingApprovalCount} 件あります`}
-              description="新しい下書きを増やす前に、承認待ちで内容を確認すると運営が止まりません。"
+              title={`確認待ちの提案が ${waitingApprovalCount} 件あります`}
+              description="承認または却下して、提案の処理を進めてください。"
             >
               <button
                 type="button"
@@ -845,7 +845,7 @@ export function AiOfficePanel(props: {
                 }}
                 disabled={loading}
               >
-                承認待ちを開く
+                提案を確認する
               </button>
             </AiOfficeStatusNotice>
           ) : null}

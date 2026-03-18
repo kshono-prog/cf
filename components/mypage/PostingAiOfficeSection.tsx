@@ -75,8 +75,8 @@ export function PostingAiOfficeSection(props: Props) {
     <div className="space-y-4">
       <WorkspaceStatusNotice
         tone="info"
-        title="Creator Founding の投稿 -> 反応 -> 支援 -> AI運用を同じ管理面で扱えます。"
-        description="外部SNS連携を前提にせず、公開プロフィールの feed と post tip を維持したまま、投稿運営と AI 事務所をここでつなぎます。"
+        title="投稿・反応・支援・AIによる運用をひとつの画面でまとめて管理できます。"
+        description="外部SNS連携なしで、公開プロフィールの投稿やチップを維持したまま、投稿管理とAIアシスタントをここで一元化できます。"
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">

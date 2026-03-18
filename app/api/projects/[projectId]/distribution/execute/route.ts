@@ -1,5 +1,6 @@
 // app/api/projects/[projectId]/distribution/execute/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/lib/api/guards";
 import { isHash } from "viem";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import type { DistributionTxHashes } from "@/types/distribution";
 
 export const dynamic = "force-dynamic";
 
@@ -25,14 +27,12 @@ type Body = {
   note?: unknown;
 };
 
+import { toCurrency } from "@/lib/currencyUtils";
+
 function toChainId(v: unknown): number | null {
   if (typeof v !== "number") return null;
   if (!Number.isFinite(v)) return null;
   return v;
-}
-
-function toCurrency(v: unknown): "JPYC" | "USDC" | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
 }
 
 function toBool(v: unknown): boolean {
@@ -151,8 +151,8 @@ export async function POST(
           mode: "LOG_ONLY",
           chainId,
           currency,
-          planJson: latestPlan.planJson as never,
-          txHashes: txHashes as never,
+          planJson: latestPlan.planJson as Prisma.InputJsonValue,
+          txHashes: (txHashes as DistributionTxHashes) as Prisma.InputJsonValue,
           dryRun,
           note: note ?? undefined,
         },

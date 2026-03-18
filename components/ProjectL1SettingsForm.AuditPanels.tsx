@@ -6,6 +6,7 @@
 // - Tailwind 前提（既存プロジェクトに合わせて調整してください）
 
 import React from "react";
+import { isRecord, toOptionalString } from "@/lib/api/guards";
 
 // ---------------------------
 // Types (minimal, UI-facing)
@@ -78,17 +79,6 @@ type ProjectHeaderView = {
   title: string;
   status: string;
 };
-
-// ---------------------------
-// Runtime guards (unknown -> typed)
-// ---------------------------
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function toOptionalString(v: unknown): string | undefined {
-  return typeof v === "string" ? v : undefined;
-}
 
 function toOptionalBalanceView(v: unknown): BalanceView | null {
   if (!isRecord(v)) return null;

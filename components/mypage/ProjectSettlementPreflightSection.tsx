@@ -28,9 +28,9 @@ export function ProjectSettlementPreflightSection(
     <div className="rounded-lg border p-3 space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
         <div>
-          <div className="text-sm font-medium">送信前チェック</div>
+          <div className="text-sm font-medium">送信前の確認</div>
           <div className="mt-1 text-[11px] leading-5 text-gray-500 sm:text-xs">
-            必要な残高とトークン設定を確認してから、配分実行へ進みます。
+            必要な残高と承認設定を確認してから、配分実行へ進みます。
           </div>
         </div>
         <button
@@ -39,14 +39,14 @@ export function ProjectSettlementPreflightSection(
           onClick={() => void props.checkBalances("ALL")}
           disabled={props.loading || !props.walletAddress || !props.isConnected}
         >
-          送信前チェックを実行
+          送信前の確認を実行
         </button>
       </div>
 
       {props.preflight.length === 0 ? (
         <WorkspaceEmptyState
-          title="まだ送信前チェックは実行していません"
-          description="配分の下書きを保存したあとでチェックを行うと、必要残高や設定不足をまとめて確認できます。"
+          title="まだ送信前の確認を実行していません"
+          description="配分計画を保存したあとで確認を実行すると、必要残高や設定不足をまとめて確認できます。"
         />
       ) : (
         <div className="space-y-2 rounded border bg-gray-50 p-3 text-[11px] leading-5 sm:p-2 sm:text-xs">
@@ -81,14 +81,14 @@ export function ProjectSettlementPreflightSection(
         props.hasPreflightFailure ? (
           <WorkspaceStatusNotice
             tone="error"
-            title="残高不足またはトークン設定不足があります"
-            description="不足している内容を確認し、修正後にもう一度送信前チェックを行ってください。"
+            title="残高不足または承認設定の不足があります"
+            description="不足している内容を確認し、修正後にもう一度送信前の確認を実行してください。"
           />
         ) : (
           <WorkspaceStatusNotice
             tone="success"
-            title="送信前チェックが完了しました"
-            description="残高と設定に問題がなければ、次の Step で配分を実行できます。"
+            title="送信前の確認が完了しました"
+            description="残高と設定に問題がなければ、次の手順で配分を実行できます。"
           />
         )
       ) : null}

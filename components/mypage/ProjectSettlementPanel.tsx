@@ -133,11 +133,11 @@ export function ProjectSettlementPanel(props: Props) {
   const preflightRef = React.useRef<HTMLDivElement | null>(null);
   const executeRef = React.useRef<HTMLDivElement | null>(null);
   const reviewRef = React.useRef<HTMLDivElement | null>(null);
-  const [aiDraftText, setAiDraftText] = React.useState("");
   const [aiDraftMessage, setAiDraftMessage] = React.useState<{
     tone: "info" | "success" | "error";
     text: string;
   } | null>(null);
+  const handoffAppliedRef = React.useRef(false);
 
   const settlementStatusCopy = getSettlementStatusCopy(
     panel.settlement?.status ?? "NOT_READY"
@@ -203,26 +203,14 @@ export function ProjectSettlementPanel(props: Props) {
       return;
     }
 
-    setAiDraftText(formatDistributionPlanDraftPayload(draftPayload));
-    setAiDraftMessage({
-      tone: "success",
-      text: "AI 下書きを更新しました。必要なら JSON を編集してから行に反映してください。",
-    });
-  }, [draftPayload]);
-
-  const applyAiDraft = React.useCallback(() => {
-    const parsed = parseDistributionPlanDraftText(aiDraftText, projectCurrency);
+    const parsed = parseDistributionPlanDraftText(
+      formatDistributionPlanDraftPayload(draftPayload),
+      projectCurrency
+    );
     if (!parsed.ok) {
-      const text =
-        parsed.error === "AI_DRAFT_EMPTY"
-          ? "AI 下書きが空です。先に生成するか、JSON を入力してください。"
-          : parsed.error === "AI_DRAFT_INVALID_JSON"
-            ? "AI 下書き JSON を解釈できませんでした。形式を確認してください。"
-            : "AI 下書きから rows を復元できませんでした。`rows` 配列を確認してください。";
-
       setAiDraftMessage({
         tone: "error",
-        text,
+        text: "AIの提案から配分行を読み込めませんでした。内容を確認してください。",
       });
       return;
     }
@@ -230,15 +218,15 @@ export function ProjectSettlementPanel(props: Props) {
     panel.replaceDraftRows(parsed.rows);
     setAiDraftMessage({
       tone: "success",
-      text: "AI 下書きを Draft 行へ反映しました。保存前に内容を確認してください。",
+      text: "AIの提案を配分計画へ適用しました。保存前に内容を確認してください。",
     });
-  }, [aiDraftText, panel, projectCurrency]);
+  }, [draftPayload, panel, projectCurrency]);
 
   React.useEffect(() => {
     if (
       typeof window === "undefined" ||
       !projectId ||
-      aiDraftText.trim().length > 0
+      handoffAppliedRef.current
     ) {
       return;
     }
@@ -272,15 +260,24 @@ export function ProjectSettlementPanel(props: Props) {
       return;
     }
 
-    setAiDraftText(handoff.payloadText);
+    const parsed = parseDistributionPlanDraftText(handoff.payloadText, projectCurrency);
+    handoffAppliedRef.current = true;
+    window.localStorage.removeItem(DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY);
+
+    if (!parsed.ok) {
+      setAiDraftMessage({
+        tone: "error",
+        text: "AIからの配分提案を読み込めませんでした。内容を確認してください。",
+      });
+      return;
+    }
+
+    panel.replaceDraftRows(parsed.rows);
     setAiDraftMessage({
       tone: "info",
-      text: "AI事務所の Finance Agent から配分 draft を受け取りました。内容を確認してから行に反映してください。",
+      text: "AIから配分計画の提案を受け取りました。保存前に内容を確認してください。",
     });
-    window.localStorage.removeItem(
-      DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY
-    );
-  }, [aiDraftText, projectCurrency, projectId]);
+  }, [panel, projectCurrency, projectId]);
 
   const stepRefs = React.useMemo<
     Record<SettlementFlowStepId, React.RefObject<HTMLDivElement | null>>
@@ -299,7 +296,7 @@ export function ProjectSettlementPanel(props: Props) {
     {
       id: "BRIDGE",
       stepNumber: 1,
-      title: "Bridge",
+      title: "送金準備",
       helper:
         settlementStatus === "NOT_READY"
           ? "目標達成後に、必要な資金移動とブリッジ記録をここから始めます。"
@@ -316,7 +313,7 @@ export function ProjectSettlementPanel(props: Props) {
     {
       id: "DRAFT",
       stepNumber: 2,
-      title: "Draft",
+      title: "配分計画",
       helper: "送金先と金額を下書きし、配分計画を固めます。",
       status: draftCompleted
         ? "complete"
@@ -327,7 +324,7 @@ export function ProjectSettlementPanel(props: Props) {
     {
       id: "PREFLIGHT",
       stepNumber: 3,
-      title: "Preflight",
+      title: "送信前確認",
       helper: "送信前に残高と設定不足を確認します。",
       status: preflightCompleted
         ? "complete"
@@ -338,7 +335,7 @@ export function ProjectSettlementPanel(props: Props) {
     {
       id: "EXECUTE",
       stepNumber: 4,
-      title: "Execute",
+      title: "配分実行",
       helper: "接続ウォレットの署名で配分を実行します。",
       status: executionCompleted
         ? "complete"
@@ -349,7 +346,7 @@ export function ProjectSettlementPanel(props: Props) {
     {
       id: "REVIEW",
       stepNumber: 5,
-      title: "Review",
+      title: "結果確認",
       helper: "実行結果、失敗分、履歴を確認して締めます。",
       status: currentStep === "REVIEW" ? "current" : "upcoming",
     },
@@ -365,35 +362,35 @@ export function ProjectSettlementPanel(props: Props) {
             tone: "info",
             title: "精算フローはまだ開始前です",
             description:
-              "現在は目標達成前のため、精算は待機中です。達成後に Step 1 のブリッジ準備から進めます。",
+              "現在は目標達成前のため、精算は待機中です。達成後に手順1の送金準備から進めます。",
           }
         : {
             tone: "attention",
-            title: "Step 1. Bridge を進めます",
+            title: "手順1. 送金準備を進めます",
             description:
               "必要なチェーンから Avalanche への移動を記録し、配分準備へ進みます。",
           },
     DRAFT: {
       tone: "attention",
-      title: "Step 2. 配分の下書きを整えます",
+      title: "手順2. 配分計画を整えます",
       description:
-        "送金先と金額を保存してから、送信前チェックへ進みます。",
+        "送金先と金額を保存してから、送信前確認へ進みます。",
     },
     PREFLIGHT: {
       tone: "attention",
-      title: "Step 3. 送信前チェックを実行します",
+      title: "手順3. 送信前確認を実行します",
       description:
         "残高と設定不足を確認し、問題がなければ配分実行に進みます。",
     },
     EXECUTE: {
       tone: "attention",
-      title: "Step 4. 配分を実行します",
+      title: "手順4. 配分を実行します",
       description:
-        "送信前チェック完了後に、接続ウォレットの署名で配分を行います。",
+        "送信前確認完了後に、接続ウォレットの署名で配分を行います。",
     },
     REVIEW: {
       tone: "info",
-      title: "Step 5. 実行結果を確認します",
+      title: "手順5. 実行結果を確認します",
       description:
         "送信結果、失敗分、履歴を確認して必要があれば再送や記録を行います。",
     },
@@ -444,8 +441,8 @@ export function ProjectSettlementPanel(props: Props) {
   if (!panel.canUse) {
     return (
       <WorkspaceEmptyState
-        title="project を作成すると精算設定が始まります"
-        description="目標達成後のブリッジや配分準備は、project を作成してからこの画面で進めます。"
+        title="プロジェクトを作成すると精算設定が始まります"
+        description="目標達成後の送金・配分準備は、プロジェクトを作成してからこの画面で進めます。"
       />
     );
   }
@@ -516,7 +513,7 @@ export function ProjectSettlementPanel(props: Props) {
           onClick={() => scrollToStep(currentStep)}
           disabled={panel.loading}
         >
-          現在の step を開く
+          現在の手順を開く
         </button>
       </WorkspaceStatusNotice>
 
@@ -527,7 +524,7 @@ export function ProjectSettlementPanel(props: Props) {
       >
         <ProjectSettlementStepSection
           stepNumber={1}
-          title="Bridge"
+          title="送金準備"
           helper={steps[0].helper}
           status={steps[0].status}
         >
@@ -552,21 +549,15 @@ export function ProjectSettlementPanel(props: Props) {
       >
         <ProjectSettlementStepSection
           stepNumber={2}
-          title="Draft"
+          title="配分計画"
           helper={steps[1].helper}
           status={steps[1].status}
         >
           <ProjectSettlementDistributionDraftSection
             {...distributionSectionProps.distributionDraft}
-            aiDraftText={aiDraftText}
             aiDraftMessage={aiDraftMessage}
             canGenerateAiDraft={canGenerateAiDraft}
             generateAiDraft={generateAiDraft}
-            updateAiDraftText={(value) => {
-              setAiDraftText(value);
-              setAiDraftMessage(null);
-            }}
-            applyAiDraft={applyAiDraft}
           />
         </ProjectSettlementStepSection>
       </div>
@@ -574,7 +565,7 @@ export function ProjectSettlementPanel(props: Props) {
       <div ref={preflightRef} className="scroll-mt-24">
         <ProjectSettlementStepSection
           stepNumber={3}
-          title="Preflight"
+          title="送信前確認"
           helper={steps[2].helper}
           status={steps[2].status}
         >
@@ -587,7 +578,7 @@ export function ProjectSettlementPanel(props: Props) {
       <div ref={executeRef} className="scroll-mt-24">
         <ProjectSettlementStepSection
           stepNumber={4}
-          title="Execute"
+          title="配分実行"
           helper={steps[3].helper}
           status={steps[3].status}
         >
@@ -604,7 +595,7 @@ export function ProjectSettlementPanel(props: Props) {
       >
         <ProjectSettlementStepSection
           stepNumber={5}
-          title="Review"
+          title="結果確認"
           helper={steps[4].helper}
           status={steps[4].status}
         >
@@ -612,7 +603,7 @@ export function ProjectSettlementPanel(props: Props) {
             <WorkspaceStatusNotice
               tone="info"
               title="通常の確認は実行ログまでで十分です"
-              description="送信結果の手動記録や詳細な operator 操作は、必要な場合だけ Advanced を開いて使います。"
+              description="送信結果の手動記録や詳細な操作は、必要な場合だけ下の上級者向け設定を開いて使います。"
             />
             <ProjectSettlementExecutionLogsSection
               {...executionSectionProps.executionLogs}

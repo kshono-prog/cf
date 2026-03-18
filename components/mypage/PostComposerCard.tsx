@@ -76,7 +76,7 @@ export function PostComposerCard(props: Props) {
       return "";
     });
     setHandoffNotice(
-      `AI事務所の告知文案を下書きとして反映しました。内容を確認してから投稿してください。`
+      `AIアシスタントの告知文案を投稿欄に反映しました。内容を確認してから投稿してください。`
     );
     setError(null);
     setSuccess(null);

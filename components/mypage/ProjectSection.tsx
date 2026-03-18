@@ -30,7 +30,7 @@ export function ProjectSection(props: {
     project,
     loading,
     msg,
-    createDraft,
+    handleCreated,
     editDraft,
   } = useProjectSection({
     ownerAddress,
@@ -107,7 +107,6 @@ export function ProjectSection(props: {
               {/* Summary / Actions（feature flagで非表示） */}
               {!featureHideSummaryActions ? (
                 <div className="rounded-xl border border-gray-200 p-3 text-[11px] text-gray-600">
-                  {/* ここに Summary / Actions を置く想定。今は非表示が目的なのでプレースホルダでOK */}
                   Summary / Actions（ここは featureHideSummaryActions
                   で消せます）
                 </div>
@@ -179,7 +178,7 @@ export function ProjectSection(props: {
             </div>
           )}
 
-          {/* CREATE（activeありでもここでは“切替作成”として出す） */}
+          {/* CREATE（activeありでもここでは"切替作成"として出す） */}
           {mode === "CREATE" && (
             <>
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">
@@ -189,26 +188,16 @@ export function ProjectSection(props: {
               </div>
 
               <ProjectCreateCard
-                enabled={true}
-                // ★ shownProjectId は ProjectCreateCard の props に無いなら渡さない（型エラー回避）
-                projectTitle={createDraft.title}
-                projectDescription={createDraft.description}
-                projectPurposeMode={createDraft.purposeMode}
-                projectCreating={createDraft.creating}
-                projectCreateMsg={null}
-                onChangeTitle={createDraft.setTitle}
-                onChangeDescription={createDraft.setDescription}
-                onChangePurposeMode={createDraft.setPurposeMode}
-                onSubmit={() => {
-                  void createDraft.onCreate();
-                }}
+                ownerAddress={ownerAddress}
+                currency={currency}
+                shownProjectId={activeProjectId}
+                onCreated={handleCreated}
               />
 
               <button
                 type="button"
                 className="btn-secondary w-full"
                 onClick={() => setMode("VIEW")}
-                disabled={createDraft.creating}
               >
                 戻る
               </button>
@@ -218,18 +207,9 @@ export function ProjectSection(props: {
       ) : (
         // B) activeなし → 初回作成フォームだけ
         <ProjectCreateCard
-          enabled={true}
-          projectTitle={createDraft.title}
-          projectDescription={createDraft.description}
-          projectPurposeMode={createDraft.purposeMode}
-          projectCreating={createDraft.creating}
-          projectCreateMsg={null}
-          onChangeTitle={createDraft.setTitle}
-          onChangeDescription={createDraft.setDescription}
-          onChangePurposeMode={createDraft.setPurposeMode}
-          onSubmit={() => {
-            void createDraft.onCreate();
-          }}
+          ownerAddress={ownerAddress}
+          currency={currency}
+          onCreated={handleCreated}
         />
       )}
 

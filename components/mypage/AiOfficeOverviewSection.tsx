@@ -182,14 +182,14 @@ export function AiOfficeOverviewSection(props: Props) {
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-          <div className="text-xs text-gray-500">Creator Founding の投稿</div>
+          <div className="text-xs text-gray-500">公開中の投稿</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900">
             {props.contentSummary.publishedPosts}
           </div>
           <p className="mt-2 text-xs leading-5 text-gray-600">
             {props.contentSummary.totalPosts === 0
-              ? "まだ Creator Founding 内の投稿がありません。先に1本投稿すると、AI が実績をもとに提案しやすくなります。"
-              : `公開中 ${props.contentSummary.publishedPosts} 件 / 下書き ${props.contentSummary.draftPosts} 件を土台に、AI が次の一手や文案を整理します。`}
+              ? "まだ投稿がありません。先に1本投稿すると、AIがより適切な提案をしやすくなります。"
+              : `公開中 ${props.contentSummary.publishedPosts} 件・下書き ${props.contentSummary.draftPosts} 件の投稿を参考に、AIが文案を提案します。`}
           </p>
           <button
             type="button"
@@ -197,7 +197,7 @@ export function AiOfficeOverviewSection(props: Props) {
             onClick={props.onOpenCreate}
             disabled={props.loading}
           >
-            AI事務所で下書きを作る
+            下書きを作る
           </button>
         </div>
 
@@ -208,10 +208,10 @@ export function AiOfficeOverviewSection(props: Props) {
           </div>
           <p className="mt-2 text-xs leading-5 text-gray-600">
             {latestTrend
-              ? `直近の Creator Founding 投稿の反応率は ${(latestTrend.interactionRate * 100).toFixed(
+              ? `直近の投稿反応率は ${(latestTrend.interactionRate * 100).toFixed(
                   1
                 )}% です。最新のデータに更新してから下書きを作れます。`
-              : "まだ十分な内部指標がありません。Creator Founding の投稿から最新の指標を取り込みます。"}
+              : "まだ投稿指標がありません。指標を更新するとAIがより適切な提案をできるようになります。"}
           </p>
           <button
             type="button"
@@ -219,7 +219,7 @@ export function AiOfficeOverviewSection(props: Props) {
             onClick={props.onCollectMetrics}
             disabled={props.loading}
           >
-            内部指標を更新する
+            投稿指標を更新する
           </button>
         </div>
       </div>
@@ -245,7 +245,7 @@ export function AiOfficeOverviewSection(props: Props) {
               <AiOfficeEmptyState
                 compact
                 title="まだ推移データがありません"
-                description="Creator Founding の投稿指標を取り込むと、ここに最近の動きが表示されます。"
+                description="投稿指標を更新すると、ここに最近の動きが表示されます。"
               />
             ) : (
               props.metricTrends.slice(-5).map((day) => (
@@ -253,20 +253,20 @@ export function AiOfficeOverviewSection(props: Props) {
                   {day.date} / 表示 {day.views} / 反応率{" "}
                   {(day.interactionRate * 100).toFixed(2)}%
                   {day.topPlatform
-                    ? ` / 反応がよい導線 ${day.topPlatform.platform}`
+                    ? ` / 反応が良い流入元 ${day.topPlatform.platform}`
                     : ""}
                 </div>
               ))
             )}
           </div>
           <div className="mt-4 rounded-xl border border-gray-200 p-3">
-            <div className="text-xs font-medium text-gray-700">直近の取得データ</div>
+            <div className="text-xs font-medium text-gray-700">最近の取得データ</div>
             <div className="mt-2 space-y-1 text-[11px] text-gray-600">
               {props.metricsSnapshots.length === 0 ? (
               <AiOfficeEmptyState
                 compact
                 title="まだ取得データがありません"
-                description="内部指標を更新すると、Creator Founding 投稿の最新データをここで確認できます。"
+                description="指標を更新すると、投稿の最新データをここで確認できます。"
               />
             ) : (
               props.metricsSnapshots.slice(0, 4).map((snapshot) => (
@@ -282,9 +282,9 @@ export function AiOfficeOverviewSection(props: Props) {
 
         <div className="space-y-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="text-sm font-semibold text-gray-900">AI事務所の役割</div>
+            <div className="text-sm font-semibold text-gray-900">AIの担当一覧</div>
             <div className="mt-1 text-xs text-gray-500">
-              どの役割に相談するかを先に決めると、近い task type が選びやすくなります。
+              担当を選んで下書きを作れます。
             </div>
             <div className="mt-3 grid gap-2">
               {roleChoices.map((role) => (
@@ -300,7 +300,7 @@ export function AiOfficeOverviewSection(props: Props) {
                       {role.label}
                     </div>
                     <span className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-700">
-                      {role.taskChoices.length} task
+                      {role.taskChoices.length}種類
                     </span>
                   </div>
                   <div className="mt-1 text-[11px] leading-5 text-gray-600">
@@ -313,17 +313,17 @@ export function AiOfficeOverviewSection(props: Props) {
 
           <div className="rounded-2xl border border-gray-200 bg-white p-4">
             <div className="text-sm font-semibold text-gray-900">
-              最近使った role 導線
+              最近使った担当
             </div>
             <div className="mt-1 text-xs text-gray-500">
-              よく使う role の `Create / Inbox` を、同じ文脈で開き直せます。
+              よく使う担当の下書き・承認待ちをここからすぐ開けます。
             </div>
             <div className="mt-3 space-y-2">
               {recentRoleShortcutCards.length === 0 ? (
                 <AiOfficeEmptyState
                   compact
-                  title="まだ最近使った role 導線はありません"
-                  description="role を選んで Create や Inbox を開くと、ここからすぐ再開できるようになります。"
+                  title="最近使った担当はまだありません"
+                  description="担当を選んで下書きや承認待ちを開くと、ここから再開できるようになります。"
                 />
               ) : (
                 recentRoleShortcutCards.map((shortcut, index) => (
@@ -378,7 +378,7 @@ export function AiOfficeOverviewSection(props: Props) {
                         onClick={() => props.onOpenInbox(shortcut.roleId)}
                         disabled={props.loading}
                       >
-                        この role の承認待ちを開く
+                        この担当の承認待ちを確認する
                       </button>
                       <button
                         type="button"
@@ -388,7 +388,7 @@ export function AiOfficeOverviewSection(props: Props) {
                         }
                         disabled={props.loading}
                       >
-                        この role で下書きを開く
+                        この担当の下書きを作る
                       </button>
                       <button
                         type="button"
@@ -403,8 +403,8 @@ export function AiOfficeOverviewSection(props: Props) {
                         disabled={props.loading}
                       >
                         {copiedLinkKey === `${shortcut.roleId}:INBOX:recent`
-                          ? "Inbox リンクをコピー済み"
-                          : "Inbox リンクをコピー"}
+                          ? "承認待ちリンクをコピー済み"
+                          : "承認待ちリンクをコピー"}
                       </button>
                       <button
                         type="button"
@@ -419,8 +419,8 @@ export function AiOfficeOverviewSection(props: Props) {
                         disabled={props.loading}
                       >
                         {copiedLinkKey === `${shortcut.roleId}:CREATE:recent`
-                          ? "Create リンクをコピー済み"
-                          : "Create リンクをコピー"}
+                          ? "下書きリンクをコピー済み"
+                          : "下書きリンクをコピー"}
                       </button>
                     </div>
                   </div>
@@ -431,17 +431,17 @@ export function AiOfficeOverviewSection(props: Props) {
 
           <div className="rounded-2xl border border-gray-200 bg-white p-4">
             <div className="text-sm font-semibold text-gray-900">
-              最近コピーした role link
+              コピーしたリンク履歴
             </div>
             <div className="mt-1 text-xs text-gray-500">
-              運用メモや共有で使った `Inbox / Create` の link を、ここから再コピーできます。
+              運用メモや共有で使ったリンクをここから再コピーできます。
             </div>
             <div className="mt-3 space-y-2">
               {recentCopiedRoleLinkCards.length === 0 ? (
                 <AiOfficeEmptyState
                   compact
-                  title="まだコピーした role link はありません"
-                  description="recent shortcut から link をコピーすると、ここに直近の履歴が残ります。"
+                  title="まだコピーしたリンクはありません"
+                  description="担当のリンクをコピーすると、ここに直近の履歴が残ります。"
                 />
               ) : (
                 recentCopiedRoleLinkCards.map((link) => (
@@ -454,7 +454,7 @@ export function AiOfficeOverviewSection(props: Props) {
                         {link.label}
                       </div>
                       <span className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700">
-                        {link.activeView === "INBOX" ? "Inbox" : "Create"}
+                        {link.activeView === "INBOX" ? "承認待ち" : "下書き"}
                       </span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-600">
@@ -474,8 +474,8 @@ export function AiOfficeOverviewSection(props: Props) {
                         disabled={props.loading}
                       >
                         {link.activeView === "INBOX"
-                          ? "この Inbox を開く"
-                          : "この Create を開く"}
+                          ? "承認待ちを開く"
+                          : "下書きを作る"}
                       </button>
                       <button
                         type="button"
@@ -491,7 +491,7 @@ export function AiOfficeOverviewSection(props: Props) {
                       >
                         {copiedLinkKey === `${link.roleId}:${link.activeView}:copied`
                           ? "リンクをコピー済み"
-                          : "この link を再コピー"}
+                          : "もう一度コピー"}
                       </button>
                     </div>
                   </div>
@@ -502,18 +502,18 @@ export function AiOfficeOverviewSection(props: Props) {
 
           <div className="rounded-2xl border border-gray-200 bg-white p-4">
             <div className="text-sm font-semibold text-gray-900">
-              AI の使われ方
+              AIの利用状況
             </div>
             <div className="mt-1 text-xs text-gray-500">
-              直近 {props.usefulness.windowDays} 日。`保留が長い` は{" "}
-              {props.usefulness.staleAfterHours} 時間以上の承認待ちです。
+              直近 {props.usefulness.windowDays} 日の集計。「保留が長い」は{" "}
+              {props.usefulness.staleAfterHours} 時間以上承認待ちの提案です。
             </div>
             <div className="mt-3">
               {props.usefulness.actionableCount === 0 ? (
                 <AiOfficeEmptyState
                   compact
-                  title="まだ承認前提の下書きは多くありません"
-                  description="承認前提の task が増えると、ここで対応率や保留の長さを追えます。"
+                  title="まだ承認前提の提案がありません"
+                  description="下書きや提案が増えると、ここで対応率や保留状況を確認できます。"
                 />
               ) : (
                 <>
@@ -560,14 +560,14 @@ export function AiOfficeOverviewSection(props: Props) {
                   </div>
                   <div className="mt-4 border-t border-gray-200 pt-3">
                     <div className="text-[11px] font-medium text-gray-700">
-                      role ごとの使われ方
+                      担当ごとの状況
                     </div>
                     <div className="mt-2 space-y-2">
                       {props.usefulness.roleBreakdown.length === 0 ? (
                         <AiOfficeEmptyState
                           compact
-                          title="role 別の十分な履歴はまだありません"
-                          description="role を選んで下書きを作ると、ここに Manager / Promotion などの傾向が出ます。"
+                          title="まだ担当ごとの履歴がありません"
+                          description="担当を選んで下書きを作ると、ここに履歴が表示されます。"
                         />
                       ) : (
                         props.usefulness.roleBreakdown.map((role) => (
@@ -622,7 +622,7 @@ export function AiOfficeOverviewSection(props: Props) {
                                   >
                                     {copiedLinkKey === `${role.roleId}:INBOX`
                                       ? "リンクをコピー済み"
-                                      : "この role のリンクをコピー"}
+                                      : "リンクをコピー"}
                                   </button>
                                 </>
                               ) : (
@@ -635,7 +635,7 @@ export function AiOfficeOverviewSection(props: Props) {
                                     }
                                     disabled={props.loading}
                                   >
-                                    この role で作る
+                                    この担当で下書きを作る
                                   </button>
                                   <button
                                     type="button"
@@ -651,7 +651,7 @@ export function AiOfficeOverviewSection(props: Props) {
                                   >
                                     {copiedLinkKey === `${role.roleId}:CREATE`
                                       ? "リンクをコピー済み"
-                                      : "この role のリンクをコピー"}
+                                      : "リンクをコピー"}
                                   </button>
                                 </>
                               )}
@@ -667,9 +667,9 @@ export function AiOfficeOverviewSection(props: Props) {
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="text-sm font-semibold text-gray-900">承認待ちの下書き</div>
+            <div className="text-sm font-semibold text-gray-900">承認待ちの提案</div>
             <div className="mt-1 text-xs text-gray-500">
-              Manager / Promotion / Finance / Fan Relation の各役割で作られた下書きを、ここでざっと確認できます。
+              各担当が作成した下書きや提案をまとめて確認できます。
             </div>
             <div className="mt-3 space-y-2">
               {pendingTasks.length === 0 ? (
@@ -705,17 +705,17 @@ export function AiOfficeOverviewSection(props: Props) {
 
           <div className="rounded-2xl border border-gray-200 bg-white p-4">
             <div className="text-sm font-semibold text-gray-900">
-              Creator Founding 投稿の土台
+              投稿の状況
             </div>
             <div className="mt-1 text-xs text-gray-500">
-              外部SNS連携ではなく、このアプリ内の投稿と反応を根拠にします。
+              このアプリ内の投稿と反応をもとにAIが提案を作ります。
             </div>
             <div className="mt-3 space-y-2">
               {props.contentSummary.totalPosts === 0 ? (
                 <AiOfficeEmptyState
                   compact
-                  title="まだ Creator Founding 投稿がありません"
-                  description="先に1本投稿すると、AI が反応や支援の文脈を読みやすくなります。"
+                  title="まだ投稿がありません"
+                  description="先に1本投稿すると、AIがより文脈を踏まえた提案をしやすくなります。"
                 />
               ) : (
                 <>

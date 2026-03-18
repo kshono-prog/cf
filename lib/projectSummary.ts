@@ -3,48 +3,38 @@ import { Prisma } from "@prisma/client";
 import type { SummaryViewData } from "@/lib/mypage/accountPageTypes";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
+import {
+  toCurrency,
+  decToString,
+  decimalToAmountByCurrency,
+  type CurrencyCode,
+} from "@/lib/currencyUtils";
 
-type Currency = "JPYC" | "USDC";
-
-function toCurrency(v: string): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
-}
-
-function decToString(d: Prisma.Decimal | null | undefined): string | null {
-  if (d == null) return null;
-  return d.toString();
-}
-
-function decimalToAmountByCurrency(
-  currency: Currency,
-  amountDecimal: Prisma.Decimal | null
-): number {
-  if (!amountDecimal) return 0;
-  if (currency === "USDC") {
-    const n = Number(amountDecimal.toString());
-    if (!Number.isFinite(n)) return 0;
-    return Number(n.toFixed(2));
-  }
-  const s = amountDecimal.toString();
-  const [i] = s.split(".");
-  const n = Number(i || "0");
-  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
-}
+type Currency = CurrencyCode;
 
 export async function getProjectSummaryView(
   projectId: bigint
 ): Promise<SummaryViewData | null> {
-  const project = await withPrismaRetry(() =>
-    prisma.project.findUnique({
-      where: { id: projectId },
-      include: {
-        goal: true,
-        purposes: true,
-        bridgeRuns: { orderBy: { createdAt: "desc" }, take: 5 },
-        distributionRuns: { orderBy: { createdAt: "desc" }, take: 5 },
-      },
-    })
-  );
+  const [project, sumByCurrency] = await Promise.all([
+    withPrismaRetry(() =>
+      prisma.project.findUnique({
+        where: { id: projectId },
+        include: {
+          goal: true,
+          purposes: true,
+          bridgeRuns: { orderBy: { createdAt: "desc" }, take: 5 },
+          distributionRuns: { orderBy: { createdAt: "desc" }, take: 5 },
+        },
+      })
+    ),
+    withPrismaRetry(() =>
+      prisma.contribution.groupBy({
+        by: ["currency"],
+        where: { projectId, status: "CONFIRMED" },
+        _sum: { amountDecimal: true },
+      })
+    ),
+  ]);
 
   if (!project) return null;
 
@@ -52,14 +42,6 @@ export async function getProjectSummaryView(
   if (!projectCurrency) {
     throw new Error("PROJECT_CURRENCY_INVALID");
   }
-
-  const sumByCurrency = await withPrismaRetry(() =>
-    prisma.contribution.groupBy({
-      by: ["currency"],
-      where: { projectId, status: "CONFIRMED" },
-      _sum: { amountDecimal: true },
-    })
-  );
 
   const totalConfirmed: Record<Currency, Prisma.Decimal> = {
     JPYC: new Prisma.Decimal(0),

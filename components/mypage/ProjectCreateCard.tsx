@@ -1,40 +1,67 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { createMyPageProject } from "@/lib/api/project";
+import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 
-export function ProjectCreateCard(props: {
-  enabled: boolean;
+type DefaultValues = {
+  title?: string;
+  description?: string;
+  purposeMode?: string;
+};
 
-  // ★ optional にする（初回作成では null/undefined でOK）
+type Props = {
+  onCreated: (projectId: string) => void;
+  defaultValues?: DefaultValues;
+  ownerAddress: string;
+  currency?: CurrencyCode;
   shownProjectId?: string | null;
+};
 
-  projectTitle: string;
-  projectDescription: string;
-  projectPurposeMode: string;
-  projectCreating: boolean;
-  projectCreateMsg: string | null;
-  onChangeTitle: (v: string) => void;
-  onChangeDescription: (v: string) => void;
-  onChangePurposeMode: (v: string) => void;
-  onSubmit: () => void;
-}) {
-  const {
-    enabled,
-    shownProjectId,
-    projectTitle,
-    projectDescription,
-    projectPurposeMode,
-    projectCreating,
-    projectCreateMsg,
-    onChangeTitle,
-    onChangeDescription,
-    onChangePurposeMode,
-    onSubmit,
-  } = props;
+export function ProjectCreateCard({
+  onCreated,
+  defaultValues,
+  ownerAddress,
+  currency = "JPYC",
+  shownProjectId,
+}: Props) {
+  const [title, setTitle] = useState(defaultValues?.title ?? "");
+  const [description, setDescription] = useState(defaultValues?.description ?? "");
+  const [purposeMode, setPurposeMode] = useState(
+    defaultValues?.purposeMode ?? "OPTIONAL"
+  );
+  const [creating, setCreating] = useState(false);
+  const [createMsg, setCreateMsg] = useState<string | null>(null);
 
-  if (!enabled) return null;
+  const canCreate = title.trim().length > 0 && !creating;
 
-  const canCreate = projectTitle.trim().length > 0 && !projectCreating;
+  async function handleSubmit() {
+    if (!canCreate) return;
+    setCreating(true);
+    setCreateMsg(null);
+    try {
+      const result = await createMyPageProject({
+        ownerAddress,
+        title,
+        description: description.trim().length > 0 ? description : null,
+        purposeMode,
+        currency,
+      });
+      if (!result.ok) {
+        setCreateMsg(result.error);
+        return;
+      }
+      setCreateMsg("Project を作成しました。");
+      setTitle("");
+      setDescription("");
+      setPurposeMode("OPTIONAL");
+      onCreated(result.projectId);
+    } catch {
+      setCreateMsg("PROJECT_CREATE_FAILED");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   return (
     <div className="card p-4 space-y-3 bg-white">
@@ -56,8 +83,8 @@ export function ProjectCreateCard(props: {
         を作成できます。
       </p>
 
-      {projectCreateMsg && (
-        <div className="text-[11px] text-green-700">{projectCreateMsg}</div>
+      {createMsg && (
+        <div className="text-[11px] text-green-700">{createMsg}</div>
       )}
 
       <div className="space-y-2">
@@ -69,9 +96,9 @@ export function ProjectCreateCard(props: {
             type="text"
             className="input"
             placeholder="例）新しいイベント支援プロジェクト"
-            value={projectTitle}
-            onChange={(e) => onChangeTitle(e.target.value)}
-            disabled={projectCreating}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={creating}
           />
         </div>
 
@@ -80,9 +107,9 @@ export function ProjectCreateCard(props: {
           <textarea
             className="input min-h-[70px]"
             placeholder="例）このプロジェクトの目的、背景、使い方など"
-            value={projectDescription}
-            onChange={(e) => onChangeDescription(e.target.value)}
-            disabled={projectCreating}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={creating}
           />
         </div>
 
@@ -92,9 +119,9 @@ export function ProjectCreateCard(props: {
           </label>
           <select
             className="input"
-            value={projectPurposeMode}
-            onChange={(e) => onChangePurposeMode(e.target.value)}
-            disabled={projectCreating}
+            value={purposeMode}
+            onChange={(e) => setPurposeMode(e.target.value)}
+            disabled={creating}
           >
             <option value="OPTIONAL">OPTIONAL（内訳は任意）</option>
             <option value="REQUIRED">REQUIRED（内訳が必須）</option>
@@ -110,10 +137,10 @@ export function ProjectCreateCard(props: {
       <button
         type="button"
         className="btn w-full"
-        onClick={onSubmit}
+        onClick={() => void handleSubmit()}
         disabled={!canCreate}
       >
-        {projectCreating ? "作成中..." : "Project を作成する"}
+        {creating ? "作成中..." : "Project を作成する"}
       </button>
 
       {shownProjectId ? (

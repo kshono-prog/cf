@@ -15,12 +15,9 @@ import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
-type Params = { projectId: string };
-type Currency = "JPYC" | "USDC";
+import { toCurrency } from "@/lib/currencyUtils";
 
-function toCurrency(v: unknown): Currency | null {
-  return v === "JPYC" || v === "USDC" ? v : null;
-}
+type Params = { projectId: string };
 
 function decimalToString(d: Prisma.Decimal | null | undefined): string {
   if (!d) return "0";
