@@ -117,6 +117,23 @@ export function useProjectSettlementDistributionState(
     setDraftDirty(true);
   }, []);
 
+  const replaceDraftRows = useCallback(
+    (nextRows: DistributionDraft[]) => {
+      const normalizedRows = nextRows.map((row) => ({
+        ...row,
+        token: projectCurrency,
+      }));
+
+      setRows(
+        normalizedRows.length > 0
+          ? normalizedRows
+          : [makeEmptyRow(projectCurrency)]
+      );
+      setDraftDirty(true);
+    },
+    [projectCurrency]
+  );
+
   const saveDistributions = useCallback(async () => {
     if (!projectId || !walletAddress) {
       setMessage("ADDRESS_REQUIRED");
@@ -182,6 +199,7 @@ export function useProjectSettlementDistributionState(
     updateDraft,
     addDraftRow,
     removeDraftRow,
+    replaceDraftRows,
     saveDistributions,
   };
 }

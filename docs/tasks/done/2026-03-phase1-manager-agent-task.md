@@ -1,5 +1,7 @@
 # Task
 
+完了日: 2026-03-18
+
 Phase 1A: `Manager Agent` を AI Office の保存可能な task として追加する
 
 ## Goal

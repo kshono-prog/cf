@@ -10,10 +10,16 @@ import {
 import type { TaskType } from "@/lib/agentTaskParsers";
 import { isJsonValueForStorage, toTaskType } from "@/lib/agentTaskParsers";
 import {
+  buildDistributionPlanDraftTaskOutput,
+  normalizeDistributionPlanDraftTaskInput,
+} from "@/lib/creator-ai/distributionPlanDraftTask";
+import {
   buildManagerAgentTaskOutput,
   normalizeManagerAgentTaskInput,
 } from "@/lib/creator-ai/managerAgentTask";
+import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
+import { getProjectSettlementView } from "@/lib/projectSettlementView";
 import {
   buildTranslationsOutput,
   parseTranslationTaskInput,
@@ -140,6 +146,23 @@ function validateManagerNextActionsInput(
   input: unknown
 ): TaskInputValidationResult {
   const normalized = normalizeManagerAgentTaskInput(input);
+  if (!normalized) {
+    return { ok: false, error: "TASK_INPUT_INVALID" };
+  }
+
+  return {
+    ok: true,
+    value: {
+      source: normalized.source,
+      requestedAt: normalized.requestedAt,
+    },
+  };
+}
+
+function validateDistributionPlanDraftInput(
+  input: unknown
+): TaskInputValidationResult {
+  const normalized = normalizeDistributionPlanDraftTaskInput(input);
   if (!normalized) {
     return { ok: false, error: "TASK_INPUT_INVALID" };
   }
@@ -305,8 +328,8 @@ async function buildAnalyzeOutput(params: {
     return {
       summary: "分析対象のmetricsがまだありません。",
       nextActions: [
-        "まず metrics収集 を実行してください",
-        "SNS連携アカウントを追加してください",
+        "Creator Founding の投稿指標を更新してください",
+        "必要なら Creator Founding 内で投稿を1本追加してください",
       ],
       basedOn: params.input,
     };
@@ -641,7 +664,9 @@ async function buildWeeklyReportOutput(params: {
 
   if (metricRows.length === 0) {
     highlights.push("過去7日間の metrics データはまだありません。");
-    actionItems.push("metrics収集を実行して週次レポートの精度を上げる。");
+    actionItems.push(
+      "Creator Founding の投稿指標を更新して週次レポートの精度を上げる。"
+    );
   } else {
     highlights.push(
       `${windowDays}日間で views ${totalViews}、interactions ${totalInteractions}、反応率 ${(interactionRate * 100).toFixed(2)}%。`
@@ -1065,6 +1090,53 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
       });
     },
   },
+  DISTRIBUTION_PLAN_DRAFT: {
+    validateInput: validateDistributionPlanDraftInput,
+    outputSchema: {
+      kind: "DISTRIBUTION_PLAN_DRAFT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "Finance Agent による配分下書き要約",
+        },
+        draftPayload: {
+          type: "object",
+          required: false,
+          description: "Draft step へ handoff できる approval-only payload",
+        },
+        projectSnapshot: {
+          type: "object",
+          required: false,
+          description: "参照した project / settlement の要約",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => {
+      const normalizedInput =
+        normalizeDistributionPlanDraftTaskInput(params.input) ?? {
+          source: "mypage",
+          requestedAt: new Date().toISOString(),
+        };
+      const summary = params.projectId
+        ? await getProjectSummaryView(params.projectId)
+        : null;
+      const settlement = params.projectId
+        ? await getProjectSettlementView(params.projectId)
+        : null;
+
+      return buildDistributionPlanDraftTaskOutput({
+        summary,
+        settlement,
+        input: normalizedInput,
+      });
+    },
+  },
   ANALYZE: {
     validateInput: validateGenericJsonInput,
     outputSchema: {
@@ -1335,6 +1407,7 @@ export async function createAgentTask(params: {
   inputJson: Prisma.InputJsonValue;
   requiresApproval: boolean;
   requestedBy: string;
+  roleId: CreatorAiAgentRole | null;
 }) {
   const outputJson = await buildTaskOutput({
     creatorProfileId: params.creatorProfileId,
@@ -1384,6 +1457,7 @@ export async function createAgentTask(params: {
         metaJson: buildCreateAuditMeta({
           taskType: params.taskType,
           requiresApproval: params.requiresApproval,
+          roleId: params.roleId,
         }),
         createdAt: now,
       },

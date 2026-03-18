@@ -23,12 +23,12 @@ type CandidateSnapshot = {
   platform: string;
   contentExternalId: string;
   contentUrl: string | null;
+  postedAt: Date | null;
   views: number;
   likes: number;
   comments: number;
   shares: number;
   rawJson: Prisma.InputJsonValue;
-  socialConnectionId: string;
 };
 
 async function resolveCreatorByAddress(address: string): Promise<{
@@ -82,25 +82,35 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (!ownedProject) return errJson("PROJECT_NOT_FOUND_OR_FORBIDDEN", 404);
     }
 
-    const [connections, latestVideos, contributionAgg] = await Promise.all([
-      prisma.socialConnection.findMany({
+    const [posts, contributionAgg] = await Promise.all([
+      prisma.post.findMany({
         where: {
           creatorProfileId: creator.id,
-          status: "ACTIVE",
+          ...(projectId ? { projectId } : {}),
+          status: { in: ["PUBLISHED", "DRAFT"] },
         },
+        orderBy: { createdAt: "desc" },
+        take: 12,
         select: {
           id: true,
-          platform: true,
-          accountHandle: true,
-          accountId: true,
+          body: true,
+          status: true,
+          visibility: true,
+          mediaUrl: true,
+          likeCount: true,
+          replyCount: true,
+          tipCount: true,
+          aiGenerated: true,
+          createdAt: true,
+          analytics: {
+            select: {
+              impressionCount: true,
+              profileClickCount: true,
+              engagementScore: true,
+              updatedAt: true,
+            },
+          },
         },
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.creatorYoutubeVideo.findMany({
-        where: { profileId: creator.id },
-        select: { url: true },
-        orderBy: { createdAt: "desc" },
-        take: 3,
       }),
       prisma.contribution.aggregate({
         where: {
@@ -111,40 +121,42 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }),
     ]);
 
-    if (connections.length === 0) {
+    if (posts.length === 0) {
       return okJson({
         collected: 0,
         snapshots: [],
-        note: "NO_ACTIVE_SOCIAL_CONNECTIONS",
+        note: "NO_CREATOR_POSTS",
       });
     }
 
     const baseCount = contributionAgg._count._all;
-
-    const candidates: CandidateSnapshot[] = connections.map((conn, idx) => {
-      const contentUrl = latestVideos[idx % Math.max(latestVideos.length, 1)]?.url ?? null;
-      const seed = baseCount + idx + 1;
-
-      const views = seed * 100;
-      const likes = seed * 12;
-      const comments = seed * 4;
-      const shares = seed * 2;
+    const candidates: CandidateSnapshot[] = posts.map((post, idx) => {
+      const impressions = post.analytics?.impressionCount ?? 0;
+      const profileClicks = post.analytics?.profileClickCount ?? 0;
+      const views = Math.max(
+        impressions,
+        (post.likeCount + post.replyCount + post.tipCount + baseCount + idx + 1) * 10
+      );
 
       return {
-        platform: conn.platform,
-        contentExternalId: `${conn.platform}:${conn.accountHandle}:${Date.now().toString()}:${idx.toString()}`,
-        contentUrl,
+        platform: "Creator Founding",
+        contentExternalId: `post:${post.id}`,
+        contentUrl: post.mediaUrl ?? `/${creator.username}`,
+        postedAt: post.createdAt,
         views,
-        likes,
-        comments,
-        shares,
+        likes: post.likeCount,
+        comments: post.replyCount,
+        shares: 0,
         rawJson: {
-          source: "internal-seed",
-          accountHandle: conn.accountHandle,
-          accountId: conn.accountId,
+          source: "creator-founding-posts",
+          postId: post.id,
+          postStatus: post.status,
+          visibility: post.visibility,
+          aiGenerated: post.aiGenerated,
+          profileClickCount: profileClicks,
+          tipCount: post.tipCount,
           baseConfirmedContributionCount: baseCount,
         } as Prisma.InputJsonValue,
-        socialConnectionId: conn.id,
       };
     });
 
@@ -162,10 +174,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           data: {
             creatorProfileId: creator.id,
             projectId,
-            socialConnectionId: candidate.socialConnectionId,
+            socialConnectionId: null,
             platform: candidate.platform,
             contentExternalId: candidate.contentExternalId,
             contentUrl: candidate.contentUrl,
+            postedAt: candidate.postedAt,
             views: candidate.views,
             likes: candidate.likes,
             comments: candidate.comments,

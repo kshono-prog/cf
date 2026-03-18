@@ -1,7 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import Image from "next/image";
+
 import type { Address } from "viem";
 
+import { WorkspaceLoadingCard } from "@/components/mypage/WorkspaceFeedback";
 import { CreatorAdvancedSettingsSection } from "@/components/mypage/CreatorAdvancedSettingsSection";
 import { CreatorProfileSection } from "@/components/mypage/CreatorProfileSection";
 import { CurrencyProjectManagementBlock } from "@/components/mypage/CurrencyProjectManagementBlock";
@@ -14,6 +18,18 @@ import type {
   OpenSections,
   SectionKey,
 } from "@/components/mypage/MyPageAccordion";
+
+const AiOfficeManagementSection = dynamic(
+  () =>
+    import("@/components/mypage/AiOfficeManagementSection").then(
+      (mod) => mod.AiOfficeManagementSection
+    ),
+  {
+    loading: () => (
+      <WorkspaceLoadingCard title="AI事務所（Phase1）を読み込んでいます" />
+    ),
+  }
+);
 
 type SettingsPageClientProps = {
   initialWorkspaceView: "home" | "support-page" | "supporters" | "public" | "advanced";
@@ -131,10 +147,13 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-[auto,1fr]">
           {props.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={props.avatarUrl}
               alt={`${props.displayName} のアイコン`}
+              width={64}
+              height={64}
+              quality={95}
+              sizes="64px"
               className="h-16 w-16 rounded-full border border-[var(--line)] object-cover"
             />
           ) : (
@@ -224,6 +243,40 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
           isConnected={props.isConnected}
         />
       </div>
+
+      <section id="ai-office-phase1" className="surface-card p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--text)]">
+              AI事務所（Phase1）
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+              現在の project 状態をもとに、次の一手、下書き、承認待ちをここで確認できます。
+            </p>
+          </div>
+          <a
+            href={`${props.workspaceBasePath}/supporters`}
+            className="btn-secondary"
+          >
+            専用画面で開く
+          </a>
+        </div>
+        <div className="mt-4 surface-subtle px-4 py-4">
+          <div className="text-sm font-semibold text-[var(--text)]">
+            まずは recommendation と draft を承認付きで使います
+          </div>
+          <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+            自動投稿や資金移動は行わず、保存可能な task として review できる範囲から始めます。
+          </p>
+        </div>
+        <div className="mt-4">
+          <AiOfficeManagementSection
+            walletAddress={props.address ?? null}
+            projectId={props.localProjectId}
+            isConnected={props.isConnected}
+          />
+        </div>
+      </section>
 
       {props.editingProfile ? (
         <CreatorProfileSection

@@ -85,6 +85,12 @@
 - `AI Office` Inbox を `承認待ちキュー -> 一括操作 -> 最近の履歴` の hierarchy に整理
 - `AI Office` の `Overview / Create / Inbox` で success / empty / error 表示パターンを共通化
 - `AI Office` の承認待ち導線を `Overview / Create / Inbox` をまたいで可視化
+- `Manager Agent` recommendation を `AgentTask` として保存・承認・履歴参照できるようにした
+- `distribution plan draft` を approval-only な AI 下書きとして `Draft` step に反映できるようにした
+- `AI Office` を role-based surface と usefulness metrics ベースで案内できるようにした
+- `Finance Agent` から `settlement Draft` へ advisory payload を handoff できるようにした
+- `AI Office` の role filter / deep link / recent shortcut / copied link を追加し、`Overview / Create / Inbox` の guided flow を強めた
+- `AI Office` manual check runbook を role-based / Finance handoff / posting metrics 前提に更新した
 - shared feedback pattern を `settlement` と主要 `mypage` view に広げた
 - `settlement` を guided `Bridge -> Draft -> Preflight -> Execute -> Review` flow に整理
 - `settlement` の `CCTP` と `manual result` を advanced controls に寄せ、通常 review は実行ログ中心に整理
@@ -147,6 +153,8 @@ AIが自動で進めてよい:
 3. `AI Office` の guided flow をさらに強めるか、現状で十分かを手動確認で判断する
 4. `creatorReady` の first view 追加後の section label / CTA hierarchy を手動確認して詰める
 5. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
+6. `AI Office` minimum / full manual check を実画面で回し、capture と違和感メモを残す
+7. `Finance Agent` / `settlement Draft` handoff を実画面で確認し、必要なら copy と前提条件を微調整する
 
 直近完了:
 
@@ -165,6 +173,10 @@ AIが自動で進めてよい:
 - `AI Office` Inbox を `承認待ちキュー / 一括操作 / 最近の履歴` に整理した
 - `AI Office` の notice / empty state 表示を `Overview / Create / Inbox` で共通化した
 - `AI Office` の承認待ちを `Overview / Create / Inbox` のどこからでも見つけやすくした
+- `Manager Agent` recommendation を保存可能な `AgentTask` として追加した
+- `distribution plan draft` builder / apply flow / `Finance Agent` handoff を追加した
+- `AI Office` の role-based surface / usefulness metrics / role deep link を追加した
+- `AI Office` manual check runbook を role-based / Finance handoff 前提に更新した
 - shared notice / empty-state pattern を `settlement` と主要 `mypage` view に広げた
 - `settlement` を guided `Bridge / Draft / Preflight / Execute / Review` 順に並べ、current step notice と step overview を追加した
 - `settlement` の `CCTP` と `manual result` を Advanced へ落とし、main flow を軽くした

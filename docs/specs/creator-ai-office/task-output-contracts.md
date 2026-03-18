@@ -56,6 +56,30 @@ fallback:
 - `projectId` がない、または summary が取得できない場合でも task 自体は失敗させない
 - その場合は `suggestedActions` を空にし、summary 不足を伝える文面を返す
 
+### `DISTRIBUTION_PLAN_DRAFT`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `draftPayload`
+- `projectSnapshot`
+- `basedOn`
+
+metrics 依存:
+
+- なし
+- `Project / Goal / Summary / Settlement / Distribution Entries` を利用する
+
+fallback:
+
+- `projectId` や summary / settlement が不足しても task 自体は失敗させない
+- その場合は `draftPayload` なしで、安全な fallback summary を返す
+
 ### `TRANSLATE`
 
 input:
@@ -172,6 +196,33 @@ fallback:
 - task type ごとに必要な input だけ表示する
 - output は `taskType -> renderer` で表示する
 - structured view に失敗した場合だけ raw JSON fallback を出す
+
+## Structured Advisory Payloads
+
+### Distribution Plan Draft Payload
+
+Phase 1B の settlement draft builder と `DISTRIBUTION_PLAN_DRAFT` task は、同じ approval-only advisory payload を共有する。
+
+payload:
+
+- `version`
+- `projectId`
+- `projectTitle`
+- `projectStatus`
+- `currency`
+- `generatedAt`
+- `source`
+- `summary`
+- `rows[]`
+- `notes[]`
+
+UI rules:
+
+- payload は JSON textarea で確認・編集できる
+- `DISTRIBUTION_PLAN_DRAFT` task output では preview と `Draft step` への handoff に使う
+- `行に反映` は `rows[]` を既存の draft editor に流し込むだけで、自動保存しない
+- bridge / distribution execute には接続しない
+- token は現在の settlement currency に揃える
 
 ## 今後の追加ルール
 

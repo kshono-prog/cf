@@ -136,9 +136,9 @@ export function CreatorReadyAccountView(props: Props) {
   const router = useRouter();
   const promoHeaderColor = props.themeColor || "#005bbb";
   const activeView = props.initialWorkspaceView;
-  const composeHref = `${props.workspaceBasePath}/support-page#sns-compose`;
+  const postingHref = `${props.workspaceBasePath}/support-page#posting-compose`;
   const publicPageHref = `/${props.meCreatorUsername}`;
-  const isSnsOpen = props.openSections.sns;
+  const isPostingOpen = props.openSections.sns;
   const toggleSection = props.onToggleSection;
 
   const navigateToView = React.useCallback(
@@ -147,27 +147,30 @@ export function CreatorReadyAccountView(props: Props) {
     },
     [props.workspaceBasePath, router]
   );
-  const handleOpenComposer = React.useCallback(() => {
-    if (!isSnsOpen) {
+  const handleOpenPostingComposer = React.useCallback(() => {
+    if (!isPostingOpen) {
       toggleSection("sns");
     }
 
     if (activeView !== "support-page") {
-      router.push(composeHref, { scroll: true });
+      router.push(postingHref, { scroll: true });
       return;
     }
 
     if (typeof window === "undefined") return;
     window.requestAnimationFrame(() => {
-      document.getElementById("sns-compose")?.scrollIntoView({
+      const postingAnchor =
+        document.getElementById("posting-compose") ??
+        document.getElementById("sns-compose");
+      postingAnchor?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
     });
   }, [
     activeView,
-    composeHref,
-    isSnsOpen,
+    isPostingOpen,
+    postingHref,
     router,
     toggleSection,
   ]);
@@ -274,7 +277,7 @@ export function CreatorReadyAccountView(props: Props) {
                 <button
                   type="button"
                   className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                  onClick={handleOpenComposer}
+                  onClick={handleOpenPostingComposer}
                 >
                   投稿する
                 </button>

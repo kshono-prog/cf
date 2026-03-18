@@ -272,7 +272,7 @@ export function AiOfficeTaskInputFields(props: Props) {
     <AiOfficeEmptyState
       compact
       title="追加の入力は不要です"
-      description="project と最近の指標をもとに、自動で内容を作成します。"
+      description="project / summary / settlement 状態をもとに、自動で内容を作成します。"
     />
   );
 }

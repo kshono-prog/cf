@@ -33,6 +33,8 @@ export function Avatar({ src, alt, fallbackText, size = 64 }: AvatarProps) {
       alt={alt}
       width={dimension}
       height={dimension}
+      quality={95}
+      sizes={`${dimension}px`}
       style={{ width: dimension, height: dimension }}
       className="shrink-0 rounded-full object-cover bg-[var(--surface-subtle)] ring-2 ring-[var(--line)]"
       onError={() => setBroken(true)}

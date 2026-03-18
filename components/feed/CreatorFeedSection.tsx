@@ -20,9 +20,9 @@ import {
   type SelectedPostTipContext,
 } from "@/components/feed/feedTypes";
 import {
-  deleteMySnsPost,
-  updateMySnsPostContent,
-} from "@/lib/mypage/snsApi";
+  deleteMyPostingPost,
+  updateMyPostingPostContent,
+} from "@/lib/mypage/postingApi";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 type CurrencyProjectIds = {
@@ -421,7 +421,7 @@ export function CreatorFeedSection(props: Props) {
     setSavingEdit(true);
     setEditError(null);
 
-    const result = await updateMySnsPostContent({
+    const result = await updateMyPostingPostContent({
       address: managePostAddress,
       postId: post.id,
       body: trimmedBody,
@@ -466,7 +466,7 @@ export function CreatorFeedSection(props: Props) {
     setDeletingPostId(post.id);
     setNotice(null);
 
-    const result = await deleteMySnsPost({
+    const result = await deleteMyPostingPost({
       address: managePostAddress,
       postId: post.id,
     });

@@ -6,7 +6,7 @@
 - Apply the new UX language and primary CTA rules across existing surfaces
 - Strengthen the public profile so first-time visitors can understand and support quickly
 - Keep the public profile in a consistent light theme and explain why supporting here is safe
-- Refine `AI Office` after the new `Overview / Create / Inbox` split
+- Stabilize `AI Office` after Phase 1 delivery and manual-check preparation
 - Keep AI Office and settlement changes aligned with user-facing language, not internal task names
 - Continue using small Issue-sized tasks so Codex can implement UX changes safely
 
@@ -38,7 +38,11 @@
 - completed: `Inbox` now prioritizes `承認待ちキュー -> 一括操作 -> 最近の履歴`
 - completed: `Overview / Create / Inbox` now share success / empty / error display patterns
 - completed: approval-required work is now visible from `Overview`, `Create`, and `Inbox`
-- next: decide whether AI Office needs a stronger guided flow or is sufficient after manual review
+- completed: `Manager Agent` recommendation can now be saved as an `AgentTask`
+- completed: `Finance Agent` can hand advisory distribution draft payloads to `settlement Draft`
+- completed: AI Office is now explained and navigated through `Manager / Promotion / Finance / Fan Relation`
+- completed: usefulness metrics, role filters, deep links, recent shortcuts, and copied role links now support the guided flow
+- next: run the minimum/full manual check on real screens and use those findings to decide the first Phase 2 UX adjustments
 
 ### Onboarding
 
@@ -55,5 +59,5 @@
 ## Ready Queue
 
 1. Write Phase 0 UX spec for screen purpose, CTA priority, and terminology
-2. Hand-review `settlement`, `mypage`, and `AI Office` after the new guided flow / shared feedback pattern
-3. Decide whether `settlement` needs a stronger stepper or is sufficient with the current guided layout
+2. Run the `AI Office` minimum manual check and record capture-backed findings
+3. Hand-review `settlement`, `mypage`, and `AI Office` after the new guided flow / shared feedback pattern

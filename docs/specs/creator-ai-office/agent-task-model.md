@@ -6,6 +6,8 @@
 
 ## 現時点の task type
 
+- `MANAGER_NEXT_ACTIONS`
+- `DISTRIBUTION_PLAN_DRAFT`
 - `ANALYZE`
 - `PROPOSE`
 - `TRANSLATE`

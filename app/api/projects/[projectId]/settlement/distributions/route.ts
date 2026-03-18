@@ -153,7 +153,7 @@ export async function PUT(
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true, ownerAddress: true },
+      select: { id: true, ownerAddress: true, currency: true },
     });
 
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
@@ -162,6 +162,9 @@ export async function PUT(
     if (!owner || owner !== wallet.toLowerCase()) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
+
+    const projectToken = toToken(project.currency);
+    if (!projectToken) return errJson("PROJECT_CURRENCY_INVALID", 400);
 
     const now = new Date();
 
@@ -252,6 +255,32 @@ export async function PUT(
         orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
       });
 
+      await tx.distributionRun.create({
+        data: {
+          projectId,
+          mode: "PLAN_ONLY",
+          chainId: 0,
+          currency: projectToken,
+          planJson: {
+            version: 1,
+            source: "settlement_distribution_entries",
+            updatedAt: now.toISOString(),
+            rows: rows.map((entry) => ({
+              id: entry.id,
+              recipientAddress: entry.recipientAddressChecksum,
+              amountAtomic: entry.amountAtomic.toString(),
+              memo: entry.memo,
+              token: entry.token,
+              status: entry.status,
+              orderIndex: entry.orderIndex,
+            })),
+          } as never,
+          txHashes: [] as never,
+          dryRun: true,
+          note: "settlement draft saved",
+        },
+      });
+
       return { settlement, rows };
     });
 
@@ -276,6 +305,9 @@ export async function PUT(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PROJECT_ID_INVALID") return errJson("PROJECT_ID_INVALID", 400);
+    if (msg === "PROJECT_CURRENCY_INVALID") {
+      return errJson("PROJECT_CURRENCY_INVALID", 400);
+    }
     if (msg === "SENT_ENTRY_IMMUTABLE") return errJson("SENT_ENTRY_IMMUTABLE", 409);
     if (msg === "DISTRIBUTION_SUM_EXCEEDS_BRIDGED_AMOUNT") {
       return errJson("DISTRIBUTION_SUM_EXCEEDS_BRIDGED_AMOUNT", 409);

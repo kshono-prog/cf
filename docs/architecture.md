@@ -45,7 +45,7 @@ Creator mypage runtime note:
 - lazy-load `creatorReady` route views so opening one workspace does not eagerly ship all other route panels
 - keep `creatorReady` home view decision logic and dashboard parsing in dedicated helpers instead of inline UI branches
 - within `creatorReady`, keep `links`, `project management`, and `summary actions` as separate section containers
-- add `SNS・AI事務所` to the creator `support-page` as a localized accordion backed by dedicated mypage SNS routes so profile/project/settlement flows stay unchanged
+- add `投稿・AI事務所` to the creator `support-page` as a localized accordion backed by dedicated mypage posting routes so profile/project/settlement flows stay unchanged
 - within project management, keep `per-currency project blocks` and `AI Office` as separate composition units
 - move `ProjectSection` create/edit/fetch into a dedicated hook backed by shared project API helpers
 - move `CurrencyGoalSettlementPanel` summary fetch and goal mutations into a dedicated hook backed by shared mypage API helpers

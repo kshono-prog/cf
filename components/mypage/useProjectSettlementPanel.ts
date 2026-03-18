@@ -233,6 +233,7 @@ export function useProjectSettlementPanel(
     updateDraft: distributionState.updateDraft,
     addDraftRow: distributionState.addDraftRow,
     removeDraftRow: distributionState.removeDraftRow,
+    replaceDraftRows: distributionState.replaceDraftRows,
     saveDistributions: distributionState.saveDistributions,
     checkBalances: executionState.checkBalances,
     executeDistribution: executionState.executeDistribution,

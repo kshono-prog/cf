@@ -16,8 +16,9 @@
 - `Phase 2 UX`: `settlement` の mobile guided flow を手動確認して、step overview と section 操作行の詰まりを微調整する
 - `AI Office`: `Manager Agent` と distribution plan draft の source-of-truth を docs と registry で固定する
 - `AI Office`: x402 候補 surface と非対象 surface の安全境界を固定する
-- `Phase 1A`: `Manager Agent` recommendation を `AgentTask` として保存できるようにする
-- `Phase 1B`: distribution plan draft を approval-only な AI 下書きとして追加する
+- `AI Office`: minimum / full manual check を実画面で回し、runbook と見た目の差分を記録する
+- `AI Office`: role-based surface と Finance handoff の文言・導線を実運用ベースで微調整する
+- `Phase 1 UX`: internal posting surface の `sns` 命名を `posting` 系へ寄せる軽量 rename を段階実行する
 
 ## Next
 
@@ -26,8 +27,8 @@
 - `Phase 2 UX`: `settlement` advanced section の見え方を mobile でさらに整える
 - `AI Office`: role-based agent output を `AgentTask` へ段階的に接続する
 - `Platform`: low-risk internal AI API の billable surface を設計し、x402 readiness を評価する
-- `Phase 1C`: AI Office を role-based surface として整理する
-- `Phase 1D`: agent usefulness metrics を追加する
+- `AI Office`: usefulness metrics を role ごとの copy / default choice 改善へつなげる
+- `AI Office`: `Finance / Promotion / Fan Relation` 専用 output を `AgentTask` として増やす
 
 ## Later
 

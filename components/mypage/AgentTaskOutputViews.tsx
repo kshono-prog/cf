@@ -2,6 +2,15 @@
 
 import React from "react";
 
+import {
+  buildDistributionPlanDraftHandoff,
+  buildSettlementDraftHref,
+  DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY,
+} from "@/components/mypage/distributionPlanDraftHandoff";
+import {
+  formatDistributionPlanDraftPayload,
+  type DistributionPlanDraftPayload,
+} from "@/lib/creator-ai/distributionPlanDraft";
 import type { TaskType } from "@/lib/agentTaskParsers";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -682,6 +691,279 @@ function WeeklyReportOutputCard(props: { output: WeeklyReportOutputView }) {
   );
 }
 
+type DistributionPlanDraftTaskOutputView = {
+  summary: string;
+  draftPayload: DistributionPlanDraftPayload | null;
+  projectSnapshot: {
+    title: string;
+    currency: "JPYC" | "USDC";
+    status: string;
+    settlementStatus: string | null;
+  } | null;
+};
+
+function parseDistributionPlanDraftTaskOutput(
+  value: unknown
+): DistributionPlanDraftTaskOutputView | null {
+  if (!isRecord(value)) return null;
+
+  const summary = asStringOrNull(value.summary);
+  if (!summary) return null;
+
+  const draftPayloadRaw = isRecord(value.draftPayload) ? value.draftPayload : null;
+  const projectId = draftPayloadRaw ? asStringOrNull(draftPayloadRaw.projectId) : null;
+  const projectTitle = draftPayloadRaw
+    ? asStringOrNull(draftPayloadRaw.projectTitle)
+    : null;
+  const projectStatus = draftPayloadRaw
+    ? asStringOrNull(draftPayloadRaw.projectStatus)
+    : null;
+  const currency: "JPYC" | "USDC" | null =
+    draftPayloadRaw?.currency === "JPYC" || draftPayloadRaw?.currency === "USDC"
+      ? draftPayloadRaw.currency
+      : null;
+  const draftSummaryRaw =
+    draftPayloadRaw && isRecord(draftPayloadRaw.summary)
+      ? draftPayloadRaw.summary
+      : null;
+  const draftPayload =
+    draftPayloadRaw && projectId && projectTitle && projectStatus && currency
+      ? ({
+          version: draftPayloadRaw.version === 1 ? 1 : 1,
+          projectId,
+          projectTitle,
+          projectStatus,
+          currency,
+          generatedAt:
+            asStringOrNull(draftPayloadRaw.generatedAt) ?? new Date(0).toISOString(),
+          source:
+            draftPayloadRaw.source === "existing_distribution_entries" ||
+            draftPayloadRaw.source === "saved_distribution_plan" ||
+            draftPayloadRaw.source === "bridged_total_template" ||
+            draftPayloadRaw.source === "blank_template"
+              ? draftPayloadRaw.source
+              : "blank_template",
+          summary: {
+            goalAchieved: draftSummaryRaw?.goalAchieved === true,
+            progressPct: draftSummaryRaw
+              ? asNumberOrNull(draftSummaryRaw.progressPct)
+              : null,
+            settlementStatus: draftSummaryRaw
+              ? asStringOrNull(draftSummaryRaw.settlementStatus)
+              : null,
+            bridgedTotalAtomic:
+              (draftSummaryRaw
+                ? asStringOrNull(draftSummaryRaw.bridgedTotalAtomic)
+                : null) ?? "0",
+          },
+          rows: asArray(draftPayloadRaw.rows)
+            .map((row) => {
+              if (!isRecord(row)) return null;
+              const recipientAddress = asStringOrNull(row.recipientAddress) ?? "";
+              const amountAtomic = asStringOrNull(row.amountAtomic) ?? "";
+              const memo = asStringOrNull(row.memo) ?? "";
+              const token =
+                row.token === "JPYC" || row.token === "USDC"
+                  ? row.token
+                  : currency;
+              const id = asStringOrNull(row.id) ?? undefined;
+
+              return {
+                ...(id ? { id } : {}),
+                recipientAddress,
+                amountAtomic,
+                memo,
+                token,
+              };
+            })
+            .filter(
+              (
+                row
+              ): row is DistributionPlanDraftPayload["rows"][number] => row !== null
+            ),
+          notes: asArray(draftPayloadRaw.notes)
+            .map(asStringOrNull)
+            .filter((note): note is string => note !== null),
+        } satisfies DistributionPlanDraftPayload)
+      : null;
+
+  const projectSnapshotRaw = isRecord(value.projectSnapshot)
+    ? value.projectSnapshot
+    : null;
+  const projectSnapshotTitle = projectSnapshotRaw
+    ? asStringOrNull(projectSnapshotRaw.title)
+    : null;
+  const projectSnapshotStatus = projectSnapshotRaw
+    ? asStringOrNull(projectSnapshotRaw.status)
+    : null;
+  const projectSnapshotCurrency: "JPYC" | "USDC" | null =
+    projectSnapshotRaw?.currency === "JPYC" ||
+    projectSnapshotRaw?.currency === "USDC"
+      ? projectSnapshotRaw.currency
+      : null;
+  const projectSnapshot =
+    projectSnapshotRaw &&
+    projectSnapshotTitle &&
+    projectSnapshotStatus &&
+    projectSnapshotCurrency
+      ? {
+          title: projectSnapshotTitle,
+          currency: projectSnapshotCurrency,
+          status: projectSnapshotStatus,
+          settlementStatus: asStringOrNull(projectSnapshotRaw.settlementStatus),
+        }
+      : null;
+
+  return {
+    summary,
+    draftPayload,
+    projectSnapshot,
+  };
+}
+
+function DistributionPlanDraftTaskOutputCard(props: {
+  output: DistributionPlanDraftTaskOutputView;
+}) {
+  const { output } = props;
+  const [copied, setCopied] = React.useState(false);
+  const payloadText = output.draftPayload
+    ? formatDistributionPlanDraftPayload(output.draftPayload)
+    : null;
+
+  React.useEffect(() => {
+    if (!copied) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopied(false);
+    }, 2000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [copied]);
+
+  const openSettlementDraft = React.useCallback(() => {
+    if (!output.draftPayload || typeof window === "undefined") {
+      return;
+    }
+
+    const handoff = buildDistributionPlanDraftHandoff(output.draftPayload);
+
+    try {
+      window.localStorage.setItem(
+        DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY,
+        JSON.stringify(handoff)
+      );
+    } catch {
+      return;
+    }
+
+    window.location.assign(
+      buildSettlementDraftHref({
+        pathname: window.location.pathname,
+        currency: output.draftPayload.currency,
+      })
+    );
+  }, [output.draftPayload]);
+
+  const copyDraftJson = React.useCallback(async () => {
+    if (
+      !payloadText ||
+      typeof window === "undefined" ||
+      typeof window.navigator.clipboard?.writeText !== "function"
+    ) {
+      return;
+    }
+
+    try {
+      await window.navigator.clipboard.writeText(payloadText);
+      setCopied(true);
+    } catch {
+      return;
+    }
+  }, [payloadText]);
+
+  return (
+    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
+      <div className="font-medium text-gray-800">{output.summary}</div>
+      {output.projectSnapshot ? (
+        <div className="flex flex-wrap gap-2 text-[10px] text-gray-600">
+          <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+            {output.projectSnapshot.title}
+          </span>
+          <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+            {output.projectSnapshot.currency}
+          </span>
+          <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+            status: {output.projectSnapshot.status}
+          </span>
+          {output.projectSnapshot.settlementStatus ? (
+            <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+              settlement: {output.projectSnapshot.settlementStatus}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      {output.draftPayload ? (
+        <>
+          <div className="flex flex-wrap gap-2 text-[10px] text-gray-600">
+            <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+              source: {output.draftPayload.source}
+            </span>
+            <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+              rows: {output.draftPayload.rows.length}
+            </span>
+            <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+              currency: {output.draftPayload.currency}
+            </span>
+          </div>
+          <div className="rounded border bg-white p-2">
+            {output.draftPayload.rows.slice(0, 3).map((row, index) => (
+              <div
+                key={`${row.id ?? "row"}:${index.toString()}`}
+                className="text-[10px] text-gray-700"
+              >
+                {index + 1}. {row.amountAtomic || "0"} /{" "}
+                {row.recipientAddress || "recipientAddress 未設定"}
+                {row.memo ? ` / ${row.memo}` : ""}
+              </div>
+            ))}
+          </div>
+          {output.draftPayload.notes.length > 0 ? (
+            <ul className="list-disc pl-4">
+              {output.draftPayload.notes.slice(0, 3).map((note, index) => (
+                <li key={`${note}:${index.toString()}`}>{note}</li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+              onClick={openSettlementDraft}
+            >
+              settlement Draft を開く
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+              onClick={() => {
+                void copyDraftJson();
+              }}
+            >
+              {copied ? "JSON をコピー済み" : "JSON をコピー"}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="rounded border bg-white px-2 py-1 text-gray-700">
+          project 情報が不足しているため、Draft step に渡せる payload はまだありません。
+        </div>
+      )}
+    </div>
+  );
+}
+
 type AnnouncementDraftOutputView = {
   summary: string;
   headline: string;
@@ -749,6 +1031,12 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     render: (output) => {
       const parsed = parseManagerNextActionsOutput(output);
       return parsed ? <ManagerNextActionsOutputCard output={parsed} /> : null;
+    },
+  },
+  DISTRIBUTION_PLAN_DRAFT: {
+    render: (output) => {
+      const parsed = parseDistributionPlanDraftTaskOutput(output);
+      return parsed ? <DistributionPlanDraftTaskOutputCard output={parsed} /> : null;
     },
   },
   ANALYZE: {

@@ -1,9 +1,13 @@
 import type {
+  AiOfficeContentSummaryView,
+  AiOfficeRoleUsefulnessView,
+  AiOfficeUsefulnessSummaryView,
   AgentTaskView,
   MetricSnapshotView,
   MetricTrendDayView,
-  SocialConnectionView,
 } from "@/components/mypage/aiOfficeTypes";
+import { getEmptyAiOfficeUsefulnessSummary } from "@/components/mypage/aiOfficeTypes";
+import { toCreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 
 export type AiOfficeMetricsParseResult = {
   totals: { views: number; likes: number; comments: number; shares: number };
@@ -28,23 +32,101 @@ function asNumberOrNull(v: unknown): number | null {
   return v;
 }
 
-export function parseAiOfficeConnections(json: unknown): SocialConnectionView[] {
-  if (!isRecord(json)) return [];
-  const rows = asArray(json.connections);
-  const out: SocialConnectionView[] = [];
+function asNonNegativeNumber(v: unknown): number | null {
+  const parsed = asNumberOrNull(v);
+  if (parsed === null) return null;
+  return parsed >= 0 ? parsed : 0;
+}
 
-  for (const row of rows) {
-    if (!isRecord(row)) continue;
-    const id = asStringOrNull(row.id);
-    const platform = asStringOrNull(row.platform);
-    const accountHandle = asStringOrNull(row.accountHandle);
-    const status = asStringOrNull(row.status);
-    const createdAt = asStringOrNull(row.createdAt);
-    if (!id || !platform || !accountHandle || !status || !createdAt) continue;
-    out.push({ id, platform, accountHandle, status, createdAt });
-  }
+export function parseAiOfficeContentSummary(
+  json: unknown
+): AiOfficeContentSummaryView {
+  return {
+    totalPosts:
+      isRecord(json) ? asNumberOrNull(json.totalPosts) ?? 0 : 0,
+    publishedPosts:
+      isRecord(json) ? asNumberOrNull(json.publishedPosts) ?? 0 : 0,
+    draftPosts:
+      isRecord(json) ? asNumberOrNull(json.draftPosts) ?? 0 : 0,
+    archivedPosts:
+      isRecord(json) ? asNumberOrNull(json.archivedPosts) ?? 0 : 0,
+    aiGeneratedPosts:
+      isRecord(json) ? asNumberOrNull(json.aiGeneratedPosts) ?? 0 : 0,
+    lastPostAt:
+      isRecord(json) && json.lastPostAt !== null
+        ? asStringOrNull(json.lastPostAt)
+        : null,
+    lastPublishedAt:
+      isRecord(json) && json.lastPublishedAt !== null
+        ? asStringOrNull(json.lastPublishedAt)
+        : null,
+  };
+}
 
-  return out;
+export function parseAiOfficeUsefulnessSummary(
+  json: unknown
+): AiOfficeUsefulnessSummaryView {
+  const empty = getEmptyAiOfficeUsefulnessSummary();
+  if (!isRecord(json)) return empty;
+
+  const roleBreakdown: AiOfficeRoleUsefulnessView[] = asArray(json.roleBreakdown)
+    .map((row) => {
+      if (!isRecord(row)) return null;
+      const roleId = toCreatorAiAgentRole(row.roleId);
+      const label = asStringOrNull(row.label);
+      if (!roleId || !label) return null;
+
+      return {
+        roleId,
+        label,
+        actionableCount:
+          asNonNegativeNumber(row.actionableCount) ?? 0,
+        waitingApprovalCount:
+          asNonNegativeNumber(row.waitingApprovalCount) ?? 0,
+        approvedCount: asNonNegativeNumber(row.approvedCount) ?? 0,
+        rejectedCount: asNonNegativeNumber(row.rejectedCount) ?? 0,
+        ignoredCount: asNonNegativeNumber(row.ignoredCount) ?? 0,
+        followThroughRate:
+          asNonNegativeNumber(row.followThroughRate) ?? 0,
+      };
+    })
+    .filter(
+      (row): row is AiOfficeRoleUsefulnessView => row !== null
+    );
+
+  return {
+    windowDays: asNonNegativeNumber(json.windowDays) ?? empty.windowDays,
+    staleAfterHours:
+      asNonNegativeNumber(json.staleAfterHours) ?? empty.staleAfterHours,
+    createdCount: asNonNegativeNumber(json.createdCount) ?? empty.createdCount,
+    actionableCount:
+      asNonNegativeNumber(json.actionableCount) ?? empty.actionableCount,
+    autoCompletedCount:
+      asNonNegativeNumber(json.autoCompletedCount) ??
+      empty.autoCompletedCount,
+    waitingApprovalCount:
+      asNonNegativeNumber(json.waitingApprovalCount) ??
+      empty.waitingApprovalCount,
+    approvedCount:
+      asNonNegativeNumber(json.approvedCount) ?? empty.approvedCount,
+    rejectedCount:
+      asNonNegativeNumber(json.rejectedCount) ?? empty.rejectedCount,
+    ignoredCount: asNonNegativeNumber(json.ignoredCount) ?? empty.ignoredCount,
+    followThroughCount:
+      asNonNegativeNumber(json.followThroughCount) ??
+      empty.followThroughCount,
+    followThroughRate:
+      asNonNegativeNumber(json.followThroughRate) ?? empty.followThroughRate,
+    approvalRate:
+      asNonNegativeNumber(json.approvalRate) ?? empty.approvalRate,
+    rejectionRate:
+      asNonNegativeNumber(json.rejectionRate) ?? empty.rejectionRate,
+    medianDecisionHours:
+      json.medianDecisionHours === null
+        ? null
+        : asNonNegativeNumber(json.medianDecisionHours),
+    roleBreakdown,
+  };
 }
 
 export function parseAiOfficeTasks(json: unknown): AgentTaskView[] {

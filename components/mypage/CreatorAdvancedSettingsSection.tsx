@@ -160,6 +160,7 @@ function SettlementWorkspaceCard(props: {
         isConnected={props.isConnected}
         projectCurrency={props.currency}
         initialData={props.dashboard?.settlement ?? null}
+        summary={props.dashboard?.summary ?? null}
       />
     </div>
   );

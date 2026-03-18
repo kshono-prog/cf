@@ -1,5 +1,227 @@
 import { prisma } from "@/lib/prisma";
-import { serializeAgentTask, toTaskStatus, type TaskStatus } from "@/lib/agentTasks";
+import { AGENT_TASK_AUDIT_ACTION } from "@/lib/agentTaskAudit";
+import { serializeAgentTask, toTaskStatus, toTaskType, type TaskStatus } from "@/lib/agentTasks";
+import {
+  CREATOR_AI_AGENT_ROLE_DEFINITIONS,
+  getPrimaryCreatorAiAgentRoleForTaskType,
+  toCreatorAiAgentRole,
+  type CreatorAiAgentRole,
+} from "@/lib/creator-ai/agentRoleRegistry";
+
+export const AI_OFFICE_USEFULNESS_WINDOW_DAYS = 30;
+export const AI_OFFICE_USEFULNESS_STALE_HOURS = 72;
+
+type AiOfficeUsefulnessTaskRow = {
+  taskType: string;
+  status: string;
+  createdAt: Date;
+  approvedAt: Date | null;
+  auditLogs: Array<{
+    action: string;
+    metaJson?: unknown;
+    createdAt: Date;
+  }>;
+};
+
+type AiOfficeRoleUsefulnessSummary = {
+  roleId: CreatorAiAgentRole;
+  label: string;
+  actionableCount: number;
+  waitingApprovalCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  ignoredCount: number;
+  followThroughRate: number;
+};
+
+function toRate(numerator: number, denominator: number): number {
+  if (denominator <= 0) return 0;
+  return Number((numerator / denominator).toFixed(4));
+}
+
+function toMedian(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+
+  if (sorted.length % 2 === 1) {
+    return Number(sorted[middle]!.toFixed(2));
+  }
+
+  const left = sorted[middle - 1];
+  const right = sorted[middle];
+  if (left === undefined || right === undefined) return null;
+  return Number((((left + right) / 2)).toFixed(2));
+}
+
+function hasAuditAction(
+  logs: AiOfficeUsefulnessTaskRow["auditLogs"],
+  action: string
+): boolean {
+  return logs.some((log) => log.action === action);
+}
+
+function resolveTaskRoleId(row: AiOfficeUsefulnessTaskRow): CreatorAiAgentRole | null {
+  const createLog = row.auditLogs.find(
+    (log) =>
+      log.action === AGENT_TASK_AUDIT_ACTION.CREATED_WAITING_APPROVAL ||
+      log.action === AGENT_TASK_AUDIT_ACTION.CREATED_DONE
+  );
+
+  if (
+    createLog &&
+    typeof createLog.metaJson === "object" &&
+    createLog.metaJson !== null &&
+    "roleId" in createLog.metaJson
+  ) {
+    const roleId = toCreatorAiAgentRole(createLog.metaJson.roleId);
+    if (roleId) return roleId;
+  }
+
+  const taskType = toTaskType(row.taskType);
+  if (!taskType) return null;
+  return getPrimaryCreatorAiAgentRoleForTaskType(taskType);
+}
+
+export function buildAiOfficeUsefulnessSummary(
+  rows: AiOfficeUsefulnessTaskRow[],
+  params?: {
+    now?: Date;
+    windowDays?: number;
+    staleAfterHours?: number;
+  }
+) {
+  const now = params?.now ?? new Date();
+  const windowDays = params?.windowDays ?? AI_OFFICE_USEFULNESS_WINDOW_DAYS;
+  const staleAfterHours =
+    params?.staleAfterHours ?? AI_OFFICE_USEFULNESS_STALE_HOURS;
+  const staleAfterMs = staleAfterHours * 60 * 60 * 1000;
+
+  let actionableCount = 0;
+  let autoCompletedCount = 0;
+  let waitingApprovalCount = 0;
+  let approvedCount = 0;
+  let rejectedCount = 0;
+  let ignoredCount = 0;
+  const decisionHours: number[] = [];
+
+  for (const row of rows) {
+    const createdWaitingApproval = hasAuditAction(
+      row.auditLogs,
+      AGENT_TASK_AUDIT_ACTION.CREATED_WAITING_APPROVAL
+    );
+    const createdDone = hasAuditAction(
+      row.auditLogs,
+      AGENT_TASK_AUDIT_ACTION.CREATED_DONE
+    );
+    const approved = hasAuditAction(
+      row.auditLogs,
+      AGENT_TASK_AUDIT_ACTION.APPROVED
+    );
+    const rejected = hasAuditAction(
+      row.auditLogs,
+      AGENT_TASK_AUDIT_ACTION.REJECTED
+    );
+
+    if (createdDone) {
+      autoCompletedCount += 1;
+    }
+
+    if (!createdWaitingApproval) {
+      continue;
+    }
+
+    actionableCount += 1;
+
+    if (approved) {
+      approvedCount += 1;
+      if (row.approvedAt) {
+        const hours = (row.approvedAt.getTime() - row.createdAt.getTime()) / (60 * 60 * 1000);
+        if (Number.isFinite(hours) && hours >= 0) {
+          decisionHours.push(hours);
+        }
+      }
+      continue;
+    }
+
+    if (rejected) {
+      rejectedCount += 1;
+      if (row.approvedAt) {
+        const hours = (row.approvedAt.getTime() - row.createdAt.getTime()) / (60 * 60 * 1000);
+        if (Number.isFinite(hours) && hours >= 0) {
+          decisionHours.push(hours);
+        }
+      }
+      continue;
+    }
+
+    if (row.status === "WAITING_APPROVAL") {
+      waitingApprovalCount += 1;
+      if (now.getTime() - row.createdAt.getTime() >= staleAfterMs) {
+        ignoredCount += 1;
+      }
+    }
+  }
+
+  const followThroughCount = approvedCount + rejectedCount;
+
+  return {
+    windowDays,
+    staleAfterHours,
+    createdCount: rows.length,
+    actionableCount,
+    autoCompletedCount,
+    waitingApprovalCount,
+    approvedCount,
+    rejectedCount,
+    ignoredCount,
+    followThroughCount,
+    followThroughRate: toRate(followThroughCount, actionableCount),
+    approvalRate: toRate(approvedCount, actionableCount),
+    rejectionRate: toRate(rejectedCount, actionableCount),
+    medianDecisionHours: toMedian(decisionHours),
+  };
+}
+
+export function buildAiOfficeRoleUsefulnessSummary(
+  rows: AiOfficeUsefulnessTaskRow[],
+  params?: {
+    now?: Date;
+    staleAfterHours?: number;
+  }
+): AiOfficeRoleUsefulnessSummary[] {
+  const grouped = new Map<CreatorAiAgentRole, AiOfficeUsefulnessTaskRow[]>();
+
+  for (const row of rows) {
+    const roleId = resolveTaskRoleId(row);
+    if (!roleId) continue;
+    const current = grouped.get(roleId) ?? [];
+    current.push(row);
+    grouped.set(roleId, current);
+  }
+
+  return CREATOR_AI_AGENT_ROLE_DEFINITIONS.map((definition) => {
+    const roleRows = grouped.get(definition.id);
+    if (!roleRows || roleRows.length === 0) return null;
+
+    const summary = buildAiOfficeUsefulnessSummary(roleRows, {
+      now: params?.now,
+      staleAfterHours: params?.staleAfterHours,
+    });
+    if (summary.actionableCount === 0) return null;
+
+    return {
+      roleId: definition.id,
+      label: definition.label,
+      actionableCount: summary.actionableCount,
+      waitingApprovalCount: summary.waitingApprovalCount,
+      approvedCount: summary.approvedCount,
+      rejectedCount: summary.rejectedCount,
+      ignoredCount: summary.ignoredCount,
+      followThroughRate: summary.followThroughRate,
+    };
+  }).filter((item): item is AiOfficeRoleUsefulnessSummary => item !== null);
+}
 
 function sumInt(values: Array<number | null>): number {
   let total = 0;
@@ -113,28 +335,6 @@ function aggregateDaily(
   });
 }
 
-function serializeConnection(row: {
-  id: string;
-  platform: string;
-  accountHandle: string;
-  accountId: string | null;
-  status: string;
-  tokenExpiresAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}) {
-  return {
-    id: row.id,
-    platform: row.platform,
-    accountHandle: row.accountHandle,
-    accountId: row.accountId,
-    status: row.status,
-    tokenExpiresAt: row.tokenExpiresAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  };
-}
-
 export async function resolveCreatorIdByAddress(
   address: string
 ): Promise<bigint | null> {
@@ -156,23 +356,28 @@ export async function getAiOfficeDashboard(params: {
   const creatorId = await resolveCreatorIdByAddress(params.address);
   if (!creatorId) return null;
 
-  const since = new Date(Date.now() - params.trendDays * 24 * 60 * 60 * 1000);
+  const dashboardNow = new Date();
+  const since = new Date(
+    dashboardNow.getTime() - params.trendDays * 24 * 60 * 60 * 1000
+  );
+  const usefulnessSince = new Date(
+    dashboardNow.getTime() -
+      AI_OFFICE_USEFULNESS_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  );
 
-  const [connections, tasks, snapshotRows, trendRows] = await Promise.all([
-    prisma.socialConnection.findMany({
-      where: { creatorProfileId: creatorId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        platform: true,
-        accountHandle: true,
-        accountId: true,
-        status: true,
-        tokenExpiresAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    }),
+  const [
+    tasks,
+    usefulnessRows,
+    snapshotRows,
+    trendRows,
+    totalPostCount,
+    publishedPostCount,
+    draftPostCount,
+    archivedPostCount,
+    aiGeneratedPostCount,
+    latestPost,
+    latestPublishedPost,
+  ] = await Promise.all([
     prisma.agentTask.findMany({
       where: {
         creatorProfileId: creatorId,
@@ -199,6 +404,26 @@ export async function getAiOfficeDashboard(params: {
             id: true,
             action: true,
             actorAddress: true,
+            metaJson: true,
+            createdAt: true,
+          },
+        },
+      },
+    }),
+    prisma.agentTask.findMany({
+      where: {
+        creatorProfileId: creatorId,
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+        createdAt: { gte: usefulnessSince },
+      },
+      select: {
+        taskType: true,
+        status: true,
+        createdAt: true,
+        approvedAt: true,
+        auditLogs: {
+          select: {
+            action: true,
             metaJson: true,
             createdAt: true,
           },
@@ -242,12 +467,73 @@ export async function getAiOfficeDashboard(params: {
         shares: true,
       },
     }),
+    prisma.post.count({
+      where: {
+        creatorProfileId: creatorId,
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+      },
+    }),
+    prisma.post.count({
+      where: {
+        creatorProfileId: creatorId,
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+        status: "PUBLISHED",
+      },
+    }),
+    prisma.post.count({
+      where: {
+        creatorProfileId: creatorId,
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+        status: "DRAFT",
+      },
+    }),
+    prisma.post.count({
+      where: {
+        creatorProfileId: creatorId,
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+        status: "ARCHIVED",
+      },
+    }),
+    prisma.post.count({
+      where: {
+        creatorProfileId: creatorId,
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+        aiGenerated: true,
+      },
+    }),
+    prisma.post.findFirst({
+      where: {
+        creatorProfileId: creatorId,
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
+    prisma.post.findFirst({
+      where: {
+        creatorProfileId: creatorId,
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+        status: "PUBLISHED",
+      },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
   ]);
 
   return {
     creatorId: creatorId.toString(),
-    connections: connections.map(serializeConnection),
     tasks: tasks.map((row) => serializeAgentTask(row)),
+    usefulness: {
+      ...buildAiOfficeUsefulnessSummary(usefulnessRows, {
+        now: dashboardNow,
+        windowDays: AI_OFFICE_USEFULNESS_WINDOW_DAYS,
+        staleAfterHours: AI_OFFICE_USEFULNESS_STALE_HOURS,
+      }),
+      roleBreakdown: buildAiOfficeRoleUsefulnessSummary(usefulnessRows, {
+        now: dashboardNow,
+        staleAfterHours: AI_OFFICE_USEFULNESS_STALE_HOURS,
+      }),
+    },
     metrics: {
       count: snapshotRows.length,
       limit: params.metricLimit,
@@ -272,10 +558,19 @@ export async function getAiOfficeDashboard(params: {
         shares: row.shares,
       })),
     },
+    content: {
+      totalPosts: totalPostCount,
+      publishedPosts: publishedPostCount,
+      draftPosts: draftPostCount,
+      archivedPosts: archivedPostCount,
+      aiGeneratedPosts: aiGeneratedPostCount,
+      lastPostAt: latestPost?.createdAt.toISOString() ?? null,
+      lastPublishedAt: latestPublishedPost?.createdAt.toISOString() ?? null,
+    },
     trends: {
       days: params.trendDays,
       from: since.toISOString(),
-      to: new Date().toISOString(),
+      to: dashboardNow.toISOString(),
       count: trendRows.length,
       projectId: params.projectId?.toString() ?? null,
       daily: aggregateDaily(trendRows),

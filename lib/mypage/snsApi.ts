@@ -138,6 +138,56 @@ export type SnsAiJob = {
   } | null;
 };
 
+export type ManagedPostingApiBasePath =
+  | "/api/mypage/sns"
+  | "/api/mypage/posting";
+
+type ManagedPostingApi = {
+  fetchMyPosts: (args: {
+    address: Address;
+    cursor?: string | null;
+    limit?: number;
+  }) => Promise<
+    { ok: true; data: SnsManagedPostsResponse } | { ok: false; error: string }
+  >;
+  updateMyPostStatus: (args: {
+    address: Address;
+    postId: string;
+    status: "PUBLISHED" | "ARCHIVED";
+  }) => Promise<{ ok: true; post: SnsManagedPost } | { ok: false; error: string }>;
+  updateMyPostContent: (args: {
+    address: Address;
+    postId: string;
+    body: string;
+    mediaType: "IMAGE" | "VIDEO" | "LINK" | null;
+    mediaUrl: string | null;
+    projectId: string | null;
+  }) => Promise<{ ok: true; post: SnsManagedPost } | { ok: false; error: string }>;
+  deleteMyPost: (args: {
+    address: Address;
+    postId: string;
+  }) => Promise<{ ok: true; deletedPostId: string } | { ok: false; error: string }>;
+  fetchAnalyticsSummary: (args: {
+    address: Address;
+  }) => Promise<{ ok: true; summary: SnsAnalyticsSummary } | { ok: false; error: string }>;
+  fetchAiAgents: (args: {
+    address: Address;
+  }) => Promise<{ ok: true; agents: SnsAiAgent[] } | { ok: false; error: string }>;
+  createAiAgent: (args: {
+    address: Address;
+    name: string;
+    role: SnsAiAgent["role"];
+  }) => Promise<{ ok: true; agent: SnsAiAgent } | { ok: false; error: string }>;
+  fetchAiJobs: (args: {
+    address: Address;
+  }) => Promise<{ ok: true; jobs: SnsAiJob[] } | { ok: false; error: string }>;
+  createAiJob: (args: {
+    address: Address;
+    jobType: SnsAiJob["jobType"];
+    aiAgentId?: string | null;
+  }) => Promise<{ ok: true; job: SnsAiJob } | { ok: false; error: string }>;
+};
+
 function toStringOrNull(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
@@ -640,6 +690,223 @@ function toApiError(json: unknown, fallback: string): string {
   return getErrorFromApiJson(json) ?? fallback;
 }
 
+export const SNS_API_BASE_PATH = "/api/mypage/sns" as const;
+
+export function createManagedPostingApi(
+  basePath: ManagedPostingApiBasePath
+): ManagedPostingApi {
+  return {
+    async fetchMyPosts(args) {
+      const params = new URLSearchParams({ address: args.address });
+      if (args.cursor) params.set("cursor", args.cursor);
+      if (typeof args.limit === "number") params.set("limit", String(args.limit));
+
+      const { res, json } = await requestJson({
+        url: `${basePath}/posts?${params.toString()}`,
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return { ok: false, error: toApiError(json, "SNS_POSTS_FETCH_FAILED") };
+      }
+
+      try {
+        return { ok: true, data: parseManagedPostsResponse(json) };
+      } catch {
+        return { ok: false, error: "SNS_POSTS_RESPONSE_INVALID" };
+      }
+    },
+
+    async updateMyPostStatus(args) {
+      const { res, json } = await requestJson({
+        url: `${basePath}/posts/${encodeURIComponent(args.postId)}`,
+        method: "PATCH",
+        body: {
+          address: args.address,
+          status: args.status,
+        },
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return {
+          ok: false,
+          error: toApiError(json, "SNS_POST_STATUS_UPDATE_FAILED"),
+        };
+      }
+
+      if (!isRecord(json) || json.ok !== true) {
+        return { ok: false, error: "SNS_POST_STATUS_RESPONSE_INVALID" };
+      }
+
+      const post = parseManagedPost(json.post);
+      if (!post) return { ok: false, error: "SNS_POST_STATUS_RESPONSE_INVALID" };
+      return { ok: true, post };
+    },
+
+    async updateMyPostContent(args) {
+      const { res, json } = await requestJson({
+        url: `${basePath}/posts/${encodeURIComponent(args.postId)}`,
+        method: "PATCH",
+        body: {
+          address: args.address,
+          body: args.body,
+          mediaType: args.mediaType,
+          mediaUrl: args.mediaUrl,
+          projectId: args.projectId,
+        },
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return {
+          ok: false,
+          error: toApiError(json, "SNS_POST_CONTENT_UPDATE_FAILED"),
+        };
+      }
+
+      if (!isRecord(json) || json.ok !== true) {
+        return { ok: false, error: "SNS_POST_CONTENT_RESPONSE_INVALID" };
+      }
+
+      const post = parseManagedPost(json.post);
+      if (!post) return { ok: false, error: "SNS_POST_CONTENT_RESPONSE_INVALID" };
+      return { ok: true, post };
+    },
+
+    async deleteMyPost(args) {
+      const { res, json } = await requestJson({
+        url: `${basePath}/posts/${encodeURIComponent(args.postId)}`,
+        method: "DELETE",
+        body: {
+          address: args.address,
+        },
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return { ok: false, error: toApiError(json, "SNS_POST_DELETE_FAILED") };
+      }
+
+      if (
+        !isRecord(json) ||
+        json.ok !== true ||
+        typeof json.deletedPostId !== "string"
+      ) {
+        return { ok: false, error: "SNS_POST_DELETE_RESPONSE_INVALID" };
+      }
+
+      return { ok: true, deletedPostId: json.deletedPostId };
+    },
+
+    async fetchAnalyticsSummary(args) {
+      const params = new URLSearchParams({ address: args.address });
+      const { res, json } = await requestJson({
+        url: `${basePath}/summary?${params.toString()}`,
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return { ok: false, error: toApiError(json, "SNS_SUMMARY_FETCH_FAILED") };
+      }
+
+      try {
+        return { ok: true, summary: parseSummary(json) };
+      } catch {
+        return { ok: false, error: "SNS_SUMMARY_RESPONSE_INVALID" };
+      }
+    },
+
+    async fetchAiAgents(args) {
+      const params = new URLSearchParams({ address: args.address });
+      const { res, json } = await requestJson({
+        url: `${basePath}/agents?${params.toString()}`,
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return { ok: false, error: toApiError(json, "SNS_AGENTS_FETCH_FAILED") };
+      }
+
+      try {
+        return { ok: true, agents: parseAgentsResponse(json) };
+      } catch {
+        return { ok: false, error: "SNS_AGENTS_RESPONSE_INVALID" };
+      }
+    },
+
+    async createAiAgent(args) {
+      const { res, json } = await requestJson({
+        url: `${basePath}/agents`,
+        method: "POST",
+        body: {
+          address: args.address,
+          name: args.name,
+          role: args.role,
+        },
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return { ok: false, error: toApiError(json, "SNS_AGENT_CREATE_FAILED") };
+      }
+
+      if (!isRecord(json) || json.ok !== true) {
+        return { ok: false, error: "SNS_AGENT_CREATE_RESPONSE_INVALID" };
+      }
+
+      const agent = parseAgent(json.agent);
+      if (!agent) return { ok: false, error: "SNS_AGENT_CREATE_RESPONSE_INVALID" };
+      return { ok: true, agent };
+    },
+
+    async fetchAiJobs(args) {
+      const params = new URLSearchParams({ address: args.address });
+      const { res, json } = await requestJson({
+        url: `${basePath}/jobs?${params.toString()}`,
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return { ok: false, error: toApiError(json, "SNS_JOBS_FETCH_FAILED") };
+      }
+
+      try {
+        return { ok: true, jobs: parseJobsResponse(json) };
+      } catch {
+        return { ok: false, error: "SNS_JOBS_RESPONSE_INVALID" };
+      }
+    },
+
+    async createAiJob(args) {
+      const { res, json } = await requestJson({
+        url: `${basePath}/jobs`,
+        method: "POST",
+        body: {
+          address: args.address,
+          jobType: args.jobType,
+          ...(typeof args.aiAgentId !== "undefined"
+            ? { aiAgentId: args.aiAgentId }
+            : {}),
+        },
+        authAddress: args.address,
+      });
+
+      if (!res.ok) {
+        return { ok: false, error: toApiError(json, "SNS_JOB_CREATE_FAILED") };
+      }
+
+      if (!isRecord(json) || json.ok !== true) {
+        return { ok: false, error: "SNS_JOB_CREATE_RESPONSE_INVALID" };
+      }
+
+      const job = parseJob(json.job);
+      if (!job) return { ok: false, error: "SNS_JOB_CREATE_RESPONSE_INVALID" };
+      return { ok: true, job };
+    },
+  };
+}
+
 export async function createSnsPost(args: {
   address: Address;
   body: string;
@@ -676,238 +943,15 @@ export async function createSnsPost(args: {
   return { ok: true, post };
 }
 
-export async function fetchMySnsPosts(args: {
-  address: Address;
-  cursor?: string | null;
-  limit?: number;
-}): Promise<
-  { ok: true; data: SnsManagedPostsResponse } | { ok: false; error: string }
-> {
-  const params = new URLSearchParams({ address: args.address });
-  if (args.cursor) params.set("cursor", args.cursor);
-  if (typeof args.limit === "number") params.set("limit", String(args.limit));
+const snsManagedPostingApi = createManagedPostingApi(SNS_API_BASE_PATH);
 
-  const { res, json } = await requestJson({
-    url: `/api/mypage/sns/posts?${params.toString()}`,
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: toApiError(json, "SNS_POSTS_FETCH_FAILED") };
-  }
-
-  try {
-    return { ok: true, data: parseManagedPostsResponse(json) };
-  } catch {
-    return { ok: false, error: "SNS_POSTS_RESPONSE_INVALID" };
-  }
-}
-
-export async function updateMySnsPostStatus(args: {
-  address: Address;
-  postId: string;
-  status: "PUBLISHED" | "ARCHIVED";
-}): Promise<{ ok: true; post: SnsManagedPost } | { ok: false; error: string }> {
-  const { res, json } = await requestJson({
-    url: `/api/mypage/sns/posts/${encodeURIComponent(args.postId)}`,
-    method: "PATCH",
-    body: {
-      address: args.address,
-      status: args.status,
-    },
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: toApiError(json, "SNS_POST_STATUS_UPDATE_FAILED") };
-  }
-
-  if (!isRecord(json) || json.ok !== true) {
-    return { ok: false, error: "SNS_POST_STATUS_RESPONSE_INVALID" };
-  }
-
-  const post = parseManagedPost(json.post);
-  if (!post) return { ok: false, error: "SNS_POST_STATUS_RESPONSE_INVALID" };
-  return { ok: true, post };
-}
-
-export async function updateMySnsPostContent(args: {
-  address: Address;
-  postId: string;
-  body: string;
-  mediaType: "IMAGE" | "VIDEO" | "LINK" | null;
-  mediaUrl: string | null;
-  projectId: string | null;
-}): Promise<{ ok: true; post: SnsManagedPost } | { ok: false; error: string }> {
-  const { res, json } = await requestJson({
-    url: `/api/mypage/sns/posts/${encodeURIComponent(args.postId)}`,
-    method: "PATCH",
-    body: {
-      address: args.address,
-      body: args.body,
-      mediaType: args.mediaType,
-      mediaUrl: args.mediaUrl,
-      projectId: args.projectId,
-    },
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return {
-      ok: false,
-      error: toApiError(json, "SNS_POST_CONTENT_UPDATE_FAILED"),
-    };
-  }
-
-  if (!isRecord(json) || json.ok !== true) {
-    return { ok: false, error: "SNS_POST_CONTENT_RESPONSE_INVALID" };
-  }
-
-  const post = parseManagedPost(json.post);
-  if (!post) return { ok: false, error: "SNS_POST_CONTENT_RESPONSE_INVALID" };
-  return { ok: true, post };
-}
-
-export async function deleteMySnsPost(args: {
-  address: Address;
-  postId: string;
-}): Promise<{ ok: true; deletedPostId: string } | { ok: false; error: string }> {
-  const { res, json } = await requestJson({
-    url: `/api/mypage/sns/posts/${encodeURIComponent(args.postId)}`,
-    method: "DELETE",
-    body: {
-      address: args.address,
-    },
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: toApiError(json, "SNS_POST_DELETE_FAILED") };
-  }
-
-  if (!isRecord(json) || json.ok !== true || typeof json.deletedPostId !== "string") {
-    return { ok: false, error: "SNS_POST_DELETE_RESPONSE_INVALID" };
-  }
-
-  return { ok: true, deletedPostId: json.deletedPostId };
-}
-
-export async function fetchSnsAnalyticsSummary(args: {
-  address: Address;
-}): Promise<{ ok: true; summary: SnsAnalyticsSummary } | { ok: false; error: string }> {
-  const params = new URLSearchParams({ address: args.address });
-  const { res, json } = await requestJson({
-    url: `/api/mypage/sns/summary?${params.toString()}`,
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: toApiError(json, "SNS_SUMMARY_FETCH_FAILED") };
-  }
-
-  try {
-    return { ok: true, summary: parseSummary(json) };
-  } catch {
-    return { ok: false, error: "SNS_SUMMARY_RESPONSE_INVALID" };
-  }
-}
-
-export async function fetchAiAgents(args: {
-  address: Address;
-}): Promise<{ ok: true; agents: SnsAiAgent[] } | { ok: false; error: string }> {
-  const params = new URLSearchParams({ address: args.address });
-  const { res, json } = await requestJson({
-    url: `/api/mypage/sns/agents?${params.toString()}`,
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: toApiError(json, "SNS_AGENTS_FETCH_FAILED") };
-  }
-
-  try {
-    return { ok: true, agents: parseAgentsResponse(json) };
-  } catch {
-    return { ok: false, error: "SNS_AGENTS_RESPONSE_INVALID" };
-  }
-}
-
-export async function createAiAgent(args: {
-  address: Address;
-  name: string;
-  role: SnsAiAgent["role"];
-}): Promise<{ ok: true; agent: SnsAiAgent } | { ok: false; error: string }> {
-  const { res, json } = await requestJson({
-    url: "/api/mypage/sns/agents",
-    method: "POST",
-    body: {
-      address: args.address,
-      name: args.name,
-      role: args.role,
-    },
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: toApiError(json, "SNS_AGENT_CREATE_FAILED") };
-  }
-
-  if (!isRecord(json) || json.ok !== true) {
-    return { ok: false, error: "SNS_AGENT_CREATE_RESPONSE_INVALID" };
-  }
-
-  const agent = parseAgent(json.agent);
-  if (!agent) return { ok: false, error: "SNS_AGENT_CREATE_RESPONSE_INVALID" };
-  return { ok: true, agent };
-}
-
-export async function fetchAiJobs(args: {
-  address: Address;
-}): Promise<{ ok: true; jobs: SnsAiJob[] } | { ok: false; error: string }> {
-  const params = new URLSearchParams({ address: args.address });
-  const { res, json } = await requestJson({
-    url: `/api/mypage/sns/jobs?${params.toString()}`,
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: toApiError(json, "SNS_JOBS_FETCH_FAILED") };
-  }
-
-  try {
-    return { ok: true, jobs: parseJobsResponse(json) };
-  } catch {
-    return { ok: false, error: "SNS_JOBS_RESPONSE_INVALID" };
-  }
-}
-
-export async function createAiJob(args: {
-  address: Address;
-  jobType: SnsAiJob["jobType"];
-  aiAgentId?: string | null;
-}): Promise<{ ok: true; job: SnsAiJob } | { ok: false; error: string }> {
-  const { res, json } = await requestJson({
-    url: "/api/mypage/sns/jobs",
-    method: "POST",
-    body: {
-      address: args.address,
-      jobType: args.jobType,
-      ...(typeof args.aiAgentId !== "undefined"
-        ? { aiAgentId: args.aiAgentId }
-        : {}),
-    },
-    authAddress: args.address,
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: toApiError(json, "SNS_JOB_CREATE_FAILED") };
-  }
-
-  if (!isRecord(json) || json.ok !== true) {
-    return { ok: false, error: "SNS_JOB_CREATE_RESPONSE_INVALID" };
-  }
-
-  const job = parseJob(json.job);
-  if (!job) return { ok: false, error: "SNS_JOB_CREATE_RESPONSE_INVALID" };
-  return { ok: true, job };
-}
+export const fetchMySnsPosts = snsManagedPostingApi.fetchMyPosts;
+export const updateMySnsPostStatus = snsManagedPostingApi.updateMyPostStatus;
+export const updateMySnsPostContent = snsManagedPostingApi.updateMyPostContent;
+export const deleteMySnsPost = snsManagedPostingApi.deleteMyPost;
+export const fetchSnsAnalyticsSummary =
+  snsManagedPostingApi.fetchAnalyticsSummary;
+export const fetchAiAgents = snsManagedPostingApi.fetchAiAgents;
+export const createAiAgent = snsManagedPostingApi.createAiAgent;
+export const fetchAiJobs = snsManagedPostingApi.fetchAiJobs;
+export const createAiJob = snsManagedPostingApi.createAiJob;

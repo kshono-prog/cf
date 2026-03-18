@@ -20,6 +20,8 @@ export function AppHeader({
                 alt={`${username} のアイコン`}
                 width={36}
                 height={36}
+                quality={95}
+                sizes="36px"
                 className="h-9 w-9 rounded-full object-cover bg-[var(--surface-subtle)]"
               />
             ) : (

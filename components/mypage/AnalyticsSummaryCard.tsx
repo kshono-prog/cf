@@ -4,9 +4,9 @@ import React from "react";
 import type { Address } from "viem";
 
 import {
-  fetchSnsAnalyticsSummary,
-  type SnsAnalyticsSummary,
-} from "@/lib/mypage/snsApi";
+  fetchPostingAnalyticsSummary,
+  type PostingAnalyticsSummary,
+} from "@/lib/mypage/postingApi";
 import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
@@ -32,7 +32,7 @@ function formatDateTime(value: string | null): string {
 export function AnalyticsSummaryCard(props: Props) {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [summary, setSummary] = React.useState<SnsAnalyticsSummary | null>(null);
+  const [summary, setSummary] = React.useState<PostingAnalyticsSummary | null>(null);
 
   const loadSummary = React.useCallback(async (): Promise<void> => {
     if (!props.address) {
@@ -44,7 +44,7 @@ export function AnalyticsSummaryCard(props: Props) {
     setLoading(true);
     setError(null);
 
-    const result = await fetchSnsAnalyticsSummary({ address: props.address });
+    const result = await fetchPostingAnalyticsSummary({ address: props.address });
     if (!result.ok) {
       setError("分析サマリーの取得に失敗しました。");
       setLoading(false);

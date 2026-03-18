@@ -1,4 +1,4 @@
-module.exports = {
+const config = {
   darkMode: "class",
   content: ["./app/**/*.{js,ts,jsx,tsx}", "./components/**/*.{js,ts,jsx,tsx}"],
   theme: {
@@ -6,3 +6,5 @@ module.exports = {
   },
   plugins: [],
 };
+
+export default config;

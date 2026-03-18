@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import type { TaskType } from "@/lib/agentTaskParsers";
+import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 
 export const AGENT_TASK_AUDIT_ACTION = {
   CREATED_DONE: "TASK_CREATED_DONE",
@@ -18,10 +19,12 @@ export function getCreateAuditAction(requiresApproval: boolean): string {
 export function buildCreateAuditMeta(params: {
   taskType: TaskType;
   requiresApproval: boolean;
+  roleId: CreatorAiAgentRole | null;
 }): Prisma.InputJsonValue {
   return {
     taskType: params.taskType,
     requiresApproval: params.requiresApproval,
+    roleId: params.roleId,
   } as Prisma.InputJsonValue;
 }
 

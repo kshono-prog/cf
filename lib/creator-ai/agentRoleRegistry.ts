@@ -86,7 +86,12 @@ export const CREATOR_AI_AGENT_ROLE_DEFINITIONS: readonly CreatorAiAgentRoleDefin
       phase: "MVP",
       executionBoundary: "approval_required",
       billableReadiness: "internal_candidate",
-      candidateTaskTypes: ["ANALYZE", "PROPOSE", "WEEKLY_REPORT"],
+      candidateTaskTypes: [
+        "DISTRIBUTION_PLAN_DRAFT",
+        "ANALYZE",
+        "PROPOSE",
+        "WEEKLY_REPORT",
+      ],
       allowedTargets: ["summary", "plan", "reporting"],
     },
     {
@@ -120,4 +125,32 @@ export function getCreatorAiAgentRolesByPhase(
   return CREATOR_AI_AGENT_ROLE_DEFINITIONS.filter(
     (definition) => definition.phase === phase
   );
+}
+
+export function isCreatorAiAgentRole(
+  value: unknown
+): value is CreatorAiAgentRole {
+  return CREATOR_AI_AGENT_ROLE_DEFINITIONS.some(
+    (definition) => definition.id === value
+  );
+}
+
+export function toCreatorAiAgentRole(
+  value: unknown
+): CreatorAiAgentRole | null {
+  return isCreatorAiAgentRole(value) ? value : null;
+}
+
+export function getCreatorAiAgentRolesForTaskType(
+  taskType: TaskType
+): CreatorAiAgentRoleDefinition[] {
+  return CREATOR_AI_AGENT_ROLE_DEFINITIONS.filter((definition) =>
+    definition.candidateTaskTypes.includes(taskType)
+  );
+}
+
+export function getPrimaryCreatorAiAgentRoleForTaskType(
+  taskType: TaskType
+): CreatorAiAgentRole | null {
+  return getCreatorAiAgentRolesForTaskType(taskType)[0]?.id ?? null;
 }

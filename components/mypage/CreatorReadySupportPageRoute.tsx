@@ -12,7 +12,7 @@ import {
 } from "@/components/mypage/WorkspaceFeedback";
 import { buildPublicReadiness } from "@/lib/mypage/publicReadiness";
 import { useCreatorReadyProjectDashboards } from "@/components/mypage/useCreatorReadyProjectDashboards";
-import type { SnsProjectOption } from "@/lib/mypage/snsApi";
+import type { PostingProjectOption } from "@/lib/mypage/postingApi";
 
 const CreatorProjectManagementSection = dynamic(
   () =>
@@ -26,14 +26,14 @@ const CreatorProjectManagementSection = dynamic(
   }
 );
 
-const SnsAiOfficeSection = dynamic(
+const PostingAiOfficeSection = dynamic(
   () =>
-    import("@/components/mypage/SnsAiOfficeSection").then(
-      (mod) => mod.SnsAiOfficeSection
+    import("@/components/mypage/PostingAiOfficeSection").then(
+      (mod) => mod.PostingAiOfficeSection
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="SNS・AI事務所の拡張面を読み込んでいます" />
+      <WorkspaceLoadingCard title="投稿・AI事務所の拡張面を読み込んでいます" />
     ),
   }
 );
@@ -65,7 +65,7 @@ export function CreatorReadySupportPageRoute() {
     ]
   );
   const projectOptions = React.useMemo(() => {
-    const options: SnsProjectOption[] = [];
+    const options: PostingProjectOption[] = [];
     const seenProjectIds = new Set<string>();
 
     for (const currency of ["JPYC", "USDC"] as const) {
@@ -149,21 +149,22 @@ export function CreatorReadySupportPageRoute() {
         projectDashboardsByCurrency={projectDashboardsByCurrency}
         onActiveProjectIdChange={workspace.onActiveProjectIdChange}
       />
-      <div id="sns-compose">
+      <div id="posting-compose" className="scroll-mt-24">
+        <div id="sns-compose" className="scroll-mt-24" aria-hidden="true" />
         <MyPageAccordion
           open={workspace.openSections}
           onToggle={workspace.onToggleSection}
           sectionKey="sns"
-          title="SNS・AI事務所"
+          title="投稿・AI事務所"
         >
           <div className="mb-3">
             <WorkspaceStatusNotice
               tone="info"
-              title="投稿運営を優先しつつ、AI 事務所の拡張は beta として追加しています"
-              description="公開ページと支援導線を崩さずに、投稿管理・analytics・AI 下書きの拡張だけをこの枠に分けています。"
+              title="Creator Founding 内の投稿運営を優先しつつ、AI 事務所の拡張は beta として追加しています"
+              description="公開ページと支援導線を崩さずに、投稿管理・analytics・AI 下書きをこの枠でまとめて扱います。"
             />
           </div>
-          <SnsAiOfficeSection
+          <PostingAiOfficeSection
             address={workspace.address}
             username={workspace.meCreatorUsername}
             projectOptions={projectOptions}

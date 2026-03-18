@@ -4,10 +4,10 @@ import React from "react";
 import type { Address } from "viem";
 
 import {
-  fetchMySnsPosts,
-  updateMySnsPostStatus,
-  type SnsManagedPost,
-} from "@/lib/mypage/snsApi";
+  fetchMyPostingPosts,
+  updateMyPostingPostStatus,
+  type PostingManagedPost,
+} from "@/lib/mypage/postingApi";
 import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
@@ -50,7 +50,7 @@ function buildPreview(body: string): string {
 }
 
 export function MyPostsCard(props: Props) {
-  const [posts, setPosts] = React.useState<SnsManagedPost[]>([]);
+  const [posts, setPosts] = React.useState<PostingManagedPost[]>([]);
   const [nextCursor, setNextCursor] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [loadingMore, setLoadingMore] = React.useState(false);
@@ -75,7 +75,7 @@ export function MyPostsCard(props: Props) {
         setError(null);
       }
 
-      const result = await fetchMySnsPosts({
+      const result = await fetchMyPostingPosts({
         address: props.address,
         cursor,
         limit: 12,
@@ -103,12 +103,12 @@ export function MyPostsCard(props: Props) {
     void loadPosts(null);
   }, [loadPosts, props.refreshToken]);
 
-  async function handleToggleArchive(post: SnsManagedPost): Promise<void> {
+  async function handleToggleArchive(post: PostingManagedPost): Promise<void> {
     if (!props.address) return;
     setPendingPostId(post.id);
     setError(null);
 
-    const result = await updateMySnsPostStatus({
+    const result = await updateMyPostingPostStatus({
       address: props.address,
       postId: post.id,
       status: post.status === "ARCHIVED" ? "PUBLISHED" : "ARCHIVED",

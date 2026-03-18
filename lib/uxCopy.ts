@@ -18,6 +18,11 @@ const TASK_TYPE_COPY: Record<TaskType, Copy> = {
     helper:
       "現在の project summary を見て、達成・plan・bridge 前後の次アクションを整理します。",
   },
+  DISTRIBUTION_PLAN_DRAFT: {
+    label: "配分 plan 下書きを作る",
+    helper:
+      "現在の project / settlement 状態をもとに、Draft step へ渡せる配分 JSON を整理します。",
+  },
   ANALYZE: {
     label: "活動を分析する",
     helper: "最近の指標を見て、動きや改善点を整理します。",
@@ -72,12 +77,6 @@ const TASK_AUDIT_ACTION_COPY: Record<string, string> = {
   TASK_CREATED_WAITING_APPROVAL: "承認待ちで作成",
   TASK_APPROVED: "承認して完了",
   TASK_REJECTED: "却下",
-};
-
-const SOCIAL_CONNECTION_STATUS_COPY: Record<string, string> = {
-  ACTIVE: "利用中",
-  INACTIVE: "停止中",
-  ERROR: "要確認",
 };
 
 const SETTLEMENT_STATUS_COPY: Record<
@@ -144,12 +143,6 @@ const CCTP_STATUS_COPY: Record<
 };
 
 const AI_OFFICE_MESSAGE_COPY: Record<string, MessageState> = {
-  SOCIAL_CONNECTION_CREATE_FAILED:
-    {
-      tone: "error",
-      title: "SNS 連携を保存できませんでした。",
-      description: "入力内容を確認して、もう一度お試しください。",
-    },
   METRICS_COLLECT_FAILED:
     {
       tone: "error",
@@ -309,10 +302,6 @@ export function getAgentTaskStatusCopy(status: string): Copy {
 
 export function getAgentTaskAuditActionLabel(action: string): string {
   return TASK_AUDIT_ACTION_COPY[action] ?? action;
-}
-
-export function getSocialConnectionStatusLabel(status: string): string {
-  return SOCIAL_CONNECTION_STATUS_COPY[status] ?? status;
 }
 
 export function getSettlementStatusCopy(

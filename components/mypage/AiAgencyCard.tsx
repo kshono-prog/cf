@@ -4,13 +4,13 @@ import React from "react";
 import type { Address } from "viem";
 
 import {
-  createAiAgent,
-  createAiJob,
-  fetchAiAgents,
-  fetchAiJobs,
-  type SnsAiAgent,
-  type SnsAiJob,
-} from "@/lib/mypage/snsApi";
+  createPostingAiAgent,
+  createPostingAiJob,
+  fetchPostingAiAgents,
+  fetchPostingAiJobs,
+  type PostingAiAgent,
+  type PostingAiJob,
+} from "@/lib/mypage/postingApi";
 import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
@@ -33,7 +33,7 @@ function formatDateTime(value: string): string {
   });
 }
 
-function getRoleLabel(role: SnsAiAgent["role"]): string {
+function getRoleLabel(role: PostingAiAgent["role"]): string {
   switch (role) {
     case "POSTER":
       return "投稿担当";
@@ -46,7 +46,7 @@ function getRoleLabel(role: SnsAiAgent["role"]): string {
   }
 }
 
-function getJobTypeLabel(jobType: SnsAiJob["jobType"]): string {
+function getJobTypeLabel(jobType: PostingAiJob["jobType"]): string {
   switch (jobType) {
     case "AUTO_POST":
       return "自動投稿";
@@ -60,13 +60,13 @@ function getJobTypeLabel(jobType: SnsAiJob["jobType"]): string {
 }
 
 export function AiAgencyCard(props: Props) {
-  const [agents, setAgents] = React.useState<SnsAiAgent[]>([]);
-  const [jobs, setJobs] = React.useState<SnsAiJob[]>([]);
+  const [agents, setAgents] = React.useState<PostingAiAgent[]>([]);
+  const [jobs, setJobs] = React.useState<PostingAiJob[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [agentName, setAgentName] = React.useState("");
-  const [agentRole, setAgentRole] = React.useState<SnsAiAgent["role"]>("POSTER");
-  const [jobType, setJobType] = React.useState<SnsAiJob["jobType"]>("ANALYZE");
+  const [agentRole, setAgentRole] = React.useState<PostingAiAgent["role"]>("POSTER");
+  const [jobType, setJobType] = React.useState<PostingAiJob["jobType"]>("ANALYZE");
   const [selectedAgentId, setSelectedAgentId] = React.useState<string>("");
   const [savingAgent, setSavingAgent] = React.useState(false);
   const [savingJob, setSavingJob] = React.useState(false);
@@ -84,8 +84,8 @@ export function AiAgencyCard(props: Props) {
     setError(null);
 
     const [agentsResult, jobsResult] = await Promise.all([
-      fetchAiAgents({ address: props.address }),
-      fetchAiJobs({ address: props.address }),
+      fetchPostingAiAgents({ address: props.address }),
+      fetchPostingAiJobs({ address: props.address }),
     ]);
 
     if (!agentsResult.ok) {
@@ -127,7 +127,7 @@ export function AiAgencyCard(props: Props) {
     setError(null);
     setNotice(null);
 
-    const result = await createAiAgent({
+    const result = await createPostingAiAgent({
       address: props.address,
       name: trimmedName,
       role: agentRole,
@@ -159,7 +159,7 @@ export function AiAgencyCard(props: Props) {
     setError(null);
     setNotice(null);
 
-    const result = await createAiJob({
+    const result = await createPostingAiJob({
       address: props.address,
       jobType,
       aiAgentId: selectedAgentId || null,
@@ -209,7 +209,7 @@ export function AiAgencyCard(props: Props) {
                 className="input mt-1"
                 value={agentRole}
                 onChange={(event) =>
-                  setAgentRole(event.target.value as SnsAiAgent["role"])
+                  setAgentRole(event.target.value as PostingAiAgent["role"])
                 }
                 disabled={savingAgent}
               >
@@ -238,7 +238,7 @@ export function AiAgencyCard(props: Props) {
                 className="input mt-1"
                 value={jobType}
                 onChange={(event) =>
-                  setJobType(event.target.value as SnsAiJob["jobType"])
+                  setJobType(event.target.value as PostingAiJob["jobType"])
                 }
                 disabled={savingJob}
               >

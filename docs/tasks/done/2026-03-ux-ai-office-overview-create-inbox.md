@@ -9,8 +9,8 @@ Phase 2 UX: `AI Office` を `Overview / Create / Inbox` に分ける
 ## Scope
 
 - `AiOfficePanel` の top-level 構造を `Overview / Create / Inbox` に分ける
-- overview に `承認待ち / 連携SNS / 最近の指標` の first view を作る
-- create に `SNS 連携 / 指標更新 / task 作成` を集める
+- overview に `承認待ち / Creator Founding 投稿 / 最近の指標` の first view を作る
+- create に `内部指標更新 / task 作成` を集める
 - inbox に `承認メモ / filter / bulk actions / task list` を集める
 
 ## Non-Goals
@@ -40,6 +40,6 @@ Phase 2 UX: `AI Office` を `Overview / Create / Inbox` に分ける
 ## Result
 
 - `AiOfficePanel` を orchestration layer に寄せて、表示責務を `Overview / Create / Inbox` の3 section に分けた
-- `components/mypage/AiOfficeOverviewSection.tsx` で `承認待ち / 連携SNS / 最近の指標` の first view を追加した
-- `components/mypage/AiOfficeCreateSection.tsx` に `SNS 連携 / 指標更新 / task 作成` を集約した
+- `components/mypage/AiOfficeOverviewSection.tsx` で `承認待ち / Creator Founding 投稿 / 最近の指標` の first view を追加した
+- `components/mypage/AiOfficeCreateSection.tsx` に `内部指標更新 / task 作成` を集約した
 - `components/mypage/AiOfficeInboxSection.tsx` に `承認メモ / filter / bulk actions / task list` を集約した

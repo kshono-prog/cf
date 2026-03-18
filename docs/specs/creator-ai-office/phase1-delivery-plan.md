@@ -6,6 +6,18 @@ Phase 1 turns Creator Founding from a dashboard that shows state into an approva
 
 This phase does **not** introduce autonomous funds movement, bridge execution, or x402 payment flows. It prepares the product for those later stages by making agent roles, task outputs, and approval boundaries practical.
 
+## Status
+
+As of 2026-03-18:
+
+- Phase 1A `Manager Agent Task` is implemented
+- Phase 1B `Distribution Plan Draft` is implemented
+- Phase 1C `Role-Based AI Office Surface` is implemented
+- Phase 1D `Usefulness Metrics` is implemented
+- `Finance Agent -> settlement Draft` handoff is implemented as a Phase 1 extension
+
+The remaining work is no longer core Phase 1 feature delivery. It is manual validation, UX polish, and deciding the first Phase 2 priorities from real usage.
+
 ## Phase 1 Outcome
 
 By the end of Phase 1, the product should behave like a usable `AI事務所` for weekly creator operations.
@@ -73,11 +85,13 @@ Primary deliverables:
 - pure draft builder from `Project / Goal / Summary`
 - approval-ready draft payload structure
 - UI action to apply draft into the existing plan editor
+- `Finance Agent` task output から `Draft` step へ戻れる handoff
 - tests for draft shape and safety fallbacks
 
 Acceptance gate:
 
 - a creator can generate a draft and review it before saving
+- AI Office の `Finance Agent` から `Draft` step へ advisory payload を渡せる
 - the flow does not bypass existing owner or save controls
 
 ### Phase 1C: Role-Based AI Office Surface

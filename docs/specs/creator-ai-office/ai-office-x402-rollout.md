@@ -132,3 +132,16 @@ Not allowed as x402 automation targets at this stage:
 - time from achieved goal to saved plan
 - x402 candidate surface usage volume
 - operator override and rejection reasons
+
+## Phase 1 usefulness definitions
+
+- `follow-through`
+  - approval-required task のうち、owner が承認または却下まで進めた割合
+- `ignored`
+  - `WAITING_APPROVAL` のまま 72 時間以上残っている task
+- `approval rate`
+  - approval-required task のうち、承認に進んだ割合
+- `rejection rate`
+  - approval-required task のうち、却下に進んだ割合
+
+この定義は Phase 2 の x402 surface prioritization より先に固定し、外部化前に「役立つ output か」を判断するために使う。

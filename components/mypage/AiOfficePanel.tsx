@@ -7,31 +7,52 @@ import { AiOfficeStatusNotice } from "@/components/mypage/AiOfficeFeedback";
 import { AiOfficeInboxSection } from "@/components/mypage/AiOfficeInboxSection";
 import { AiOfficeOverviewSection } from "@/components/mypage/AiOfficeOverviewSection";
 import {
-  parseAiOfficeConnections,
+  AI_OFFICE_RECENT_COPIED_ROLE_LINKS_STORAGE_KEY,
+  AI_OFFICE_RECENT_ROLE_SHORTCUTS_STORAGE_KEY,
+  parseAiOfficeRecentCopiedRoleLinks,
+  parseAiOfficeRecentRoleShortcuts,
+  rememberAiOfficeRecentCopiedRoleLink,
+  rememberAiOfficeRecentRoleShortcut,
+  type AiOfficeRecentCopiedRoleLink,
+  type AiOfficeRecentRoleShortcut,
+} from "@/components/mypage/aiOfficeRecentRoleShortcuts";
+import {
+  buildAiOfficePanelSearchParams,
+  parseAiOfficePanelUrlState,
+} from "@/components/mypage/aiOfficePanelUrlState";
+import {
+  parseAiOfficeContentSummary,
   parseAiOfficeMetrics,
   parseAiOfficeMetricTrends,
   parseAiOfficeTasks,
+  parseAiOfficeUsefulnessSummary,
 } from "@/components/mypage/aiOfficeDashboardParsers";
 import {
   buildAiOfficeTaskInput,
+  doesAiOfficeTaskMatchRole,
+  getAiOfficeRoleChoice,
+  getDefaultAiOfficeRole,
+  getAiOfficeTaskRoleChoices,
   normalizeAiOfficeTaskDraft,
   validateAiOfficeTaskDraft,
   type AiOfficeTaskDraft,
 } from "@/components/mypage/aiOfficeTaskConfig";
 import type {
   AgentTaskView,
+  AiOfficeContentSummaryView,
+  AiOfficeUsefulnessSummaryView,
   AiOfficeView,
   AnnouncementChannel,
   DraftTone,
   MetricSnapshotView,
   MetricTrendDayView,
-  Platform,
-  SocialConnectionView,
   SupporterMessagePurpose,
   TaskFilter,
   TranslationLang,
 } from "@/components/mypage/aiOfficeTypes";
+import { getEmptyAiOfficeUsefulnessSummary } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
+import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import {
   getAgentTaskTypeCopy,
   getAiOfficeMessageState,
@@ -42,6 +63,9 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
+const DEFAULT_AI_OFFICE_TASK_TYPE: TaskType = "MANAGER_NEXT_ACTIONS";
+const DEFAULT_AI_OFFICE_VIEW: AiOfficeView = "OVERVIEW";
+
 export function AiOfficePanel(props: {
   walletAddress: string | null;
   projectId: string | null;
@@ -49,7 +73,6 @@ export function AiOfficePanel(props: {
 }) {
   const { walletAddress, projectId, isConnected } = props;
 
-  const [connections, setConnections] = useState<SocialConnectionView[]>([]);
   const [tasks, setTasks] = useState<AgentTaskView[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -68,11 +91,26 @@ export function AiOfficePanel(props: {
     []
   );
   const [metricTrends, setMetricTrends] = useState<MetricTrendDayView[]>([]);
+  const [contentSummary, setContentSummary] = useState<AiOfficeContentSummaryView>({
+    totalPosts: 0,
+    publishedPosts: 0,
+    draftPosts: 0,
+    archivedPosts: 0,
+    aiGeneratedPosts: 0,
+    lastPostAt: null,
+    lastPublishedAt: null,
+  });
+  const [usefulness, setUsefulness] = useState<AiOfficeUsefulnessSummaryView>(
+    () => getEmptyAiOfficeUsefulnessSummary()
+  );
 
-  const [platform, setPlatform] = useState<Platform>("YOUTUBE");
-  const [accountHandle, setAccountHandle] = useState<string>("");
-  const [taskType, setTaskType] = useState<TaskType>("MANAGER_NEXT_ACTIONS");
+  const [taskType, setTaskType] = useState<TaskType>(DEFAULT_AI_OFFICE_TASK_TYPE);
+  const [selectedRoleId, setSelectedRoleId] = useState<CreatorAiAgentRole>(
+    () => getDefaultAiOfficeRole(DEFAULT_AI_OFFICE_TASK_TYPE)
+  );
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("ALL");
+  const [selectedInboxRoleId, setSelectedInboxRoleId] =
+    useState<CreatorAiAgentRole | null>(null);
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [translationInput, setTranslationInput] = useState<string>("");
   const [translationLang, setTranslationLang] = useState<TranslationLang>("en");
@@ -89,7 +127,18 @@ export function AiOfficePanel(props: {
   const [translationResult, setTranslationResult] = useState<string>("");
   const [approvalNote, setApprovalNote] = useState<string>("");
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
-  const [activeView, setActiveView] = useState<AiOfficeView>("OVERVIEW");
+  const [activeView, setActiveView] = useState<AiOfficeView>(DEFAULT_AI_OFFICE_VIEW);
+  const [hasHydratedUrlState, setHasHydratedUrlState] = useState<boolean>(false);
+  const [recentRoleShortcuts, setRecentRoleShortcuts] = useState<
+    AiOfficeRecentRoleShortcut[]
+  >([]);
+  const [recentCopiedRoleLinks, setRecentCopiedRoleLinks] = useState<
+    AiOfficeRecentCopiedRoleLink[]
+  >([]);
+  const [hasHydratedRecentRoleShortcuts, setHasHydratedRecentRoleShortcuts] =
+    useState<boolean>(false);
+  const [hasHydratedRecentCopiedRoleLinks, setHasHydratedRecentCopiedRoleLinks] =
+    useState<boolean>(false);
   const BULK_CONFIRM_THRESHOLD = 5;
 
   const canUse = isConnected && !!walletAddress;
@@ -109,8 +158,16 @@ export function AiOfficePanel(props: {
     () =>
       tasks
         .filter((task) => task.status === "WAITING_APPROVAL")
+        .filter(
+          (task) =>
+            selectedInboxRoleId === null ||
+            doesAiOfficeTaskMatchRole(
+              task.taskType as TaskType,
+              selectedInboxRoleId
+            )
+        )
         .map((task) => task.id),
-    [tasks]
+    [selectedInboxRoleId, tasks]
   );
   const taskDraft = useMemo<AiOfficeTaskDraft>(
     () => ({
@@ -145,8 +202,17 @@ export function AiOfficePanel(props: {
 
   const refresh = useCallback(async () => {
     if (!walletAddress) {
-      setConnections([]);
       setTasks([]);
+      setContentSummary({
+        totalPosts: 0,
+        publishedPosts: 0,
+        draftPosts: 0,
+        archivedPosts: 0,
+        aiGeneratedPosts: 0,
+        lastPostAt: null,
+        lastPublishedAt: null,
+      });
+      setUsefulness(getEmptyAiOfficeUsefulnessSummary());
       return;
     }
 
@@ -168,15 +234,14 @@ export function AiOfficePanel(props: {
         return;
       }
 
-      setConnections(
-        parseAiOfficeConnections({ connections: dashboardJson.connections })
-      );
       setTasks(parseAiOfficeTasks({ tasks: dashboardJson.tasks }));
 
       const parsedMetrics = parseAiOfficeMetrics(dashboardJson.metrics);
       setMetricsTotals(parsedMetrics.totals);
       setMetricsSnapshots(parsedMetrics.snapshots);
       setMetricTrends(parseAiOfficeMetricTrends(dashboardJson.trends));
+      setContentSummary(parseAiOfficeContentSummary(dashboardJson.content));
+      setUsefulness(parseAiOfficeUsefulnessSummary(dashboardJson.usefulness));
     } catch {
       setMessage("下書きと承認の状況を取得できませんでした。");
     } finally {
@@ -191,6 +256,15 @@ export function AiOfficePanel(props: {
   useEffect(() => {
     setSelectedTaskIds((prev) => prev.filter((id) => waitingTaskIds.includes(id)));
   }, [waitingTaskIds]);
+
+  useEffect(() => {
+    const matchingRoles = getAiOfficeTaskRoleChoices(taskType);
+    if (matchingRoles.some((role) => role.roleId === selectedRoleId)) {
+      return;
+    }
+
+    setSelectedRoleId(getDefaultAiOfficeRole(taskType));
+  }, [selectedRoleId, taskType]);
 
   useEffect(() => {
     if (normalizedTaskDraft.reportingWindowDays !== reportingWindowDays) {
@@ -217,49 +291,144 @@ export function AiOfficePanel(props: {
     reportingWindowDays,
   ]);
 
-  async function addConnection(): Promise<void> {
-    if (!walletAddress) return;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-    const handle = accountHandle.trim();
-    if (!handle) {
-      setMessage("アカウントIDを入力してください。");
+    const parsedState = parseAiOfficePanelUrlState(
+      new URLSearchParams(window.location.search)
+    );
+
+    if (parsedState.activeView) {
+      setActiveView(parsedState.activeView);
+    }
+
+    if (parsedState.selectedRoleId) {
+      setSelectedRoleId(parsedState.selectedRoleId);
+
+      const roleChoice = getAiOfficeRoleChoice(parsedState.selectedRoleId);
+      const nextTaskType = roleChoice?.taskChoices.some(
+        (choice) => choice.taskType === DEFAULT_AI_OFFICE_TASK_TYPE
+      )
+        ? DEFAULT_AI_OFFICE_TASK_TYPE
+        : roleChoice?.featuredTaskType;
+
+      if (nextTaskType) {
+        setTaskType(nextTaskType);
+      }
+    }
+
+    setSelectedInboxRoleId(parsedState.selectedInboxRoleId ?? null);
+    setHasHydratedUrlState(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedUrlState || typeof window === "undefined") {
       return;
     }
 
-    setLoading(true);
-    setMessage(null);
+    const nextSearchParams = buildAiOfficePanelSearchParams(
+      new URLSearchParams(window.location.search),
+      {
+        activeView,
+        selectedRoleId,
+        selectedInboxRoleId,
+      }
+    );
+    const nextSearch = nextSearchParams.toString();
+    const nextUrl = `${window.location.pathname}${
+      nextSearch ? `?${nextSearch}` : ""
+    }${window.location.hash}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+    if (nextUrl !== currentUrl) {
+      window.history.replaceState(window.history.state, "", nextUrl);
+    }
+  }, [activeView, hasHydratedUrlState, selectedInboxRoleId, selectedRoleId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
 
     try {
-      const res = await ownerAuthFetch({
-        address: walletAddress,
-        url: "/api/social/connections",
-        init: {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            address: walletAddress,
-            platform,
-            accountHandle: handle,
-          }),
-        },
-      });
-
-      const json: unknown = await res.json().catch(() => null);
-      if (!res.ok) {
-        const code = isRecord(json) && typeof json.error === "string" ? json.error : "SOCIAL_CONNECTION_CREATE_FAILED";
-        setMessage(code);
-        return;
-      }
-
-      setAccountHandle("");
-      setMessage("SNS連携を保存しました。");
-      await refresh();
+      const rawValue = window.localStorage.getItem(
+        AI_OFFICE_RECENT_ROLE_SHORTCUTS_STORAGE_KEY
+      );
+      const parsedValue: unknown =
+        rawValue === null ? [] : JSON.parse(rawValue) as unknown;
+      setRecentRoleShortcuts(parseAiOfficeRecentRoleShortcuts(parsedValue));
     } catch {
-      setMessage("SNS連携の保存に失敗しました。");
+      setRecentRoleShortcuts([]);
     } finally {
-      setLoading(false);
+      setHasHydratedRecentRoleShortcuts(true);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const rawValue = window.localStorage.getItem(
+        AI_OFFICE_RECENT_COPIED_ROLE_LINKS_STORAGE_KEY
+      );
+      const parsedValue: unknown =
+        rawValue === null ? [] : JSON.parse(rawValue) as unknown;
+      setRecentCopiedRoleLinks(parseAiOfficeRecentCopiedRoleLinks(parsedValue));
+    } catch {
+      setRecentCopiedRoleLinks([]);
+    } finally {
+      setHasHydratedRecentCopiedRoleLinks(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (
+      !hasHydratedRecentRoleShortcuts ||
+      typeof window === "undefined" ||
+      activeView === "OVERVIEW"
+    ) {
+      return;
+    }
+
+    const nextShortcut =
+      activeView === "CREATE"
+        ? {
+            roleId: selectedRoleId,
+            activeView: "CREATE" as const,
+            lastUsedAt: new Date().toISOString(),
+          }
+        : selectedInboxRoleId
+          ? {
+              roleId: selectedInboxRoleId,
+              activeView: "INBOX" as const,
+              lastUsedAt: new Date().toISOString(),
+            }
+          : null;
+
+    if (nextShortcut === null) {
+      return;
+    }
+
+    setRecentRoleShortcuts((current) => {
+      const next = rememberAiOfficeRecentRoleShortcut(current, nextShortcut);
+      try {
+        window.localStorage.setItem(
+          AI_OFFICE_RECENT_ROLE_SHORTCUTS_STORAGE_KEY,
+          JSON.stringify(next)
+        );
+      } catch {
+        return current;
+      }
+      return next;
+    });
+  }, [
+    activeView,
+    hasHydratedRecentRoleShortcuts,
+    selectedInboxRoleId,
+    selectedRoleId,
+  ]);
 
   async function collectMetrics(): Promise<void> {
     if (!walletAddress) return;
@@ -289,7 +458,8 @@ export function AiOfficePanel(props: {
       }
 
       const collected = isRecord(json) && typeof json.collected === "number" ? json.collected : 0;
-      setMessage(`metrics を ${collected} 件収集しました。`);
+      setMessage(`Creator Founding の投稿指標を ${collected} 件更新しました。`);
+      await refresh();
     } catch {
       setMessage("metrics 収集に失敗しました。");
     } finally {
@@ -322,6 +492,7 @@ export function AiOfficePanel(props: {
             address: walletAddress,
             projectId,
             taskType,
+            roleId: selectedRoleId,
             input: taskInput,
             requiresApproval,
           }),
@@ -488,12 +659,12 @@ export function AiOfficePanel(props: {
     {
       id: "OVERVIEW",
       label: "状況",
-      helper: "今日見るべき数値と承認待ちを確認する",
+      helper: "今日見るべき数値と role ごとの入口を確認する",
     },
     {
       id: "CREATE",
       label: "下書きを作る",
-      helper: "SNS 連携、指標更新、下書き作成を進める",
+      helper: "role を選んで、内部投稿の指標をもとに下書きを作る",
     },
     {
       id: "INBOX",
@@ -502,13 +673,96 @@ export function AiOfficePanel(props: {
     },
   ];
 
+  const handleTaskTypeChange = useCallback(
+    (nextTaskType: TaskType) => {
+      setTaskType(nextTaskType);
+
+      const matchingRoles = getAiOfficeTaskRoleChoices(nextTaskType);
+      if (matchingRoles.some((role) => role.roleId === selectedRoleId)) {
+        return;
+      }
+
+      setSelectedRoleId(getDefaultAiOfficeRole(nextTaskType));
+    },
+    [selectedRoleId]
+  );
+
+  const handleRoleChange = useCallback(
+    (nextRoleId: CreatorAiAgentRole) => {
+      setSelectedRoleId(nextRoleId);
+
+      const roleChoice = getAiOfficeRoleChoice(nextRoleId);
+      if (!roleChoice) {
+        return;
+      }
+
+      const nextTaskType = roleChoice.taskChoices.some(
+        (choice) => choice.taskType === taskType
+      )
+        ? taskType
+        : roleChoice.featuredTaskType;
+
+      if (nextTaskType) {
+        setTaskType(nextTaskType);
+      }
+    },
+    [taskType]
+  );
+
+  const openRoleShortcut = useCallback(
+    (roleId: CreatorAiAgentRole, nextView: "CREATE" | "INBOX") => {
+      handleRoleChange(roleId);
+
+      if (nextView === "INBOX") {
+        setSelectedInboxRoleId(roleId);
+        setActiveView("INBOX");
+        return;
+      }
+
+      setSelectedInboxRoleId(null);
+      setActiveView("CREATE");
+    },
+    [handleRoleChange]
+  );
+
+  const rememberCopiedRoleLink = useCallback(
+    (roleId: CreatorAiAgentRole, activeView: "CREATE" | "INBOX") => {
+      if (
+        !hasHydratedRecentCopiedRoleLinks ||
+        typeof window === "undefined"
+      ) {
+        return;
+      }
+
+      const copiedLink: AiOfficeRecentCopiedRoleLink = {
+        roleId,
+        activeView,
+        copiedAt: new Date().toISOString(),
+      };
+
+      setRecentCopiedRoleLinks((current) => {
+        const next = rememberAiOfficeRecentCopiedRoleLink(current, copiedLink);
+        try {
+          window.localStorage.setItem(
+            AI_OFFICE_RECENT_COPIED_ROLE_LINKS_STORAGE_KEY,
+            JSON.stringify(next)
+          );
+        } catch {
+          return current;
+        }
+        return next;
+      });
+    },
+    [hasHydratedRecentCopiedRoleLinks]
+  );
+
   return (
     <div className="rounded-xl border bg-white p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">下書きと承認</h3>
+          <h3 className="font-semibold">AI事務所（Role-Based Phase1）</h3>
           <p className="text-xs text-gray-500 mt-1">
-            告知やお礼の下書き作成、承認待ちの確認、指標の確認をここでまとめて進めます。
+            `Manager / Promotion / Finance / Fan Relation` の役割で、下書き作成、承認待ち確認、内部指標の確認をまとめて進めます。
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -585,7 +839,10 @@ export function AiOfficePanel(props: {
               <button
                 type="button"
                 className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 disabled:opacity-40"
-                onClick={() => setActiveView("INBOX")}
+                onClick={() => {
+                  setSelectedInboxRoleId(null);
+                  setActiveView("INBOX");
+                }}
                 disabled={loading}
               >
                 承認待ちを開く
@@ -598,12 +855,26 @@ export function AiOfficePanel(props: {
               loading={loading}
               waitingApprovalCount={waitingApprovalCount}
               tasks={tasks}
-              connections={connections}
+              contentSummary={contentSummary}
+              usefulness={usefulness}
               metricsTotals={metricsTotals}
               metricsSnapshots={metricsSnapshots}
               metricTrends={metricTrends}
+              recentRoleShortcuts={recentRoleShortcuts}
+              recentCopiedRoleLinks={recentCopiedRoleLinks}
               onOpenCreate={() => setActiveView("CREATE")}
-              onOpenInbox={() => setActiveView("INBOX")}
+              onOpenCreateForRole={(roleId) => {
+                openRoleShortcut(roleId, "CREATE");
+              }}
+              onOpenInbox={(roleId) => {
+                if (roleId) {
+                  openRoleShortcut(roleId, "INBOX");
+                  return;
+                }
+                setSelectedInboxRoleId(null);
+                setActiveView("INBOX");
+              }}
+              onCopiedRoleLink={rememberCopiedRoleLink}
               onCollectMetrics={() => void collectMetrics()}
             />
           ) : null}
@@ -612,8 +883,10 @@ export function AiOfficePanel(props: {
             <AiOfficeCreateSection
               loading={loading}
               waitingApprovalCount={waitingApprovalCount}
-              platform={platform}
-              accountHandle={accountHandle}
+              contentSummary={contentSummary}
+              usefulness={usefulness}
+              tasks={tasks}
+              selectedRoleId={selectedRoleId}
               taskType={taskType}
               taskTypeCopy={currentTaskTypeCopy}
               requiresApproval={requiresApproval}
@@ -626,9 +899,8 @@ export function AiOfficePanel(props: {
               includeSupportSummary={includeSupportSummary}
               supporterMessagePurpose={supporterMessagePurpose}
               translationResult={translationResult}
-              onPlatformChange={setPlatform}
-              onAccountHandleChange={setAccountHandle}
-              onTaskTypeChange={setTaskType}
+              onRoleChange={handleRoleChange}
+              onTaskTypeChange={handleTaskTypeChange}
               onRequiresApprovalChange={setRequiresApproval}
               onTranslationInputChange={setTranslationInput}
               onTranslationLangChange={setTranslationLang}
@@ -638,9 +910,11 @@ export function AiOfficePanel(props: {
               onIncludeMetricsSummaryChange={setIncludeMetricsSummary}
               onIncludeSupportSummaryChange={setIncludeSupportSummary}
               onSupporterMessagePurposeChange={setSupporterMessagePurpose}
-              onAddConnection={() => void addConnection()}
               onCollectMetrics={() => void collectMetrics()}
-              onOpenInbox={() => setActiveView("INBOX")}
+              onOpenInbox={(roleId) => {
+                setSelectedInboxRoleId(roleId ?? null);
+                setActiveView("INBOX");
+              }}
               onCreateTask={() => void createTask()}
               onTranslateText={() => void translateText()}
             />
@@ -651,9 +925,19 @@ export function AiOfficePanel(props: {
               loading={loading}
               taskFilter={taskFilter}
               tasks={tasks}
+              usefulness={usefulness}
+              recentRoleShortcuts={recentRoleShortcuts}
+              recentCopiedRoleLinks={recentCopiedRoleLinks}
+              selectedRoleId={selectedInboxRoleId}
               waitingApprovalCount={waitingApprovalCount}
               selectedTaskIds={selectedTaskIds}
               approvalNote={approvalNote}
+              onOpenCreateForRole={(roleId) => {
+                openRoleShortcut(roleId, "CREATE");
+              }}
+              onOpenShortcut={openRoleShortcut}
+              onCopiedRoleLink={rememberCopiedRoleLink}
+              onRoleFilterChange={setSelectedInboxRoleId}
               onTaskFilterChange={setTaskFilter}
               onApprovalNoteChange={setApprovalNote}
               onSelectAllWaitingTasks={selectAllWaitingTasks}

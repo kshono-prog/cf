@@ -1,5 +1,7 @@
 # Task
 
+完了日: 2026-03-18
+
 Phase 1C: AI Office を role-based surface に整理する
 
 ## Goal

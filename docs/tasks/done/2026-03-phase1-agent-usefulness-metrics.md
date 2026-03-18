@@ -1,5 +1,7 @@
 # Task
 
+完了日: 2026-03-18
+
 Phase 1D: agent usefulness metrics を追加する
 
 ## Goal

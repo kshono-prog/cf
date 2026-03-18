@@ -4,6 +4,10 @@ import React from "react";
 
 import { ProjectSettlementAdvancedSection } from "@/components/mypage/ProjectSettlementAdvancedSection";
 import {
+  DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY,
+  parseDistributionPlanDraftHandoff,
+} from "@/components/mypage/distributionPlanDraftHandoff";
+import {
   ProjectSettlementGuidedFlowOverview,
   ProjectSettlementStepSection,
   type SettlementFlowStep,
@@ -23,7 +27,15 @@ import { useProjectSettlementBridgeSectionProps } from "@/components/mypage/useP
 import { useProjectSettlementDistributionSectionProps } from "@/components/mypage/useProjectSettlementDistributionSectionProps";
 import { useProjectSettlementExecutionSectionProps } from "@/components/mypage/useProjectSettlementExecutionSectionProps";
 import { useProjectSettlementPanel } from "@/components/mypage/useProjectSettlementPanel";
-import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
+import {
+  buildDistributionPlanDraftPayload,
+  formatDistributionPlanDraftPayload,
+  parseDistributionPlanDraftText,
+} from "@/lib/creator-ai/distributionPlanDraft";
+import type {
+  CurrencyCode,
+  SummaryViewData,
+} from "@/lib/mypage/accountPageTypes";
 import type { ProjectSettlementData } from "@/lib/projectSettlementView";
 import {
   getSettlementMessageState,
@@ -76,6 +88,7 @@ type Props = {
   isConnected: boolean;
   projectCurrency?: CurrencyCode;
   initialData?: ProjectSettlementData | null;
+  summary?: SummaryViewData | null;
 };
 
 export function ProjectSettlementPanel(props: Props) {
@@ -85,6 +98,7 @@ export function ProjectSettlementPanel(props: Props) {
     isConnected,
     projectCurrency = "JPYC",
     initialData = null,
+    summary = null,
   } = props;
   const currencyKey = projectCurrency.toLowerCase();
   const bridgeAnchorId = `settlement-bridge-${currencyKey}`;
@@ -119,6 +133,11 @@ export function ProjectSettlementPanel(props: Props) {
   const preflightRef = React.useRef<HTMLDivElement | null>(null);
   const executeRef = React.useRef<HTMLDivElement | null>(null);
   const reviewRef = React.useRef<HTMLDivElement | null>(null);
+  const [aiDraftText, setAiDraftText] = React.useState("");
+  const [aiDraftMessage, setAiDraftMessage] = React.useState<{
+    tone: "info" | "success" | "error";
+    text: string;
+  } | null>(null);
 
   const settlementStatusCopy = getSettlementStatusCopy(
     panel.settlement?.status ?? "NOT_READY"
@@ -141,6 +160,127 @@ export function ProjectSettlementPanel(props: Props) {
     preflightCompleted,
     executionCompleted,
   });
+
+  const canGenerateAiDraft = summary !== null;
+  const draftPayload = React.useMemo(() => {
+    if (!summary) {
+      return null;
+    }
+
+    return buildDistributionPlanDraftPayload({
+      project: {
+        id: summary.project.id,
+        title: summary.project.title,
+        status: summary.project.status,
+        currency: summary.project.currency ?? projectCurrency,
+      },
+      goal: summary.goal,
+      progress: {
+        progressPct: summary.progress.progressPct,
+      },
+      distributionPlan: summary.distributionPlan,
+      settlement: {
+        status: panel.settlement?.status ?? null,
+        bridgedTotalAtomic: panel.settlement?.bridgedTotalAtomic ?? null,
+      },
+      distributionEntries: panel.entries.map((entry) => ({
+        id: entry.id,
+        recipientAddressChecksum: entry.recipientAddressChecksum,
+        amountAtomic: entry.amountAtomic,
+        memo: entry.memo,
+        status: entry.status,
+        token: entry.token,
+      })),
+    });
+  }, [panel.entries, panel.settlement, projectCurrency, summary]);
+
+  const generateAiDraft = React.useCallback(() => {
+    if (!draftPayload) {
+      setAiDraftMessage({
+        tone: "error",
+        text: "Summary を取得すると AI 下書きを作れます。",
+      });
+      return;
+    }
+
+    setAiDraftText(formatDistributionPlanDraftPayload(draftPayload));
+    setAiDraftMessage({
+      tone: "success",
+      text: "AI 下書きを更新しました。必要なら JSON を編集してから行に反映してください。",
+    });
+  }, [draftPayload]);
+
+  const applyAiDraft = React.useCallback(() => {
+    const parsed = parseDistributionPlanDraftText(aiDraftText, projectCurrency);
+    if (!parsed.ok) {
+      const text =
+        parsed.error === "AI_DRAFT_EMPTY"
+          ? "AI 下書きが空です。先に生成するか、JSON を入力してください。"
+          : parsed.error === "AI_DRAFT_INVALID_JSON"
+            ? "AI 下書き JSON を解釈できませんでした。形式を確認してください。"
+            : "AI 下書きから rows を復元できませんでした。`rows` 配列を確認してください。";
+
+      setAiDraftMessage({
+        tone: "error",
+        text,
+      });
+      return;
+    }
+
+    panel.replaceDraftRows(parsed.rows);
+    setAiDraftMessage({
+      tone: "success",
+      text: "AI 下書きを Draft 行へ反映しました。保存前に内容を確認してください。",
+    });
+  }, [aiDraftText, panel, projectCurrency]);
+
+  React.useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      !projectId ||
+      aiDraftText.trim().length > 0
+    ) {
+      return;
+    }
+
+    const raw = window.localStorage.getItem(
+      DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY
+    );
+    if (!raw) {
+      return;
+    }
+
+    let parsedValue: unknown = null;
+    try {
+      parsedValue = JSON.parse(raw);
+    } catch {
+      window.localStorage.removeItem(
+        DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY
+      );
+      return;
+    }
+
+    const handoff = parseDistributionPlanDraftHandoff(parsedValue);
+    if (!handoff) {
+      window.localStorage.removeItem(
+        DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY
+      );
+      return;
+    }
+
+    if (handoff.projectId !== projectId || handoff.currency !== projectCurrency) {
+      return;
+    }
+
+    setAiDraftText(handoff.payloadText);
+    setAiDraftMessage({
+      tone: "info",
+      text: "AI事務所の Finance Agent から配分 draft を受け取りました。内容を確認してから行に反映してください。",
+    });
+    window.localStorage.removeItem(
+      DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY
+    );
+  }, [aiDraftText, projectCurrency, projectId]);
 
   const stepRefs = React.useMemo<
     Record<SettlementFlowStepId, React.RefObject<HTMLDivElement | null>>
@@ -418,6 +558,15 @@ export function ProjectSettlementPanel(props: Props) {
         >
           <ProjectSettlementDistributionDraftSection
             {...distributionSectionProps.distributionDraft}
+            aiDraftText={aiDraftText}
+            aiDraftMessage={aiDraftMessage}
+            canGenerateAiDraft={canGenerateAiDraft}
+            generateAiDraft={generateAiDraft}
+            updateAiDraftText={(value) => {
+              setAiDraftText(value);
+              setAiDraftMessage(null);
+            }}
+            applyAiDraft={applyAiDraft}
           />
         </ProjectSettlementStepSection>
       </div>

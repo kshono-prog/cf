@@ -1,10 +1,17 @@
 import type {
   AnnouncementChannel,
+  AgentTaskView,
+  AiOfficeRoleUsefulnessView,
   DraftTone,
   SupporterMessagePurpose,
   TranslationLang,
 } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
+import {
+  CREATOR_AI_AGENT_ROLE_DEFINITIONS,
+  type CreatorAiAgentRole,
+  type CreatorAiExecutionBoundary,
+} from "@/lib/creator-ai/agentRoleRegistry";
 import {
   PRODUCT_TIER_ORDER,
   type ProductTier,
@@ -15,6 +22,34 @@ export type AiOfficeTaskChoice = {
   eyebrow: string;
   whenToUse: string;
   tier: ProductTier;
+};
+
+export type AiOfficeRoleChoice = {
+  roleId: CreatorAiAgentRole;
+  label: string;
+  description: string;
+  roleHelper: string;
+  executionBoundary: CreatorAiExecutionBoundary;
+  tier: ProductTier;
+  featuredTaskType: TaskType | null;
+  taskChoices: AiOfficeTaskChoice[];
+};
+
+export type AiOfficeRoleGuidance = {
+  roleId: CreatorAiAgentRole | null;
+  tone: "neutral" | "recommended" | "attention";
+  title: string;
+  description: string;
+};
+
+export type AiOfficeTaskUsefulness = {
+  taskType: TaskType;
+  actionableCount: number;
+  autoCompletedCount: number;
+  waitingApprovalCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  followThroughRate: number;
 };
 
 export type AiOfficeTaskDraft = {
@@ -35,6 +70,12 @@ export const AI_OFFICE_TASK_CHOICES: readonly AiOfficeTaskChoice[] = [
     eyebrow: "Manager",
     whenToUse: "いまの project 状態から次の一手を整理したいとき",
     tier: "MVP",
+  },
+  {
+    taskType: "DISTRIBUTION_PLAN_DRAFT",
+    eyebrow: "Finance",
+    whenToUse: "配分の draft を AI事務所から settlement に渡したいとき",
+    tier: "BETA",
   },
   {
     taskType: "PROPOSE",
@@ -79,6 +120,46 @@ export const AI_OFFICE_TASK_TIER_HELPER: Record<ProductTier, string> = {
   BETA: "metrics や拡張下書きを使う実験枠",
 };
 
+const AI_OFFICE_ROLE_HELPERS: Record<CreatorAiAgentRole, string> = {
+  MANAGER:
+    "Project / Goal / Summary を見て、いま優先すべき next action を整理します。",
+  PROMOTION:
+    "公開ページ、投稿、告知文の下書きを作り、外に伝える内容を整えます。",
+  FINANCE:
+    "進捗や配分準備を整理し、AI事務所から settlement の Draft step へ配分案を渡せます。",
+  FAN_RELATION:
+    "支援者向けのお礼や再案内を整え、継続的なコミュニケーションを助けます。",
+};
+
+const AI_OFFICE_TASK_AUDIT_ACTION = {
+  CREATED_DONE: "TASK_CREATED_DONE",
+  CREATED_WAITING_APPROVAL: "TASK_CREATED_WAITING_APPROVAL",
+  APPROVED: "TASK_APPROVED",
+  REJECTED: "TASK_REJECTED",
+} as const;
+
+function rolePhaseToTier(phase: "MVP" | "PHASE_2" | "FUTURE"): ProductTier {
+  return phase === "MVP" ? "MVP" : "BETA";
+}
+
+export const AI_OFFICE_ROLE_CHOICES: readonly AiOfficeRoleChoice[] =
+  CREATOR_AI_AGENT_ROLE_DEFINITIONS.map((definition) => {
+    const taskChoices = definition.candidateTaskTypes
+      .map((taskType) => getAiOfficeTaskChoice(taskType))
+      .filter((choice): choice is AiOfficeTaskChoice => choice !== undefined);
+
+    return {
+      roleId: definition.id,
+      label: definition.label,
+      description: definition.description,
+      roleHelper: AI_OFFICE_ROLE_HELPERS[definition.id],
+      executionBoundary: definition.executionBoundary,
+      tier: rolePhaseToTier(definition.phase),
+      featuredTaskType: taskChoices[0]?.taskType ?? null,
+      taskChoices,
+    };
+  }).filter((choice) => choice.taskChoices.length > 0);
+
 export function getAiOfficeTaskChoice(
   taskType: TaskType
 ): AiOfficeTaskChoice | undefined {
@@ -93,6 +174,208 @@ export function getAiOfficeTaskChoiceGroups(): Array<{
     tier,
     choices: AI_OFFICE_TASK_CHOICES.filter((choice) => choice.tier === tier),
   })).filter((group) => group.choices.length > 0);
+}
+
+export function getAiOfficeRoleChoices(): AiOfficeRoleChoice[] {
+  return AI_OFFICE_ROLE_CHOICES.map((choice) => ({
+    ...choice,
+    taskChoices: [...choice.taskChoices],
+  }));
+}
+
+export function getAiOfficeRoleChoice(
+  roleId: CreatorAiAgentRole
+): AiOfficeRoleChoice | undefined {
+  return AI_OFFICE_ROLE_CHOICES.find((choice) => choice.roleId === roleId);
+}
+
+export function getAiOfficeTaskRoleChoices(
+  taskType: TaskType
+): AiOfficeRoleChoice[] {
+  return AI_OFFICE_ROLE_CHOICES.filter((choice) =>
+    choice.taskChoices.some((taskChoice) => taskChoice.taskType === taskType)
+  ).map((choice) => ({
+    ...choice,
+    taskChoices: [...choice.taskChoices],
+  }));
+}
+
+export function doesAiOfficeTaskMatchRole(
+  taskType: TaskType,
+  roleId: CreatorAiAgentRole
+): boolean {
+  return getAiOfficeTaskRoleChoices(taskType).some(
+    (choice) => choice.roleId === roleId
+  );
+}
+
+export function getDefaultAiOfficeRole(
+  taskType: TaskType
+): CreatorAiAgentRole {
+  return getAiOfficeTaskRoleChoices(taskType)[0]?.roleId ?? "MANAGER";
+}
+
+export function getAiOfficeRoleUsefulness(
+  roleId: CreatorAiAgentRole,
+  roleBreakdown: readonly AiOfficeRoleUsefulnessView[]
+): AiOfficeRoleUsefulnessView | undefined {
+  return roleBreakdown.find((role) => role.roleId === roleId);
+}
+
+export function getAiOfficeRoleGuidance(
+  roleChoices: readonly AiOfficeRoleChoice[],
+  roleBreakdown: readonly AiOfficeRoleUsefulnessView[]
+): AiOfficeRoleGuidance {
+  const pendingRole = [...roleBreakdown]
+    .filter((role) => role.waitingApprovalCount > 0)
+    .sort((a, b) => {
+      if (b.ignoredCount !== a.ignoredCount) {
+        return b.ignoredCount - a.ignoredCount;
+      }
+      if (b.waitingApprovalCount !== a.waitingApprovalCount) {
+        return b.waitingApprovalCount - a.waitingApprovalCount;
+      }
+      return a.roleId.localeCompare(b.roleId);
+    })[0];
+
+  if (pendingRole) {
+    return {
+      roleId: pendingRole.roleId,
+      tone: "attention",
+      title: "先に確認したい role があります",
+      description: `${pendingRole.label} に承認待ち ${pendingRole.waitingApprovalCount} 件があります。新しい下書きを増やす前に Inbox で確認すると運営が止まりません。`,
+    };
+  }
+
+  const effectiveRole = [...roleBreakdown]
+    .filter((role) => role.actionableCount > 0)
+    .sort((a, b) => {
+      if (b.followThroughRate !== a.followThroughRate) {
+        return b.followThroughRate - a.followThroughRate;
+      }
+      if (b.approvedCount !== a.approvedCount) {
+        return b.approvedCount - a.approvedCount;
+      }
+      if (b.actionableCount !== a.actionableCount) {
+        return b.actionableCount - a.actionableCount;
+      }
+      return a.roleId.localeCompare(b.roleId);
+    })[0];
+
+  if (effectiveRole) {
+    return {
+      roleId: effectiveRole.roleId,
+      tone: "recommended",
+      title: "いま試しやすい role があります",
+      description: `${effectiveRole.label} の対応率は ${(effectiveRole.followThroughRate * 100).toFixed(0)}% です。次の 1 件を作る role として相性が見えています。`,
+    };
+  }
+
+  return {
+    roleId: roleChoices[0]?.roleId ?? null,
+    tone: "neutral",
+    title: "最初の 1 件を作る段階です",
+    description:
+      "まずは Manager Agent か Promotion Agent から始めると、AI事務所の使いどころを掴みやすくなります。",
+  };
+}
+
+export function getAiOfficeTaskUsefulness(
+  taskType: TaskType,
+  tasks: readonly AgentTaskView[]
+): AiOfficeTaskUsefulness {
+  let actionableCount = 0;
+  let autoCompletedCount = 0;
+  let waitingApprovalCount = 0;
+  let approvedCount = 0;
+  let rejectedCount = 0;
+
+  for (const task of tasks) {
+    if (task.taskType !== taskType) continue;
+
+    const createdWaitingApproval = task.auditLogs.some(
+      (log) => log.action === AI_OFFICE_TASK_AUDIT_ACTION.CREATED_WAITING_APPROVAL
+    );
+    const createdDone = task.auditLogs.some(
+      (log) => log.action === AI_OFFICE_TASK_AUDIT_ACTION.CREATED_DONE
+    );
+    const approved = task.auditLogs.some(
+      (log) => log.action === AI_OFFICE_TASK_AUDIT_ACTION.APPROVED
+    );
+    const rejected = task.auditLogs.some(
+      (log) => log.action === AI_OFFICE_TASK_AUDIT_ACTION.REJECTED
+    );
+
+    if (createdDone) {
+      autoCompletedCount += 1;
+    }
+
+    if (!createdWaitingApproval) {
+      continue;
+    }
+
+    actionableCount += 1;
+
+    if (approved) {
+      approvedCount += 1;
+      continue;
+    }
+
+    if (rejected) {
+      rejectedCount += 1;
+      continue;
+    }
+
+    if (task.status === "WAITING_APPROVAL") {
+      waitingApprovalCount += 1;
+    }
+  }
+
+  const followThroughCount = approvedCount + rejectedCount;
+
+  return {
+    taskType,
+    actionableCount,
+    autoCompletedCount,
+    waitingApprovalCount,
+    approvedCount,
+    rejectedCount,
+    followThroughRate:
+      actionableCount > 0 ? followThroughCount / actionableCount : 0,
+  };
+}
+
+export function sortAiOfficeTaskChoicesByUsefulness(
+  taskChoices: readonly AiOfficeTaskChoice[],
+  tasks: readonly AgentTaskView[]
+): AiOfficeTaskChoice[] {
+  return taskChoices
+    .map((choice, index) => ({
+      choice,
+      index,
+      usefulness: getAiOfficeTaskUsefulness(choice.taskType, tasks),
+    }))
+    .sort((a, b) => {
+      if (b.usefulness.approvedCount !== a.usefulness.approvedCount) {
+        return b.usefulness.approvedCount - a.usefulness.approvedCount;
+      }
+      if (b.usefulness.followThroughRate !== a.usefulness.followThroughRate) {
+        return b.usefulness.followThroughRate - a.usefulness.followThroughRate;
+      }
+      if (
+        a.usefulness.waitingApprovalCount !== b.usefulness.waitingApprovalCount
+      ) {
+        return a.usefulness.waitingApprovalCount - b.usefulness.waitingApprovalCount;
+      }
+      if (b.usefulness.actionableCount !== a.usefulness.actionableCount) {
+        return b.usefulness.actionableCount - a.usefulness.actionableCount;
+      }
+      if (b.usefulness.autoCompletedCount !== a.usefulness.autoCompletedCount) {
+        return b.usefulness.autoCompletedCount - a.usefulness.autoCompletedCount;
+      }
+      return a.index - b.index;
+    })
+    .map((item) => item.choice);
 }
 
 export function normalizeAiOfficeTaskDraft(

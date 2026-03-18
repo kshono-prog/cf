@@ -6,7 +6,8 @@
 
 ## 対象
 
-- `SocialConnection`
+- `Post`
+- `PostAnalytics`
 - `ContentMetricSnapshot`
 - trend 集計 API
 - AI analyze task
@@ -16,8 +17,8 @@
 
 ## 流れ
 
-1. social connection を作る
-2. metrics を収集する
+1. Creator Founding 内の投稿を作る
+2. 投稿と反応を metrics として収集する
 3. snapshot として保存する
 4. trend を計算する
 5. AI analyze / propose / report / draft の入力に使う
@@ -57,6 +58,6 @@
 
 ## 注意点
 
-- 外部 API 依存が強い
-- 取得失敗時の再試行方針が必要
+- v1 は外部 API に依存しない
+- 投稿がない状態でも AI task は失敗ではなく「材料不足」として扱う
 - `metrics がない` 状態も正常ケースとして扱う

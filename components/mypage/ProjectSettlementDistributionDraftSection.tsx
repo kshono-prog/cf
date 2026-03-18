@@ -17,6 +17,15 @@ export type ProjectSettlementDistributionDraftSectionProps = {
   loading: boolean;
   walletAddress: string | null;
   rows: DistributionDraftRow[];
+  aiDraftText: string;
+  aiDraftMessage: {
+    tone: "info" | "success" | "error";
+    text: string;
+  } | null;
+  canGenerateAiDraft: boolean;
+  generateAiDraft: () => void;
+  updateAiDraftText: (value: string) => void;
+  applyAiDraft: () => void;
   totals: {
     planned: bigint;
     bridged: bigint;
@@ -37,6 +46,62 @@ export function ProjectSettlementDistributionDraftSection(
 ) {
   return (
     <div className="rounded-lg border p-3 space-y-3">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="text-sm font-medium">AI 下書き (JSON)</div>
+            <div className="mt-1 text-[11px] leading-5 text-gray-600 sm:text-xs">
+              Project / Goal / settlement 状態から配分 plan の下書きを作成します。保存や実行は行いません。
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              className="w-full rounded border px-3 py-2 text-sm sm:w-auto sm:py-1.5 sm:text-xs"
+              onClick={props.generateAiDraft}
+              disabled={props.loading || !props.canGenerateAiDraft}
+              title={
+                props.canGenerateAiDraft
+                  ? ""
+                  : "Summary を取得すると AI 下書きを作れます"
+              }
+            >
+              AI 下書きを作る
+            </button>
+            <button
+              type="button"
+              className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm sm:w-auto sm:py-1.5 sm:text-xs"
+              onClick={props.applyAiDraft}
+              disabled={props.loading || props.aiDraftText.trim().length === 0}
+            >
+              行に反映
+            </button>
+          </div>
+        </div>
+
+        {props.aiDraftMessage ? (
+          <div
+            className={`rounded-lg border px-3 py-2 text-[11px] leading-5 sm:text-xs ${
+              props.aiDraftMessage.tone === "error"
+                ? "border-rose-200 bg-rose-50 text-rose-800"
+                : props.aiDraftMessage.tone === "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-slate-200 bg-white text-slate-700"
+            }`}
+          >
+            {props.aiDraftMessage.text}
+          </div>
+        ) : null}
+
+        <textarea
+          className="min-h-[180px] w-full rounded-lg border bg-white px-3 py-2 font-mono text-[12px]"
+          value={props.aiDraftText}
+          onChange={(e) => props.updateAiDraftText(e.target.value)}
+          placeholder='{"rows":[{"recipientAddress":"","amountAtomic":"","memo":"","token":"JPYC"}]}'
+          spellCheck={false}
+        />
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-sm font-medium">配分の下書き</div>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Address } from "viem";
 
-import { createSnsPost } from "@/lib/mypage/snsApi";
+import { createPostingPost } from "@/lib/mypage/postingApi";
 
 type ProjectOption = {
   id: string;
@@ -73,7 +73,7 @@ export function PublicOwnerComposerCard(props: Props) {
     setError(null);
     setSuccess(null);
 
-    const result = await createSnsPost({
+    const result = await createPostingPost({
       address: props.address,
       body: trimmedBody,
       mediaType: mediaType || null,

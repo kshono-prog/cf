@@ -1,5 +1,7 @@
 # Task
 
+完了日: 2026-03-18
+
 Phase 1B: distribution plan draft を AI 下書きとして追加する
 
 ## Goal

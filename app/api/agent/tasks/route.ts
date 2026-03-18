@@ -20,6 +20,7 @@ import {
   toTaskType,
   validateTaskInput,
 } from "@/lib/agentTasks";
+import { toCreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ type PostBody = {
   taskType?: unknown;
   input?: unknown;
   requiresApproval?: unknown;
+  roleId?: unknown;
 };
 
 function toRequiresApproval(v: unknown): boolean {
@@ -110,6 +112,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const taskType = toTaskType(body.taskType);
     if (!taskType) return errJson("TASK_TYPE_INVALID", 400);
+    const roleId =
+      body.roleId == null ? null : toCreatorAiAgentRole(body.roleId);
+    if (body.roleId != null && roleId === null) {
+      return errJson("ROLE_ID_INVALID", 400);
+    }
 
     let projectId: bigint | null = null;
     try {
@@ -141,6 +148,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       inputJson,
       requiresApproval,
       requestedBy: address,
+      roleId,
     });
 
     return okJson({

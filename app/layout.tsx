@@ -5,6 +5,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Creator Founding",
   description: "Support creators with JPYC",
+  icons: {
+    icon: "/icon/icon-cf.png",
+    shortcut: "/icon/icon-cf.png",
+    apple: "/icon/icon-cf.png",
+  },
 };
 
 export default function RootLayout({

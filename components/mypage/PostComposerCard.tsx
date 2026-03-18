@@ -3,13 +3,13 @@
 import React from "react";
 import type { Address } from "viem";
 
-import type { SnsProjectOption } from "@/lib/mypage/snsApi";
-import { createSnsPost } from "@/lib/mypage/snsApi";
+import type { PostingProjectOption } from "@/lib/mypage/postingApi";
+import { createPostingPost } from "@/lib/mypage/postingApi";
 import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 
 type Props = {
   address: Address | undefined;
-  projectOptions: SnsProjectOption[];
+  projectOptions: PostingProjectOption[];
   onCreated: () => void;
 };
 
@@ -69,7 +69,7 @@ export function PostComposerCard(props: Props) {
     setError(null);
     setSuccess(null);
 
-    const result = await createSnsPost({
+    const result = await createPostingPost({
       address: props.address,
       body: trimmedBody,
       mediaType: mediaType || null,
