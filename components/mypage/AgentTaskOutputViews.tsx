@@ -8,6 +8,12 @@ import {
   DISTRIBUTION_PLAN_DRAFT_HANDOFF_STORAGE_KEY,
 } from "@/components/mypage/distributionPlanDraftHandoff";
 import {
+  buildAnnouncementPostingComposeHandoff,
+  buildAnnouncementPostingComposeText,
+  buildPostingComposeHref,
+  POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
+} from "@/components/mypage/postingComposeHandoff";
+import {
   formatDistributionPlanDraftPayload,
   type DistributionPlanDraftPayload,
 } from "@/lib/creator-ai/distributionPlanDraft";
@@ -996,8 +1002,81 @@ function parseAnnouncementDraftOutput(v: unknown): AnnouncementDraftOutputView |
   };
 }
 
-function AnnouncementDraftOutputCard(props: { output: AnnouncementDraftOutputView }) {
-  const { output } = props;
+function AnnouncementDraftOutputCard(props: {
+  output: AnnouncementDraftOutputView;
+  projectId: string | null;
+}) {
+  const { output, projectId } = props;
+  const [copied, setCopied] = React.useState(false);
+  const payloadText = buildAnnouncementPostingComposeText({
+    headline: output.headline,
+    body: output.body,
+    callToAction: output.callToAction,
+  });
+
+  React.useEffect(() => {
+    if (!copied) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopied(false);
+    }, 2000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [copied]);
+
+  const openPostingCompose = React.useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handoff = buildAnnouncementPostingComposeHandoff({
+      projectId,
+      channel: output.channel,
+      summary: output.summary,
+      headline: output.headline,
+      body: output.body,
+      callToAction: output.callToAction,
+    });
+
+    try {
+      window.localStorage.setItem(
+        POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
+        JSON.stringify(handoff)
+      );
+    } catch {
+      return;
+    }
+
+    window.location.assign(
+      buildPostingComposeHref({ pathname: window.location.pathname })
+    );
+  }, [
+    output.body,
+    output.callToAction,
+    output.channel,
+    output.headline,
+    output.summary,
+    projectId,
+  ]);
+
+  const copyDraftText = React.useCallback(async () => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.navigator.clipboard?.writeText !== "function"
+    ) {
+      return;
+    }
+
+    try {
+      await window.navigator.clipboard.writeText(payloadText);
+      setCopied(true);
+    } catch {
+      return;
+    }
+  }, [payloadText]);
+
   return (
     <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
       <div className="font-medium text-gray-800">{output.summary}</div>
@@ -1018,12 +1097,30 @@ function AnnouncementDraftOutputCard(props: { output: AnnouncementDraftOutputVie
           CTA: {output.callToAction}
         </div>
       ) : null}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          onClick={openPostingCompose}
+        >
+          posting compose を開く
+        </button>
+        <button
+          type="button"
+          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          onClick={() => {
+            void copyDraftText();
+          }}
+        >
+          {copied ? "本文をコピー済み" : "本文をコピー"}
+        </button>
+      </div>
     </div>
   );
 }
 
 type OutputRenderer = {
-  render: (output: unknown) => React.ReactNode | null;
+  render: (output: unknown, projectId: string | null) => React.ReactNode | null;
 };
 
 const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
@@ -1064,9 +1161,11 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     },
   },
   ANNOUNCEMENT_DRAFT: {
-    render: (output) => {
+    render: (output, projectId) => {
       const parsed = parseAnnouncementDraftOutput(output);
-      return parsed ? <AnnouncementDraftOutputCard output={parsed} /> : null;
+      return parsed ? (
+        <AnnouncementDraftOutputCard output={parsed} projectId={projectId} />
+      ) : null;
     },
   },
   SUPPORTER_MESSAGE_DRAFT: {
@@ -1080,10 +1179,11 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
 export function AgentTaskOutput(props: {
   taskType: string;
   output: unknown;
+  projectId: string | null;
 }) {
-  const { taskType, output } = props;
+  const { taskType, output, projectId } = props;
   const renderer = TASK_OUTPUT_RENDERERS[taskType as TaskType];
-  const rendered = renderer?.render(output) ?? null;
+  const rendered = renderer?.render(output, projectId) ?? null;
 
   if (rendered) return rendered;
 
@@ -1127,6 +1227,37 @@ function SupporterMessageDraftOutputCard(props: {
   output: SupporterMessageDraftOutputView;
 }) {
   const { output } = props;
+  const [copied, setCopied] = React.useState(false);
+  const payloadText = [output.subject, output.body].join("\n\n");
+
+  React.useEffect(() => {
+    if (!copied) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopied(false);
+    }, 2000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [copied]);
+
+  const copyDraftText = React.useCallback(async () => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.navigator.clipboard?.writeText !== "function"
+    ) {
+      return;
+    }
+
+    try {
+      await window.navigator.clipboard.writeText(payloadText);
+      setCopied(true);
+    } catch {
+      return;
+    }
+  }, [payloadText]);
+
   return (
     <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
       <div className="font-medium text-gray-800">{output.summary}</div>
@@ -1144,6 +1275,20 @@ function SupporterMessageDraftOutputCard(props: {
           ))}
         </ul>
       ) : null}
+      <div className="rounded border bg-white px-2 py-1 text-gray-700">
+        この下書きは支援者向けのため、public posting compose には直接渡しません。
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          onClick={() => {
+            void copyDraftText();
+          }}
+        >
+          {copied ? "本文をコピー済み" : "本文をコピー"}
+        </button>
+      </div>
     </div>
   );
 }

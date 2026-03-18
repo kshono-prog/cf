@@ -5,6 +5,10 @@ import type { Address } from "viem";
 
 import type { PostingProjectOption } from "@/lib/mypage/postingApi";
 import { createPostingPost } from "@/lib/mypage/postingApi";
+import {
+  parsePostingComposeHandoff,
+  POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
+} from "@/components/mypage/postingComposeHandoff";
 import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 
 type Props = {
@@ -32,6 +36,52 @@ export function PostComposerCard(props: Props) {
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
+  const [handoffNotice, setHandoffNotice] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const rawValue = window.localStorage.getItem(POSTING_COMPOSE_HANDOFF_STORAGE_KEY);
+    if (!rawValue) {
+      return;
+    }
+
+    let parsedValue: unknown;
+    try {
+      parsedValue = JSON.parse(rawValue);
+    } catch {
+      window.localStorage.removeItem(POSTING_COMPOSE_HANDOFF_STORAGE_KEY);
+      return;
+    }
+
+    const handoff = parsePostingComposeHandoff(parsedValue);
+    if (!handoff) {
+      window.localStorage.removeItem(POSTING_COMPOSE_HANDOFF_STORAGE_KEY);
+      return;
+    }
+
+    setBody((current) => (current.trim().length > 0 ? current : handoff.payloadText));
+    setProjectId((current) => {
+      if (current) {
+        return current;
+      }
+      if (
+        handoff.projectId &&
+        props.projectOptions.some((option) => option.id === handoff.projectId)
+      ) {
+        return handoff.projectId;
+      }
+      return "";
+    });
+    setHandoffNotice(
+      `AI事務所の告知文案を下書きとして反映しました。内容を確認してから投稿してください。`
+    );
+    setError(null);
+    setSuccess(null);
+    window.localStorage.removeItem(POSTING_COMPOSE_HANDOFF_STORAGE_KEY);
+  }, [props.projectOptions]);
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
@@ -92,6 +142,7 @@ export function PostComposerCard(props: Props) {
     setBody("");
     setMediaType("");
     setMediaUrl("");
+    setHandoffNotice(null);
     setSuccess("投稿を公開しました。公開ページのフィードにも反映されます。");
     setSaving(false);
     props.onCreated();
@@ -185,6 +236,9 @@ export function PostComposerCard(props: Props) {
           />
         </div>
 
+        {handoffNotice ? (
+          <WorkspaceStatusNotice tone="info" title={handoffNotice} />
+        ) : null}
         {error ? <WorkspaceStatusNotice tone="error" title={error} /> : null}
         {success ? <WorkspaceStatusNotice tone="success" title={success} /> : null}
 

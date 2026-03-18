@@ -17,7 +17,8 @@
 - `AI Office`: `Manager Agent` と distribution plan draft の source-of-truth を docs と registry で固定する
 - `AI Office`: x402 候補 surface と非対象 surface の安全境界を固定する
 - `AI Office`: minimum / full manual check を実画面で回し、runbook と見た目の差分を記録する
-- `AI Office`: role-based surface と Finance handoff の文言・導線を実運用ベースで微調整する
+- `AI Office`: role-based surface と Finance / Promotion handoff の文言・導線を実運用ベースで微調整する
+- `AI Office`: manual check findings を小さい UX polish task に切り分ける
 - `Phase 1 UX`: internal posting surface の `sns` 命名を `posting` 系へ寄せる軽量 rename を段階実行する
 
 ## Next
@@ -28,6 +29,7 @@
 - `AI Office`: role-based agent output を `AgentTask` へ段階的に接続する
 - `Platform`: low-risk internal AI API の billable surface を設計し、x402 readiness を評価する
 - `AI Office`: usefulness metrics を role ごとの copy / default choice 改善へつなげる
+- `AI Office`: usefulness metrics を `follow-through` ベースへ拡張する
 - `AI Office`: `Finance / Promotion / Fan Relation` 専用 output を `AgentTask` として増やす
 
 ## Later

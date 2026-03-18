@@ -138,7 +138,11 @@ function AgentTaskCard(props: {
       ) : null}
 
       <div className="mt-3">
-        <AgentTaskOutput taskType={task.taskType} output={task.output} />
+        <AgentTaskOutput
+          taskType={task.taskType}
+          output={task.output}
+          projectId={task.projectId}
+        />
       </div>
 
       {task.auditLogs.length > 0 ? (

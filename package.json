@@ -12,7 +12,10 @@
     "lint": "eslint",
     "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node --require ts-node/register --require ./tests/register-alias.cjs --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
+    "manual-check:ai-office:prepare": "node scripts/prepareAiOfficeManualCheck.cjs",
+    "manual-check:ai-office:minimum": "node scripts/runAiOfficeMinimumManualCheck.cjs",
     "manual-check:ai-office:smoke": "node scripts/checkAiOfficeManualCheck.cjs",
+    "manual-check:ai-office:status": "node scripts/reportAiOfficeManualCheckStatus.cjs",
     "prisma:validate": "prisma validate",
     "db:seed": "prisma db seed"
   },

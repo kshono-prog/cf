@@ -199,6 +199,27 @@ fallback:
 
 ## Structured Advisory Payloads
 
+### Posting Compose Handoff Payload
+
+`ANNOUNCEMENT_DRAFT` は approval-only な local handoff で `posting compose` に渡せる。
+
+payload:
+
+- `sourceTaskType`
+- `projectId`
+- `channel`
+- `summary`
+- `payloadText`
+- `createdAt`
+
+UI rules:
+
+- `ANNOUNCEMENT_DRAFT` task output では `posting compose を開く` と `本文をコピー` を出せる
+- handoff は `support-page#posting-compose` に移動し、textarea と project select の初期値に使う
+- 自動保存や自動公開はしない
+- `SUPPORTER_MESSAGE_DRAFT` は支援者向け文面のため、public posting compose には直接 handoff しない
+- `SUPPORTER_MESSAGE_DRAFT` では copy のみを提供し、用途の境界を UI で明示する
+
 ### Distribution Plan Draft Payload
 
 Phase 1B の settlement draft builder と `DISTRIBUTION_PLAN_DRAFT` task は、同じ approval-only advisory payload を共有する。

@@ -72,6 +72,7 @@ recent shortcut には `最終利用時刻` と現在の `承認待ち / 保留�
 また recent shortcut からは、同じ role の `Inbox link` と `Create link` を個別にコピーできるようにする。
 コピーした role link は `Overview / Inbox` に最近の履歴として残し、あとから同じ `Inbox / Create` 文脈を開き直したり再コピーしたりできるようにする。
 `Finance Agent` では `DISTRIBUTION_PLAN_DRAFT` を AI Office から作成し、その advisory payload を `advanced` の `Draft` step に handoff できるようにする。
+`Promotion Agent` の `ANNOUNCEMENT_DRAFT` では approval-only な handoff で `support-page` の posting compose に下書きを渡せるようにし、`Fan Relation Agent` の `SUPPORTER_MESSAGE_DRAFT` は public posting へは直接 handoff せず copy 境界を保つ。
 
 将来の段階計画:
 

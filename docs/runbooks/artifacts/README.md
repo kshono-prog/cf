@@ -8,8 +8,12 @@
 - 日付単位でディレクトリを切る
 - 画像名は `01-...png`, `02-...png` のように順番が分かる形にする
 - 画像だけでなく、確認メモを `notes.md` として同じディレクトリに置く
+- 必要なら `links.md` を置いて、deep link と撮影順を一緒に残す
+- 必要なら `status.md` を置いて、進捗と残作業をまとめる
 
 例:
 
 - `docs/runbooks/artifacts/ai-office-manual-check/2026-03-17/01-settings-ai-office-entry.png`
 - `docs/runbooks/artifacts/ai-office-manual-check/2026-03-17/notes.md`
+- `docs/runbooks/artifacts/ai-office-manual-check/2026-03-17/links.md`
+- `docs/runbooks/artifacts/ai-office-manual-check/2026-03-17/status.md`

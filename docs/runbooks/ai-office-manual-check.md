@@ -71,6 +71,12 @@
 
 ## 事前準備
 
+0. 必要なら artifact と deep link を先に作る
+   - `npm run manual-check:ai-office:prepare -- --base-url http://127.0.0.1:3000 --username <username>`
+   - `docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/links.md` が生成される
+   - `prepare` と `smoke` をまとめて流す場合は `npm run manual-check:ai-office:minimum -- --base-url http://127.0.0.1:3000 --username <username>`
+   - `minimum` は `notes.md` の `事前スモーク確認` と `Machine-Checked Preflight` も更新する
+   - 途中経過を見たいときは `npm run manual-check:ai-office:status -- --date <YYYY-MM-DD>` で `status.md` を更新する
 1. `npm run dev` を起動する
 2. 対象 creator の [`/[username]/mypage`] を開く
 3. 設定画面の [`AI事務所（Phase1）`](/Users/shounokazuaki/cf/components/mypage/SettingsPageClient.tsx) セクション、または [`/[username]/mypage/supporters`] を開く
@@ -83,6 +89,9 @@
 
 - `npm run manual-check:ai-office:smoke -- --base-url http://127.0.0.1:3000 --username <username>`
 - この確認では `mypage / supporters / support-page / advanced` が 200 を返し、SSR の loading shell と `initialWorkspaceView` が route ごとに正しいかを見る
+- `manual-check:ai-office:prepare` で作られる `links.md` を横に置くと、`minimum` の deep link とスクリーンショット順を追いやすい
+- `manual-check:ai-office:minimum` は `prepare -> smoke -> 開始URLの出力` までを 1 回で行う
+- `manual-check:ai-office:status` は `notes.md` の checklist と screenshot 置き場を見て、残作業を `status.md` にまとめる
 
 補足:
 
@@ -230,12 +239,15 @@
 4. `include metrics summary / include support summary` を必要に応じて切り替える
 5. `この内容で作成` を押す
 6. 結果を開き、必要なら `10-announcement-detail.png` を保存する
+7. `posting compose を開く` を押し、`/<username>/mypage/support-page#posting-compose` に移動することを確認する
+8. posting composer の本文に AI 下書きが入り、自動保存や自動投稿は起きていないことを確認する
 
 期待結果:
 
 - エラーにならない
 - `承認待ち` または `最近作った内容` に `ANNOUNCEMENT_DRAFT` task が追加される
 - `headline / body / CTA / supporting points` が表示される
+- `posting compose を開く` で public posting の下書きとして確認できる
 
 確認してほしい点:
 
@@ -251,12 +263,14 @@
 4. `include support summary` を確認し、必要なら `include metrics summary` を切り替える
 5. `この内容で作成` を押す
 6. 結果を開き、必要なら `11-supporter-message-detail.png` を保存する
+7. `posting compose` へ直接渡すボタンがないこと、代わりに copy 境界が示されることを確認する
 
 期待結果:
 
 - エラーにならない
 - `承認待ち` または `最近作った内容` に `SUPPORTER_MESSAGE_DRAFT` task が追加される
 - `subject / body / closing / supporting points` が表示される
+- public posting compose には直接 handoff せず、支援者向け文面として境界が保たれる
 
 確認してほしい点:
 

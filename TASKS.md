@@ -42,7 +42,10 @@
 - completed: `Finance Agent` can hand advisory distribution draft payloads to `settlement Draft`
 - completed: AI Office is now explained and navigated through `Manager / Promotion / Finance / Fan Relation`
 - completed: usefulness metrics, role filters, deep links, recent shortcuts, and copied role links now support the guided flow
+- completed: `Promotion Agent` announcement drafts can now hand off to `support-page` posting compose while `Fan Relation Agent` keeps a copy-only boundary
+- completed: `minimum` manual check can now prepare `notes / links / status` artifacts and run one-shot smoke preflight
 - next: run the minimum/full manual check on real screens and use those findings to decide the first Phase 2 UX adjustments
+- next: turn manual-check findings into small polish tasks instead of one large UX catch-all
 
 ### Onboarding
 
@@ -61,3 +64,4 @@
 1. Write Phase 0 UX spec for screen purpose, CTA priority, and terminology
 2. Run the `AI Office` minimum manual check and record capture-backed findings
 3. Hand-review `settlement`, `mypage`, and `AI Office` after the new guided flow / shared feedback pattern
+4. Extend `AI Office` usefulness from approval tracking to posting / settlement follow-through

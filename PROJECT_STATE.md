@@ -1,6 +1,6 @@
 # Project State
 
-最終更新: 2026-03-08
+最終更新: 2026-03-18
 
 ## 現在のテーマ
 
@@ -91,6 +91,7 @@
 - `Finance Agent` から `settlement Draft` へ advisory payload を handoff できるようにした
 - `AI Office` の role filter / deep link / recent shortcut / copied link を追加し、`Overview / Create / Inbox` の guided flow を強めた
 - `AI Office` manual check runbook を role-based / Finance handoff / posting metrics 前提に更新した
+- `Promotion Agent` の `ANNOUNCEMENT_DRAFT` を `support-page` の posting compose へ advisory handoff できるようにし、`Fan Relation Agent` は copy-only 境界を維持した
 - shared feedback pattern を `settlement` と主要 `mypage` view に広げた
 - `settlement` を guided `Bridge -> Draft -> Preflight -> Execute -> Review` flow に整理
 - `settlement` の `CCTP` と `manual result` を advanced controls に寄せ、通常 review は実行ログ中心に整理
@@ -154,7 +155,7 @@ AIが自動で進めてよい:
 4. `creatorReady` の first view 追加後の section label / CTA hierarchy を手動確認して詰める
 5. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
 6. `AI Office` minimum / full manual check を実画面で回し、capture と違和感メモを残す
-7. `Finance Agent` / `settlement Draft` handoff を実画面で確認し、必要なら copy と前提条件を微調整する
+7. `Promotion Agent` / `posting compose` と `Finance Agent` / `settlement Draft` の handoff を実画面で確認し、必要なら copy と前提条件を微調整する
 
 直近完了:
 
