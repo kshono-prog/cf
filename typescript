@@ -1,0 +1,8 @@
+Script started on Sun Mar 15 19:03:17 2026
+^Dpyenv: cannot rehash: /Users/shounokazuaki/.pyenv/shims isn't writable
+pyenv: cannot rehash: /Users/shounokazuaki/.pyenv/shims isn't writable
+zsh: locking failed for /Users/shounokazuaki/.zsh_history: operation not permitted: reading anyway
+%                                                                               [36mshounokazuaki@KS-Mac-mini[39m:[33m~/cf[39m % [?2004h[?2004l
+zsh: locking failed for /Users/shounokazuaki/.zsh_history: operation not permitted
+
+Script done on Sun Mar 15 19:03:17 2026
