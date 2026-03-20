@@ -7,16 +7,13 @@ import type {
   MetricTrendDayView,
 } from "@/components/mypage/aiOfficeTypes";
 import { getEmptyAiOfficeUsefulnessSummary } from "@/components/mypage/aiOfficeTypes";
+import { isRecord } from "@/lib/api/guards";
 import { toCreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 
 export type AiOfficeMetricsParseResult = {
   totals: { views: number; likes: number; comments: number; shares: number };
   snapshots: MetricSnapshotView[];
 };
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];

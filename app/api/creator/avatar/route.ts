@@ -1,11 +1,14 @@
 // app/api/creator/avatar/route.ts
 import { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { StorageError } from "@supabase/storage-js";
+import { errJson, jsonResponse } from "@/lib/api/responses";
+import { getAvatarUploadEnv } from "@/lib/env";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
+
+const avatarUploadEnv = getAvatarUploadEnv();
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,9 +17,13 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file");
 
     if (typeof rawAddress !== "string" || !(file instanceof File)) {
-      return NextResponse.json(
-        { error: "INVALID_PAYLOAD", detail: "address と file が必要です" },
-        { status: 400 }
+      return jsonResponse(
+        {
+          ok: false,
+          error: "INVALID_PAYLOAD",
+          detail: "address と file が必要です",
+        },
+        400
       );
     }
 
@@ -24,21 +31,10 @@ export async function POST(req: NextRequest) {
     const ownerSession = await requireOwnerSession(req, walletAddress);
     if (!ownerSession.ok) return ownerSession.response;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        {
-          error: "SUPABASE_ENV_MISSING",
-          detail:
-            "NEXT_PUBLIC_SUPABASE_URL または SUPABASE_SERVICE_KEY が設定されていません。",
-        },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(
+      avatarUploadEnv.supabaseUrl,
+      avatarUploadEnv.supabaseServiceKey
+    );
 
     const ext = file.name.split(".").pop() || "png";
     const path = `avatars/${walletAddress}-${Date.now()}.${ext}`;
@@ -55,13 +51,14 @@ export async function POST(req: NextRequest) {
 
       console.error("SUPABASE_UPLOAD_ERROR", err);
 
-      return NextResponse.json(
+      return jsonResponse(
         {
+          ok: false,
           error: "UPLOAD_FAILED",
           detail: err.message,
           name: err.name, // これだけで OK
         },
-        { status: 500 }
+        500
       );
     }
 
@@ -69,15 +66,13 @@ export async function POST(req: NextRequest) {
       data: { publicUrl },
     } = supabase.storage.from("avataricon").getPublicUrl(path);
 
-    return NextResponse.json({ url: publicUrl });
+    return jsonResponse({ url: publicUrl });
   } catch (e) {
     console.error("AVATAR_UPLOAD_ERROR", e);
-    return NextResponse.json(
-      {
-        error: "AVATAR_UPLOAD_FAILED",
-        detail: e instanceof Error ? e.message : String(e),
-      },
-      { status: 500 }
+    return errJson(
+      "AVATAR_UPLOAD_FAILED",
+      500,
+      e instanceof Error ? e.message : String(e)
     );
   }
 }

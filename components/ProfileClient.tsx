@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 
@@ -12,10 +11,10 @@ import {
   clampPct,
   type Currency,
 } from "@/components/profile/profileClientHelpers";
-import type { SelectedPostTipContext } from "@/components/feed/feedTypes";
 import { LazyFeedSection } from "@/components/feed/LazyFeedSection";
 import { Avatar } from "@/components/shared/Avatar";
 import { ProfileHero } from "@/components/profile/ProfileHero";
+import { ProfileViewerGuideCard } from "@/components/profile/ProfileViewerGuideCard";
 import {
   type SupportProjectView,
   type SupportProfileView,
@@ -24,7 +23,7 @@ import { SupportProjectSummaryCard } from "@/components/support/SupportProjectSu
 import { useWalletResume } from "@/components/profile/useWalletResume";
 import { useProjectProgress } from "@/components/profile/useProjectProgress";
 import { useContributionFlow } from "@/components/profile/useContributionFlow";
-import { parseProfileDeepLinkParams } from "@/lib/deepLink";
+import { useSupportSheet } from "@/components/profile/useSupportSheet";
 
 const ProfileWalletClient = dynamic(
   () =>
@@ -112,7 +111,6 @@ export default function ProfileClient({
   layout = "full",
 }: Props) {
   const { address: viewerAddress } = useAccount();
-  const searchParams = useSearchParams();
   const creator: CreatorProfile = useMemo(() => {
     const normalizedAddress =
       typeof creatorInput.address === "string" && creatorInput.address.length > 0
@@ -134,7 +132,6 @@ export default function ProfileClient({
     [projectId, projectIdsByCurrency]
   );
   const timelineRef = useRef<HTMLDivElement | null>(null);
-  const handledSupportLinkRef = useRef<string | null>(null);
 
   const [supportProfileState, setSupportProfileState] =
     useState<SupportProfileView>(
@@ -148,13 +145,7 @@ export default function ProfileClient({
           : null,
       }
     );
-  const [selectedSupportProjectId, setSelectedSupportProjectId] =
-    useState<string | null>(null);
-  const [selectedPostTipContext, setSelectedPostTipContext] =
-    useState<SelectedPostTipContext | null>(null);
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
-  const [supportSheetOpen, setSupportSheetOpen] = useState(false);
-  const [supportSheetLoaded, setSupportSheetLoaded] = useState(false);
 
   useEffect(() => {
     if (!supportProfileView) return;
@@ -169,37 +160,6 @@ export default function ProfileClient({
     [recruitingProjects]
   );
 
-  const selectedSupportProject = useMemo(
-    () =>
-      selectedSupportProjectId
-        ? recruitingProjectMap.get(selectedSupportProjectId) ?? null
-        : null,
-    [recruitingProjectMap, selectedSupportProjectId]
-  );
-
-  useEffect(() => {
-    const linkParams = parseProfileDeepLinkParams(
-      new URLSearchParams(searchParams.toString())
-    );
-    const { projectId: requestedProjectId, support: supportFlag } = linkParams;
-    if (!requestedProjectId) return;
-
-    const nextProject = recruitingProjectMap.get(requestedProjectId);
-    if (!nextProject) return;
-
-    setSelectedSupportProjectId(nextProject.projectId);
-    if (viewCurrency !== nextProject.currency) {
-      setViewCurrency(nextProject.currency);
-    }
-
-    const supportKey = `${requestedProjectId}:${supportFlag ?? ""}`;
-    if (supportFlag === "1" && handledSupportLinkRef.current !== supportKey) {
-      handledSupportLinkRef.current = supportKey;
-      setSupportSheetLoaded(true);
-      setSupportSheetOpen(true);
-    }
-  }, [recruitingProjectMap, searchParams, viewCurrency]);
-
   const availableSupportCurrencies = useMemo(
     () =>
       (["JPYC", "USDC"] as const).filter(
@@ -207,6 +167,29 @@ export default function ProfileClient({
       ),
     [supportProfileState]
   );
+
+  // canOpenSupportSheet determined from supportProfileState (pre-selection),
+  // sufficient to guard the sheet open action.
+  const canOpenSupportSheet =
+    availableSupportCurrencies.length > 0 || recruitingProjects.length > 0;
+
+  // ── useSupportSheet ───────────────────────────────────────────────────────
+  const {
+    selectedSupportProject,
+    selectedPostTipContext,
+    setSelectedPostTipContext,
+    supportSheetOpen,
+    supportSheetLoaded,
+    openSupportSheet,
+    closeSupportSheet,
+    handleSelectPostTip,
+    handleOpenProjectSupport,
+  } = useSupportSheet({
+    canOpenSupportSheet,
+    recruitingProjectMap,
+    viewCurrency,
+    setViewCurrency,
+  });
 
   const activeSupportProject = useMemo(() => {
     if (selectedSupportProject) {
@@ -301,8 +284,6 @@ export default function ProfileClient({
       : supportMode === "draft"
       ? supportProfileState.draft?.description ?? null
       : "公開ページを準備中です。応援内容が整うと、ここから確認できます。";
-  const canOpenSupportSheet =
-    supportCardReady || recruitingProjects.length > 0;
 
   const ownerProjectOptions = useMemo(() => {
     const options: Array<{ id: string; label: string }> = [];
@@ -322,43 +303,6 @@ export default function ProfileClient({
 
     return options;
   }, [resolvedProjectIdsByCurrency, supportProfileState.projectsByCurrency]);
-
-  function openSupportSheet() {
-    if (!canOpenSupportSheet) return;
-    setSupportSheetLoaded(true);
-    setSupportSheetOpen(true);
-  }
-
-  function closeSupportSheet() {
-    setSupportSheetOpen(false);
-    setSelectedPostTipContext(null);
-  }
-
-  function handleSelectPostTip(post: SelectedPostTipContext) {
-    if (!canOpenSupportSheet) return;
-    setSelectedPostTipContext(post);
-    if (post.projectId) {
-      const linkedProject = recruitingProjectMap.get(post.projectId);
-      if (linkedProject) {
-        setSelectedSupportProjectId(linkedProject.projectId);
-        if (viewCurrency !== linkedProject.currency) {
-          setViewCurrency(linkedProject.currency);
-        }
-      }
-    } else if (post.preferredCurrency) {
-      setViewCurrency(post.preferredCurrency);
-    }
-    openSupportSheet();
-  }
-
-  function handleOpenProjectSupport(project: SupportProjectView) {
-    setSelectedPostTipContext(null);
-    setSelectedSupportProjectId(project.projectId);
-    if (viewCurrency !== project.currency) {
-      setViewCurrency(project.currency);
-    }
-    openSupportSheet();
-  }
 
   const ownerComposerManagementHref = `/${username}/mypage#public-page`;
   const viewerWorkspaceHref = viewerState.userUsername
@@ -409,111 +353,17 @@ export default function ProfileClient({
     await appkit.open({ view: "Connect" });
   }
 
-  const profileGuideCard = (() => {
-    if (viewerState.isOwner) {
-      return (
-        <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-3.5">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-[var(--text)]">
-                これはあなたの公開ページです
-              </div>
-              <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
-                見え方を確認しながら、投稿や設定をすぐ開けます。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href={viewerComposeHref} className="btn">
-                投稿する
-              </Link>
-              <Link href={viewerWorkspaceHref} className="btn-secondary">
-                設定を開く
-              </Link>
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    if (viewerState.mode === "unconnected") {
-      return null;
-    }
-
-    if (viewerState.mode === "unregistered") {
-      return (
-        <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-3.5">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-[var(--text)]">
-                {canOpenSupportSheet
-                  ? "応援はできます。投稿したいときはユーザー登録"
-                  : "公開ページを準備中です。投稿したいときはユーザー登録"}
-              </div>
-              <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
-                {canOpenSupportSheet
-                  ? "まずは登録すると、自分のページと投稿機能を使い始められます。"
-                  : "まずは登録すると、自分のページと投稿機能を使い始められます。応援内容は公開ページの準備が整うと表示されます。"}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {canOpenSupportSheet ? (
-                <button type="button" className="btn" onClick={openSupportSheet}>
-                  応援する
-                </button>
-              ) : null}
-              <Link href={viewerWorkspaceHref} className="btn-secondary">
-                ユーザー登録へ
-              </Link>
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    if (!viewerState.hasCreator) {
-      return (
-        <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-3.5">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-[var(--text)]">
-                {canOpenSupportSheet
-                  ? "自分の公開ページを作ると、投稿も始められます"
-                  : "自分の公開ページを整えると、応援内容も表示できます"}
-              </div>
-              <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
-                {canOpenSupportSheet
-                  ? `いまは ${pageDisplayName} さんのページを見ています。自分のページを整えると投稿も始められます。`
-                  : `いまは ${pageDisplayName} さんのページを見ています。自分のページを整えると、応援内容も自然に見せられます。`}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {canOpenSupportSheet ? (
-                <button type="button" className="btn" onClick={openSupportSheet}>
-                  応援する
-                </button>
-              ) : null}
-              <Link href={viewerWorkspaceHref} className="btn-secondary">
-                設定を開く
-              </Link>
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    return (
-      <section className="rounded-[20px] border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-2.5 sm:px-5 sm:py-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-[13px] font-medium text-[var(--text-subtle)]">
-            いま見ているのは {pageDisplayName} さんの公開ページです
-          </div>
-          <Link href={viewerProfileHref} className="btn-secondary px-3 py-1.5 text-[12px]">
-            自分のページを見る
-          </Link>
-        </div>
-      </section>
-    );
-  })();
+  const profileGuideCard = (
+    <ProfileViewerGuideCard
+      viewerState={viewerState}
+      canOpenSupportSheet={canOpenSupportSheet}
+      pageDisplayName={pageDisplayName}
+      viewerComposeHref={viewerComposeHref}
+      viewerWorkspaceHref={viewerWorkspaceHref}
+      viewerProfileHref={viewerProfileHref}
+      onOpenSupportSheet={openSupportSheet}
+    />
+  );
 
   const profileScreen = (
     <div className="space-y-3">

@@ -1,6 +1,7 @@
 "use client";
 
 import { getAddress, isAddress } from "viem";
+import { getPublicEnv } from "@/lib/publicEnv";
 
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 import type { ProjectSettlementData } from "@/lib/projectSettlementView";
@@ -137,6 +138,8 @@ export const ICTT_SEND_ABI = [
   },
 ] as const;
 
+const publicEnv = getPublicEnv();
+
 function envAddress(name: string): `0x${string}` | null {
   const value = process.env[name];
   if (!value || !isAddress(value)) return null;
@@ -220,9 +223,7 @@ export function getAvalancheTokenAddress(
   token: CurrencyCode
 ): `0x${string}` | null {
   const raw =
-    token === "JPYC"
-      ? process.env.NEXT_PUBLIC_JPYC_ADDRESS_AVAX
-      : process.env.NEXT_PUBLIC_USDC_ADDRESS_AVAX;
+    token === "JPYC" ? publicEnv.jpycAddressAvax : publicEnv.usdcAddressAvax;
   if (!raw || !isAddress(raw)) return null;
   return getAddress(raw);
 }
@@ -242,9 +243,9 @@ export function makeEmptyRow(token: CurrencyCode): DistributionDraft {
 
 export function expectedSourceChainId(sourceChain: BridgeSourceChain): number {
   if (sourceChain === "POLYGON") {
-    return process.env.NEXT_PUBLIC_POLYGON_CHAIN_ID === "80002" ? 80002 : 137;
+    return publicEnv.polygonChainId === 80002 ? 80002 : 137;
   }
-  if (process.env.NEXT_PUBLIC_ETHEREUM_CHAIN_ID === "11155111") return 11155111;
+  if (publicEnv.ethereumChainId === 11155111) return 11155111;
   return 1;
 }
 

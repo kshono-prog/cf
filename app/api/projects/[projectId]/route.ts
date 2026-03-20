@@ -2,7 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
-import { toBigIntOrThrow } from "@/lib/api/guards";
+import {
+  isRecord,
+  toBigIntOrThrow,
+  toNonEmptyString,
+} from "@/lib/api/guards";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 import { resolveProjectOwnerAddress } from "@/lib/ownerScopedResources";
 
@@ -12,21 +16,9 @@ type Params = { projectId: string };
 
 type PurposeMode = "OPTIONAL" | "REQUIRED" | "NONE";
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function asNonEmptyString(v: unknown): string | null {
-  if (typeof v !== "string") return null;
-  const s = v.trim();
-  return s.length > 0 ? s : null;
-}
-
 function asNullableString(v: unknown): string | null {
   if (v === null) return null;
-  if (typeof v !== "string") return null;
-  const s = v.trim();
-  return s.length > 0 ? s : null;
+  return toNonEmptyString(v) ?? null;
 }
 
 function asPurposeMode(v: unknown): PurposeMode | null {
@@ -162,7 +154,7 @@ export async function PUT(
     } = {};
 
     if (hasKey(bodyUnknown, "title")) {
-      const t = asNonEmptyString(bodyUnknown.title);
+      const t = toNonEmptyString(bodyUnknown.title);
       if (!t) return errJson("TITLE_REQUIRED", 400);
       data.title = t;
     }

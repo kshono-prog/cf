@@ -1,4 +1,6 @@
 // app/api/_lib/chain.ts
+import { getBridgeRuntimeEnv, getGasSupportEnv } from "@/lib/env";
+import { getPublicEnv } from "@/lib/publicEnv";
 import { normalizeAddress } from "./db";
 
 type Currency = "JPYC" | "USDC";
@@ -6,32 +8,23 @@ type Currency = "JPYC" | "USDC";
 const TRANSFER_TOPIC0 =
   "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"; // keccak256("Transfer(address,address,uint256)")
 
-function env(name: string): string | null {
-  const v = process.env[name];
-  return v && v.trim() ? v.trim() : null;
-}
+const bridgeRuntimeEnv = getBridgeRuntimeEnv();
+const gasSupportEnv = getGasSupportEnv();
+const publicEnv = getPublicEnv();
 
 export function getRpcUrl(chainId: number): string | null {
-  // 既存 env と新 env を両対応
-  if (chainId === 1)
-    return env("NEXT_PUBLIC_RPC_URL_ETHEREUM") || env("ETHEREUM_RPC_URL");
+  if (chainId === 1) return publicEnv.rpcUrlEthereum;
   if (chainId === 137)
     return (
-      env("NEXT_PUBLIC_RPC_URL_POLYGON") ||
-      env("NEXT_PUBLIC_RPC_URL") ||
-      env("POLYGON_RPC_URL")
+      publicEnv.rpcUrlPolygon ||
+      bridgeRuntimeEnv.polygonRpcUrl
     );
   if (chainId === 80002)
-    return env("NEXT_PUBLIC_RPC_URL_POLYGON") || env("NEXT_PUBLIC_RPC_URL");
+    return publicEnv.rpcUrlPolygon || bridgeRuntimeEnv.polygonAmoyRpcUrl;
   if (chainId === 43114)
-    return (
-      env("NEXT_PUBLIC_RPC_URL_AVAX") || "https://api.avax.network/ext/bc/C/rpc"
-    );
+    return publicEnv.rpcUrlAvalanche || bridgeRuntimeEnv.avalancheRpcUrl;
   if (chainId === 43113)
-    return (
-      env("NEXT_PUBLIC_RPC_URL_AVAX_FUJI") ||
-      "https://api.avax-test.network/ext/bc/C/rpc"
-    );
+    return publicEnv.rpcUrlAvalancheFuji || bridgeRuntimeEnv.avalancheFujiRpcUrl;
   return null;
 }
 
@@ -47,17 +40,11 @@ export function getRpcUrls(chainId: number): string[] {
   add(getRpcUrl(chainId));
 
   if (chainId === 137) {
-    add(env("POLYGON_RPC_URL"));
-    add(env("ANKR_RPC_URL"));
-    const ankrKey = env("ANKR_API_KEY");
-    if (ankrKey) {
-      add(`https://rpc.ankr.com/polygon/${ankrKey}`);
-    }
     add("https://polygon-bor-rpc.publicnode.com");
   }
 
   if (chainId === 80002) {
-    add(env("POLYGON_AMOY_RPC_URL"));
+    add(bridgeRuntimeEnv.polygonAmoyRpcUrl);
     add("https://rpc-amoy.polygon.technology");
     add("https://polygon-amoy-bor-rpc.publicnode.com");
   }
@@ -69,29 +56,24 @@ export function getTokenAddress(
   chainId: number,
   currency: Currency
 ): string | null {
-  // チェーン別envを優先
   if (chainId === 1) {
-    if (currency === "JPYC") return env("NEXT_PUBLIC_JPYC_ADDRESS_ETHEREUM");
-    if (currency === "USDC") return env("NEXT_PUBLIC_USDC_ADDRESS_ETHEREUM");
+    if (currency === "JPYC") return publicEnv.jpycAddressEthereum;
+    if (currency === "USDC") return publicEnv.usdcAddressEthereum;
   }
   if (chainId === 137 || chainId === 80002) {
     if (currency === "JPYC")
-      return (
-        env("NEXT_PUBLIC_JPYC_ADDRESS_POLYGON") ||
-        env("NEXT_PUBLIC_JPYC_ADDRESS")
-      );
+      return publicEnv.jpycAddressPolygon || publicEnv.jpycAddress;
     if (currency === "USDC")
-      return (
-        env("NEXT_PUBLIC_USDC_ADDRESS_POLYGON") ||
-        env("NEXT_PUBLIC_USDC_ADDRESS")
-      );
+      return publicEnv.usdcAddressPolygon;
   }
   if (chainId === 43114 || chainId === 43113) {
     if (currency === "JPYC")
       return (
-        env("NEXT_PUBLIC_JPYC_ADDRESS_AVAX") || env("NEXT_PUBLIC_JPYC_ADDRESS")
+        gasSupportEnv.jpycAddress ||
+        publicEnv.jpycAddressAvax ||
+        publicEnv.jpycAddress
       );
-    if (currency === "USDC") return env("NEXT_PUBLIC_USDC_ADDRESS_AVAX");
+    if (currency === "USDC") return publicEnv.usdcAddressAvax;
   }
   return null;
 }

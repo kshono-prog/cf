@@ -12,7 +12,11 @@ import {
   okMyPageMutationResponse,
 } from "@/lib/mypageApiResponses";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
-import { isRecord, toOptionalString } from "@/lib/api/guards";
+import {
+  isRecord,
+  normalizeAddress,
+  toOptionalString,
+} from "@/lib/api/guards";
 import { serializeCreatorProfile } from "@/lib/serializers/creator";
 
 export const dynamic = "force-dynamic";
@@ -58,10 +62,6 @@ function jsonErr(
   detail?: string
 ): NextResponse<ApiErr> {
   return errMyPageMutationResponse(error, status, detail);
-}
-
-function normalizeAddress(raw: string): string {
-  return raw.toLowerCase().trim();
 }
 
 /**

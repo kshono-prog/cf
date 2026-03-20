@@ -1,6 +1,7 @@
 // components/profile/profileClientHelpers.ts
 import type { Eip1193Provider } from "ethers";
 import { createPublicClient, http, parseAbiItem } from "viem";
+import { isRecord } from "@/lib/api/guards";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getClientRpcUrl } from "@/lib/clientRpc";
 
@@ -75,10 +76,6 @@ export const INCREMENTS: Record<Currency, string[]> = {
   JPYC: ["10", "100", "1000"],
   USDC: ["0.1", "1", "10"],
 };
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
 
 function isHexTxHash(v: unknown): v is `0x${string}` {
   return typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);

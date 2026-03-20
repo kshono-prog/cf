@@ -11,7 +11,7 @@ import {
   parsePositiveInt,
   serializePost,
 } from "@/lib/social";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromSearchParams } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,9 +19,9 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const ownerSession = await requireOwnerSession(
+    const ownerSession = await requireOwnerSessionFromSearchParams(
       req,
-      searchParams.get("address") ?? undefined
+      searchParams
     );
     if (!ownerSession.ok) return ownerSession.response;
 

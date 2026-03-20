@@ -16,6 +16,7 @@ import { useMyPageShellState } from "@/components/mypage/useMyPageShellState";
 import { useMyPageMeStatus } from "@/components/mypage/useMyPageMeStatus";
 import { useAccountPageActions } from "@/components/mypage/useAccountPageActions";
 import { CreatorReadyWorkspaceProvider } from "@/components/mypage/CreatorReadyWorkspaceContext";
+import { getPublicEnv } from "@/lib/publicEnv";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
 type Props = {
@@ -33,6 +34,7 @@ export default function AccountPageClient({
   initialProjectId = null,
   initialProjectIdsByCurrency = { JPYC: null, USDC: null },
 }: Props) {
+  const publicEnv = getPublicEnv();
   const { address, isConnected } = useAccount();
 
   const generatedUsername = useMemo(
@@ -169,10 +171,7 @@ export default function AccountPageClient({
 
   // creatorReady
   const creatorUsername = me?.creator?.username ?? username;
-  const eventBaseUrl = (process.env.NEXT_PUBLIC_BASE_URL ?? "").replace(
-    /\/$/,
-    ""
-  );
+  const eventBaseUrl = (publicEnv.baseUrl ?? "").replace(/\/$/, "");
   const workspaceBasePath = `/${username}/mypage`;
 
   const workspaceState = {

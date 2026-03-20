@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errJson, routeJson } from "@/lib/api/responses";
 import { fetchPublicViewerByAddress } from "@/lib/publicViewerApi";
 
 export const runtime = "nodejs";
@@ -9,12 +10,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(req.url);
     const address = searchParams.get("address");
     const response = await fetchPublicViewerByAddress(address);
-    return NextResponse.json(response.body, { status: response.status });
+    return routeJson(response);
   } catch (error) {
     console.error("PUBLIC_VIEWER_GET_FAILED", error);
-    return NextResponse.json(
-      { ok: false, error: "PUBLIC_VIEWER_GET_FAILED" },
-      { status: 500 }
-    );
+    return errJson("PUBLIC_VIEWER_GET_FAILED", 500);
   }
 }

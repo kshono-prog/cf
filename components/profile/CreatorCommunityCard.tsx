@@ -7,6 +7,7 @@ import {
   parseFollowSummaryResponse,
   type FollowSummary,
 } from "@/lib/communityApiParsers";
+import { isRecord } from "@/lib/api/guards";
 import { mapFollowActionError } from "@/lib/communityUiState";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import type { PublicViewerState } from "@/lib/publicViewerState";
@@ -19,10 +20,6 @@ type Props = {
   registrationHref: string;
   onRequireConnection: () => void;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 function countLabel(value: number): string {
   return value.toLocaleString("ja-JP");

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { JsonRpcProvider, Contract, formatUnits } from "ethers";
 import type { Project } from "@prisma/client";
 import { Prisma } from "@prisma/client";
+import { getOptionalServerPrivateKey } from "@/lib/env";
 import {
   getEventRpcUrl,
   isSupportedEventChainId,
@@ -14,6 +15,7 @@ import {
   toBigIntOrThrow as _toBigIntOrThrow,
   toOptionalString,
 } from "@/lib/api/guards";
+import { errJson, jsonResponse, okJson } from "@/lib/api/responses";
 import { decToString } from "@/lib/currencyUtils";
 
 export const dynamic = "force-dynamic";
@@ -172,11 +174,11 @@ export async function POST(
     });
 
     if (!project) {
-      return NextResponse.json({ error: "PROJECT_NOT_FOUND" }, { status: 404 });
+      return errJson("PROJECT_NOT_FOUND", 404);
     }
 
     if (!project.ownerAddress) {
-      return NextResponse.json({ error: "FORBIDDEN_NOT_OWNER" }, { status: 403 });
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, project.ownerAddress);
@@ -215,10 +217,7 @@ export async function POST(
       source === null ||
       recipient === null
     ) {
-      return NextResponse.json(
-        { error: "EVENT_L1_CONFIG_INCOMPLETE" },
-        { status: 400 }
-      );
+      return errJson("EVENT_L1_CONFIG_INCOMPLETE", 400);
     }
 
     // JPYC token address mapping（既存方針のまま）
@@ -232,17 +231,17 @@ export async function POST(
         : null;
 
     if (!tokenEnvKey) {
-      return NextResponse.json(
-        { error: "EVENT_CHAIN_NOT_SUPPORTED", chainId: eventChainId },
-        { status: 400 }
+      return jsonResponse(
+        { ok: false, error: "EVENT_CHAIN_NOT_SUPPORTED", chainId: eventChainId },
+        400
       );
     }
 
     const tokenAddressRaw = process.env[tokenEnvKey];
     if (!tokenAddressRaw) {
-      return NextResponse.json(
-        { error: "MISSING_EVENT_TOKEN_ADDRESS", key: tokenEnvKey },
-        { status: 500 }
+      return jsonResponse(
+        { ok: false, error: "MISSING_EVENT_TOKEN_ADDRESS", key: tokenEnvKey },
+        500
       );
     }
 
@@ -251,25 +250,23 @@ export async function POST(
       "EVENT_TOKEN_ADDRESS_INVALID"
     );
     if (!token) {
-      return NextResponse.json(
-        { error: "EVENT_TOKEN_ADDRESS_INVALID" },
-        { status: 500 }
-      );
+      return errJson("EVENT_TOKEN_ADDRESS_INVALID", 500);
     }
 
     // ===== RPC selection =====
     const eventChainIdNum = Number(project.eventFundingChainId);
     if (!Number.isFinite(eventChainIdNum)) {
-      return NextResponse.json(
-        { error: "EVENT_CHAIN_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("EVENT_CHAIN_ID_INVALID", 400);
     }
 
     if (!isSupportedEventChainId(eventChainIdNum)) {
-      return NextResponse.json(
-        { error: "EVENT_CHAIN_NOT_SUPPORTED", chainId: eventChainIdNum },
-        { status: 400 }
+      return jsonResponse(
+        {
+          ok: false,
+          error: "EVENT_CHAIN_NOT_SUPPORTED",
+          chainId: eventChainIdNum,
+        },
+        400
       );
     }
 
@@ -332,8 +329,7 @@ export async function POST(
 
     // ===== mode: READ =====
     if (mode === "READ_ONCHAIN") {
-      return NextResponse.json({
-        ok: true,
+      return okJson({
         mode: "READ_ONCHAIN",
         l1: {
           eventFunding: {
@@ -359,26 +355,26 @@ export async function POST(
     // status/goal gate（force=false なら厳格）
     if (!force) {
       if (!goal) {
-        return NextResponse.json({ error: "GOAL_NOT_FOUND" }, { status: 400 });
+        return errJson("GOAL_NOT_FOUND", 404);
       }
       if (!goal.achievedAt) {
-        return NextResponse.json(
-          { error: "GOAL_NOT_ACHIEVED" },
-          { status: 400 }
-        );
+        return errJson("GOAL_NOT_ACHIEVED", 400);
       }
       if (!canExecuteFromStatus(project.status)) {
-        return NextResponse.json(
-          { error: "PROJECT_STATUS_NOT_BRIDGABLE", status: project.status },
-          { status: 400 }
+        return jsonResponse(
+          {
+            ok: false,
+            error: "PROJECT_STATUS_NOT_BRIDGABLE",
+            status: project.status,
+          },
+          400
         );
       }
     }
 
     // dryRun: 事前検証のみ（DB更新なし）
     if (dryRun) {
-      return NextResponse.json({
-        ok: true,
+      return okJson({
         mode: "EXECUTE",
         dryRun: true,
         force,
@@ -453,11 +449,9 @@ export async function POST(
     });
 
     const operatorPkPresent =
-      typeof process.env.EVENT_OPERATOR_PRIVATE_KEY === "string" &&
-      process.env.EVENT_OPERATOR_PRIVATE_KEY.trim() !== "";
+      getOptionalServerPrivateKey("EVENT_OPERATOR_PRIVATE_KEY") !== null;
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       mode: "EXECUTE",
       simulated: true,
       force,
@@ -501,10 +495,7 @@ export async function POST(
     const msg = e instanceof Error ? e.message : String(e);
 
     if (msg === "PROJECT_ID_INVALID") {
-      return NextResponse.json(
-        { error: "PROJECT_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PROJECT_ID_INVALID", 400);
     }
 
     // config errors
@@ -514,7 +505,7 @@ export async function POST(
       msg === "MISSING_EVENT_RPC_AVAX" ||
       msg === "MISSING_EVENT_OPERATOR_PRIVATE_KEY"
     ) {
-      return NextResponse.json({ error: msg }, { status: 500 });
+      return errJson(msg, 500);
     }
 
     // input normalization errors
@@ -527,13 +518,10 @@ export async function POST(
       "EVENT_TOKEN_ADDRESS_INVALID",
     ]);
     if (badReqErrors.has(msg)) {
-      return NextResponse.json({ error: msg }, { status: 400 });
+      return errJson(msg, 400);
     }
 
     console.error("PROJECT_BRIDGE_POST_FAILED", e);
-    return NextResponse.json(
-      { error: "PROJECT_BRIDGE_POST_FAILED" },
-      { status: 500 }
-    );
+    return errJson("PROJECT_BRIDGE_POST_FAILED", 500);
   }
 }

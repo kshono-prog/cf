@@ -58,6 +58,10 @@ export function CommunityGuideLoadingCard({
   return (
     <section className="surface-subtle px-4 py-4 sm:px-5">
       <div className={containerClassName}>
+        <div
+          className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--accent)]"
+          aria-hidden="true"
+        />
         <div className="text-sm font-semibold text-[var(--text)]">{title}</div>
         {body ? (
           <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">{body}</p>

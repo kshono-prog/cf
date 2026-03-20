@@ -1,27 +1,17 @@
 // app/api/projects/[projectId]/l1/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { isRecord, toBigIntOrThrow } from "@/lib/api/guards";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { Project } from "@prisma/client";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { errJson, okJson } from "@/lib/api/responses";
 
 export const dynamic = "force-dynamic";
 
 type Params = { projectId: string };
 
 // ===== runtime guards =====
-function toBigIntOrThrow(v: string): bigint {
-  try {
-    return BigInt(v);
-  } catch {
-    throw new Error("PROJECT_ID_INVALID");
-  }
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
 function toOptionalNullOrString(v: unknown): string | null | undefined {
   if (v === null) return null;
   if (typeof v === "string") return v;
@@ -217,24 +207,18 @@ export async function GET(
 ): Promise<NextResponse> {
   try {
     const { projectId: projectIdStr } = await ctx.params;
-    const projectId = toBigIntOrThrow(projectIdStr);
+    const projectId = toBigIntOrThrow(projectIdStr, "PROJECT_ID_INVALID");
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
 
     if (!project) {
-      return NextResponse.json(
-        { ok: false, error: "PROJECT_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("PROJECT_NOT_FOUND", 404);
     }
 
     if (!project.ownerAddress) {
-      return NextResponse.json(
-        { ok: false, error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, project.ownerAddress);
@@ -242,23 +226,16 @@ export async function GET(
       return ownerSession.response;
     }
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       project: serializeProjectL1(project),
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PROJECT_ID_INVALID") {
-      return NextResponse.json(
-        { ok: false, error: "PROJECT_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PROJECT_ID_INVALID", 400);
     }
     console.error("PROJECT_L1_GET_FAILED", e);
-    return NextResponse.json(
-      { ok: false, error: "PROJECT_L1_GET_FAILED" },
-      { status: 500 }
-    );
+    return errJson("PROJECT_L1_GET_FAILED", 500);
   }
 }
 
@@ -268,16 +245,13 @@ export async function PATCH(
 ): Promise<NextResponse> {
   try {
     const { projectId: projectIdStr } = await ctx.params;
-    const projectId = toBigIntOrThrow(projectIdStr);
+    const projectId = toBigIntOrThrow(projectIdStr, "PROJECT_ID_INVALID");
 
     const raw = (await req.json().catch(() => null)) as unknown;
     const parsed = parsePatchBody(raw);
 
     if (!parsed.ok) {
-      return NextResponse.json(
-        { ok: false, error: parsed.error },
-        { status: 400 }
-      );
+      return errJson(parsed.error, 400);
     }
 
     const body = parsed.body;
@@ -287,17 +261,11 @@ export async function PATCH(
     });
 
     if (!project) {
-      return NextResponse.json(
-        { ok: false, error: "PROJECT_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("PROJECT_NOT_FOUND", 404);
     }
 
     if (!project.ownerAddress) {
-      return NextResponse.json(
-        { ok: false, error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, project.ownerAddress);
@@ -403,10 +371,7 @@ export async function PATCH(
         : project.eventVaultAddress;
 
     if (typeof nextVault === "string" && nextSource == null) {
-      return NextResponse.json(
-        { ok: false, error: "VAULT_REQUIRES_SOURCE" },
-        { status: 400 }
-      );
+      return errJson("VAULT_REQUIRES_SOURCE", 400);
     }
 
     const updated = await prisma.project.update({
@@ -414,18 +379,14 @@ export async function PATCH(
       data,
     });
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       project: serializeProjectL1(updated),
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
 
     if (msg === "PROJECT_ID_INVALID") {
-      return NextResponse.json(
-        { ok: false, error: "PROJECT_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PROJECT_ID_INVALID", 400);
     }
 
     const badReqErrors = new Set([
@@ -443,13 +404,10 @@ export async function PATCH(
     ]);
 
     if (badReqErrors.has(msg)) {
-      return NextResponse.json({ ok: false, error: msg }, { status: 400 });
+      return errJson(msg, 400);
     }
 
     console.error("PROJECT_L1_PATCH_FAILED", e);
-    return NextResponse.json(
-      { ok: false, error: "PROJECT_L1_PATCH_FAILED" },
-      { status: 500 }
-    );
+    return errJson("PROJECT_L1_PATCH_FAILED", 500);
   }
 }

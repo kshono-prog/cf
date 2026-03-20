@@ -1,25 +1,29 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
 import crypto from "crypto";
+import { getGasSupportEnv } from "@/lib/env";
+import { errJson, jsonResponse } from "@/lib/api/responses";
+
+const gasSupportEnv = getGasSupportEnv();
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const address = searchParams.get("address") || "";
     if (!ethers.isAddress(address)) {
-      return NextResponse.json({ error: "Invalid address" }, { status: 400 });
+      return errJson("Invalid address", 400);
     }
 
     const chainIdRaw = searchParams.get("chainId");
-    const chainId = Number(chainIdRaw ?? process.env.CHAIN_ID ?? 137);
+    const chainId = Number(chainIdRaw ?? gasSupportEnv.defaultChainId);
     if (!Number.isFinite(chainId)) {
-      return NextResponse.json({ error: "INVALID_CHAIN_ID" }, { status: 400 });
+      return errJson("INVALID_CHAIN_ID", 400);
     }
 
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
     if (!config || !config.enabled) {
-      return NextResponse.json({ error: "FAUCET_DISABLED" }, { status: 403 });
+      return errJson("FAUCET_DISABLED", 403);
     }
 
     const lower = address.toLowerCase();
@@ -34,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     const message = `creator funding gas support claim (chainId:${chainId}): ${nonce}`;
 
-    return NextResponse.json({
+    return jsonResponse({
       address: lower,
       message,
       nonce,
@@ -42,6 +46,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "INTERNAL_ERROR" }, { status: 500 });
+    return errJson("INTERNAL_ERROR", 500);
   }
 }

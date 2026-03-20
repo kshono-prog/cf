@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { errJson } from "@/lib/api/responses";
-import { isRecord, toAddressOrNull } from "@/lib/api/guards";
+import { errJson, routeJson } from "@/lib/api/responses";
+import { toAddressOrNull } from "@/lib/api/guards";
 import {
   fetchCreatorFollowSummaryByUsername,
   mutateCreatorFollowByUsername,
 } from "@/lib/followApi";
 import {
   getOptionalOwnerSessionAddress,
-  requireOwnerSession,
+  requireOwnerSessionFromBody,
 } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
@@ -17,19 +17,6 @@ export const dynamic = "force-dynamic";
 type RouteContext = {
   params: Promise<{ username: string }>;
 };
-
-type FollowMutationBody = {
-  address?: unknown;
-};
-
-async function readViewerAddress(req: NextRequest): Promise<string | null> {
-  const raw: unknown = await req.json().catch(() => null);
-  if (!isRecord(raw)) return null;
-
-  const body = raw as FollowMutationBody;
-  const address = toAddressOrNull(body.address);
-  return address ? address.toLowerCase() : null;
-}
 
 export async function GET(
   req: NextRequest,
@@ -47,7 +34,7 @@ export async function GET(
       username,
       viewerAddress,
     });
-    return NextResponse.json(response.body, { status: response.status });
+    return routeJson(response);
   } catch (error) {
     console.error("CREATOR_FOLLOW_GET_FAILED", error);
     return errJson("CREATOR_FOLLOW_GET_FAILED", 500);
@@ -60,9 +47,8 @@ export async function POST(
 ): Promise<NextResponse> {
   try {
     const { username } = await context.params;
-    const viewerAddress = await readViewerAddress(req);
-    if (!viewerAddress) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, viewerAddress);
+    const raw: unknown = await req.json().catch(() => null);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
 
     const response = await mutateCreatorFollowByUsername({
@@ -70,7 +56,7 @@ export async function POST(
       username,
       viewerAddress: ownerSession.address,
     });
-    return NextResponse.json(response.body, { status: response.status });
+    return routeJson(response);
   } catch (error) {
     console.error("CREATOR_FOLLOW_POST_FAILED", error);
     return errJson("CREATOR_FOLLOW_POST_FAILED", 500);
@@ -83,9 +69,8 @@ export async function DELETE(
 ): Promise<NextResponse> {
   try {
     const { username } = await context.params;
-    const viewerAddress = await readViewerAddress(req);
-    if (!viewerAddress) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, viewerAddress);
+    const raw: unknown = await req.json().catch(() => null);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
 
     const response = await mutateCreatorFollowByUsername({
@@ -93,7 +78,7 @@ export async function DELETE(
       username,
       viewerAddress: ownerSession.address,
     });
-    return NextResponse.json(response.body, { status: response.status });
+    return routeJson(response);
   } catch (error) {
     console.error("CREATOR_FOLLOW_DELETE_FAILED", error);
     return errJson("CREATOR_FOLLOW_DELETE_FAILED", 500);

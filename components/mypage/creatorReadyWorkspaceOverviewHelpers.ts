@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/api/guards";
 import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
 
 export type CreatorReadyQuickAction = {
@@ -22,10 +23,6 @@ export type HomeTaskPreview = {
 export type ActiveProjectDashboard = MyPageProjectDashboard & {
   summary: NonNullable<MyPageProjectDashboard["summary"]>;
 };
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];

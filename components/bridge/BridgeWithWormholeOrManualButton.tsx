@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { isAddress } from "viem";
 import type { Address } from "viem";
+import { isRecord, toBool } from "@/lib/api/guards";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 type Provider = "WORMHOLE_UI" | "MANUAL";
@@ -64,16 +65,8 @@ type ReverifyResponse =
     }
   | { ok: false; error: string };
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
 function toString(v: unknown): string | null {
   return typeof v === "string" ? v : null;
-}
-
-function toBool(v: unknown): boolean {
-  return v === true;
 }
 
 function toNumber(v: unknown): number | null {

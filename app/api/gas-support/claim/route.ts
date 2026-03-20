@@ -1,32 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
+import { getGasSupportEnv } from "@/lib/env";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getRpcUrls, getTokenAddress } from "@/app/api/_lib/chain";
 import { buildProvider, filterWorkingRpcUrls } from "@/app/api/_lib/rpc";
+import { errJson, okJson } from "@/lib/api/responses";
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function decimals() view returns (uint8)",
 ];
 
-function getFaucetPrivateKey(chainId: number): string {
+type GasSupportEnv = ReturnType<typeof getGasSupportEnv>;
+
+function getFaucetPrivateKey(env: GasSupportEnv, chainId: number): string {
   if (chainId === 43114) {
-    return process.env.FAUCET_PRIVATE_KEY_AVAX || "";
+    return env.faucetPrivateKeyAvax ?? "";
   }
-  return process.env.FAUCET_PRIVATE_KEY || "";
+  return env.faucetPrivateKey;
 }
 
-function pickChainId(raw?: number): number {
+function pickChainId(env: GasSupportEnv, raw?: number): number {
   if (typeof raw !== "number" || Number.isNaN(raw)) {
-    return Number(process.env.CHAIN_ID ?? 137);
+    return env.defaultChainId;
   }
   return raw;
 }
 
-function getJpycAddress(chainId: number): string {
+function getJpycAddress(env: GasSupportEnv, chainId: number): string {
   if (chainId === 137) {
-    return process.env.JPYC_ADDRESS || getTokenAddress(chainId, "JPYC") || "";
+    return env.jpycAddress || getTokenAddress(chainId, "JPYC") || "";
   }
   return getTokenAddress(chainId, "JPYC") || "";
 }
@@ -39,10 +43,11 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
+  const gasSupportEnv = getGasSupportEnv();
   try {
     const body = (await req.json().catch(() => null)) as Body | null;
     if (!body) {
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+      return errJson("Invalid JSON", 400);
     }
 
     const address = (body.address || "").toLowerCase();
@@ -50,19 +55,16 @@ export async function POST(req: NextRequest) {
     const signature = body.signature || "";
 
     if (!ethers.isAddress(address)) {
-      return NextResponse.json({ error: "Invalid address" }, { status: 400 });
+      return errJson("Invalid address", 400);
     }
     if (!message || !signature) {
-      return NextResponse.json(
-        { error: "Missing message/signature" },
-        { status: 400 }
-      );
+      return errJson("Missing message/signature", 400);
     }
 
-    const chainId = pickChainId(body.chainId);
+    const chainId = pickChainId(gasSupportEnv, body.chainId);
     const chainConfig = getChainConfig(chainId);
     if (!chainConfig) {
-      return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
+      return errJson("UNSUPPORTED_CHAIN", 400);
     }
 
     // 1) nonce row
@@ -70,27 +72,24 @@ export async function POST(req: NextRequest) {
       where: { chainId_address: { chainId, address } },
     });
     if (!nonceRow) {
-      return NextResponse.json({ error: "NONCE_NOT_FOUND" }, { status: 400 });
+      return errJson("NONCE_NOT_FOUND", 400);
     }
     if (nonceRow.expiresAt.getTime() < Date.now()) {
-      return NextResponse.json({ error: "NONCE_EXPIRED" }, { status: 400 });
+      return errJson("NONCE_EXPIRED", 400);
     }
     if (!message.includes(nonceRow.nonce)) {
-      return NextResponse.json({ error: "NONCE_MISMATCH" }, { status: 400 });
+      return errJson("NONCE_MISMATCH", 400);
     }
 
     // 2) signature verify
     const recovered = ethers.verifyMessage(message, signature).toLowerCase();
     if (recovered !== address) {
-      return NextResponse.json({ error: "SIGNATURE_INVALID" }, { status: 401 });
+      return errJson("SIGNATURE_INVALID", 401);
     }
 
     const rpcUrlsRaw = getRpcUrls(chainId);
     if (rpcUrlsRaw.length === 0) {
-      return NextResponse.json(
-        { error: "RPC_URL_NOT_CONFIGURED" },
-        { status: 500 }
-      );
+      return errJson("RPC_URL_NOT_CONFIGURED", 500);
     }
 
     const rpcUrls = await filterWorkingRpcUrls(chainId, rpcUrlsRaw);
@@ -99,23 +98,17 @@ export async function POST(req: NextRequest) {
         chainId,
         rpcUrlsRaw,
       });
-      return NextResponse.json(
-        { error: "NO_VALID_RPC_ENDPOINT" },
-        { status: 500 }
-      );
+      return errJson("NO_VALID_RPC_ENDPOINT", 500);
     }
 
-    const jpycAddress = getJpycAddress(chainId);
+    const jpycAddress = getJpycAddress(gasSupportEnv, chainId);
     if (!jpycAddress) {
-      return NextResponse.json(
-        { error: "JPYC_ADDRESS_NOT_CONFIGURED" },
-        { status: 500 }
-      );
+      return errJson("JPYC_ADDRESS_NOT_CONFIGURED", 500);
     }
 
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
     if (!config || !config.enabled) {
-      return NextResponse.json({ error: "FAUCET_DISABLED" }, { status: 403 });
+      return errJson("FAUCET_DISABLED", 403);
     }
 
     const faucetWalletRow = await prisma.faucetWallet.findFirst({
@@ -123,18 +116,12 @@ export async function POST(req: NextRequest) {
       orderBy: { updatedAt: "desc" },
     });
     if (!faucetWalletRow) {
-      return NextResponse.json(
-        { error: "FAUCET_WALLET_NOT_CONFIGURED" },
-        { status: 500 }
-      );
+      return errJson("FAUCET_WALLET_NOT_CONFIGURED", 500);
     }
 
-    const faucetPk = getFaucetPrivateKey(chainId);
+    const faucetPk = getFaucetPrivateKey(gasSupportEnv, chainId);
     if (!faucetPk) {
-      return NextResponse.json(
-        { error: "FAUCET_PRIVATE_KEY_NOT_CONFIGURED" },
-        { status: 500 }
-      );
+      return errJson("FAUCET_PRIVATE_KEY_NOT_CONFIGURED", 500);
     }
 
     // 3) eligibility re-check (server-side)
@@ -152,16 +139,10 @@ export async function POST(req: NextRequest) {
     const isNativeZero = polBalWei === 0n;
 
     if (!hasMinJpyc) {
-      return NextResponse.json(
-        { error: "JPYC_BALANCE_LT_MIN" },
-        { status: 403 }
-      );
+      return errJson("JPYC_BALANCE_LT_MIN", 403);
     }
     if (config.requirePolZero && !isNativeZero) {
-      return NextResponse.json(
-        { error: "NATIVE_BALANCE_NOT_ZERO" },
-        { status: 403 }
-      );
+      return errJson("NATIVE_BALANCE_NOT_ZERO", 403);
     }
 
     // 4) already claimed?
@@ -169,17 +150,14 @@ export async function POST(req: NextRequest) {
       where: { chainId_address: { chainId, address } },
     });
     if (existing) {
-      return NextResponse.json({ error: "ALREADY_CLAIMED" }, { status: 409 });
+      return errJson("ALREADY_CLAIMED", 409);
     }
 
     // 5) faucet balance check
     const claimAmountWei = ethers.parseEther(config.claimAmountPol);
     const faucetBalWei = await provider.getBalance(faucetWalletRow.address);
     if (faucetBalWei < claimAmountWei) {
-      return NextResponse.json(
-        { error: "FAUCET_INSUFFICIENT" },
-        { status: 503 }
-      );
+      return errJson("FAUCET_INSUFFICIENT", 503);
     }
 
     // 6) create claim record first (DB lock by unique(address))
@@ -202,10 +180,7 @@ export async function POST(req: NextRequest) {
         where: { id: claim.id },
         data: { status: "FAILED", reason: "FAUCET_SIGNER_MISMATCH" },
       });
-      return NextResponse.json(
-        { error: "FAUCET_SIGNER_MISMATCH" },
-        { status: 500 }
-      );
+      return errJson("FAUCET_SIGNER_MISMATCH", 500);
     }
 
     const tx = await faucetSigner.sendTransaction({
@@ -224,8 +199,7 @@ export async function POST(req: NextRequest) {
       .delete({ where: { chainId_address: { chainId, address } } })
       .catch(() => null);
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       chainId,
       address,
       amountPol: config.claimAmountPol,
@@ -234,6 +208,6 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     console.error(e);
     const message = e instanceof Error ? e.message : "CLAIM_ERROR";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errJson(message, 500);
   }
 }

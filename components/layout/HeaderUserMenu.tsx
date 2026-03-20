@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
@@ -37,6 +38,8 @@ function shortAddress(value: string): string {
 
 export function HeaderUserMenu() {
   const { address, isConnected } = useAccount();
+  const pathname = usePathname();
+  const pageUsername = pathname.split("/")[1] ?? null;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [viewer, setViewer] = useState<HeaderViewerState | null>(null);
@@ -156,11 +159,11 @@ export function HeaderUserMenu() {
                 </p>
               </div>
               <Link
-                href="/"
+                href={pageUsername ? `/${pageUsername}/mypage` : "/"}
                 className="btn w-full text-center"
                 onClick={() => setOpen(false)}
               >
-                はじめに戻る
+                ユーザー登録へ
               </Link>
             </div>
           ) : (

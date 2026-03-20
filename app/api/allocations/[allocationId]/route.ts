@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { Allocation } from "@prisma/client";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 import { resolveAllocationOwnerAddress } from "@/lib/ownerScopedResources";
+import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
   toBigIntOrThrow,
@@ -33,12 +34,6 @@ function normalizeAmountType(v: unknown): AmountType | undefined {
   if (!s) return undefined;
   if (s === "FIXED" || s === "RATIO_BPS") return s;
   return undefined;
-}
-
-function normalizeAddress(v: unknown): string | undefined {
-  if (typeof v !== "string") return undefined;
-  const s = v.trim();
-  return s ? s : undefined;
 }
 
 function serializeAllocation(a: Allocation) {
@@ -73,16 +68,10 @@ export async function GET(
 
     const ownerLookup = await resolveAllocationOwnerAddress(id);
     if (!ownerLookup.found) {
-      return NextResponse.json(
-        { error: "ALLOCATION_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("ALLOCATION_NOT_FOUND", 404);
     }
     if (!ownerLookup.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
@@ -92,29 +81,19 @@ export async function GET(
 
     const row = await prisma.allocation.findUnique({ where: { id } });
     if (!row) {
-      return NextResponse.json(
-        { error: "ALLOCATION_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("ALLOCATION_NOT_FOUND", 404);
     }
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       allocation: serializeAllocation(row),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "ALLOCATION_ID_INVALID") {
-      return NextResponse.json(
-        { error: "ALLOCATION_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("ALLOCATION_ID_INVALID", 400);
     }
     console.error("ALLOCATION_GET_FAILED", e);
-    return NextResponse.json(
-      { error: "ALLOCATION_GET_FAILED" },
-      { status: 500 }
-    );
+    return errJson("ALLOCATION_GET_FAILED", 500);
   }
 }
 
@@ -128,16 +107,10 @@ export async function PATCH(
 
     const ownerLookup = await resolveAllocationOwnerAddress(id);
     if (!ownerLookup.found) {
-      return NextResponse.json(
-        { error: "ALLOCATION_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("ALLOCATION_NOT_FOUND", 404);
     }
     if (!ownerLookup.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
@@ -147,12 +120,12 @@ export async function PATCH(
 
     const json = (await req.json().catch(() => null)) as unknown;
     if (!isRecord(json)) {
-      return NextResponse.json({ error: "INVALID_JSON" }, { status: 400 });
+      return errJson("INVALID_JSON", 400);
     }
 
     // 部分更新（入力）
     const nextRecipientType = normalizeRecipientType(json.recipientType);
-    const nextRecipientAddress = normalizeAddress(json.recipientAddress);
+    const nextRecipientAddress = toOptionalString(json.recipientAddress);
     const nextAmountType = normalizeAmountType(json.amountType);
 
     const amountJpycRaw = toOptionalNumber(json.amountJpyc);
@@ -174,10 +147,7 @@ export async function PATCH(
     // 現在値取得（整合性チェック用）
     const current = await prisma.allocation.findUnique({ where: { id } });
     if (!current) {
-      return NextResponse.json(
-        { error: "ALLOCATION_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("ALLOCATION_NOT_FOUND", 404);
     }
 
     // Prisma上は string → union に落とす（ここが今回の修正点）
@@ -202,36 +172,24 @@ export async function PATCH(
 
     // バリデーション
     if (nextRecipientAddress !== undefined && !nextRecipientAddress) {
-      return NextResponse.json(
-        { error: "RECIPIENT_ADDRESS_INVALID" },
-        { status: 400 }
-      );
+      return errJson("RECIPIENT_ADDRESS_INVALID", 400);
     }
 
     if (amountType === "FIXED") {
       if (finalAmountJpyc == null) {
-        return NextResponse.json(
-          { error: "AMOUNT_JPYC_REQUIRED_FOR_FIXED" },
-          { status: 400 }
-        );
+        return errJson("AMOUNT_JPYC_REQUIRED_FOR_FIXED", 400);
       }
       if (finalAmountJpyc < 0) {
-        return NextResponse.json(
-          { error: "AMOUNT_JPYC_RANGE" },
-          { status: 400 }
-        );
+        return errJson("AMOUNT_JPYC_RANGE", 400);
       }
     }
 
     if (amountType === "RATIO_BPS") {
       if (finalRatioBps == null) {
-        return NextResponse.json(
-          { error: "RATIO_BPS_REQUIRED_FOR_RATIO" },
-          { status: 400 }
-        );
+        return errJson("RATIO_BPS_REQUIRED_FOR_RATIO", 400);
       }
       if (finalRatioBps < 0 || finalRatioBps > 10000) {
-        return NextResponse.json({ error: "RATIO_BPS_RANGE" }, { status: 400 });
+        return errJson("RATIO_BPS_RANGE", 400);
       }
     }
 
@@ -261,32 +219,25 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       allocation: serializeAllocation(updated),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
 
     if (msg === "ALLOCATION_ID_INVALID") {
-      return NextResponse.json(
-        { error: "ALLOCATION_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("ALLOCATION_ID_INVALID", 400);
     }
     if (
       msg === "DB_AMOUNT_TYPE_INVALID" ||
       msg === "DB_RECIPIENT_TYPE_INVALID"
     ) {
       // DBが制約違反の値を持っていた場合（通常は起きない）
-      return NextResponse.json({ error: msg }, { status: 500 });
+      return errJson(msg, 500);
     }
 
     console.error("ALLOCATION_PATCH_FAILED", e);
-    return NextResponse.json(
-      { error: "ALLOCATION_PATCH_FAILED" },
-      { status: 500 }
-    );
+    return errJson("ALLOCATION_PATCH_FAILED", 500);
   }
 }
 
@@ -300,16 +251,10 @@ export async function DELETE(
 
     const ownerLookup = await resolveAllocationOwnerAddress(id);
     if (!ownerLookup.found) {
-      return NextResponse.json(
-        { error: "ALLOCATION_NOT_FOUND" },
-        { status: 404 }
-      );
+      return errJson("ALLOCATION_NOT_FOUND", 404);
     }
     if (!ownerLookup.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
@@ -318,19 +263,13 @@ export async function DELETE(
     }
 
     await prisma.allocation.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
+    return okJson({});
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "ALLOCATION_ID_INVALID") {
-      return NextResponse.json(
-        { error: "ALLOCATION_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("ALLOCATION_ID_INVALID", 400);
     }
     console.error("ALLOCATION_DELETE_FAILED", e);
-    return NextResponse.json(
-      { error: "ALLOCATION_DELETE_FAILED" },
-      { status: 500 }
-    );
+    return errJson("ALLOCATION_DELETE_FAILED", 500);
   }
 }

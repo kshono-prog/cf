@@ -1,5 +1,11 @@
 // app/api/projects/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import {
+  isRecord,
+  toNonEmptyString,
+} from "@/lib/api/guards";
+import { errJson, okJson } from "@/lib/api/responses";
+import { parseOwnerAddressFromBody } from "@/lib/ownerAuthAddress";
 import { prisma } from "@/lib/prisma";
 import { buildCreatorProjectActivationFields } from "@/lib/creatorProjectActivation";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
@@ -9,38 +15,9 @@ export const runtime = "nodejs";
 type PurposeMode = "OPTIONAL" | "REQUIRED" | "NONE";
 type Currency = "JPYC" | "USDC";
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function asNonEmptyString(v: unknown): string | null {
-  if (typeof v !== "string") return null;
-  const s = v.trim();
-  return s.length > 0 ? s : null;
-}
-
 function asNullableString(v: unknown): string | null {
   if (v === null) return null;
-  return asNonEmptyString(v) ?? null;
-}
-
-function normalizeAddress(input: string): string {
-  return input.trim().toLowerCase();
-}
-
-function isHexAddressLower(addr: string): boolean {
-  return /^0x[a-f0-9]{40}$/.test(addr);
-}
-
-function parseOwnerAddressOrNull(body: Record<string, unknown>): string | null {
-  const raw =
-    asNonEmptyString(body.ownerAddress) ?? asNonEmptyString(body.address);
-  if (!raw) return null;
-
-  const normalized = normalizeAddress(raw);
-  if (!isHexAddressLower(normalized)) return null;
-
-  return normalized;
+  return toNonEmptyString(v) ?? null;
 }
 
 function asPurposeMode(v: unknown): PurposeMode | null {
@@ -57,31 +34,25 @@ export async function POST(req: NextRequest) {
   try {
     const bodyUnknown: unknown = await req.json().catch(() => null);
     if (!isRecord(bodyUnknown)) {
-      return NextResponse.json(
-        { ok: false, error: "INVALID_JSON" },
-        { status: 400 }
-      );
+      return errJson("INVALID_JSON", 400);
     }
 
-    const title = asNonEmptyString(bodyUnknown.title);
+    const title = toNonEmptyString(bodyUnknown.title);
     const description = asNullableString(bodyUnknown.description);
     const purposeMode: PurposeMode =
       asPurposeMode(bodyUnknown.purposeMode) ?? "OPTIONAL";
     const currency: Currency = asCurrency(bodyUnknown.currency) ?? "JPYC";
 
     if (!title) {
-      return NextResponse.json(
-        { ok: false, error: "TITLE_REQUIRED" },
-        { status: 400 }
-      );
+      return errJson("TITLE_REQUIRED", 400);
     }
 
-    const ownerAddress = parseOwnerAddressOrNull(bodyUnknown);
+    const ownerAddress = parseOwnerAddressFromBody(bodyUnknown, [
+      "ownerAddress",
+      "address",
+    ]);
     if (!ownerAddress) {
-      return NextResponse.json(
-        { ok: false, error: "OWNER_ADDRESS_REQUIRED_OR_INVALID" },
-        { status: 400 }
-      );
+      return errJson("OWNER_ADDRESS_REQUIRED_OR_INVALID", 400);
     }
     const ownerSession = await requireOwnerSession(req, ownerAddress);
     if (!ownerSession.ok) return ownerSession.response;
@@ -92,10 +63,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!creator) {
-      return NextResponse.json(
-        { ok: false, error: "CREATOR_NOT_FOUND" },
-        { status: 400 }
-      );
+      return errJson("CREATOR_NOT_FOUND", 400);
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -134,30 +102,23 @@ export async function POST(req: NextRequest) {
       return project;
     });
 
-    return NextResponse.json(
-      {
-        ok: true,
-        projectId: result.id.toString(),
-        project: {
-          id: result.id.toString(),
-          title: result.title,
-          description: result.description ?? null,
-          purposeMode: result.purposeMode,
-          status: result.status,
-          currency: result.currency,
-          ownerAddress: result.ownerAddress ?? null,
-          createdAt: result.createdAt.toISOString(),
-          updatedAt: result.updatedAt.toISOString(),
-        },
+    return okJson({
+      projectId: result.id.toString(),
+      project: {
+        id: result.id.toString(),
+        title: result.title,
+        description: result.description ?? null,
+        purposeMode: result.purposeMode,
+        status: result.status,
+        currency: result.currency,
+        ownerAddress: result.ownerAddress ?? null,
+        createdAt: result.createdAt.toISOString(),
+        updatedAt: result.updatedAt.toISOString(),
       },
-      { status: 200 }
-    );
+    });
   } catch (e: unknown) {
     console.error("PROJECTS_POST_ERROR", e);
     const detail = e instanceof Error ? e.message : String(e);
-    return NextResponse.json(
-      { ok: false, error: "PROJECTS_POST_ERROR", detail },
-      { status: 500 }
-    );
+    return errJson("PROJECTS_POST_ERROR", 500, detail);
   }
 }

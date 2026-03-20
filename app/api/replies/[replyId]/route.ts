@@ -10,7 +10,7 @@ import {
   REPLY_BODY_MAX_LENGTH,
   serializeReply,
 } from "@/lib/social";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,8 +38,7 @@ export async function PATCH(
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
     const body = raw as ReplyPatchBody;
-    if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, body.address);
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
     if (!ownerSession.ok) return ownerSession.response;
 
     const replyBody = normalizeTextBody(body.body, REPLY_BODY_MAX_LENGTH);
@@ -115,8 +114,7 @@ export async function DELETE(
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
     const body = raw as ReplyDeleteBody;
-    if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, body.address);
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
     if (!ownerSession.ok) return ownerSession.response;
 
     const creator = await findCreatorByWalletAddress(ownerSession.address);

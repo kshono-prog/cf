@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { isRecord } from "@/lib/api/guards";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 type CreateProjectOk = { id: string };
@@ -18,10 +19,6 @@ type Props = {
   /** 作成後に projectId を親へ返す */
   onCreated?: (projectId: string) => void;
 };
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
 
 function parseCreateProjectResponse(raw: unknown): CreateProjectResponse {
   if (!isRecord(raw)) return { error: "INVALID_RESPONSE" };

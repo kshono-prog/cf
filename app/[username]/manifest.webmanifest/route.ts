@@ -1,16 +1,15 @@
 import type { MetadataRoute } from "next";
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
-
-const SITE_BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://nagesen-v2.vercel.app";
+import { resolveBaseUrlFromRequestUrl, withBaseUrl } from "@/utils/baseUrl";
 
 type Params = { username: string };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   ctx: { params: Promise<Params> }
 ): Promise<Response> {
   const { username } = await ctx.params;
+  const siteBaseUrl = resolveBaseUrlFromRequestUrl(request.url);
   const creator =
     (await getCreatorProfileByUsername(username))?.creator ?? null;
 
@@ -19,7 +18,7 @@ export async function GET(
   const imageUrl =
     rawImage && rawImage.startsWith("http")
       ? rawImage
-      : `${SITE_BASE_URL}${rawImage}`;
+      : withBaseUrl(rawImage, siteBaseUrl);
 
   const manifest: MetadataRoute.Manifest = {
     name: displayName,

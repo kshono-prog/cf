@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { Allocation } from "@prisma/client";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 import { resolvePurposeOwnerAddress } from "@/lib/ownerScopedResources";
+import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
   toBigIntOrThrow,
@@ -35,12 +36,6 @@ function normalizeAmountType(v: unknown): AmountType | undefined {
   return undefined;
 }
 
-function normalizeAddress(v: unknown): string | undefined {
-  if (typeof v !== "string") return undefined;
-  const s = v.trim();
-  return s ? s : undefined;
-}
-
 function serializeAllocation(a: Allocation) {
   return {
     ...a,
@@ -61,13 +56,10 @@ export async function GET(
 
     const ownerLookup = await resolvePurposeOwnerAddress(purposeId);
     if (!ownerLookup.found) {
-      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+      return errJson("PURPOSE_NOT_FOUND", 404);
     }
     if (!ownerLookup.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
@@ -80,23 +72,16 @@ export async function GET(
       orderBy: [{ createdAt: "asc" }],
     });
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       allocations: rows.map(serializeAllocation),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PURPOSE_ID_INVALID") {
-      return NextResponse.json(
-        { error: "PURPOSE_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PURPOSE_ID_INVALID", 400);
     }
     console.error("ALLOCATIONS_GET_FAILED", e);
-    return NextResponse.json(
-      { error: "ALLOCATIONS_GET_FAILED" },
-      { status: 500 }
-    );
+    return errJson("ALLOCATIONS_GET_FAILED", 500);
   }
 }
 
@@ -110,13 +95,10 @@ export async function POST(
 
     const ownerLookup = await resolvePurposeOwnerAddress(purposeId);
     if (!ownerLookup.found) {
-      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+      return errJson("PURPOSE_NOT_FOUND", 404);
     }
     if (!ownerLookup.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
@@ -126,16 +108,13 @@ export async function POST(
 
     const json = (await req.json().catch(() => null)) as unknown;
     if (!isRecord(json)) {
-      return NextResponse.json({ error: "INVALID_JSON" }, { status: 400 });
+      return errJson("INVALID_JSON", 400);
     }
 
     // 必須
-    const recipientAddress = normalizeAddress(json.recipientAddress);
+    const recipientAddress = toOptionalString(json.recipientAddress);
     if (!recipientAddress) {
-      return NextResponse.json(
-        { error: "RECIPIENT_ADDRESS_REQUIRED" },
-        { status: 400 }
-      );
+      return errJson("RECIPIENT_ADDRESS_REQUIRED", 400);
     }
 
     // 任意（既定値あり）
@@ -164,28 +143,19 @@ export async function POST(
     // ---- バリデーション（DBのCHECKに合わせて事前に弾く）----
     if (amountType === "FIXED") {
       if (amountJpyc == null) {
-        return NextResponse.json(
-          { error: "AMOUNT_JPYC_REQUIRED_FOR_FIXED" },
-          { status: 400 }
-        );
+        return errJson("AMOUNT_JPYC_REQUIRED_FOR_FIXED", 400);
       }
       if (amountJpyc < 0) {
-        return NextResponse.json(
-          { error: "AMOUNT_JPYC_RANGE" },
-          { status: 400 }
-        );
+        return errJson("AMOUNT_JPYC_RANGE", 400);
       }
     }
 
     if (amountType === "RATIO_BPS") {
       if (ratioBps == null) {
-        return NextResponse.json(
-          { error: "RATIO_BPS_REQUIRED_FOR_RATIO" },
-          { status: 400 }
-        );
+        return errJson("RATIO_BPS_REQUIRED_FOR_RATIO", 400);
       }
       if (ratioBps < 0 || ratioBps > 10000) {
-        return NextResponse.json({ error: "RATIO_BPS_RANGE" }, { status: 400 });
+        return errJson("RATIO_BPS_RANGE", 400);
       }
     }
 
@@ -206,22 +176,15 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       allocation: serializeAllocation(created),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PURPOSE_ID_INVALID") {
-      return NextResponse.json(
-        { error: "PURPOSE_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PURPOSE_ID_INVALID", 400);
     }
     console.error("ALLOCATIONS_POST_FAILED", e);
-    return NextResponse.json(
-      { error: "ALLOCATIONS_POST_FAILED" },
-      { status: 500 }
-    );
+    return errJson("ALLOCATIONS_POST_FAILED", 500);
   }
 }

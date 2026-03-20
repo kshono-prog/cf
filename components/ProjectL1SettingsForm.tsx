@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
+import { isRecord } from "@/lib/api/guards";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 /**
@@ -29,10 +30,6 @@ type ProjectL1SettingsFormProps = {
 // ---------------------------
 // Runtime guards
 // ---------------------------
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
 function toStringOrUndefined(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
 }

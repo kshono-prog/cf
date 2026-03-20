@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/api/guards";
 import type { CreatorProfile } from "@/types/creator";
 import { parseCreatorProfile } from "@/lib/serializers/creator";
 
@@ -13,10 +14,6 @@ export type HeaderViewerState = {
   user: HeaderViewerUser | null;
   creator: CreatorProfile | null;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 function toStringOrNull(value: unknown): string | null {
   return typeof value === "string" ? value : null;

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { Purpose } from "@prisma/client";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 import { resolvePurposeOwnerAddress } from "@/lib/ownerScopedResources";
+import { errJson, okJson } from "@/lib/api/responses";
 
 export const dynamic = "force-dynamic";
 
@@ -75,13 +76,10 @@ export async function GET(
 
     const ownerLookup = await resolvePurposeOwnerAddress(purposeId);
     if (!ownerLookup.found) {
-      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+      return errJson("PURPOSE_NOT_FOUND", 404);
     }
     if (!ownerLookup.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
@@ -93,20 +91,17 @@ export async function GET(
       where: { id: purposeId },
     });
     if (!purpose) {
-      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+      return errJson("PURPOSE_NOT_FOUND", 404);
     }
 
-    return NextResponse.json({ ok: true, purpose: serializePurpose(purpose) });
+    return okJson({ purpose: serializePurpose(purpose) });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PURPOSE_ID_INVALID") {
-      return NextResponse.json(
-        { error: "PURPOSE_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PURPOSE_ID_INVALID", 400);
     }
     console.error("PURPOSE_GET_FAILED", e);
-    return NextResponse.json({ error: "PURPOSE_GET_FAILED" }, { status: 500 });
+    return errJson("PURPOSE_GET_FAILED", 500);
   }
 }
 
@@ -120,13 +115,10 @@ export async function PATCH(
 
     const ownerLookup = await resolvePurposeOwnerAddress(purposeId);
     if (!ownerLookup.found) {
-      return NextResponse.json({ error: "PURPOSE_NOT_FOUND" }, { status: 404 });
+      return errJson("PURPOSE_NOT_FOUND", 404);
     }
     if (!ownerLookup.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, ownerLookup.ownerAddress);
@@ -136,7 +128,7 @@ export async function PATCH(
 
     const raw = (await req.json().catch(() => null)) as unknown;
     if (!raw || typeof raw !== "object") {
-      return NextResponse.json({ error: "INVALID_JSON" }, { status: 400 });
+      return errJson("INVALID_JSON", 400);
     }
 
     const body = raw as PatchBody;
@@ -155,14 +147,14 @@ export async function PATCH(
 
     if (typeof body.code !== "undefined") {
       if (typeof codeRaw !== "string" || !codeRaw.trim()) {
-        return NextResponse.json({ error: "CODE_INVALID" }, { status: 400 });
+        return errJson("CODE_INVALID", 400);
       }
       data.code = codeRaw.trim();
     }
 
     if (typeof body.label !== "undefined") {
       if (typeof labelRaw !== "string" || !labelRaw.trim()) {
-        return NextResponse.json({ error: "LABEL_INVALID" }, { status: 400 });
+        return errJson("LABEL_INVALID", 400);
       }
       data.label = labelRaw.trim();
     }
@@ -174,10 +166,7 @@ export async function PATCH(
     if (typeof body.targetAmount !== "undefined") {
       const v = toOptionalNullableNumber(body.targetAmount);
       if (typeof v === "undefined") {
-        return NextResponse.json(
-          { error: "TARGET_AMOUNT_INVALID" },
-          { status: 400 }
-        );
+        return errJson("TARGET_AMOUNT_INVALID", 400);
       }
       data.targetAmount = v;
     }
@@ -185,10 +174,7 @@ export async function PATCH(
     if (typeof body.orderIndex !== "undefined") {
       const v = toOptionalNumber(body.orderIndex);
       if (typeof v === "undefined") {
-        return NextResponse.json(
-          { error: "ORDER_INDEX_INVALID" },
-          { status: 400 }
-        );
+        return errJson("ORDER_INDEX_INVALID", 400);
       }
       data.orderIndex = v;
     }
@@ -198,19 +184,13 @@ export async function PATCH(
       data,
     });
 
-    return NextResponse.json({ ok: true, purpose: serializePurpose(updated) });
+    return okJson({ purpose: serializePurpose(updated) });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PURPOSE_ID_INVALID") {
-      return NextResponse.json(
-        { error: "PURPOSE_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PURPOSE_ID_INVALID", 400);
     }
     console.error("PURPOSE_PATCH_FAILED", e);
-    return NextResponse.json(
-      { error: "PURPOSE_PATCH_FAILED" },
-      { status: 500 }
-    );
+    return errJson("PURPOSE_PATCH_FAILED", 500);
   }
 }

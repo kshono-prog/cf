@@ -1,20 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useAccount } from "wagmi";
 
 import type { CreatorProfile } from "@/lib/profileTypes";
 import { PublicOwnerComposerCard } from "@/components/profile/PublicOwnerComposerCard";
+import { usePublicViewerIdentity } from "@/components/shared/usePublicViewerIdentity";
 import {
   CommunityGuideCard,
   CommunityGuideLoadingCard,
 } from "@/components/social/CommunityGuideCard";
-import {
-  parsePublicViewerMeResponse,
-  resolvePublicViewerState,
-} from "@/lib/publicViewerState";
-import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
+import { resolveComposeViewerLinks } from "@/lib/composeViewerLinks";
 
 type ComposePageClientProps = {
   username: string;
@@ -27,52 +24,10 @@ type ComposePageClientProps = {
 
 export function ComposePageClient(props: ComposePageClientProps) {
   const { address } = useAccount();
-  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
-  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
-    typeof parsePublicViewerMeResponse
-  > | null>(null);
-
-  useEffect(() => {
-    if (!address) {
-      setViewerIdentity(null);
-      setViewerIdentityResolved(true);
-      return;
-    }
-
-    const connectedAddress = address;
-    let cancelled = false;
-
-    async function loadViewer() {
-      setViewerIdentityResolved(false);
-      try {
-        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
-        if (!cancelled) {
-          setViewerIdentity(identity);
-        }
-      } catch {
-        if (!cancelled) {
-          setViewerIdentity(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setViewerIdentityResolved(true);
-        }
-      }
-    }
-
-    void loadViewer();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address]);
-
-  const viewerState = resolvePublicViewerState({
+  const { viewerState } = usePublicViewerIdentity({
     pageUsername: props.username,
     pageCreatorAddress: props.creator.address ?? null,
     viewerAddress: address ?? null,
-    identity: viewerIdentity,
-    identityResolved: viewerIdentityResolved,
   });
 
   async function handleConnect(): Promise<void> {
@@ -100,13 +55,12 @@ export function ComposePageClient(props: ComposePageClientProps) {
   }, [props.projectIdsByCurrency]);
 
   const pageDisplayName = props.creator.displayName ?? props.username;
-  const onboardingHref = `/${props.username}/mypage`;
-  const ownComposeHref = viewerState.creatorUsername
-    ? `/${viewerState.creatorUsername}/compose`
-    : onboardingHref;
-  const ownProfileHref = viewerState.creatorUsername
-    ? `/${viewerState.creatorUsername}`
-    : onboardingHref;
+  const { viewerWorkspaceHref, ownComposeHref, ownProfileHref } = resolveComposeViewerLinks(
+    {
+      pageUsername: props.username,
+      viewerState,
+    }
+  );
 
   const composeGuide = (() => {
     if (viewerState.mode === "loading") {
@@ -132,8 +86,8 @@ export function ComposePageClient(props: ComposePageClientProps) {
               <button type="button" className="btn" onClick={() => void handleConnect()}>
                 ウォレット接続
               </button>
-              <Link href={onboardingHref} className="btn-secondary">
-                使い方を見る
+              <Link href={`/${props.username}`} className="btn-secondary">
+                プロフィールを見る
               </Link>
             </>
           }
@@ -150,11 +104,11 @@ export function ComposePageClient(props: ComposePageClientProps) {
           maxWidthClassName="max-w-xl"
           actions={
             <>
-              <Link href={onboardingHref} className="btn">
+              <Link href={viewerWorkspaceHref} className="btn">
                 ユーザー登録へ
               </Link>
-              <Link href={`/${props.username}`} className="btn-secondary">
-                プロフィールを見る
+              <Link href={`/${props.username}/search`} className="btn-secondary">
+                検索へ
               </Link>
             </>
           }
@@ -171,11 +125,11 @@ export function ComposePageClient(props: ComposePageClientProps) {
           maxWidthClassName="max-w-xl"
           actions={
             <>
-              <Link href={onboardingHref} className="btn">
+              <Link href={viewerWorkspaceHref} className="btn">
                 設定を開く
               </Link>
-              <Link href={`/${props.username}`} className="btn-secondary">
-                プロフィールを見る
+              <Link href={`/${props.username}/search`} className="btn-secondary">
+                検索へ
               </Link>
             </>
           }

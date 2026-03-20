@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toNonEmptyString,
 } from "@/lib/api/guards";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import {
+  requireOwnerSessionFromBody,
+  requireOwnerSessionFromSearchParams,
+} from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -69,13 +71,13 @@ async function resolveCreatorProfileIdByAddress(address: string): Promise<bigint
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const addressRaw = searchParams.get("address");
-    const ownerSession = await requireOwnerSession(req, addressRaw ?? undefined);
+    const ownerSession = await requireOwnerSessionFromSearchParams(
+      req,
+      searchParams
+    );
     if (!ownerSession.ok) return ownerSession.response;
-    const address = toAddressOrNull(ownerSession.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
 
-    const profileId = await resolveCreatorProfileIdByAddress(address);
+    const profileId = await resolveCreatorProfileIdByAddress(ownerSession.address);
     if (!profileId) return errJson("CREATOR_NOT_FOUND", 404);
 
     const rows = await prisma.socialConnection.findMany({
@@ -107,12 +109,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const raw: unknown = await req.json().catch(() => null);
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
-
     const body = raw as PostBody;
-
-    const address = toAddressOrNull(body.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, address);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
 
     const platform = toPlatform(body.platform);
@@ -126,7 +124,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const accountId = toNonEmptyString(body.accountId);
 
-    const profileId = await resolveCreatorProfileIdByAddress(address);
+    const profileId = await resolveCreatorProfileIdByAddress(ownerSession.address);
     if (!profileId) return errJson("CREATOR_NOT_FOUND", 404);
 
     const now = new Date();

@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toBigIntOrThrow,
   lowerOrNull,
   toNonEmptyString,
 } from "@/lib/api/guards";
+import { getBridgeRuntimeEnv } from "@/lib/env";
 import {
   createPublicClient,
   decodeEventLog,
@@ -18,7 +18,7 @@ import {
   type Address,
 } from "viem";
 import { avalanche, avalancheFuji } from "viem/chains";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,8 @@ const TRANSFER_EVENT = parseAbiItem(
 
 type Params = { projectId: string };
 
+const bridgeRuntimeEnv = getBridgeRuntimeEnv();
+
 function getAvalancheChain(chainId: number) {
   if (chainId === 43114) return avalanche;
   if (chainId === 43113) return avalancheFuji;
@@ -35,8 +37,8 @@ function getAvalancheChain(chainId: number) {
 }
 
 function getRpcUrl(chainId: number): string | null {
-  if (chainId === 43114) return process.env.AVALANCHE_RPC_URL ?? null;
-  if (chainId === 43113) return process.env.AVALANCHE_FUJI_RPC_URL ?? null;
+  if (chainId === 43114) return bridgeRuntimeEnv.avalancheRpcUrl;
+  if (chainId === 43113) return bridgeRuntimeEnv.avalancheFujiRpcUrl;
   return null;
 }
 
@@ -51,9 +53,7 @@ export async function POST(
     const raw: unknown = await req.json().catch(() => null);
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
-    const addr = toAddressOrNull(raw.address);
-    if (!addr) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, addr);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
 
     const project = await prisma.project.findUnique({
@@ -63,7 +63,7 @@ export async function POST(
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
 
     const owner = lowerOrNull(project.ownerAddress);
-    if (!owner || owner !== addr.toLowerCase()) {
+    if (!owner || owner !== ownerSession.address) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 

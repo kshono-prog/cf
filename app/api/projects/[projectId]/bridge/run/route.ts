@@ -4,13 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toBigIntOrThrow,
   lowerOrNull,
   toNonEmptyString,
 } from "@/lib/api/guards";
 import { isHash } from "viem";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
+import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +27,9 @@ export async function POST(
     const raw: unknown = await req.json().catch(() => null);
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
-    const addr = toAddressOrNull(raw.address);
-    if (!addr) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, addr);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
+    const addr = ownerSession.address;
 
     const bridgeRunId = toNonEmptyString(raw.bridgeRunId);
     if (!bridgeRunId) return errJson("BRIDGE_RUN_ID_REQUIRED", 400);
@@ -40,15 +39,17 @@ export async function POST(
       return errJson("BRIDGE_TX_HASH_INVALID", 400);
     }
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        ownerAddress: true,
-        goal: {
-          select: { achievedAt: true },
+    const project = await withPrismaRetry(() =>
+      prisma.project.findUnique({
+        where: { id: projectId },
+        select: {
+          ownerAddress: true,
+          goal: {
+            select: { achievedAt: true },
+          },
         },
-      },
-    });
+      })
+    );
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
 
     const owner = lowerOrNull(project.ownerAddress);
@@ -60,25 +61,29 @@ export async function POST(
     }
 
     // projectId が一致する run のみ更新（安全策）
-    const existing = await prisma.bridgeRun.findUnique({
-      where: { id: bridgeRunId },
-      select: { id: true, projectId: true },
-    });
+    const existing = await withPrismaRetry(() =>
+      prisma.bridgeRun.findUnique({
+        where: { id: bridgeRunId },
+        select: { id: true, projectId: true },
+      })
+    );
     if (!existing) return errJson("BRIDGE_RUN_NOT_FOUND", 404);
     if (existing.projectId !== projectId)
       return errJson("BRIDGE_RUN_MISMATCH", 400);
 
-    const run = await prisma.bridgeRun.update({
-      where: { id: bridgeRunId },
-      data: {
-        bridgeTxHash: txHash,
-      },
-      select: {
-        id: true,
-        bridgeTxHash: true,
-        createdAt: true,
-      },
-    });
+    const run = await withPrismaRetry(() =>
+      prisma.bridgeRun.update({
+        where: { id: bridgeRunId },
+        data: {
+          bridgeTxHash: txHash,
+        },
+        select: {
+          id: true,
+          bridgeTxHash: true,
+          createdAt: true,
+        },
+      })
+    );
 
     return okJson({
       saved: true,
@@ -87,6 +92,9 @@ export async function POST(
       savedAt: run.createdAt.toISOString(),
     });
   } catch (e) {
+    if (isPrismaUnavailableError(e)) {
+      return errJson("DB_UNAVAILABLE", 503);
+    }
     console.error("BRIDGE_RUN_SAVE_FAILED", e);
     return errJson("BRIDGE_RUN_SAVE_FAILED", 500);
   }

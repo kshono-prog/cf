@@ -2,19 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
-import { isRecord } from "@/lib/api/guards";
 import { findCreatorByWalletAddress, isUuidString } from "@/lib/social";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Params = { replyId: string };
-
-function parseAddress(raw: unknown): string | null {
-  if (!isRecord(raw)) return null;
-  return typeof raw.address === "string" ? raw.address : null;
-}
 
 export async function POST(
   req: NextRequest,
@@ -25,9 +19,7 @@ export async function POST(
     if (!isUuidString(replyId)) return errJson("REPLY_ID_INVALID", 400);
 
     const raw: unknown = await req.json().catch(() => null);
-    const address = parseAddress(raw);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, address);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
 
     const creator = await findCreatorByWalletAddress(ownerSession.address);
@@ -112,9 +104,7 @@ export async function DELETE(
     if (!isUuidString(replyId)) return errJson("REPLY_ID_INVALID", 400);
 
     const raw: unknown = await req.json().catch(() => null);
-    const address = parseAddress(raw);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, address);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
 
     const creator = await findCreatorByWalletAddress(ownerSession.address);

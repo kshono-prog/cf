@@ -1,12 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  corsReadOnlyMethods,
+  optionsPreflight,
+  withCorsResponse,
+} from "@/app/api/_lib/cors";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { findCreatorByWalletAddress } from "@/lib/social";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromSearchParams } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function ok<T extends Record<string, unknown>>(
+  req: NextRequest,
+  data: T
+): NextResponse<{ ok: true } & T> {
+  return withCorsResponse(req, okJson(data), undefined, corsReadOnlyMethods);
+}
+
+function err(req: NextRequest, code: string, status: number): NextResponse {
+  return withCorsResponse(req, errJson(code, status), undefined, corsReadOnlyMethods);
+}
+
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return optionsPreflight(req, undefined, corsReadOnlyMethods);
+}
 
 function toDecimalString(value: { toString(): string } | null): string {
   return value ? value.toString() : "0";
@@ -15,14 +35,21 @@ function toDecimalString(value: { toString(): string } | null): string {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const ownerSession = await requireOwnerSession(
+    const ownerSession = await requireOwnerSessionFromSearchParams(
       req,
-      searchParams.get("address") ?? undefined
+      searchParams
     );
-    if (!ownerSession.ok) return ownerSession.response;
+    if (!ownerSession.ok) {
+      return withCorsResponse(
+        req,
+        ownerSession.response,
+        undefined,
+        corsReadOnlyMethods
+      );
+    }
 
     const creator = await findCreatorByWalletAddress(ownerSession.address);
-    if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
+    if (!creator) return err(req, "CREATOR_NOT_FOUND", 404);
 
     const [
       totalPostCount,
@@ -115,7 +142,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       }),
     ]);
 
-    return okJson({
+    return ok(req, {
       summary: {
         postCount: totalPostCount,
         publishedCount,
@@ -151,6 +178,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     });
   } catch (error) {
     console.error("MYPAGE_SNS_SUMMARY_GET_FAILED", error);
-    return errJson("MYPAGE_SNS_SUMMARY_GET_FAILED", 500);
+    return err(req, "MYPAGE_SNS_SUMMARY_GET_FAILED", 500);
   }
 }

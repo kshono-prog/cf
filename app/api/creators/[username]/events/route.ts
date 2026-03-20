@@ -1,7 +1,13 @@
 // app/api/creators/[username]/events/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import {
+  corsReadOnlyMethods,
+  optionsPreflight,
+  withCorsResponse,
+} from "@/app/api/_lib/cors";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
+import { errJson, jsonResponse, okJson, routeJson } from "@/lib/api/responses";
 import {
   isEventCategory,
   type EventCategory,
@@ -34,6 +40,10 @@ type EventPutBody = {
   goalAmount?: number;
   categories?: string[];
   isPublished?: boolean;
+};
+
+type CreatorEventsRouteContext = {
+  params: Promise<{ username: string }>;
 };
 
 function parseEventCategories(
@@ -72,37 +82,38 @@ function serializeGoalAmount(
     : goalAmountJpyc;
 }
 
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return optionsPreflight(req, undefined, corsReadOnlyMethods);
+}
+
 // GET: イベント一覧取得
 export async function GET(
-  _req: NextRequest,
-  ctx: RouteContext<"/api/creators/[username]/events">
+  req: NextRequest,
+  ctx: CreatorEventsRouteContext
 ): Promise<NextResponse> {
   const { username } = await ctx.params;
   const response = await fetchCreatorPublishedEventsByUsername(username);
-  return NextResponse.json(response.body, { status: response.status });
+  return withCorsResponse(req, routeJson(response), undefined, corsReadOnlyMethods);
 }
 
 // POST: イベント登録（マイページから利用）
 export async function POST(
   req: NextRequest,
-  ctx: RouteContext<"/api/creators/[username]/events">
+  ctx: CreatorEventsRouteContext
 ): Promise<NextResponse> {
   const { username } = await ctx.params;
 
   try {
     const body = (await req.json().catch(() => null)) as EventPostBody | null;
     if (!body) {
-      return NextResponse.json({ error: "INVALID_JSON" }, { status: 400 });
+      return errJson("INVALID_JSON", 400);
     }
 
     const { title, description, date, goalAmount, isPublished } = body;
     const categories = parseEventCategories(body.categories) ?? [];
 
     if (!title || !date) {
-      return NextResponse.json(
-        { error: "TITLE_AND_DATE_REQUIRED" },
-        { status: 400 }
-      );
+      return errJson("TITLE_AND_DATE_REQUIRED", 400);
     }
 
     const creator = await withPrismaRetry(() =>
@@ -113,14 +124,11 @@ export async function POST(
     );
 
     if (!creator) {
-      return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
+      return errJson("CREATOR_NOT_FOUND", 404);
     }
 
     if (!creator.walletAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, creator.walletAddress);
@@ -151,7 +159,8 @@ export async function POST(
       })
     );
 
-    return NextResponse.json({
+    return jsonResponse({
+      ok: true,
       id: newEvent.id.toString(),
       title: newEvent.title,
       description: newEvent.description,
@@ -167,24 +176,24 @@ export async function POST(
       (error.message === "EVENT_CATEGORIES_INVALID" ||
         error.message === "EVENT_CATEGORIES_TOO_MANY")
     ) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return errJson(error.message, 400);
     }
     console.error("EVENT_CREATE_ERROR", error);
-    return NextResponse.json({ error: "EVENT_CREATE_FAILED" }, { status: 500 });
+    return errJson("EVENT_CREATE_FAILED", 500);
   }
 }
 
 // PUT: イベント更新（マイページから利用）
 export async function PUT(
   req: NextRequest,
-  ctx: RouteContext<"/api/creators/[username]/events">
+  ctx: CreatorEventsRouteContext
 ): Promise<NextResponse> {
   const { username } = await ctx.params;
 
   try {
     const body = (await req.json().catch(() => null)) as EventPutBody | null;
     if (!body?.id) {
-      return NextResponse.json({ error: "EVENT_ID_REQUIRED" }, { status: 400 });
+      return errJson("EVENT_ID_REQUIRED", 400);
     }
 
     const creator = await withPrismaRetry(() =>
@@ -194,14 +203,11 @@ export async function PUT(
       })
     );
     if (!creator) {
-      return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
+      return errJson("CREATOR_NOT_FOUND", 404);
     }
 
     if (!creator.walletAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, creator.walletAddress);
@@ -219,7 +225,7 @@ export async function PUT(
       })
     );
     if (!existing) {
-      return NextResponse.json({ error: "EVENT_NOT_FOUND" }, { status: 404 });
+      return errJson("EVENT_NOT_FOUND", 404);
     }
 
     const categories = parseEventCategories(body.categories);
@@ -246,7 +252,8 @@ export async function PUT(
       })
     );
 
-    return NextResponse.json({
+    return jsonResponse({
+      ok: true,
       id: updated.id.toString(),
       title: updated.title,
       description: updated.description,
@@ -261,17 +268,17 @@ export async function PUT(
       (error.message === "EVENT_CATEGORIES_INVALID" ||
         error.message === "EVENT_CATEGORIES_TOO_MANY")
     ) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return errJson(error.message, 400);
     }
     console.error("EVENT_UPDATE_ERROR", error);
-    return NextResponse.json({ error: "EVENT_UPDATE_FAILED" }, { status: 500 });
+    return errJson("EVENT_UPDATE_FAILED", 500);
   }
 }
 
 // DELETE: イベント削除（マイページから利用）
 export async function DELETE(
   req: NextRequest,
-  ctx: RouteContext<"/api/creators/[username]/events">
+  ctx: CreatorEventsRouteContext
 ): Promise<NextResponse> {
   const { username } = await ctx.params;
 
@@ -279,7 +286,7 @@ export async function DELETE(
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
     if (!id) {
-      return NextResponse.json({ error: "EVENT_ID_REQUIRED" }, { status: 400 });
+      return errJson("EVENT_ID_REQUIRED", 400);
     }
 
     const creator = await withPrismaRetry(() =>
@@ -289,14 +296,11 @@ export async function DELETE(
       })
     );
     if (!creator) {
-      return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
+      return errJson("CREATOR_NOT_FOUND", 404);
     }
 
     if (!creator.walletAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, creator.walletAddress);
@@ -314,14 +318,14 @@ export async function DELETE(
       })
     );
     if (!existing) {
-      return NextResponse.json({ error: "EVENT_NOT_FOUND" }, { status: 404 });
+      return errJson("EVENT_NOT_FOUND", 404);
     }
 
     await withPrismaRetry(() => prisma.event.delete({ where: { id: eventId } }));
 
-    return NextResponse.json({ ok: true });
+    return okJson({});
   } catch (error: unknown) {
     console.error("EVENT_DELETE_ERROR", error);
-    return NextResponse.json({ error: "EVENT_DELETE_FAILED" }, { status: 500 });
+    return errJson("EVENT_DELETE_FAILED", 500);
   }
 }

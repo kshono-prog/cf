@@ -1,13 +1,16 @@
 // lib/prisma.ts
 import { PrismaClient } from "@prisma/client";
+import { getDatabaseEnv } from "@/lib/env";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
 
-function tuneRuntimeDatabaseUrl(rawUrl: string | undefined): string | undefined {
-  if (!rawUrl) return undefined;
+// 起動時に DATABASE_URL の存在とスキームを検証する。
+// 欠落・不正フォーマット時は MISSING_DATABASE_URL / INVALID_DATABASE_URL でクラッシュする。
+const { databaseUrl } = getDatabaseEnv();
 
+function tuneRuntimeDatabaseUrl(rawUrl: string): string {
   try {
     const url = new URL(rawUrl);
     const isSupabase = url.hostname.includes("supabase.com");
@@ -29,20 +32,18 @@ function tuneRuntimeDatabaseUrl(rawUrl: string | undefined): string | undefined 
       return url.toString();
     }
   } catch {
-    // URL パース失敗時は元値をそのまま使用
+    // URL パース失敗時は元値をそのまま使用（getDatabaseEnv で事前検証済み）
   }
 
   return rawUrl;
 }
 
-const runtimeDatabaseUrl = tuneRuntimeDatabaseUrl(process.env.DATABASE_URL);
+const runtimeDatabaseUrl = tuneRuntimeDatabaseUrl(databaseUrl);
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    ...(runtimeDatabaseUrl
-      ? { datasources: { db: { url: runtimeDatabaseUrl } } }
-      : {}),
+    datasources: { db: { url: runtimeDatabaseUrl } },
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]

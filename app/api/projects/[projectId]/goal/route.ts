@@ -1,7 +1,7 @@
 // app/api/projects/[projectId]/goal/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
@@ -91,7 +91,10 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
     });
 
     return okJson({ goal: goal ? serializeGoal(goal, unitCurrency) : null });
-  } catch {
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === "PROJECT_ID_INVALID") return errJson("PROJECT_ID_INVALID", 400);
+    console.error("GOAL_GET_FAILED", e);
     return errJson("GOAL_GET_FAILED", 500);
   }
 }
@@ -106,16 +109,12 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
       return errJson("BODY_INVALID", 400);
     }
 
-    const address = toNonEmptyString(body.address);
     const targetAmount =
       toOptionalNumber(body.targetAmount) ??
       toOptionalNumber(body.targetAmountJpyc);
     const deadline = toNonEmptyString(body.deadline); // ISO string or null
 
-    if (!address) {
-      return errJson("ADDRESS_REQUIRED", 400);
-    }
-    const ownerSession = await requireOwnerSession(req, address);
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
     if (!ownerSession.ok) return ownerSession.response;
     if (targetAmount == null || targetAmount <= 0) {
       return errJson("TARGET_INVALID", 400);
@@ -130,7 +129,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
     }
 
     const owner = project.ownerAddress ? lower(project.ownerAddress) : null;
-    if (!owner || owner !== lower(address)) {
+    if (!owner || owner !== ownerSession.address) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
     const unitCurrency = toCurrency(project.currency);
@@ -169,7 +168,10 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
     });
 
     return okJson({ goal: serializeGoal(saved, unitCurrency) });
-  } catch {
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === "PROJECT_ID_INVALID") return errJson("PROJECT_ID_INVALID", 400);
+    console.error("GOAL_SAVE_FAILED", e);
     return errJson("GOAL_SAVE_FAILED", 500);
   }
 }

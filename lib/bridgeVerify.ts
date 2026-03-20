@@ -1,4 +1,5 @@
 /* lib/bridgeVerify.ts */
+import { getBridgeRuntimeEnv } from "@/lib/env";
 import {
   createPublicClient,
   http,
@@ -12,6 +13,8 @@ import { getTokenOnChain } from "@/lib/tokenRegistry";
 
 type Currency = "JPYC" | "USDC";
 
+const bridgeRuntimeEnv = getBridgeRuntimeEnv();
+
 const ERC20_BALANCE_OF_ABI = [
   {
     type: "function",
@@ -23,10 +26,10 @@ const ERC20_BALANCE_OF_ABI = [
 ] as const;
 
 function getRpcUrl(chainId: number): string | null {
-  if (chainId === 137) return process.env.POLYGON_RPC_URL ?? null;
-  if (chainId === 80002) return process.env.POLYGON_AMOY_RPC_URL ?? null;
-  if (chainId === 43114) return process.env.AVALANCHE_RPC_URL ?? null;
-  if (chainId === 43113) return process.env.AVALANCHE_FUJI_RPC_URL ?? null;
+  if (chainId === 137) return bridgeRuntimeEnv.polygonRpcUrl;
+  if (chainId === 80002) return bridgeRuntimeEnv.polygonAmoyRpcUrl;
+  if (chainId === 43114) return bridgeRuntimeEnv.avalancheRpcUrl;
+  if (chainId === 43113) return bridgeRuntimeEnv.avalancheFujiRpcUrl;
   return null;
 }
 

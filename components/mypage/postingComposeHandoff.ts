@@ -1,6 +1,6 @@
 "use client";
 
-import { isRecord } from "@/lib/api/guards";
+import { isRecord, toNonEmptyString } from "@/lib/api/guards";
 
 export const POSTING_COMPOSE_HANDOFF_STORAGE_KEY =
   "cf:posting:compose-handoff";
@@ -13,10 +13,6 @@ export type PostingComposeHandoff = {
   payloadText: string;
   createdAt: string;
 };
-
-function toNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value : null;
-}
 
 function normalizeCreatorMypageSupportPath(pathname: string): string {
   const mypageIndex = pathname.indexOf("/mypage");

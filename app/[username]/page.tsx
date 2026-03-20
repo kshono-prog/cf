@@ -1,16 +1,16 @@
 // app/[username]/page.tsx
 
+import { headers } from "next/headers";
+
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 import { loadPublicPageData } from "@/lib/publicPageData";
 import { getInitialPublicFeedListByCreatorId } from "@/lib/feedList";
+import { resolveBaseUrlFromHeaders, withBaseUrl } from "@/utils/baseUrl";
 
 type Params = { username: string };
 
 export const revalidate = 120;
-
-const SITE_BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://nagesen-v2.vercel.app";
 
 export async function generateMetadata({
   params,
@@ -18,10 +18,12 @@ export async function generateMetadata({
   params: Promise<Params>;
 }) {
   const { username } = await params;
+  const requestHeaders = await headers();
+  const siteBaseUrl = resolveBaseUrlFromHeaders(requestHeaders);
   const creator =
     (await getCreatorProfileByUsername(username))?.creator ?? null;
 
-  const pageUrl = `${SITE_BASE_URL}/${username}`;
+  const pageUrl = withBaseUrl(username, siteBaseUrl);
   const displayName = creator?.displayName || username;
 
   const description =
@@ -32,7 +34,7 @@ export async function generateMetadata({
   const imageUrl =
     rawImage && rawImage.startsWith("http")
       ? rawImage
-      : `${SITE_BASE_URL}${rawImage}`;
+      : withBaseUrl(rawImage, siteBaseUrl);
 
   const title = `${displayName} のプロフィール`;
 

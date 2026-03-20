@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Project, Goal, Purpose } from "@prisma/client";
+import { errJson, okJson } from "@/lib/api/responses";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
@@ -63,14 +64,11 @@ export async function GET(
     });
 
     if (!project) {
-      return NextResponse.json({ error: "PROJECT_NOT_FOUND" }, { status: 404 });
+      return errJson("PROJECT_NOT_FOUND", 404);
     }
 
     if (!project.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, project.ownerAddress);
@@ -78,8 +76,7 @@ export async function GET(
       return ownerSession.response;
     }
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       project: serializeProject(project),
       goal: project.goal ? serializeGoal(project.goal) : null,
       purposes: project.purposes.map(serializePurpose),
@@ -87,12 +84,9 @@ export async function GET(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PROJECT_ID_INVALID") {
-      return NextResponse.json(
-        { error: "PROJECT_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PROJECT_ID_INVALID", 400);
     }
     console.error("PROJECT_GET_FAILED", e);
-    return NextResponse.json({ error: "PROJECT_GET_FAILED" }, { status: 500 });
+    return errJson("PROJECT_GET_FAILED", 500);
   }
 }

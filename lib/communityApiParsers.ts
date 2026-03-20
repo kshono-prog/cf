@@ -1,13 +1,7 @@
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+import { isRecord, toNumberOrNull } from "@/lib/api/guards";
 
 function toStringOrNull(value: unknown): string | null {
   return typeof value === "string" ? value : null;
-}
-
-function toNumberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 export type FollowPreview = {

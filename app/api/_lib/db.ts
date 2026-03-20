@@ -1,5 +1,6 @@
 // app/api/_lib/db.ts
 import { prisma } from "@/lib/prisma";
+import { normalizeAddress as canonicalNormalizeAddress } from "@/lib/api/guards";
 import { Prisma } from "@prisma/client";
 
 export { prisma, Prisma };
@@ -18,9 +19,7 @@ export function parseBigIntId(raw: string): bigint {
 }
 
 export function normalizeAddress(addr: string): string {
-  return String(addr || "")
-    .trim()
-    .toLowerCase();
+  return canonicalNormalizeAddress(String(addr || ""));
 }
 
 export function nowIso() {

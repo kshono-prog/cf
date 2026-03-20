@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { errJson, okJson } from "@/lib/api/responses";
 import {
-  toAddressOrNull,
   toBigIntOrThrow,
   toNonEmptyString,
 } from "@/lib/api/guards";
@@ -10,7 +9,7 @@ import {
   getAiOfficeDashboard,
   toAiOfficeTaskStatus,
 } from "@/lib/aiOfficeDashboard";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromSearchParams } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -48,11 +47,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
 
-    const addressRaw = searchParams.get("address");
-    const ownerSession = await requireOwnerSession(req, addressRaw ?? undefined);
+    const ownerSession = await requireOwnerSessionFromSearchParams(
+      req,
+      searchParams
+    );
     if (!ownerSession.ok) return ownerSession.response;
-    const address = toAddressOrNull(ownerSession.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
 
     const statusRaw = searchParams.get("status");
     const taskStatus = toAiOfficeTaskStatus(statusRaw);
@@ -71,7 +70,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     const dashboard = await getAiOfficeDashboard({
-      address,
+      address: ownerSession.address,
       projectId,
       taskStatus,
       metricLimit: toMetricLimit(searchParams.get("metricLimit")),

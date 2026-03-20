@@ -1,14 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  corsReadOnlyMethods,
+  optionsPreflight,
+  withCorsResponse,
+} from "@/app/api/_lib/cors";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
-  toAddressOrNull,
   toBigIntOrThrow,
   toNonEmptyString,
 } from "@/lib/api/guards";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromSearchParams } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
+
+function ok<T extends Record<string, unknown>>(
+  req: NextRequest,
+  data: T
+): NextResponse<{ ok: true } & T> {
+  return withCorsResponse(req, okJson(data), undefined, corsReadOnlyMethods);
+}
+
+function err(req: NextRequest, code: string, status: number): NextResponse {
+  return withCorsResponse(req, errJson(code, status), undefined, corsReadOnlyMethods);
+}
+
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return optionsPreflight(req, undefined, corsReadOnlyMethods);
+}
 
 type SnapshotRow = {
   platform: string;
@@ -129,17 +148,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
 
-    const ownerSession = await requireOwnerSession(
+    const ownerSession = await requireOwnerSessionFromSearchParams(
       req,
-      searchParams.get("address") ?? undefined
+      searchParams
     );
-    if (!ownerSession.ok) return ownerSession.response;
+    if (!ownerSession.ok) {
+      return withCorsResponse(
+        req,
+        ownerSession.response,
+        undefined,
+        corsReadOnlyMethods
+      );
+    }
 
-    const address = toAddressOrNull(ownerSession.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
-
-    const creatorId = await resolveCreatorId(address);
-    if (!creatorId) return errJson("CREATOR_NOT_FOUND", 404);
+    const creatorId = await resolveCreatorId(ownerSession.address);
+    if (!creatorId) return err(req, "CREATOR_NOT_FOUND", 404);
 
     const projectIdRaw = toNonEmptyString(searchParams.get("projectId"));
     let projectId: bigint | null = null;
@@ -147,7 +170,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       try {
         projectId = toBigIntOrThrow(projectIdRaw, "PROJECT_ID_INVALID");
       } catch {
-        return errJson("PROJECT_ID_INVALID", 400);
+        return err(req, "PROJECT_ID_INVALID", 400);
       }
     }
 
@@ -173,7 +196,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const daily = aggregateDaily(rows);
 
-    return okJson({
+    return ok(req, {
       days,
       from: since.toISOString(),
       to: new Date().toISOString(),
@@ -183,6 +206,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     });
   } catch (e) {
     console.error("METRICS_TRENDS_GET_FAILED", e);
-    return errJson("METRICS_TRENDS_GET_FAILED", 500);
+    return err(req, "METRICS_TRENDS_GET_FAILED", 500);
   }
 }

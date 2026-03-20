@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
+import { usePublicViewerIdentity } from "@/components/shared/usePublicViewerIdentity";
 import {
   CommunityGuideCard,
   CommunityGuideLoadingCard,
@@ -16,22 +17,12 @@ import {
 } from "@/lib/communityApiParsers";
 import {
   resolveCommunityViewerLinks,
-  resolveCommunityViewerMode,
 } from "@/lib/communityUiState";
+import {
+  formatNotificationTimestamp,
+  getNotificationFallbackBadge,
+} from "@/lib/notificationUi";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
-import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
-import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("ja-JP", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 type FilterKey = "ALL" | NotificationKind;
 
@@ -49,45 +40,12 @@ export function NotificationsPageClient({ username }: { username: string }) {
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState<FilterKey>("ALL");
-  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
-  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
-    typeof parsePublicViewerMeResponse
-  > | null>(null);
-
-  useEffect(() => {
-    if (!address || !isConnected) {
-      setViewerIdentity(null);
-      setViewerIdentityResolved(true);
-      return;
-    }
-
-    const connectedAddress = address;
-    let cancelled = false;
-
-    async function loadViewer() {
-      setViewerIdentityResolved(false);
-      try {
-        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
-        if (!cancelled) {
-          setViewerIdentity(identity);
-        }
-      } catch {
-        if (!cancelled) {
-          setViewerIdentity(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setViewerIdentityResolved(true);
-        }
-      }
-    }
-
-    void loadViewer();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address, isConnected]);
+  const { viewerIdentity, viewerIdentityResolved, viewerMode } =
+    usePublicViewerIdentity({
+      pageUsername: username,
+      viewerAddress: address ?? null,
+      isConnected,
+    });
 
   useEffect(() => {
     if (!address || !isConnected || !viewerIdentityResolved || !viewerIdentity?.hasCreator) {
@@ -148,12 +106,6 @@ export function NotificationsPageClient({ username }: { username: string }) {
     await appkit.open({ view: "Connect" });
   }
 
-  const viewerMode = resolveCommunityViewerMode({
-    isConnected,
-    viewerAddress: address,
-    identityResolved: viewerIdentityResolved,
-    identity: viewerIdentity,
-  });
   const { settingsHref, composeHref } = resolveCommunityViewerLinks({
     fallbackUsername: username,
     identity: viewerIdentity,
@@ -238,8 +190,12 @@ export function NotificationsPageClient({ username }: { username: string }) {
           </section>
 
           {loading ? (
-            <div className="surface-card p-5 text-sm text-[var(--text-subtle)]">
-              読み込み中です
+            <div className="surface-subtle flex items-center gap-3 px-4 py-4 text-sm text-[var(--text-subtle)]">
+              <div
+                className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--accent)]"
+                aria-hidden="true"
+              />
+              通知を読み込み中です
             </div>
           ) : error ? (
             <div className="alert-warn">{error}</div>
@@ -250,49 +206,56 @@ export function NotificationsPageClient({ username }: { username: string }) {
           ) : (
             <section className="surface-card p-5 sm:p-6">
               <div className="space-y-3">
-                {filteredItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    className="surface-subtle flex gap-3 px-4 py-4 transition hover:bg-white"
-                  >
-                    {item.actor ? (
-                      <Avatar
-                        src={item.actor.avatarUrl}
-                        alt={`${item.actor.displayName} のアイコン`}
-                        fallbackText={item.actor.displayName.slice(0, 1)}
-                        size={44}
-                      />
-                    ) : (
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--line)] bg-white text-sm font-semibold text-[var(--text-subtle)]">
-                        応
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 text-sm">
-                        <span className="font-semibold text-[var(--text)]">
-                          {item.title}
-                        </span>
-                        <span className="text-[var(--text-subtle)]">
-                          {formatDateTime(item.createdAt)}
-                        </span>
-                      </div>
+                {filteredItems.map((item) => {
+                  const fallbackBadge = getNotificationFallbackBadge(item.kind);
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className="surface-subtle flex gap-3 px-4 py-4 transition hover:bg-white"
+                    >
                       {item.actor ? (
-                        <div className="mt-1 text-xs text-[var(--text-subtle)]">
-                          {item.actor.displayName} @{item.actor.username}
+                        <Avatar
+                          src={item.actor.avatarUrl}
+                          alt={`${item.actor.displayName} のアイコン`}
+                          fallbackText={item.actor.displayName.slice(0, 1)}
+                          size={44}
+                        />
+                      ) : (
+                        <div
+                          className={`flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold ${fallbackBadge.className}`}
+                          aria-label={fallbackBadge.title}
+                          title={fallbackBadge.title}
+                        >
+                          {fallbackBadge.label}
                         </div>
-                      ) : null}
-                      <p className="mt-2 text-sm leading-6 text-[var(--text)]">
-                        {item.body}
-                      </p>
-                      {item.meta ? (
-                        <div className="mt-2 text-xs text-[var(--text-subtle)]">
-                          {item.meta}
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <span className="font-semibold text-[var(--text)]">
+                            {item.title}
+                          </span>
+                          <span className="text-[var(--text-subtle)]">
+                            {formatNotificationTimestamp(item.createdAt)}
+                          </span>
                         </div>
-                      ) : null}
-                    </div>
-                  </Link>
-                ))}
+                        {item.actor ? (
+                          <div className="mt-1 text-xs text-[var(--text-subtle)]">
+                            {item.actor.displayName} @{item.actor.username}
+                          </div>
+                        ) : null}
+                        <p className="mt-2 text-sm leading-6 text-[var(--text)]">
+                          {item.body}
+                        </p>
+                        {item.meta ? (
+                          <div className="mt-2 text-xs text-[var(--text-subtle)]">
+                            {item.meta}
+                          </div>
+                        ) : null}
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           )}

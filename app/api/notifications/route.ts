@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { errJson, routeJson } from "@/lib/api/responses";
 import { fetchNotificationsByOwnerAddress } from "@/lib/notificationsApi";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromSearchParams } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
-  const ownerSession = await requireOwnerSession(
+  const ownerSession = await requireOwnerSessionFromSearchParams(
     req,
-    searchParams.get("address") ?? undefined
+    searchParams
   );
   if (!ownerSession.ok) {
     return ownerSession.response;
@@ -18,12 +19,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   try {
     const response = await fetchNotificationsByOwnerAddress(ownerSession.address);
-    return NextResponse.json(response.body, { status: response.status });
+    return routeJson(response);
   } catch (error) {
     console.error("NOTIFICATIONS_GET_FAILED", error);
-    return NextResponse.json(
-      { ok: false, error: "NOTIFICATIONS_GET_FAILED" },
-      { status: 500 }
-    );
+    return errJson("NOTIFICATIONS_GET_FAILED", 500);
   }
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
-import { errJson, okJson } from "@/lib/api/responses";
+import { errJson, jsonResponse, okJson } from "@/lib/api/responses";
 import {
   isRecord,
   toBigIntOrThrow,
@@ -276,14 +276,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
   } catch (error) {
     if (isPrismaUnavailableError(error)) {
-      return NextResponse.json(
+      return jsonResponse(
         {
           ok: false,
           error: "DB_UNAVAILABLE",
           message:
             "現在サーバーが混み合っているため、送金後の記録を保証できません。時間をおいてもう一度お試しください。",
         },
-        { status: 503 }
+        503
       );
     }
 

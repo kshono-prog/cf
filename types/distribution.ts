@@ -18,3 +18,26 @@ export type DistributionPlanJson =
 
 /** Transaction hashes stored in DistributionRun.txHashes */
 export type DistributionTxHashes = `0x${string}`[];
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function isValidDistributionPlanRow(v: unknown): boolean {
+  if (!isRecord(v)) return false;
+  if (typeof v.recipientAddress !== "string" || v.recipientAddress.length === 0)
+    return false;
+  if (typeof v.amountAtomic !== "string" || v.amountAtomic.length === 0)
+    return false;
+  if (typeof v.memo !== "string") return false;
+  if (v.token !== "JPYC" && v.token !== "USDC") return false;
+  return true;
+}
+
+/** Runtime validation of a DistributionPlanJson value. */
+export function isValidDistributionPlan(v: unknown): v is DistributionPlanJson {
+  if (Array.isArray(v)) return v.every(isValidDistributionPlanRow);
+  if (isRecord(v) && Array.isArray(v.rows))
+    return v.rows.every(isValidDistributionPlanRow);
+  return false;
+}

@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 
 import { errJson, okJson } from "@/lib/api/responses";
 import { isRecord } from "@/lib/api/guards";
+import { getBridgeRuntimeEnv } from "@/lib/env";
 import { applyConfirmedContributionToPostTips } from "@/lib/social";
 
 import {
@@ -43,13 +44,14 @@ const ERC20_DECIMALS_ABI = [
   },
 ] as const;
 
+const bridgeRuntimeEnv = getBridgeRuntimeEnv();
+
 /* -------------------- helpers: chain/rpc -------------------- */
 function getRpcUrl(chainId: number): string | null {
-  if (chainId === 137) return process.env.POLYGON_RPC_URL ?? null;
-  if (chainId === 80002) return process.env.POLYGON_AMOY_RPC_URL ?? null;
-
-  if (chainId === 43114) return process.env.AVALANCHE_RPC_URL ?? null;
-  if (chainId === 43113) return process.env.AVALANCHE_FUJI_RPC_URL ?? null;
+  if (chainId === 137) return bridgeRuntimeEnv.polygonRpcUrl;
+  if (chainId === 80002) return bridgeRuntimeEnv.polygonAmoyRpcUrl;
+  if (chainId === 43114) return bridgeRuntimeEnv.avalancheRpcUrl;
+  if (chainId === 43113) return bridgeRuntimeEnv.avalancheFujiRpcUrl;
 
   return null;
 }

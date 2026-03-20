@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
+import { usePublicViewerIdentity } from "@/components/shared/usePublicViewerIdentity";
 import {
   CommunityGuideCard,
   CommunityGuideLoadingCard,
@@ -13,11 +14,8 @@ import { SupportProjectSummaryCard } from "@/components/support/SupportProjectSu
 import type { FeedPost } from "@/components/feed/feedTypes";
 import {
   resolveCommunityViewerLinks,
-  resolveCommunityViewerMode,
 } from "@/lib/communityUiState";
 import type { DiscoverCreator } from "@/lib/discoverCreators";
-import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
-import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
 
 function matchesQuery(value: string, query: string): boolean {
   return value.toLowerCase().includes(query);
@@ -54,49 +52,13 @@ type SearchPageClientProps = {
 export function SearchPageClient(props: SearchPageClientProps) {
   const { address, isConnected } = useAccount();
   const [query, setQuery] = useState("");
-  const [loading] = useState(false);
-  const [error] = useState<string | null>(null);
   const [creators] = useState<DiscoverCreator[]>(props.initialCreators);
   const [posts] = useState<FeedPost[]>(props.initialPosts);
-  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
-  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
-    typeof parsePublicViewerMeResponse
-  > | null>(null);
-
-  useEffect(() => {
-    if (!address || !isConnected) {
-      setViewerIdentity(null);
-      setViewerIdentityResolved(true);
-      return;
-    }
-
-    const connectedAddress = address;
-    let cancelled = false;
-
-    async function loadViewer() {
-      setViewerIdentityResolved(false);
-      try {
-        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
-        if (!cancelled) {
-          setViewerIdentity(identity);
-        }
-      } catch {
-        if (!cancelled) {
-          setViewerIdentity(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setViewerIdentityResolved(true);
-        }
-      }
-    }
-
-    void loadViewer();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address, isConnected]);
+  const { viewerIdentity, viewerMode } = usePublicViewerIdentity({
+    pageUsername: props.username,
+    viewerAddress: address ?? null,
+    isConnected,
+  });
 
   const normalizedQuery = query.trim().toLowerCase();
   const filteredCreators = useMemo(() => {
@@ -159,12 +121,6 @@ export function SearchPageClient(props: SearchPageClientProps) {
     );
   }, [creators, filteredCreators, normalizedQuery]);
 
-  const viewerMode = resolveCommunityViewerMode({
-    isConnected,
-    viewerAddress: address,
-    identityResolved: viewerIdentityResolved,
-    identity: viewerIdentity,
-  });
   const { settingsHref, composeHref, notificationsHref } = resolveCommunityViewerLinks({
     fallbackUsername: props.username,
     identity: viewerIdentity,
@@ -204,7 +160,17 @@ export function SearchPageClient(props: SearchPageClientProps) {
     }
 
     if (viewerMode === "userOnly") {
-      return null;
+      return (
+        <CommunityGuideCard
+          title="公開ページの準備をすると次の行動がつながります"
+          body="検索で気になる人を見つけながら、自分の公開ページも整えると、投稿や通知の準備を進められます。"
+          actions={
+            <Link href={settingsHref} className="btn">
+              公開ページの準備へ
+            </Link>
+          }
+        />
+      );
     }
 
     return (
@@ -245,28 +211,21 @@ export function SearchPageClient(props: SearchPageClientProps) {
 
       {searchGuide}
 
-      {loading ? (
-        <div className="surface-card p-5 text-sm text-[var(--text-subtle)]">
-          読み込み中です
-        </div>
-      ) : error ? (
-        <div className="alert-warn">{error}</div>
-      ) : (
-        <>
-          <section className="surface-card p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-base font-semibold text-[var(--text)]">
-                  おすすめの人
-                </div>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                  気になる活動をすぐ見つけられます。
-                </p>
+      <>
+        <section className="surface-card p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-base font-semibold text-[var(--text)]">
+                おすすめの人
               </div>
-              <div className="text-sm text-[var(--text-subtle)]">
-                {filteredCreators.length} 件
-              </div>
+              <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                気になる活動をすぐ見つけられます。
+              </p>
             </div>
+            <div className="text-sm text-[var(--text-subtle)]">
+              {filteredCreators.length} 件
+            </div>
+          </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {filteredCreators.length === 0 ? (
                 <div className="text-sm text-[var(--text-subtle)]">
@@ -386,8 +345,7 @@ export function SearchPageClient(props: SearchPageClientProps) {
               )}
             </div>
           </section>
-        </>
-      )}
+      </>
     </div>
   );
 }

@@ -4,6 +4,7 @@
 import { EthereumProvider } from "@walletconnect/ethereum-provider";
 import { WalletConnectModal } from "@walletconnect/modal";
 import type { Eip1193Provider } from "ethers";
+import { getPublicEnv } from "@/lib/publicEnv";
 
 // 共通で使うウォレットプロバイダ型（最小限）
 type WalletProvider = Eip1193Provider & {
@@ -35,15 +36,17 @@ export default function ConnectWallet({
   onConnectMetaMask,
   onWalletConnectSuccess,
 }: Props) {
+  const publicEnv = getPublicEnv();
+
   async function connectWithWalletConnect() {
     try {
-      const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
+      const projectId = publicEnv.walletConnectProjectId;
       if (!projectId) {
         alert("WalletConnectのprojectIdが設定されていません");
         return;
       }
 
-      const requiredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || "137");
+      const requiredChainId = publicEnv.polygonChainId ?? 137;
 
       // ① Provider を初期化（showQrModal: false にするのがポイント）
       const wcProvider = (await EthereumProvider.init({

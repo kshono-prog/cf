@@ -5,13 +5,12 @@ import { Prisma } from "@prisma/client";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toBigIntOrThrow,
   lowerOrNull,
   toNonEmptyString,
   toBool,
 } from "@/lib/api/guards";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +34,9 @@ export async function POST(
     const raw: unknown = await req.json().catch(() => null);
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
-    const addr = toAddressOrNull(raw.address);
-    if (!addr) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, addr);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
+    const addr = ownerSession.address;
 
     const currency = toCurrency(raw.currency) ?? "JPYC";
     const dryRun = toBool(raw.dryRun);

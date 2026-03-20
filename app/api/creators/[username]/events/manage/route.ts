@@ -1,6 +1,7 @@
 // app/api/creators/[username]/events/manage/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { errJson, jsonResponse } from "@/lib/api/responses";
 import { isEventCategory } from "@/lib/creatorTaxonomy";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
@@ -18,14 +19,11 @@ export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
     });
 
     if (!creator) {
-      return NextResponse.json({ events: [] });
+      return jsonResponse({ events: [] });
     }
 
     if (!creator.walletAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, creator.walletAddress);
@@ -39,7 +37,7 @@ export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
       orderBy: { startAt: "asc" },
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       events: events.map((e: (typeof events)[number]) => ({
         id: e.id.toString(),
         title: e.title,
@@ -52,9 +50,6 @@ export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
     });
   } catch (error: unknown) {
     console.error("EVENT_MANAGE_LIST_ERROR", error);
-    return NextResponse.json(
-      { error: "EVENT_MANAGE_LIST_FAILED" },
-      { status: 500 }
-    );
+    return errJson("EVENT_MANAGE_LIST_FAILED", 500);
   }
 }

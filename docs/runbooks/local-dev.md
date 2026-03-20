@@ -7,12 +7,14 @@
 ## 前提
 
 - `.env` / `.env.local` が設定済み
+- 初回セットアップ時は `.env.example` をコピーして不足分を埋める
 - `node_modules` が存在する
 - DB 接続情報が有効
 
 ## 基本コマンド
 
 ```bash
+cp .env.example .env.local
 npm run dev
 npm run verify
 npm run verify:prisma
@@ -39,4 +41,6 @@ AI Office を触るとき:
 - migration や schema 変更は勝手に進めない
 - 送金系や bridge 系は UI だけでなく API 側も確認する
 - env var を前提にした変更は docs に記録する
+- `lib/env.ts` と `lib/publicEnv.ts` で必須 env は fail-fast するので、build/test が早い段階で落ちたら env 名を確認する
 - `typecheck` は `next typegen` を先に実行するので、単体でも確認できる
+- cross-origin surface を触るときは `CORS_ALLOWED_ORIGINS` に dev / staging / prod の origin を明示する

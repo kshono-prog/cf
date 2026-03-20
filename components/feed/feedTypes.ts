@@ -1,6 +1,7 @@
 "use client";
 
 import type { Currency } from "@/components/profile/profileClientHelpers";
+import { isRecord } from "@/lib/api/guards";
 
 export type FeedCreatorSummary = {
   id: string;
@@ -111,10 +112,6 @@ export type SelectedPostTipContext = {
   projectTitle: string | null;
   preferredCurrency: Currency | null;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 function toStringOrNull(value: unknown): string | null {
   return typeof value === "string" ? value : null;

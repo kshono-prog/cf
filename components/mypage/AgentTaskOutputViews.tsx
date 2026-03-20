@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { isRecord } from "@/lib/api/guards";
 
 import {
   buildDistributionPlanDraftHandoff,
@@ -18,10 +19,6 @@ import {
   type DistributionPlanDraftPayload,
 } from "@/lib/creator-ai/distributionPlanDraft";
 import type { TaskType } from "@/lib/agentTaskParsers";
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];

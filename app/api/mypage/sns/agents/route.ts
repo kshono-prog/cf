@@ -8,7 +8,10 @@ import {
   serializeAiAgent,
   toAiAgentRole,
 } from "@/lib/social";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import {
+  requireOwnerSessionFromBody,
+  requireOwnerSessionFromSearchParams,
+} from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,9 +25,9 @@ type PostBody = {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const ownerSession = await requireOwnerSession(
+    const ownerSession = await requireOwnerSessionFromSearchParams(
       req,
-      searchParams.get("address") ?? undefined
+      searchParams
     );
     if (!ownerSession.ok) return ownerSession.response;
 
@@ -69,8 +72,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
     const body = raw as PostBody;
-    if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, body.address);
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
     if (!ownerSession.ok) return ownerSession.response;
     if (typeof body.name !== "string" || body.name.trim().length === 0) {
       return errJson("NAME_REQUIRED", 400);

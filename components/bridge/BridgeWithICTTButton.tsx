@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useAccount, useChainId, useWalletClient } from "wagmi";
 import { isAddress, parseUnits } from "viem";
 import type { Address } from "viem";
+import { isRecord, toBool } from "@/lib/api/guards";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 /**
@@ -134,12 +135,6 @@ const ITokenTransferrerAbi = [
   },
 ] as const;
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-function toBool(v: unknown): boolean {
-  return v === true;
-}
 function toString(v: unknown): string | null {
   return typeof v === "string" ? v : null;
 }

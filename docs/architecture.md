@@ -30,6 +30,8 @@ AI Office runtime note:
 - keep dashboard response parsing and runtime validation in dedicated helpers instead of inside `AiOfficePanel`
 - stage role-based agents behind the existing approval model before introducing external or billable execution paths
 - treat x402 as a future boundary for low-risk intelligence APIs, not for bridge or distribution execution
+- apply CORS allowlists only to explicitly externalizable low-risk read or draft APIs, not to settlement or broad internal surfaces
+- keep `public viewer identity` same-origin only until privacy expectations and downstream cache consumers are explicitly designed for cross-origin use
 
 Creator mypage runtime note:
 

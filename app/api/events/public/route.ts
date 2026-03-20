@@ -1,6 +1,16 @@
 // app/api/events/public/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import {
+  corsReadOnlyMethods,
+  optionsPreflight,
+  withCorsResponse,
+} from "@/app/api/_lib/cors";
+import { errJson, routeJson } from "@/lib/api/responses";
 import { fetchPublicEvents } from "@/lib/publicEventsApi";
+
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return optionsPreflight(req, undefined, corsReadOnlyMethods);
+}
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
@@ -10,12 +20,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       limitRaw: url.searchParams.get("limit"),
       categoryRaw: url.searchParams.get("category"),
     });
-    return NextResponse.json(response.body, { status: response.status });
+    return withCorsResponse(req, routeJson(response), undefined, corsReadOnlyMethods);
   } catch (error: unknown) {
     console.error("PUBLIC_EVENT_LIST_ERROR", error);
-    return NextResponse.json(
-      { error: "PUBLIC_EVENT_LIST_FAILED" },
-      { status: 500 }
+    return withCorsResponse(
+      req,
+      errJson("PUBLIC_EVENT_LIST_FAILED", 500),
+      undefined,
+      corsReadOnlyMethods
     );
   }
 }

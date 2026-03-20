@@ -1,34 +1,17 @@
 import type { SupportedChainId } from "@/lib/chainConfig";
+import { getPublicEnv } from "@/lib/publicEnv";
 
-function readEnv(name: string): string | null {
-  const v = process.env[name];
-  if (typeof v !== "string") return null;
-  const s = v.trim();
-  return s.length > 0 ? s : null;
-}
+const publicEnv = getPublicEnv();
 
 export function getClientRpcUrl(chainId: SupportedChainId): string | null {
   if (chainId === 1) {
-    return (
-      readEnv("NEXT_PUBLIC_RPC_URL_ETHEREUM") ??
-      readEnv("NEXT_PUBLIC_ETHEREUM_RPC_URL") ??
-      readEnv("ETHEREUM_RPC_URL")
-    );
+    return publicEnv.rpcUrlEthereum;
   }
   if (chainId === 137) {
-    return (
-      readEnv("NEXT_PUBLIC_RPC_URL_POLYGON") ??
-      readEnv("NEXT_PUBLIC_POLYGON_RPC_URL") ??
-      readEnv("POLYGON_RPC_URL") ??
-      "https://polygon-bor-rpc.publicnode.com"
-    );
+    return publicEnv.rpcUrlPolygon ?? "https://polygon-bor-rpc.publicnode.com";
   }
   if (chainId === 43114) {
-    return (
-      readEnv("NEXT_PUBLIC_RPC_URL_AVAX") ??
-      readEnv("NEXT_PUBLIC_AVALANCHE_RPC_URL") ??
-      readEnv("AVALANCHE_RPC_URL")
-    );
+    return publicEnv.rpcUrlAvalanche;
   }
   return null;
 }

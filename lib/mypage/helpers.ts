@@ -1,13 +1,12 @@
 // /lib/mypage/helpers.ts
+import {
+  isRecord as sharedIsRecord,
+  normalizeAddress as sharedNormalizeAddress,
+} from "@/lib/api/guards";
 import type { SocialLinks } from "@/types/creator";
 
-export function normalizeAddress(input: string): string {
-  return input.trim().toLowerCase();
-}
-
-export function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
+export const normalizeAddress = sharedNormalizeAddress;
+export const isRecord = sharedIsRecord;
 
 export function getErrorFromApiJson(data: unknown): string | null {
   if (!isRecord(data)) return null;

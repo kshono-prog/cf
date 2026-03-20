@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
+import { normalizeAddress } from "@/lib/api/guards";
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import { prisma } from "@/lib/prisma";
 import type { MeStatus } from "@/lib/mypage/types";
@@ -8,10 +9,6 @@ import {
   resolveCreatorProjectSelection,
   serializeCreatorProfile,
 } from "@/lib/serializers/creator";
-
-function normalizeAddress(input: string): string {
-  return input.trim().toLowerCase();
-}
 
 function emptyMeStatus(): MeStatus {
   return {

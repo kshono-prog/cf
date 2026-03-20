@@ -1,6 +1,8 @@
 // lib/reverifyClient.ts
 "use client";
 
+import { isRecord, toBool } from "@/lib/api/guards";
+
 export type ReverifyResponse =
   | {
       ok: true;
@@ -14,12 +16,6 @@ export type ReverifyResponse =
       contribution?: { txHash: `0x${string}`; status: string };
     };
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-function toBool(v: unknown): boolean {
-  return v === true;
-}
 function toString(v: unknown): string | null {
   return typeof v === "string" ? v : null;
 }

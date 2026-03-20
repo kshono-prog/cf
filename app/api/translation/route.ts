@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toNonEmptyString,
 } from "@/lib/api/guards";
 import {
@@ -11,7 +10,7 @@ import {
   toLanguageCode,
   type LanguageCode,
 } from "@/lib/translation";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +39,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const body = raw as PostBody;
 
-    const address = toAddressOrNull(body.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, address);
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
     if (!ownerSession.ok) return ownerSession.response;
 
     const text = toNonEmptyString(body.text);

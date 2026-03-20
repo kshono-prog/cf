@@ -3,14 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
-import {
-  isRecord,
-  toAddressOrNull,
-  toBigIntOrThrow,
-  lowerOrNull,
-} from "@/lib/api/guards";
+import { isRecord, lowerOrNull, toBigIntOrThrow } from "@/lib/api/guards";
 import { toCurrency } from "@/lib/currencyUtils";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import {
+  requireOwnerSession,
+  requireOwnerSessionFromBody,
+} from "@/lib/ownerAuthSession";
+import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
+import { isValidDistributionPlan } from "@/types/distribution";
 import type { DistributionPlanJson } from "@/types/distribution";
 
 export const dynamic = "force-dynamic";
@@ -22,12 +22,6 @@ type PutBody = {
   plan?: unknown; // JSON object or array only
 };
 
-function isJsonObjectOrArray(
-  v: unknown
-): v is Record<string, unknown> | unknown[] {
-  if (Array.isArray(v)) return true;
-  return typeof v === "object" && v !== null;
-}
 
 export async function GET(
   req: NextRequest,
@@ -37,10 +31,12 @@ export async function GET(
     const { projectId: projectIdStr } = await ctx.params;
     const projectId = toBigIntOrThrow(projectIdStr, "PROJECT_ID_INVALID");
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { id: true, status: true, ownerAddress: true, currency: true },
-    });
+    const project = await withPrismaRetry(() =>
+      prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true, status: true, ownerAddress: true, currency: true },
+      })
+    );
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
     const projectCurrency = toCurrency(project.currency);
     if (!projectCurrency) return errJson("PROJECT_CURRENCY_INVALID", 400);
@@ -51,11 +47,13 @@ export async function GET(
     if (!ownerSession.ok) return ownerSession.response;
 
     // ✅ 最新の PLAN_ONLY を取得（あればそれが plan）
-    const latestPlan = await prisma.distributionRun.findFirst({
-      where: { projectId, mode: "PLAN_ONLY", currency: projectCurrency },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, planJson: true, createdAt: true },
-    });
+    const latestPlan = await withPrismaRetry(() =>
+      prisma.distributionRun.findFirst({
+        where: { projectId, mode: "PLAN_ONLY", currency: projectCurrency },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, planJson: true, createdAt: true },
+      })
+    );
 
     return okJson({
       projectId: project.id.toString(),
@@ -75,6 +73,9 @@ export async function GET(
     if (msg === "PROJECT_CURRENCY_INVALID") {
       return errJson("PROJECT_CURRENCY_INVALID", 400);
     }
+    if (isPrismaUnavailableError(e)) {
+      return errJson("DB_UNAVAILABLE", 503);
+    }
     console.error("DISTRIBUTION_PLAN_GET_FAILED", e);
     return errJson("DISTRIBUTION_PLAN_GET_FAILED", 500);
   }
@@ -91,23 +92,23 @@ export async function PUT(
     const raw: unknown = await req.json().catch(() => null);
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
-    const addr = toAddressOrNull((raw as PutBody).address);
-    if (!addr) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, addr);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
 
     if (!("plan" in raw)) return errJson("PLAN_REQUIRED", 400);
     const plan = (raw as PutBody).plan;
-    if (!isJsonObjectOrArray(plan)) return errJson("PLAN_INVALID", 400);
+    if (!isValidDistributionPlan(plan)) return errJson("PLAN_INVALID", 400);
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { ownerAddress: true, id: true, currency: true },
-    });
+    const project = await withPrismaRetry(() =>
+      prisma.project.findUnique({
+        where: { id: projectId },
+        select: { ownerAddress: true, id: true, currency: true },
+      })
+    );
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
 
     const owner = lowerOrNull(project.ownerAddress);
-    if (!owner || owner !== addr.toLowerCase()) {
+    if (!owner || owner !== ownerSession.address) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
     const projectCurrency = toCurrency(project.currency);
@@ -116,19 +117,21 @@ export async function PUT(
     }
 
     // ✅ Projectに保存しない。DistributionRun(mode=PLAN_ONLY)で保存する
-    const saved = await prisma.distributionRun.create({
-      data: {
-        projectId,
-        mode: "PLAN_ONLY",
-        chainId: 0, // plan保存段階では未確定でも良いので 0
-        currency: projectCurrency,
-        planJson: plan as DistributionPlanJson as Prisma.InputJsonValue,
-        txHashes: [] as Prisma.InputJsonValue,
-        dryRun: true,
-        note: "plan saved",
-      },
-      select: { id: true, createdAt: true, planJson: true },
-    });
+    const saved = await withPrismaRetry(() =>
+      prisma.distributionRun.create({
+        data: {
+          projectId,
+          mode: "PLAN_ONLY",
+          chainId: 0, // plan保存段階では未確定でも良いので 0
+          currency: projectCurrency,
+          planJson: plan as DistributionPlanJson as Prisma.InputJsonValue,
+          txHashes: [] as Prisma.InputJsonValue,
+          dryRun: true,
+          note: "plan saved",
+        },
+        select: { id: true, createdAt: true, planJson: true },
+      })
+    );
 
     return okJson({
       saved: true,
@@ -142,6 +145,9 @@ export async function PUT(
     if (msg === "PROJECT_ID_INVALID") return errJson("PROJECT_ID_INVALID", 400);
     if (msg === "PROJECT_CURRENCY_INVALID") {
       return errJson("PROJECT_CURRENCY_INVALID", 400);
+    }
+    if (isPrismaUnavailableError(e)) {
+      return errJson("DB_UNAVAILABLE", 503);
     }
     console.error("DISTRIBUTION_PLAN_PUT_FAILED", e);
     return errJson("DISTRIBUTION_PLAN_PUT_FAILED", 500);

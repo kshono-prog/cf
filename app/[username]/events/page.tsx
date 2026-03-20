@@ -1,6 +1,6 @@
-// app/[username]/events/page.tsx
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+
 import { EventDateTime } from "@/components/EventDateTime";
 import { MyPageFooter } from "@/components/MyPageFooter";
 import {
@@ -9,11 +9,9 @@ import {
   EVENT_CATEGORY_LABELS,
   EVENT_CATEGORY_OPTIONS,
 } from "@/lib/creatorTaxonomy";
-import {
-  loadEventsPageData,
-} from "@/lib/eventsPageData";
+import { loadEventsPageData } from "@/lib/eventsPageData";
+import { FEATURED_EVENTS_PROMOTION } from "@/lib/eventsFeaturedPromotion";
 
-// このプロジェクトの PageProps に合わせて Promise にする
 type EventsPageProps = {
   params: Promise<{ username: string }>;
   searchParams?: Promise<{ creatorType?: string; category?: string }>;
@@ -28,19 +26,14 @@ export default async function EventsPage({
   const activeCreatorType = resolvedSearchParams.creatorType ?? "";
   const activeCategory = resolvedSearchParams.category ?? "";
 
-  const {
-    creator,
-    events,
-    publicEvents,
-    randomCreators,
-  } = await loadEventsPageData({
+  const { creator, events, publicEvents, randomCreators } = await loadEventsPageData({
     username,
     activeCreatorType,
     activeCategory,
   });
+
   if (!creator) notFound();
 
-  const themeColor = creator.themeColor ?? "#005bbb";
   const displayName = creator.displayName ?? username;
 
   function buildFilterHref(next: {
@@ -55,15 +48,19 @@ export default async function EventsPage({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 force-light-theme">
-      <div className="container-narrow space-y-4">
-        {/* ========== 上段：[username] の公開イベント一覧 ========== */}
-        <div className="space-y-3 mb-10">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      <div className="container-narrow space-y-6">
+        <section className="panel-card space-y-4 p-4 sm:p-5">
           <div className="space-y-2">
-            <h1 className="text-sm font-semibold">{displayName} のイベント</h1>
+            <h1 className="text-lg font-semibold sm:text-xl">
+              {displayName} のイベント
+            </h1>
+            <p className="text-sm leading-6 text-[var(--text-subtle)]">
+              いま公開されているイベントをまとめて見られます。
+            </p>
             {creator.creatorType ? (
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700">
+                <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text-subtle)]">
                   {
                     CREATOR_TYPE_LABELS[
                       creator.creatorType as keyof typeof CREATOR_TYPE_LABELS
@@ -75,97 +72,94 @@ export default async function EventsPage({
           </div>
 
           {events.length === 0 ? (
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-[var(--text-subtle)]">
               現在、公開中のイベントはありません。
             </p>
           ) : (
-            events.map((ev) => (
-              <div
-                key={ev.id}
-                className="card p-3 space-y-1 border border-amber-200 shadow-sm"
-                style={{
-                  backgroundColor: "#fff6d6",
-                  borderColor: "#f3d28e",
-                  boxShadow: "0 2px 6px rgba(120, 53, 15, 0.12)",
-                }}
-              >
-                <div className="text-sm font-semibold">{ev.title}</div>
-
-                {ev.date && (
-                  <div className="text-xs text-gray-500">
-                    開催日時:{" "}
-                    <EventDateTime
-                      iso={ev.date}
-                      options={{
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }}
-                    />
+            <div className="space-y-3">
+              {events.map((event) => (
+                <article
+                  key={event.id}
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 shadow-sm"
+                >
+                  <div className="text-sm font-semibold text-[var(--text)]">
+                    {event.title}
                   </div>
-                )}
 
-                {typeof ev.goalAmount === "number" && (
-                  <div className="text-xs text-gray-500">
-                    目標投げ銭: {ev.goalAmount.toLocaleString()} JPYC
-                  </div>
-                )}
+                  {event.date ? (
+                    <div className="mt-1 text-sm text-[var(--text-subtle)]">
+                      開催日時:{" "}
+                      <EventDateTime
+                        iso={event.date}
+                        options={{
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }}
+                      />
+                    </div>
+                  ) : null}
 
-                {ev.categories && ev.categories.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {ev.categories.map((category) => (
-                      <span
-                        key={`${ev.id}-${category}`}
-                        className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-600"
-                      >
-                        {
-                          EVENT_CATEGORY_LABELS[
-                            category as keyof typeof EVENT_CATEGORY_LABELS
-                          ]
-                        }
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
+                  {typeof event.goalAmount === "number" ? (
+                    <div className="mt-1 text-sm text-[var(--text-subtle)]">
+                      目標投げ銭: {event.goalAmount.toLocaleString()} JPYC
+                    </div>
+                  ) : null}
 
-                {ev.description && (
-                  <p className="text-xs text-gray-700 whitespace-pre-wrap mt-1">
-                    {ev.description}
-                  </p>
-                )}
-              </div>
-            ))
+                  {event.categories.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {event.categories.map((category) => (
+                        <span
+                          key={`${event.id}-${category}`}
+                          className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-xs text-[var(--text-subtle)]"
+                        >
+                          {
+                            EVENT_CATEGORY_LABELS[
+                              category as keyof typeof EVENT_CATEGORY_LABELS
+                            ]
+                          }
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {event.description ? (
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--text)]">
+                      {event.description}
+                    </p>
+                  ) : null}
+                </article>
+              ))}
+            </div>
           )}
-        </div>
+        </section>
 
-        {/* ========== 下段：[username] 以外の全ユーザー公開イベント一覧 ========== */}
-        <div className="space-y-3 mb-10">
-          <div className="flex items-end justify-between">
+        <section className="panel-card space-y-4 p-4 sm:p-5">
+          <div className="flex items-end justify-between gap-3">
             <div className="space-y-1">
-              <h2 className="text-sm font-semibold">みんなの公開イベント</h2>
-              <p className="text-[11px] text-gray-500">
+              <h2 className="text-base font-semibold">みんなの公開イベント</h2>
+              <p className="text-sm text-[var(--text-subtle)]">
                 イベントカテゴリで絞り込めます。
               </p>
             </div>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-sm text-[var(--text-subtle)]">
               {publicEvents.length} 件
             </p>
           </div>
 
-          <div className="space-y-2 rounded-2xl border border-gray-200 bg-white p-3">
-            <div className="pt-1 text-xs font-semibold text-gray-700">
+          <div className="space-y-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3">
+            <div className="pt-1 text-xs font-semibold text-[var(--text)]">
               カテゴリで絞り込み
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
-                href={buildFilterHref({
-                })}
+                href={buildFilterHref({})}
                 className={`rounded-full border px-3 py-1 text-xs ${
                   !activeCategory
                     ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-gray-300 bg-white text-gray-700"
+                    : "border-[var(--line)] bg-[var(--surface)] text-[var(--text-subtle)]"
                 }`}
               >
                 すべて
@@ -173,13 +167,11 @@ export default async function EventsPage({
               {EVENT_CATEGORY_OPTIONS.map((option) => (
                 <Link
                   key={option}
-                  href={buildFilterHref({
-                    category: option,
-                  })}
+                  href={buildFilterHref({ category: option })}
                   className={`rounded-full border px-3 py-1 text-xs ${
                     activeCategory === option
                       ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-gray-300 bg-white text-gray-700"
+                      : "border-[var(--line)] bg-[var(--surface)] text-[var(--text-subtle)]"
                   }`}
                 >
                   {EVENT_CATEGORY_LABELS[option]}
@@ -202,117 +194,122 @@ export default async function EventsPage({
           </div>
 
           {publicEvents.length === 0 ? (
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-[var(--text-subtle)]">
               条件に一致する公開イベントはまだありません。
             </p>
           ) : (
-            publicEvents.map((ev) => (
-              <a
-                key={ev.id}
-                href={`/${ev.creator.username}/events`}
-                className="card p-3 bg-white hover:shadow-md transition flex gap-3"
-              >
-                {/* クリエイターアイコン */}
-                <div className="flex-shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={ev.creator.avatarUrl || "/icon/nagesen250.png"}
-                    alt={ev.creator.displayName || ev.creator.username}
-                    className="h-10 w-10 rounded-full object-cover border bg-gray-100"
-                  />
-                </div>
-
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold truncate">
-                      {ev.title}
-                    </span>
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-md text-white"
-                      style={{
-                        backgroundColor: ev.creator.themeColor || "#005bbb",
-                      }}
-                    >
-                      @{ev.creator.username}
-                    </span>
+            <div className="space-y-3">
+              {publicEvents.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/${event.creator.username}/events`}
+                  className="surface-subtle flex gap-3 px-4 py-4 transition hover:bg-[var(--surface)]"
+                >
+                  <div className="flex-shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={event.creator.avatarUrl || "/icon/nagesen250.png"}
+                      alt={event.creator.displayName || event.creator.username}
+                      className="h-10 w-10 rounded-full border border-[var(--line)] bg-[var(--surface)] object-cover"
+                    />
                   </div>
 
-                  <p className="text-[11px] text-gray-600 truncate">
-                    {ev.creator.displayName || ev.creator.username}
-                  </p>
-
-                  {ev.creator.creatorType || (ev.categories?.length ?? 0) > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {ev.creator.creatorType ? (
-                        <span className="rounded-full border border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-700">
-                          {
-                            CREATOR_TYPE_LABELS[
-                              ev.creator.creatorType as keyof typeof CREATOR_TYPE_LABELS
-                            ]
-                          }
-                        </span>
-                      ) : null}
-                      {ev.categories?.slice(0, 3).map((category) => (
-                        <span
-                          key={`${ev.id}-${category}`}
-                          className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-600"
-                        >
-                          {
-                            EVENT_CATEGORY_LABELS[
-                              category as keyof typeof EVENT_CATEGORY_LABELS
-                            ]
-                          }
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {ev.date && (
-                    <p className="text-[11px] text-gray-500">
-                      <EventDateTime
-                        iso={ev.date}
-                        options={{
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold">
+                        {event.title}
+                      </span>
+                      <span
+                        className="rounded-md px-2 py-0.5 text-xs font-bold text-white"
+                        style={{
+                          backgroundColor: event.creator.themeColor || "#005bbb",
                         }}
-                      />
-                    </p>
-                  )}
+                      >
+                        @{event.creator.username}
+                      </span>
+                    </div>
 
-                  {typeof ev.goalAmount === "number" && (
-                    <p className="text-[11px] text-gray-500">
-                      目標: {ev.goalAmount.toLocaleString()} JPYC
+                    <p className="truncate text-sm text-[var(--text-subtle)]">
+                      {event.creator.displayName || event.creator.username}
                     </p>
-                  )}
 
-                  {ev.description && (
-                    <p className="text-xs text-gray-700 line-clamp-2 whitespace-pre-wrap">
-                      {ev.description}
+                    {event.creator.creatorType || event.categories.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {event.creator.creatorType ? (
+                          <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-xs text-[var(--text-subtle)]">
+                            {
+                              CREATOR_TYPE_LABELS[
+                                event.creator.creatorType as keyof typeof CREATOR_TYPE_LABELS
+                              ]
+                            }
+                          </span>
+                        ) : null}
+                        {event.categories.slice(0, 3).map((category) => (
+                          <span
+                            key={`${event.id}-${category}`}
+                            className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-xs text-[var(--text-subtle)]"
+                          >
+                            {
+                              EVENT_CATEGORY_LABELS[
+                                category as keyof typeof EVENT_CATEGORY_LABELS
+                              ]
+                            }
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {event.date ? (
+                      <p className="text-sm text-[var(--text-subtle)]">
+                        <EventDateTime
+                          iso={event.date}
+                          options={{
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }}
+                        />
+                      </p>
+                    ) : null}
+
+                    {typeof event.goalAmount === "number" ? (
+                      <p className="text-sm text-[var(--text-subtle)]">
+                        目標: {event.goalAmount.toLocaleString()} JPYC
+                      </p>
+                    ) : null}
+
+                    {event.description ? (
+                      <p className="line-clamp-2 whitespace-pre-wrap text-sm text-[var(--text)]">
+                        {event.description}
+                      </p>
+                    ) : null}
+
+                    <p className="pt-1 text-xs font-medium text-[var(--accent)]">
+                      {event.creator.displayName || event.creator.username} さんのイベント一覧を見る
                     </p>
-                  )}
-                </div>
-              </a>
-            ))
+                  </div>
+                </Link>
+              ))}
+            </div>
           )}
-        </div>
+        </section>
 
-        {/* 登録クリエイター一覧（ランダム）— 既存 */}
-        <section className="mt-4">
+        <section className="panel-card space-y-4 p-4 sm:p-5">
           <div className="space-y-2">
-            <h2 className="text-sm font-semibold">クリエイター一覧</h2>
-            <p className="text-[11px] text-gray-500">
+            <h2 className="text-base font-semibold">クリエイター一覧</h2>
+            <p className="text-sm text-[var(--text-subtle)]">
               クリエイターの種類で絞り込めます。
             </p>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap gap-2">
             <Link
               href={buildFilterHref({ category: activeCategory || undefined })}
               className={`rounded-full border px-3 py-1 text-xs ${
                 !activeCreatorType
                   ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-gray-300 bg-white text-gray-700"
+                  : "border-[var(--line)] bg-[var(--surface)] text-[var(--text-subtle)]"
               }`}
             >
               すべて
@@ -327,158 +324,141 @@ export default async function EventsPage({
                 className={`rounded-full border px-3 py-1 text-xs ${
                   activeCreatorType === option
                     ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-gray-300 bg-white text-gray-700"
+                    : "border-[var(--line)] bg-[var(--surface)] text-[var(--text-subtle)]"
                 }`}
               >
                 {CREATOR_TYPE_LABELS[option]}
               </Link>
             ))}
           </div>
-          <p className="mt-3 text-[11px] text-gray-500 mb-3">
+
+          <p className="text-sm text-[var(--text-subtle)]">
             このアプリに登録されているクリエイターを表示しています。
           </p>
 
           {randomCreators.length === 0 ? (
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-[var(--text-subtle)]">
               条件に合うクリエイターはまだいません。
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {randomCreators.map((c) => (
-                <a
-                  key={c.username}
-                  href={`/${c.username}`}
-                  className="card p-3 flex gap-3 items-start bg-white hover:shadow-md transition"
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {randomCreators.map((creatorCard) => (
+                <Link
+                  key={creatorCard.username}
+                  href={`/${creatorCard.username}`}
+                  className="surface-subtle flex items-start gap-3 px-4 py-4 transition hover:bg-[var(--surface)]"
                 >
                   <div className="flex-shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={c.avatarUrl || "/icon/nagesen250.png"}
-                      alt={c.displayName || c.username}
-                      className="h-12 w-12 rounded-full object-cover border bg-gray-100"
+                      src={creatorCard.avatarUrl || "/icon/nagesen250.png"}
+                      alt={creatorCard.displayName || creatorCard.username}
+                      className="h-12 w-12 rounded-full border border-[var(--line)] bg-[var(--surface)] object-cover"
                     />
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">
-                      {c.displayName || c.username}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">
+                      {creatorCard.displayName || creatorCard.username}
                     </p>
-                    {c.creatorType ? (
-                      <p className="mt-1 text-[10px] text-gray-500">
+                    {creatorCard.creatorType ? (
+                      <p className="mt-1 text-xs text-[var(--text-subtle)]">
                         {
                           CREATOR_TYPE_LABELS[
-                            c.creatorType as keyof typeof CREATOR_TYPE_LABELS
+                            creatorCard.creatorType as keyof typeof CREATOR_TYPE_LABELS
                           ]
                         }
                       </p>
                     ) : null}
-                    <p className="text-[11px] text-gray-600 line-clamp-3 whitespace-pre-line">
-                      {c.profile || "プロフィールは準備中です。"}
+                    <p className="line-clamp-3 whitespace-pre-line text-sm text-[var(--text-subtle)]">
+                      {creatorCard.profile || "プロフィールは準備中です。"}
                     </p>
-                    <p className="mt-1 text-[10px] text-gray-400">
-                      @{c.username}
+                    <p className="mt-1 text-xs text-[var(--text-subtle)]">
+                      @{creatorCard.username}
                     </p>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
           )}
         </section>
 
-        {/* Krypto Kyoto PR ブロック（既存） */}
-        <div className="mt-6 flex justify-center">
-          <div className="relative w-full p-4 sm:p-5 bg-gray-50 dark:bg-gray-50 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-300 text-left">
-            <span
-              className="absolute -top-2 -left-2 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm text-white"
-              style={{ backgroundColor: themeColor }}
-            >
-              PR
-            </span>
+        <section className="panel-card relative space-y-4 p-4 text-left sm:p-5">
+          <span className="absolute -left-2 -top-2 rounded-md bg-rose-600 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
+            PR
+          </span>
 
-            <p className="text-xs font-semibold uppercase tracking-wide text-rose-700 mb-1">
-              EVENT
-            </p>
-
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">
-              Krypto Kyoto Jazz Night – Songbird TAeKO at 能舞台サロン
-            </h3>
-
-            <div className="mb-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/KryptoKyotoEvent.webp"
-                alt="Krypto Kyoto Jazz Night イベントイメージ"
-                className="w-full object-cover rounded-xl shadow-sm"
-              />
-            </div>
-
-            <p className="text-sm text-gray-700 leading-relaxed mb-3">
-              世界水準のジャズと厳選されたドリンクを、京都・能舞台の洗練された空間で。
-              伝統と革新が静かに交差する、かけがえのない一夜へ。
-            </p>
-
-            <p className="text-sm text-gray-700 leading-relaxed mb-3">
-              ニューヨークのジャズシーンで活躍する国際的ジャズボーカリスト、
-              <strong> Songbird TAeKO</strong>{" "}
-              が、平安神宮にほど近い京都・岡崎の邸宅サロン
-              「能舞台サロン」にて、しっとりとした歌声とともに特別な夜をお届けします。
-            </p>
-
-            <div className="grid gap-3 sm:grid-cols-2 text-[13px] text-gray-700 mb-3">
-              <div>
-                <h4 className="text-xs font-semibold text-gray-800 mb-1">
-                  スケジュール
-                </h4>
-                <p className="leading-relaxed">
-                  ・18:00 Doors Open
-                  <br />
-                  ・19:00 1st Set Begins
-                  <br />
-                  ・20:10 2nd Set Begins
-                </p>
-              </div>
-              <div>
-                <h4 className="text-xs font-semibold text-gray-800 mb-1">
-                  料金（オープニング価格）
-                </h4>
-                <p className="leading-relaxed">
-                  ・ライブチャージ：4,400円（税込）＋1ドリンク
-                  <br />
-                  ・会員割引：プレミアム年会員 50%オフ／スタンダード年会員
-                  25%オフ
-                  <br />
-                  ・オプション：グルテンフリー宵醸（よいかも）弁当
-                  2,800円（税込）
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-3">
-              <a
-                href="https://kryptokyoto.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-600 text-white text-sm font-medium hover:bg-rose-500 transition"
-              >
-                🎟️ イベント詳細・ご予約はこちら
-              </a>
-
-              <a
-                href="https://kryptokyoto.com/wp-content/uploads/sites/4/2025/11/32af97ae31465d6ac80d3568df6bcf1d.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-200 text-gray-800 text-sm font-medium hover:bg-gray-300 transition"
-              >
-                📄 プレスリリース（PDF）
-              </a>
-            </div>
-
-            <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
-              ※
-              お弁当は事前予約制・数量限定です。詳細は公式サイトをご確認ください。
-            </p>
+          <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">
+            EVENT
           </div>
-        </div>
+
+          <h2 className="text-base font-semibold text-[var(--text)] sm:text-lg">
+            {FEATURED_EVENTS_PROMOTION.title}
+          </h2>
+
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={FEATURED_EVENTS_PROMOTION.imageSrc}
+            alt={FEATURED_EVENTS_PROMOTION.imageAlt}
+            className="w-full rounded-xl object-cover shadow-sm"
+          />
+
+          <div className="space-y-3">
+            {FEATURED_EVENTS_PROMOTION.summary.map((paragraph) => (
+              <p key={paragraph} className="text-sm leading-relaxed text-[var(--text)]">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+
+          <div className="grid gap-3 text-sm text-[var(--text)] sm:grid-cols-2">
+            <div>
+              <h3 className="mb-1 text-xs font-semibold text-[var(--text)]">
+                スケジュール
+              </h3>
+              <div className="space-y-1 leading-relaxed">
+                {FEATURED_EVENTS_PROMOTION.scheduleLines.map((line) => (
+                  <p key={line}>・{line}</p>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3 className="mb-1 text-xs font-semibold text-[var(--text)]">
+                料金（オープニング価格）
+              </h3>
+              <div className="space-y-1 leading-relaxed">
+                {FEATURED_EVENTS_PROMOTION.pricingLines.map((line) => (
+                  <p key={line}>・{line}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={FEATURED_EVENTS_PROMOTION.primaryHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-rose-500"
+            >
+              {FEATURED_EVENTS_PROMOTION.primaryLabel}
+            </a>
+
+            <a
+              href={FEATURED_EVENTS_PROMOTION.secondaryHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--text)] transition hover:opacity-90"
+            >
+              {FEATURED_EVENTS_PROMOTION.secondaryLabel}
+            </a>
+          </div>
+
+          <p className="text-xs leading-relaxed text-[var(--text-subtle)]">
+            ※ {FEATURED_EVENTS_PROMOTION.footnote}
+          </p>
+        </section>
+
         <MyPageFooter />
       </div>
     </div>

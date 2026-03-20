@@ -1,5 +1,7 @@
 "use client";
 
+import { isRecord } from "@/lib/api/guards";
+
 type ViewerUserSummary = {
   username: string | null;
   displayName: string | null;
@@ -29,10 +31,6 @@ export type PublicViewerState = {
   creatorUsername: string | null;
   displayName: string | null;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 function toStringOrNull(value: unknown): string | null {
   return typeof value === "string" ? value : null;

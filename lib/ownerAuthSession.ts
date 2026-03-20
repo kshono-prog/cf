@@ -4,7 +4,11 @@ import { ethers } from "ethers";
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { toAddressOrNull } from "@/lib/api/guards";
+import {
+  normalizeOwnerAddressOrNull,
+  parseOwnerAddressFromBody,
+  parseOwnerAddressFromSearchParams,
+} from "@/lib/ownerAuthAddress";
 
 const OWNER_AUTH_CHAIN_ID = 0;
 const OWNER_AUTH_NONCE_TTL_MS = 5 * 60_000;
@@ -12,13 +16,44 @@ const OWNER_AUTH_SESSION_TTL_MS = 12 * 60 * 60_000;
 
 export const OWNER_SESSION_COOKIE_NAME = "cf_owner_session";
 
+type OwnerSessionRecord = {
+  nonce: string;
+  expiresAt: Date;
+};
+
+type IssueOwnerAuthNonceDeps = {
+  now?: () => Date;
+  randomHex?: (bytes: number) => string;
+  upsertNonce?: (args: {
+    address: string;
+    nonce: string;
+    expiresAt: Date;
+  }) => Promise<void>;
+};
+
+type CreateOwnerSessionDeps = {
+  now?: () => Date;
+  randomHex?: (bytes: number) => string;
+  verifyMessage?: (message: string, signature: string) => string;
+  findNonce?: (address: string) => Promise<OwnerSessionRecord | null>;
+  updateNonce?: (args: {
+    address: string;
+    nonce: string;
+    expiresAt: Date;
+  }) => Promise<void>;
+};
+
+type ResolveOwnerSessionDeps = {
+  now?: () => Date;
+  findNonce?: (address: string) => Promise<OwnerSessionRecord | null>;
+};
+
 function isSecureCookie(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
 function normalizeOwnerAddress(value: unknown): string | null {
-  const address = toAddressOrNull(value);
-  return address ? address.toLowerCase() : null;
+  return normalizeOwnerAddressOrNull(value);
 }
 
 function buildUnauthorizedResponse(error: string): NextResponse {
@@ -42,33 +77,53 @@ export function buildOwnerAuthMessage(address: string, nonce: string): string {
 export async function issueOwnerAuthNonce(addressRaw: unknown): Promise<
   | { ok: true; address: string; message: string; expiresAt: Date }
   | { ok: false; response: NextResponse }
+>;
+export async function issueOwnerAuthNonce(
+  addressRaw: unknown,
+  deps: IssueOwnerAuthNonceDeps
+): Promise<
+  | { ok: true; address: string; message: string; expiresAt: Date }
+  | { ok: false; response: NextResponse }
+>;
+export async function issueOwnerAuthNonce(
+  addressRaw: unknown,
+  deps?: IssueOwnerAuthNonceDeps
+): Promise<
+  | { ok: true; address: string; message: string; expiresAt: Date }
+  | { ok: false; response: NextResponse }
 > {
   const address = normalizeOwnerAddress(addressRaw);
   if (!address) {
     return { ok: false, response: buildInvalidResponse("ADDRESS_REQUIRED") };
   }
 
-  const nonce = crypto.randomBytes(16).toString("hex");
-  const expiresAt = new Date(Date.now() + OWNER_AUTH_NONCE_TTL_MS);
+  const now = deps?.now?.() ?? new Date();
+  const nonce =
+    deps?.randomHex?.(16) ?? crypto.randomBytes(16).toString("hex");
+  const expiresAt = new Date(now.getTime() + OWNER_AUTH_NONCE_TTL_MS);
 
-  await prisma.gasSupportNonce.upsert({
-    where: {
-      chainId_address: {
+  if (deps?.upsertNonce) {
+    await deps.upsertNonce({ address, nonce, expiresAt });
+  } else {
+    await prisma.gasSupportNonce.upsert({
+      where: {
+        chainId_address: {
+          chainId: OWNER_AUTH_CHAIN_ID,
+          address,
+        },
+      },
+      update: {
+        nonce,
+        expiresAt,
+      },
+      create: {
         chainId: OWNER_AUTH_CHAIN_ID,
         address,
+        nonce,
+        expiresAt,
       },
-    },
-    update: {
-      nonce,
-      expiresAt,
-    },
-    create: {
-      chainId: OWNER_AUTH_CHAIN_ID,
-      address,
-      nonce,
-      expiresAt,
-    },
-  });
+    });
+  }
 
   return {
     ok: true,
@@ -90,6 +145,38 @@ export async function createOwnerSession(args: {
       expiresAt: Date;
     }
   | { ok: false; response: NextResponse }
+>;
+export async function createOwnerSession(
+  args: {
+    address: unknown;
+    message: unknown;
+    signature: unknown;
+  },
+  deps: CreateOwnerSessionDeps
+): Promise<
+  | {
+      ok: true;
+      address: string;
+      sessionToken: string;
+      expiresAt: Date;
+    }
+  | { ok: false; response: NextResponse }
+>;
+export async function createOwnerSession(
+  args: {
+    address: unknown;
+    message: unknown;
+    signature: unknown;
+  },
+  deps?: CreateOwnerSessionDeps
+): Promise<
+  | {
+      ok: true;
+      address: string;
+      sessionToken: string;
+      expiresAt: Date;
+    }
+  | { ok: false; response: NextResponse }
 > {
   const address = normalizeOwnerAddress(args.address);
   if (!address) {
@@ -104,14 +191,16 @@ export async function createOwnerSession(args: {
     return { ok: false, response: buildInvalidResponse("SIGNATURE_REQUIRED") };
   }
 
-  const nonceRow = await prisma.gasSupportNonce.findUnique({
-    where: {
-      chainId_address: {
-        chainId: OWNER_AUTH_CHAIN_ID,
-        address,
-      },
-    },
-  });
+  const nonceRow = deps?.findNonce
+    ? await deps.findNonce(address)
+    : await prisma.gasSupportNonce.findUnique({
+        where: {
+          chainId_address: {
+            chainId: OWNER_AUTH_CHAIN_ID,
+            address,
+          },
+        },
+      });
 
   if (!nonceRow) {
     return {
@@ -120,7 +209,9 @@ export async function createOwnerSession(args: {
     };
   }
 
-  if (nonceRow.expiresAt.getTime() < Date.now()) {
+  const now = deps?.now?.() ?? new Date();
+
+  if (nonceRow.expiresAt.getTime() < now.getTime()) {
     return {
       ok: false,
       response: buildUnauthorizedResponse("OWNER_AUTH_NONCE_EXPIRED"),
@@ -135,9 +226,9 @@ export async function createOwnerSession(args: {
     };
   }
 
-  const recoveredAddress = ethers.verifyMessage(
-    args.message,
-    args.signature
+  const recoveredAddress = (
+    deps?.verifyMessage?.(args.message, args.signature) ??
+    ethers.verifyMessage(args.message, args.signature)
   ).toLowerCase();
   if (recoveredAddress !== address) {
     return {
@@ -146,21 +237,26 @@ export async function createOwnerSession(args: {
     };
   }
 
-  const sessionToken = crypto.randomBytes(24).toString("hex");
-  const expiresAt = new Date(Date.now() + OWNER_AUTH_SESSION_TTL_MS);
+  const sessionToken =
+    deps?.randomHex?.(24) ?? crypto.randomBytes(24).toString("hex");
+  const expiresAt = new Date(now.getTime() + OWNER_AUTH_SESSION_TTL_MS);
 
-  await prisma.gasSupportNonce.update({
-    where: {
-      chainId_address: {
-        chainId: OWNER_AUTH_CHAIN_ID,
-        address,
+  if (deps?.updateNonce) {
+    await deps.updateNonce({ address, nonce: sessionToken, expiresAt });
+  } else {
+    await prisma.gasSupportNonce.update({
+      where: {
+        chainId_address: {
+          chainId: OWNER_AUTH_CHAIN_ID,
+          address,
+        },
       },
-    },
-    data: {
-      nonce: sessionToken,
-      expiresAt,
-    },
-  });
+      data: {
+        nonce: sessionToken,
+        expiresAt,
+      },
+    });
+  }
 
   return {
     ok: true,
@@ -199,7 +295,8 @@ export function clearOwnerSessionCookie(response: NextResponse): void {
 
 async function resolveOwnerSessionAddress(
   req: NextRequest,
-  expectedAddressRaw?: unknown
+  expectedAddressRaw?: unknown,
+  deps?: ResolveOwnerSessionDeps
 ): Promise<string | null> {
   const cookieValue = req.cookies.get(OWNER_SESSION_COOKIE_NAME)?.value ?? "";
   const separator = cookieValue.indexOf(":");
@@ -226,20 +323,24 @@ async function resolveOwnerSessionAddress(
     return null;
   }
 
-  const sessionRow = await prisma.gasSupportNonce.findUnique({
-    where: {
-      chainId_address: {
-        chainId: OWNER_AUTH_CHAIN_ID,
-        address: cookieAddress,
-      },
-    },
-  });
+  const sessionRow = deps?.findNonce
+    ? await deps.findNonce(cookieAddress)
+    : await prisma.gasSupportNonce.findUnique({
+        where: {
+          chainId_address: {
+            chainId: OWNER_AUTH_CHAIN_ID,
+            address: cookieAddress,
+          },
+        },
+      });
 
   if (!sessionRow) {
     return null;
   }
 
-  if (sessionRow.expiresAt.getTime() < Date.now()) {
+  const now = deps?.now?.() ?? new Date();
+
+  if (sessionRow.expiresAt.getTime() < now.getTime()) {
     return null;
   }
 
@@ -252,19 +353,21 @@ async function resolveOwnerSessionAddress(
 
 export async function getOptionalOwnerSessionAddress(
   req: NextRequest,
-  expectedAddressRaw?: unknown
+  expectedAddressRaw?: unknown,
+  deps?: ResolveOwnerSessionDeps
 ): Promise<string | null> {
-  return resolveOwnerSessionAddress(req, expectedAddressRaw);
+  return resolveOwnerSessionAddress(req, expectedAddressRaw, deps);
 }
 
 export async function requireOwnerSession(
   req: NextRequest,
-  expectedAddressRaw?: unknown
+  expectedAddressRaw?: unknown,
+  deps?: ResolveOwnerSessionDeps
 ): Promise<
   | { ok: true; address: string }
   | { ok: false; response: NextResponse }
 > {
-  const address = await resolveOwnerSessionAddress(req, expectedAddressRaw);
+  const address = await resolveOwnerSessionAddress(req, expectedAddressRaw, deps);
   if (!address) {
     return {
       ok: false,
@@ -273,4 +376,36 @@ export async function requireOwnerSession(
   }
 
   return { ok: true, address };
+}
+
+export async function requireOwnerSessionFromBody(
+  req: NextRequest,
+  body: unknown,
+  keys: readonly string[] = ["address"]
+): Promise<
+  | { ok: true; address: string }
+  | { ok: false; response: NextResponse }
+> {
+  const address = parseOwnerAddressFromBody(body, keys);
+  if (!address) {
+    return { ok: false, response: buildInvalidResponse("ADDRESS_REQUIRED") };
+  }
+
+  return requireOwnerSession(req, address);
+}
+
+export async function requireOwnerSessionFromSearchParams(
+  req: NextRequest,
+  searchParams: URLSearchParams,
+  key = "address"
+): Promise<
+  | { ok: true; address: string }
+  | { ok: false; response: NextResponse }
+> {
+  const address = parseOwnerAddressFromSearchParams(searchParams, key);
+  if (!address) {
+    return { ok: false, response: buildInvalidResponse("ADDRESS_REQUIRED") };
+  }
+
+  return requireOwnerSession(req, address);
 }

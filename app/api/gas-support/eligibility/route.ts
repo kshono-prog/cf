@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
+import { getGasSupportEnv } from "@/lib/env";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getRpcUrls, getTokenAddress } from "@/app/api/_lib/chain";
 import { buildProvider, filterWorkingRpcUrls } from "@/app/api/_lib/rpc";
+import { errJson, jsonResponse } from "@/lib/api/responses";
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -11,6 +13,7 @@ const ERC20_ABI = [
 ];
 
 const jpycDecimalsCache = new Map<string, number>();
+const gasSupportEnv = getGasSupportEnv();
 const RATE_LIMIT_PATTERNS = [/rate limit/i, /too many requests/i];
 const TRANSIENT_ERROR_PATTERNS = [
   /timeout/i,
@@ -77,14 +80,14 @@ async function retryRpcCall<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
 }
 
 function pickChainId(raw: string | null): number {
-  if (!raw) return Number(process.env.CHAIN_ID ?? 137);
+  if (!raw) return gasSupportEnv.defaultChainId;
   const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : Number(process.env.CHAIN_ID ?? 137);
+  return Number.isFinite(parsed) ? parsed : gasSupportEnv.defaultChainId;
 }
 
 function getJpycAddress(chainId: number): string {
   if (chainId === 137) {
-    return process.env.JPYC_ADDRESS || getTokenAddress(chainId, "JPYC") || "";
+    return gasSupportEnv.jpycAddress || getTokenAddress(chainId, "JPYC") || "";
   }
   return getTokenAddress(chainId, "JPYC") || "";
 }
@@ -147,21 +150,18 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const address = searchParams.get("address") || "";
     if (!ethers.isAddress(address)) {
-      return NextResponse.json({ error: "Invalid address" }, { status: 400 });
+      return errJson("Invalid address", 400);
     }
 
     const chainId = pickChainId(searchParams.get("chainId"));
     const chainConfig = getChainConfig(chainId);
     if (!chainConfig) {
-      return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
+      return errJson("UNSUPPORTED_CHAIN", 400);
     }
 
     const rpcUrlsRaw = getRpcUrls(chainId);
     if (rpcUrlsRaw.length === 0) {
-      return NextResponse.json(
-        { error: "RPC_URL_NOT_CONFIGURED" },
-        { status: 500 }
-      );
+      return errJson("RPC_URL_NOT_CONFIGURED", 500);
     }
 
     const rpcUrls = await filterWorkingRpcUrls(chainId, rpcUrlsRaw);
@@ -170,30 +170,21 @@ export async function GET(req: NextRequest) {
         chainId,
         rpcUrlsRaw,
       });
-      return NextResponse.json(
-        { error: "NO_VALID_RPC_ENDPOINT" },
-        { status: 500 }
-      );
+      return errJson("NO_VALID_RPC_ENDPOINT", 500);
     }
 
     const jpycAddress = getJpycAddress(chainId);
     if (!jpycAddress) {
-      return NextResponse.json(
-        { error: "JPYC_ADDRESS_NOT_CONFIGURED" },
-        { status: 500 }
-      );
+      return errJson("JPYC_ADDRESS_NOT_CONFIGURED", 500);
     }
     if (!ethers.isAddress(jpycAddress)) {
-      return NextResponse.json(
-        { error: "JPYC_ADDRESS_INVALID" },
-        { status: 500 }
-      );
+      return errJson("JPYC_ADDRESS_INVALID", 500);
     }
 
     // Faucet config
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
     if (!config || !config.enabled) {
-      return NextResponse.json({
+      return jsonResponse({
         chainId,
         address: address.toLowerCase(),
         eligible: false,
@@ -207,7 +198,7 @@ export async function GET(req: NextRequest) {
       orderBy: { updatedAt: "desc" },
     });
     if (!faucetWallet) {
-      return NextResponse.json({
+      return jsonResponse({
         chainId,
         address: address.toLowerCase(),
         eligible: false,
@@ -215,7 +206,7 @@ export async function GET(req: NextRequest) {
       });
     }
     if (!ethers.isAddress(faucetWallet.address)) {
-      return NextResponse.json({
+      return jsonResponse({
         chainId,
         address: address.toLowerCase(),
         eligible: false,
@@ -253,7 +244,7 @@ export async function GET(req: NextRequest) {
         loadError,
         rpcFailures,
       });
-      return NextResponse.json({
+      return jsonResponse({
         chainId,
         address: address.toLowerCase(),
         eligible: false,
@@ -296,7 +287,7 @@ export async function GET(req: NextRequest) {
     if (alreadyClaimed) reasons.push("ALREADY_CLAIMED");
     if (!faucetSufficient) reasons.push("FAUCET_INSUFFICIENT");
 
-    return NextResponse.json({
+    return jsonResponse({
       chainId,
       address: address.toLowerCase(),
       eligible: reasons.length === 0,
@@ -311,6 +302,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "INTERNAL_ERROR" }, { status: 500 });
+    return errJson("INTERNAL_ERROR", 500);
   }
 }

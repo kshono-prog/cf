@@ -1,23 +1,23 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ethers } from "ethers";
+import { getGasSupportEnv } from "@/lib/env";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getRpcUrls } from "@/app/api/_lib/chain";
 import { buildProvider, filterWorkingRpcUrls } from "@/app/api/_lib/rpc";
+import { errJson, jsonResponse } from "@/lib/api/responses";
+
+const gasSupportEnv = getGasSupportEnv();
 
 export async function GET() {
   try {
-    const chainId = Number(process.env.CHAIN_ID ?? 137);
+    const chainId = gasSupportEnv.defaultChainId;
     const chainConfig = getChainConfig(chainId);
     if (!chainConfig) {
-      return NextResponse.json({ error: "UNSUPPORTED_CHAIN" }, { status: 400 });
+      return errJson("UNSUPPORTED_CHAIN", 400);
     }
     const rpcUrlsRaw = getRpcUrls(chainId);
     if (rpcUrlsRaw.length === 0) {
-      return NextResponse.json(
-        { error: "RPC_URL_NOT_CONFIGURED" },
-        { status: 500 }
-      );
+      return errJson("RPC_URL_NOT_CONFIGURED", 500);
     }
     const rpcUrls = await filterWorkingRpcUrls(chainId, rpcUrlsRaw);
     if (rpcUrls.length === 0) {
@@ -25,10 +25,7 @@ export async function GET() {
         chainId,
         rpcUrlsRaw,
       });
-      return NextResponse.json(
-        { error: "NO_VALID_RPC_ENDPOINT" },
-        { status: 500 }
-      );
+      return errJson("NO_VALID_RPC_ENDPOINT", 500);
     }
 
     const config = await prisma.faucetConfig.findUnique({ where: { chainId } });
@@ -38,13 +35,13 @@ export async function GET() {
     });
 
     if (!config || !faucetWallet) {
-      return NextResponse.json({ chainId, enabled: false });
+      return jsonResponse({ chainId, enabled: false });
     }
 
     const provider = buildProvider(chainId, rpcUrls);
     const balWei = await provider.getBalance(faucetWallet.address);
 
-    return NextResponse.json({
+    return jsonResponse({
       chainId,
       enabled: config.enabled,
       faucetAddress: faucetWallet.address,
@@ -54,6 +51,6 @@ export async function GET() {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "INTERNAL_ERROR" }, { status: 500 });
+    return errJson("INTERNAL_ERROR", 500);
   }
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { autoReverifyPending, postReverify } from "@/lib/reverifyClient";
 import { buildSupportProjectView, type SupportProfileView } from "@/lib/supportProfileView";
-import { isRecord } from "@/lib/publicSummary";
+import { isRecord } from "@/lib/api/guards";
 import { getErrorMessage, type Currency } from "@/components/profile/profileClientHelpers";
 import {
   getSupportedViemChains,

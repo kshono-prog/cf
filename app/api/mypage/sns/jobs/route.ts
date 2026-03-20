@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { optionsPreflight, withCorsResponse } from "@/app/api/_lib/cors";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { isRecord } from "@/lib/api/guards";
@@ -9,10 +10,28 @@ import {
   toAiPromotionJobType,
   toNullableUuidString,
 } from "@/lib/social";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import {
+  requireOwnerSessionFromBody,
+  requireOwnerSessionFromSearchParams,
+} from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function ok<T extends Record<string, unknown>>(
+  req: NextRequest,
+  data: T
+): NextResponse<{ ok: true } & T> {
+  return withCorsResponse(req, okJson(data));
+}
+
+function err(req: NextRequest, code: string, status: number): NextResponse {
+  return withCorsResponse(req, errJson(code, status));
+}
+
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return optionsPreflight(req);
+}
 
 type PostBody = {
   address?: unknown;
@@ -24,14 +43,14 @@ type PostBody = {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const ownerSession = await requireOwnerSession(
+    const ownerSession = await requireOwnerSessionFromSearchParams(
       req,
-      searchParams.get("address") ?? undefined
+      searchParams
     );
-    if (!ownerSession.ok) return ownerSession.response;
+    if (!ownerSession.ok) return withCorsResponse(req, ownerSession.response);
 
     const creator = await findCreatorByWalletAddress(ownerSession.address);
-    if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
+    if (!creator) return err(req, "CREATOR_NOT_FOUND", 404);
 
     const rows = await prisma.aiPromotionJob.findMany({
       where: { creatorProfileId: creator.id },
@@ -70,41 +89,40 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    return okJson({
+    return ok(req, {
       jobs: rows.map((row) => serializeAiPromotionJob(row)),
       count: rows.length,
     });
   } catch (error) {
     console.error("MYPAGE_SNS_JOBS_GET_FAILED", error);
-    return errJson("MYPAGE_SNS_JOBS_GET_FAILED", 500);
+    return err(req, "MYPAGE_SNS_JOBS_GET_FAILED", 500);
   }
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const raw: unknown = await req.json().catch(() => null);
-    if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
+    if (!isRecord(raw)) return err(req, "INVALID_JSON", 400);
 
     const body = raw as PostBody;
-    if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, body.address);
-    if (!ownerSession.ok) return ownerSession.response;
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
+    if (!ownerSession.ok) return withCorsResponse(req, ownerSession.response);
 
     const jobType = toAiPromotionJobType(body.jobType);
-    if (!jobType) return errJson("JOB_TYPE_INVALID", 400);
+    if (!jobType) return err(req, "JOB_TYPE_INVALID", 400);
 
     const aiAgentId = toNullableUuidString(body.aiAgentId);
     if (typeof body.aiAgentId !== "undefined" && typeof aiAgentId === "undefined") {
-      return errJson("AI_AGENT_ID_INVALID", 400);
+      return err(req, "AI_AGENT_ID_INVALID", 400);
     }
 
     const postId = toNullableUuidString(body.postId);
     if (typeof body.postId !== "undefined" && typeof postId === "undefined") {
-      return errJson("POST_ID_INVALID", 400);
+      return err(req, "POST_ID_INVALID", 400);
     }
 
     const creator = await findCreatorByWalletAddress(ownerSession.address);
-    if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
+    if (!creator) return err(req, "CREATOR_NOT_FOUND", 404);
 
     if (aiAgentId) {
       const agent = await prisma.aiAgent.findFirst({
@@ -114,7 +132,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         },
         select: { id: true },
       });
-      if (!agent) return errJson("AI_AGENT_NOT_FOUND", 404);
+      if (!agent) return err(req, "AI_AGENT_NOT_FOUND", 404);
     }
 
     if (postId) {
@@ -125,7 +143,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         },
         select: { id: true },
       });
-      if (!post) return errJson("POST_NOT_FOUND", 404);
+      if (!post) return err(req, "POST_NOT_FOUND", 404);
     }
 
     const now = new Date();
@@ -179,11 +197,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    return okJson({
+    return ok(req, {
       job: serializeAiPromotionJob(row),
     });
   } catch (error) {
     console.error("MYPAGE_SNS_JOBS_POST_FAILED", error);
-    return errJson("MYPAGE_SNS_JOBS_POST_FAILED", 500);
+    return err(req, "MYPAGE_SNS_JOBS_POST_FAILED", 500);
   }
 }

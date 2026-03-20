@@ -1,5 +1,6 @@
 // lib/tokenRegistry.ts
 import type { Address } from "viem";
+import { getPublicEnv } from "@/lib/publicEnv";
 import type { SupportedChainId } from "./chainConfig";
 
 export type TokenKey = "JPYC" | "USDC";
@@ -26,27 +27,27 @@ const DEFAULT_USDC_ADDRESS_POLYGON =
  * - address は viem の Address を採用（安全）。
  * - env で上書きする場合も、型の枠内（SupportedChainId）だけを持つ。
  */
+const publicEnv = getPublicEnv();
+
 export const TOKENS: Readonly<Record<TokenKey, TokenDefinition>> = {
   JPYC: {
     key: "JPYC",
     displayName: "JPYC",
     byChainId: {
       137: (() => {
-        const a =
-          process.env.NEXT_PUBLIC_JPYC_ADDRESS_POLYGON ??
-          process.env.NEXT_PUBLIC_JPYC_ADDRESS;
+        const a = publicEnv.jpycAddressPolygon ?? publicEnv.jpycAddress;
         return a
           ? ({ address: a as Address, decimals: 18 } as const)
           : undefined;
       })(),
       43114: (() => {
-        const a = process.env.NEXT_PUBLIC_JPYC_ADDRESS_AVAX;
+        const a = publicEnv.jpycAddressAvax;
         return a
           ? ({ address: a as Address, decimals: 18 } as const)
           : undefined;
       })(),
       1: (() => {
-        const a = process.env.NEXT_PUBLIC_JPYC_ADDRESS_ETHEREUM;
+        const a = publicEnv.jpycAddressEthereum;
         return a
           ? ({ address: a as Address, decimals: 18 } as const)
           : undefined;
@@ -58,19 +59,17 @@ export const TOKENS: Readonly<Record<TokenKey, TokenDefinition>> = {
     displayName: "USDC",
     byChainId: {
       137: (() => {
-        const a =
-          process.env.NEXT_PUBLIC_USDC_ADDRESS_POLYGON ??
-          DEFAULT_USDC_ADDRESS_POLYGON;
+        const a = publicEnv.usdcAddressPolygon ?? DEFAULT_USDC_ADDRESS_POLYGON;
         return { address: a as Address, decimals: 6 } as const;
       })(),
       43114: (() => {
-        const a = process.env.NEXT_PUBLIC_USDC_ADDRESS_AVAX;
+        const a = publicEnv.usdcAddressAvax;
         return a
           ? ({ address: a as Address, decimals: 6 } as const)
           : undefined;
       })(),
       1: (() => {
-        const a = process.env.NEXT_PUBLIC_USDC_ADDRESS_ETHEREUM;
+        const a = publicEnv.usdcAddressEthereum;
         return a
           ? ({ address: a as Address, decimals: 6 } as const)
           : undefined;

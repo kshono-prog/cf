@@ -1,3 +1,5 @@
+import { isRecord } from "@/lib/api/guards";
+
 export type PublicSummaryLite = {
   goal: {
     targetAmount: number;
@@ -10,10 +12,6 @@ export type PublicSummaryLite = {
     progressPct: number;
   } | null;
 };
-
-export function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
 
 export function pickPublicSummaryLite(summary: unknown): PublicSummaryLite {
   if (!isRecord(summary)) return { goal: null, progress: null };

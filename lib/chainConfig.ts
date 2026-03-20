@@ -4,6 +4,7 @@ import {
   polygon,
   avalanche,
 } from "viem/chains";
+import { getPublicEnv } from "@/lib/publicEnv";
 
 // ===== mainnet only =====
 export const SUPPORTED_CHAINS = [mainnet, polygon, avalanche] as const;
@@ -62,14 +63,8 @@ export function getChainConfig(chainId: number): ChainConfig | null {
 }
 
 export function getDefaultChainId(): SupportedChainId {
-  // 優先順位：
-  // 1) NEXT_PUBLIC_CHAIN_ID_AVAX
-  // 2) NEXT_PUBLIC_CHAIN_ID
-  // 3) avalanche.id（最終デフォルト）
-  const raw =
-    Number(process.env.NEXT_PUBLIC_CHAIN_ID_AVAX) ||
-    Number(process.env.NEXT_PUBLIC_CHAIN_ID) ||
-    avalanche.id;
+  const env = getPublicEnv();
+  const raw = env.defaultAvaxChainId ?? env.defaultChainId ?? avalanche.id;
 
   // mainnet-only なので、未知値は avalanche にフォールバック
   return isSupportedChainId(raw) ? raw : avalanche.id;

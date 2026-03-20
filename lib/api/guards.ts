@@ -11,6 +11,10 @@ export function toNonEmptyString(v: unknown): string | null {
   return s.length > 0 ? s : null;
 }
 
+export function normalizeAddress(v: string): string {
+  return v.trim().toLowerCase();
+}
+
 export function toBigIntOrThrow(v: string, code: string): bigint {
   try {
     return BigInt(v);

@@ -57,11 +57,8 @@ import {
   getAgentTaskTypeCopy,
   getAiOfficeMessageState,
 } from "@/lib/uxCopy";
+import { isRecord } from "@/lib/api/guards";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
 
 const DEFAULT_AI_OFFICE_TASK_TYPE: TaskType = "MANAGER_NEXT_ACTIONS";
 const DEFAULT_AI_OFFICE_VIEW: AiOfficeView = "OVERVIEW";
@@ -658,7 +655,7 @@ export function AiOfficePanel(props: {
   }> = [
     {
       id: "OVERVIEW",
-      label: "状況",
+      label: "概要",
       helper: "AIの状況と担当ごとの提案をまとめて確認する",
     },
     {
@@ -765,19 +762,14 @@ export function AiOfficePanel(props: {
             告知・お礼・分析・資金管理などの担当別に、下書き作成と承認待ち確認をまとめて行えます。
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded border px-2 py-1 text-[11px] text-gray-700">
-            承認待ち {waitingApprovalCount}件
-          </span>
-          <button
-            type="button"
-            className="rounded border px-2 py-1 text-xs disabled:opacity-40"
-            onClick={() => void refresh()}
-            disabled={loading || !canUse}
-          >
-            再読み込み
-          </button>
-        </div>
+        <button
+          type="button"
+          className="rounded border px-2 py-1 text-xs disabled:opacity-40"
+          onClick={() => void refresh()}
+          disabled={loading || !canUse}
+        >
+          再読み込み
+        </button>
       </div>
 
       {!canUse ? (

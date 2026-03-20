@@ -1,24 +1,14 @@
 /* app/api/projects/[projectId]/goal/target/route.ts */
 import { NextRequest, NextResponse } from "next/server";
+import { isRecord, toBigIntOrThrow } from "@/lib/api/guards";
 import { prisma } from "@/lib/prisma";
 import type { Goal, Project } from "@prisma/client";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { errJson, jsonResponse, okJson } from "@/lib/api/responses";
 
 export const dynamic = "force-dynamic";
 
 type Params = { projectId: string };
-
-function toBigIntOrThrow(v: string): bigint {
-  try {
-    return BigInt(v);
-  } catch {
-    throw new Error("PROJECT_ID_INVALID");
-  }
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
 
 // 強めガード：未知キーを許さない（事故防止）
 const ALLOWED_KEYS = new Set(["targetAmount", "targetAmountJpyc"]);
@@ -80,11 +70,11 @@ export async function PATCH(
 ): Promise<NextResponse> {
   try {
     const { projectId: projectIdStr } = await ctx.params;
-    const projectId = toBigIntOrThrow(projectIdStr);
+    const projectId = toBigIntOrThrow(projectIdStr, "PROJECT_ID_INVALID");
 
     const raw = (await req.json().catch(() => null)) as unknown;
     if (!isRecord(raw)) {
-      return NextResponse.json({ error: "INVALID_JSON" }, { status: 400 });
+      return errJson("INVALID_JSON", 400);
     }
 
     // 未知キー拒否（強ガード）
@@ -92,14 +82,11 @@ export async function PATCH(
       assertNoUnknownKeys(raw);
     } catch (e: unknown) {
       const code = e instanceof Error ? e.message : "UNKNOWN_FIELD";
-      return NextResponse.json({ error: code }, { status: 400 });
+      return errJson(code, 400);
     }
 
     if (!("targetAmount" in raw) && !("targetAmountJpyc" in raw)) {
-      return NextResponse.json(
-        { error: "TARGET_AMOUNT_REQUIRED" },
-        { status: 400 }
-      );
+      return errJson("TARGET_AMOUNT_REQUIRED", 400);
     }
 
     // project existence + DRAFT 限定
@@ -108,14 +95,11 @@ export async function PATCH(
     });
 
     if (!project) {
-      return NextResponse.json({ error: "PROJECT_NOT_FOUND" }, { status: 404 });
+      return errJson("PROJECT_NOT_FOUND", 404);
     }
 
     if (!project.ownerAddress) {
-      return NextResponse.json(
-        { error: "FORBIDDEN_NOT_OWNER" },
-        { status: 403 }
-      );
+      return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
 
     const ownerSession = await requireOwnerSession(req, project.ownerAddress);
@@ -124,9 +108,9 @@ export async function PATCH(
     }
 
     if (!isDraftStatus(project.status)) {
-      return NextResponse.json(
-        { error: "PROJECT_STATUS_NOT_DRAFT", status: project.status },
-        { status: 400 }
+      return jsonResponse(
+        { ok: false, error: "PROJECT_STATUS_NOT_DRAFT", status: project.status },
+        400
       );
     }
 
@@ -136,15 +120,12 @@ export async function PATCH(
     });
 
     if (!goal) {
-      return NextResponse.json({ error: "GOAL_NOT_FOUND" }, { status: 400 });
+      return errJson("GOAL_NOT_FOUND", 404);
     }
 
     // 既に達成済みなら更新拒否（事故防止）
     if (goal.achievedAt) {
-      return NextResponse.json(
-        { error: "GOAL_ALREADY_ACHIEVED" },
-        { status: 400 }
-      );
+      return errJson("GOAL_ALREADY_ACHIEVED", 400);
     }
 
     let targetAmount: number;
@@ -152,7 +133,7 @@ export async function PATCH(
       targetAmount = parseTargetAmount(raw.targetAmount ?? raw.targetAmountJpyc);
     } catch (e: unknown) {
       const code = e instanceof Error ? e.message : "TARGET_AMOUNT_INVALID";
-      return NextResponse.json({ error: code }, { status: 400 });
+      return errJson(code, 400);
     }
 
     const now = new Date();
@@ -166,8 +147,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       project: serializeProject(project),
       goal: serializeGoal(updated),
     });
@@ -175,16 +155,10 @@ export async function PATCH(
     const msg = e instanceof Error ? e.message : String(e);
 
     if (msg === "PROJECT_ID_INVALID") {
-      return NextResponse.json(
-        { error: "PROJECT_ID_INVALID" },
-        { status: 400 }
-      );
+      return errJson("PROJECT_ID_INVALID", 400);
     }
 
     console.error("PROJECT_GOAL_TARGET_PATCH_FAILED", e);
-    return NextResponse.json(
-      { error: "PROJECT_GOAL_TARGET_PATCH_FAILED" },
-      { status: 500 }
-    );
+    return errJson("PROJECT_GOAL_TARGET_PATCH_FAILED", 500);
   }
 }

@@ -5,13 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toBigIntOrThrow,
   lowerOrNull,
   toNonEmptyString,
 } from "@/lib/api/guards";
 import { isHash } from "viem";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
+import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 import type { DistributionTxHashes } from "@/types/distribution";
 
 export const dynamic = "force-dynamic";
@@ -85,9 +85,7 @@ export async function POST(
     const raw: unknown = await req.json().catch(() => null);
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
-    const addr = toAddressOrNull((raw as Body).address);
-    if (!addr) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, addr);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
 
     const chainId = toChainId((raw as Body).chainId);
@@ -101,21 +99,23 @@ export async function POST(
     const dryRun = toBool((raw as Body).dryRun);
     const note = toNonEmptyString((raw as Body).note);
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        ownerAddress: true,
-        status: true,
-        bridgedAt: true,
-        currency: true,
-      },
-    });
+    const project = await withPrismaRetry(() =>
+      prisma.project.findUnique({
+        where: { id: projectId },
+        select: {
+          ownerAddress: true,
+          status: true,
+          bridgedAt: true,
+          currency: true,
+        },
+      })
+    );
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
     const projectCurrency = toCurrency(project.currency);
     if (!projectCurrency) return errJson("PROJECT_CURRENCY_INVALID", 400);
 
     const owner = lowerOrNull(project.ownerAddress);
-    if (!owner || owner !== addr.toLowerCase()) {
+    if (!owner || owner !== ownerSession.address) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
     if (requestedCurrency && requestedCurrency !== projectCurrency) {
@@ -132,20 +132,24 @@ export async function POST(
 
       // ---- LOG_ONLY 許可時の最低限ガード ----
       // 1) Goal達成済み（事故防止）
-      const goal = await prisma.goal.findFirst({
-        where: { projectId },
-        select: { achievedAt: true },
-      });
+      const goal = await withPrismaRetry(() =>
+        prisma.goal.findFirst({
+          where: { projectId },
+          select: { achievedAt: true },
+        })
+      );
       if (!goal || !goal.achievedAt) {
         return errJson("DISTRIBUTE_REQUIRES_GOAL_ACHIEVED", 400);
       }
 
       // 2) BridgeRun が存在する（Route B の “実行済み” の代替証跡）
-      const latestBridge = await prisma.bridgeRun.findFirst({
-        where: { projectId },
-        orderBy: { createdAt: "desc" },
-        select: { id: true, mode: true, createdAt: true, dryRun: true },
-      });
+      const latestBridge = await withPrismaRetry(() =>
+        prisma.bridgeRun.findFirst({
+          where: { projectId },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, mode: true, createdAt: true, dryRun: true },
+        })
+      );
 
       if (!latestBridge) {
         return errJson("DISTRIBUTE_REQUIRES_BRIDGE_RUN", 400);
@@ -158,11 +162,13 @@ export async function POST(
     }
 
     // ✅ 最新 plan を DistributionRun(mode=PLAN_ONLY) から取る
-    const latestPlan = await prisma.distributionRun.findFirst({
-      where: { projectId, mode: "PLAN_ONLY", currency: projectCurrency },
-      orderBy: { createdAt: "desc" },
-      select: { planJson: true },
-    });
+    const latestPlan = await withPrismaRetry(() =>
+      prisma.distributionRun.findFirst({
+        where: { projectId, mode: "PLAN_ONLY", currency: projectCurrency },
+        orderBy: { createdAt: "desc" },
+        select: { planJson: true },
+      })
+    );
     if (!latestPlan) return errJson("DISTRIBUTION_PLAN_NOT_SET", 400);
     if (isDistributionPlanEmpty(latestPlan.planJson)) {
       return errJson("DISTRIBUTION_PLAN_EMPTY", 400);
@@ -170,36 +176,38 @@ export async function POST(
 
     const now = new Date();
 
-    const run = await prisma.$transaction(async (tx) => {
-      const created = await tx.distributionRun.create({
-        data: {
-          projectId,
-          mode: "LOG_ONLY",
-          chainId,
-          currency,
-          planJson: latestPlan.planJson as Prisma.InputJsonValue,
-          txHashes: (txHashes as DistributionTxHashes) as Prisma.InputJsonValue,
-          dryRun,
-          note: note ?? undefined,
-        },
-        select: { id: true, createdAt: true },
-      });
-
-      // NOTE:
-      // Route B（確認）を徹底するなら、ここで status を変えない運用も可能。
-      // ただし現状仕様は「dryRun=false のとき DISTRIBUTED に更新」。
-      if (!dryRun) {
-        await tx.project.update({
-          where: { id: projectId },
+    const run = await withPrismaRetry(() =>
+      prisma.$transaction(async (tx) => {
+        const created = await tx.distributionRun.create({
           data: {
-            status: "DISTRIBUTED",
-            updatedAt: now,
+            projectId,
+            mode: "LOG_ONLY",
+            chainId,
+            currency,
+            planJson: latestPlan.planJson as Prisma.InputJsonValue,
+            txHashes: (txHashes as DistributionTxHashes) as Prisma.InputJsonValue,
+            dryRun,
+            note: note ?? undefined,
           },
+          select: { id: true, createdAt: true },
         });
-      }
 
-      return created;
-    });
+        // NOTE:
+        // Route B（確認）を徹底するなら、ここで status を変えない運用も可能。
+        // ただし現状仕様は「dryRun=false のとき DISTRIBUTED に更新」。
+        if (!dryRun) {
+          await tx.project.update({
+            where: { id: projectId },
+            data: {
+              status: "DISTRIBUTED",
+              updatedAt: now,
+            },
+          });
+        }
+
+        return created;
+      })
+    );
 
     return okJson({
       distributionRunId: run.id,
@@ -213,6 +221,9 @@ export async function POST(
     if (msg === "PROJECT_ID_INVALID") return errJson("PROJECT_ID_INVALID", 400);
     if (msg === "PROJECT_CURRENCY_INVALID") {
       return errJson("PROJECT_CURRENCY_INVALID", 400);
+    }
+    if (isPrismaUnavailableError(e)) {
+      return errJson("DB_UNAVAILABLE", 503);
     }
     console.error("DISTRIBUTION_EXECUTE_FAILED", e);
     return errJson("DISTRIBUTION_EXECUTE_FAILED", 500);

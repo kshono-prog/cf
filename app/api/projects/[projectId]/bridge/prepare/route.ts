@@ -5,14 +5,14 @@ import { Prisma } from "@prisma/client";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toBigIntOrThrow,
   lowerOrNull,
   toNonEmptyString,
   toBool,
 } from "@/lib/api/guards";
 import { isAddress, getAddress, type Address } from "viem";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
+import { getPublicEnv } from "@/lib/publicEnv";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +22,7 @@ type Params = { projectId: string };
 type Currency = CurrencyCode;
 
 type Provider = "WORMHOLE_UI" | "MANUAL";
+const publicEnv = getPublicEnv();
 
 function toProvider(v: unknown): Provider | null {
   return v === "WORMHOLE_UI" || v === "MANUAL" ? v : null;
@@ -51,18 +52,10 @@ function pickDestinationTokenAddress(params: {
   // Fallback: chain/currency別 env を利用
   if (params.liquidityChainId === 43114 || params.liquidityChainId === 43113) {
     if (params.currency === "JPYC") {
-      return (
-        process.env.NEXT_PUBLIC_JPYC_ADDRESS_AVAX?.trim() ||
-        process.env.NEXT_PUBLIC_JPYC_ADDRESS?.trim() ||
-        null
-      );
+      return publicEnv.jpycAddressAvax ?? publicEnv.jpycAddress;
     }
     if (params.currency === "USDC") {
-      return (
-        process.env.NEXT_PUBLIC_USDC_ADDRESS_AVAX?.trim() ||
-        process.env.NEXT_PUBLIC_USDC_ADDRESS?.trim() ||
-        null
-      );
+      return publicEnv.usdcAddressAvax ?? publicEnv.usdcAddress;
     }
   }
 
@@ -100,10 +93,9 @@ export async function POST(
     const raw: unknown = await req.json().catch(() => null);
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
-    const addr = toAddressOrNull(raw.address);
-    if (!addr) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, addr);
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
     if (!ownerSession.ok) return ownerSession.response;
+    const addr = ownerSession.address;
 
     const currency = toCurrency(raw.currency) ?? "JPYC";
     const provider = toProvider(raw.provider) ?? "WORMHOLE_UI";

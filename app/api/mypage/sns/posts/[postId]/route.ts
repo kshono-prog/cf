@@ -14,7 +14,7 @@ import {
   toManagedPostStatus,
   toPostMediaType,
 } from "@/lib/social";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,8 +54,7 @@ export async function PATCH(
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
     const body = raw as PatchBody;
-    if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, body.address);
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
     if (!ownerSession.ok) return ownerSession.response;
 
     const nextStatus =
@@ -252,8 +251,7 @@ export async function DELETE(
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
     const body = raw as DeleteBody;
-    if (typeof body.address !== "string") return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, body.address);
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
     if (!ownerSession.ok) return ownerSession.response;
 
     const creator = await findCreatorByWalletAddress(ownerSession.address);

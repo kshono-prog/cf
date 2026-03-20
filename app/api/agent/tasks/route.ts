@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { optionsPreflight, withCorsResponse } from "@/app/api/_lib/cors";
 import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toNonEmptyString,
 } from "@/lib/api/guards";
 import {
@@ -21,9 +21,33 @@ import {
   validateTaskInput,
 } from "@/lib/agentTasks";
 import { toCreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import {
+  requireOwnerSessionFromBody,
+  requireOwnerSessionFromSearchParams,
+} from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
+
+function ok<T extends Record<string, unknown>>(
+  req: NextRequest,
+  data: T,
+  status?: number
+): NextResponse<{ ok: true } & T> {
+  return withCorsResponse(req, okJson(data, status));
+}
+
+function err(
+  req: NextRequest,
+  code: string,
+  status: number,
+  detail?: string
+): NextResponse {
+  return withCorsResponse(req, errJson(code, status, detail));
+}
+
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return optionsPreflight(req);
+}
 
 type PostBody = {
   address?: unknown;
@@ -41,18 +65,18 @@ function toRequiresApproval(v: unknown): boolean {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
-    const addressRaw = searchParams.get("address");
-    const ownerSession = await requireOwnerSession(req, addressRaw ?? undefined);
-    if (!ownerSession.ok) return ownerSession.response;
-    const address = toAddressOrNull(ownerSession.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
+    const ownerSession = await requireOwnerSessionFromSearchParams(
+      req,
+      searchParams
+    );
+    if (!ownerSession.ok) return withCorsResponse(req, ownerSession.response);
     const status = toTaskStatus(searchParams.get("status"));
     if (searchParams.get("status") && !status) {
-      return errJson("STATUS_INVALID", 400);
+      return err(req, "STATUS_INVALID", 400);
     }
 
-    const creator = await resolveCreatorByAddress(address);
-    if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
+    const creator = await resolveCreatorByAddress(ownerSession.address);
+    if (!creator) return err(req, "CREATOR_NOT_FOUND", 404);
 
     const rows = await prisma.agentTask.findMany({
       where: {
@@ -87,57 +111,55 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    return okJson({
+    return ok(req, {
       tasks: rows.map((row) => serializeAgentTask(row)),
       count: rows.length,
       status: status ?? null,
     });
   } catch (e) {
     console.error("AGENT_TASKS_GET_FAILED", e);
-    return errJson("AGENT_TASKS_GET_FAILED", 500);
+    return err(req, "AGENT_TASKS_GET_FAILED", 500);
   }
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const raw: unknown = await req.json().catch(() => null);
-    if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
-
+    if (!isRecord(raw)) return err(req, "INVALID_JSON", 400);
     const body = raw as PostBody;
-
-    const address = toAddressOrNull(body.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, address);
-    if (!ownerSession.ok) return ownerSession.response;
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
+    if (!ownerSession.ok) return withCorsResponse(req, ownerSession.response);
 
     const taskType = toTaskType(body.taskType);
-    if (!taskType) return errJson("TASK_TYPE_INVALID", 400);
+    if (!taskType) return err(req, "TASK_TYPE_INVALID", 400);
     const roleId =
       body.roleId == null ? null : toCreatorAiAgentRole(body.roleId);
     if (body.roleId != null && roleId === null) {
-      return errJson("ROLE_ID_INVALID", 400);
+      return err(req, "ROLE_ID_INVALID", 400);
     }
 
     let projectId: bigint | null = null;
     try {
       projectId = toProjectIdOrNull(body.projectId);
     } catch {
-      return errJson("PROJECT_ID_INVALID", 400);
+      return err(req, "PROJECT_ID_INVALID", 400);
     }
 
-    const creator = await resolveCreatorByAddress(address);
-    if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
+    const creator = await resolveCreatorByAddress(ownerSession.address);
+    if (!creator) return err(req, "CREATOR_NOT_FOUND", 404);
 
     if (projectId) {
       const ownedProject = await prisma.project.findFirst({
         where: { id: projectId, creatorProfileId: creator.id },
         select: { id: true },
       });
-      if (!ownedProject) return errJson("PROJECT_NOT_FOUND_OR_FORBIDDEN", 404);
+      if (!ownedProject) {
+        return err(req, "PROJECT_NOT_FOUND_OR_FORBIDDEN", 404);
+      }
     }
 
     const validatedInput = validateTaskInput(taskType, body.input);
-    if (!validatedInput.ok) return errJson(validatedInput.error, 400);
+    if (!validatedInput.ok) return err(req, validatedInput.error, 400);
 
     const inputJson = validatedInput.value;
     const requiresApproval = toRequiresApproval(body.requiresApproval);
@@ -147,17 +169,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       taskType,
       inputJson,
       requiresApproval,
-      requestedBy: address,
+      requestedBy: ownerSession.address,
       roleId,
     });
 
-    return okJson({
+    return ok(req, {
       task: serializeAgentTask(row),
       outputSchema: getTaskOutputSchema(taskType),
     });
   } catch (e) {
     console.error("AGENT_TASKS_POST_FAILED", e);
-    return errJson("AGENT_TASKS_POST_FAILED", 500);
+    return err(req, "AGENT_TASKS_POST_FAILED", 500);
   }
 }
 
@@ -173,38 +195,39 @@ const MAX_BATCH_TASK_IDS = 50;
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const raw: unknown = await req.json().catch(() => null);
-    if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
-
+    if (!isRecord(raw)) return err(req, "INVALID_JSON", 400);
     const body = raw as PatchBody;
-    const address = toAddressOrNull(body.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, address);
-    if (!ownerSession.ok) return ownerSession.response;
+    const ownerSession = await requireOwnerSessionFromBody(req, raw);
+    if (!ownerSession.ok) return withCorsResponse(req, ownerSession.response);
 
     const taskId = toNonEmptyString(body.taskId);
     const taskIdsRaw = body.taskIds == null ? null : parseTaskIds(body.taskIds);
-    if (body.taskIds != null && !taskIdsRaw) return errJson("TASK_IDS_INVALID", 400);
+    if (body.taskIds != null && !taskIdsRaw) {
+      return err(req, "TASK_IDS_INVALID", 400);
+    }
     if (taskId && taskIdsRaw && taskIdsRaw.length > 0) {
-      return errJson("TASK_ID_CONFLICT", 400);
+      return err(req, "TASK_ID_CONFLICT", 400);
     }
     const targetTaskIds = taskId
       ? [taskId]
       : taskIdsRaw && taskIdsRaw.length > 0
       ? Array.from(new Set(taskIdsRaw))
       : [];
-    if (targetTaskIds.length === 0) return errJson("TASK_ID_REQUIRED", 400);
+    if (targetTaskIds.length === 0) return err(req, "TASK_ID_REQUIRED", 400);
     if (targetTaskIds.length > MAX_BATCH_TASK_IDS) {
-      return errJson("TASK_IDS_TOO_MANY", 400);
+      return err(req, "TASK_IDS_TOO_MANY", 400);
     }
 
     const action = toTaskApprovalAction(body.action);
-    if (!action) return errJson("ACTION_INVALID", 400);
+    if (!action) return err(req, "ACTION_INVALID", 400);
     const note = toNonEmptyString(body.note);
-    if (note && note.length > 300) return errJson("NOTE_TOO_LONG", 400);
-    if (action === "REJECT" && !note) return errJson("NOTE_REQUIRED_FOR_REJECT", 400);
+    if (note && note.length > 300) return err(req, "NOTE_TOO_LONG", 400);
+    if (action === "REJECT" && !note) {
+      return err(req, "NOTE_REQUIRED_FOR_REJECT", 400);
+    }
 
-    const creator = await resolveCreatorByAddress(address);
-    if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
+    const creator = await resolveCreatorByAddress(ownerSession.address);
+    if (!creator) return err(req, "CREATOR_NOT_FOUND", 404);
 
     const tasks = await prisma.agentTask.findMany({
       where: {
@@ -222,26 +245,28 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     if (targetTaskIds.length === 1) {
       const only = tasks[0];
-      if (!only) return errJson("TASK_NOT_FOUND", 404);
+      if (!only) return err(req, "TASK_NOT_FOUND", 404);
       if (only.status !== "WAITING_APPROVAL") {
-        return errJson("TASK_NOT_WAITING_APPROVAL", 409);
+        return err(req, "TASK_NOT_WAITING_APPROVAL", 409);
       }
     }
 
     const waitingTasks = tasks.filter((task) => task.status === "WAITING_APPROVAL");
-    if (waitingTasks.length === 0) return errJson("NO_WAITING_APPROVAL_TASKS", 409);
+    if (waitingTasks.length === 0) {
+      return err(req, "NO_WAITING_APPROVAL_TASKS", 409);
+    }
 
     if (action === "REJECT") {
       const rejected = await rejectWaitingTasks({
         creatorProfileId: creator.id,
         waitingTasks,
-        actorAddress: address,
+        actorAddress: ownerSession.address,
         note: note ?? null,
       });
 
       if (targetTaskIds.length === 1) {
         const item = rejected[0];
-        return okJson({
+        return ok(req, {
           task: {
             id: item.id,
             status: item.status,
@@ -252,7 +277,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         });
       }
 
-      return okJson({
+      return ok(req, {
         batch: true,
         action,
         requested: targetTaskIds.length,
@@ -267,13 +292,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const approved = await approveWaitingTasks({
       creatorProfileId: creator.id,
       waitingTasks,
-      actorAddress: address,
+      actorAddress: ownerSession.address,
       note: note ?? null,
     });
 
     if (targetTaskIds.length === 1) {
       const item = approved[0];
-      return okJson({
+      return ok(req, {
         task: {
           id: item.id,
           status: item.status,
@@ -285,7 +310,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       });
     }
 
-    return okJson({
+    return ok(req, {
       batch: true,
       action,
       requested: targetTaskIds.length,
@@ -297,6 +322,6 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     });
   } catch (e) {
     console.error("AGENT_TASKS_PATCH_FAILED", e);
-    return errJson("AGENT_TASKS_PATCH_FAILED", 500);
+    return err(req, "AGENT_TASKS_PATCH_FAILED", 500);
   }
 }

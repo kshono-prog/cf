@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 import type { Address } from "viem";
 
 import { LazyFeedSection } from "@/components/feed/LazyFeedSection";
+import { usePublicViewerIdentity } from "@/components/shared/usePublicViewerIdentity";
+import {
+  CommunityGuideCard,
+  CommunityGuideLoadingCard,
+} from "@/components/social/CommunityGuideCard";
 import type { FeedListView } from "@/lib/feedList";
 import type { CreatorProfile } from "@/lib/profileTypes";
-import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
-import {
-  parsePublicViewerMeResponse,
-  resolvePublicViewerState,
-} from "@/lib/publicViewerState";
 
 const PublicOwnerComposerCard = dynamic(
   () =>
@@ -22,9 +22,10 @@ const PublicOwnerComposerCard = dynamic(
     ),
   {
     loading: () => (
-      <section className="surface-subtle px-4 py-4 text-sm text-[var(--text-subtle)] sm:px-5">
-        投稿フォームを準備しています…
-      </section>
+      <CommunityGuideLoadingCard
+        title="投稿フォームを準備しています"
+        body="投稿の入口を読み込み中です。"
+      />
     ),
   }
 );
@@ -55,10 +56,6 @@ export function HomeFeedClient({
 }: Props) {
   const { address: viewerAddress } = useAccount();
   const timelineRef = useRef<HTMLDivElement | null>(null);
-  const [viewerIdentityResolved, setViewerIdentityResolved] = useState(false);
-  const [viewerIdentity, setViewerIdentity] = useState<ReturnType<
-    typeof parsePublicViewerMeResponse
-  > | null>(null);
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
 
   const creator = useMemo(() => {
@@ -81,47 +78,10 @@ export function HomeFeedClient({
     [projectId, projectIdsByCurrency]
   );
 
-  useEffect(() => {
-    if (!viewerAddress) {
-      setViewerIdentity(null);
-      setViewerIdentityResolved(true);
-      return;
-    }
-
-    const connectedAddress = viewerAddress;
-    let cancelled = false;
-
-    async function fetchViewerIdentity(): Promise<void> {
-      setViewerIdentityResolved(false);
-      try {
-        const identity = await fetchPublicViewerIdentityCached(connectedAddress);
-        if (!cancelled) {
-          setViewerIdentity(identity);
-        }
-      } catch {
-        if (!cancelled) {
-          setViewerIdentity(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setViewerIdentityResolved(true);
-        }
-      }
-    }
-
-    void fetchViewerIdentity();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [viewerAddress]);
-
-  const viewerState = resolvePublicViewerState({
+  const { viewerState } = usePublicViewerIdentity({
     pageUsername: username,
     pageCreatorAddress: creator.address ?? null,
     viewerAddress: viewerAddress ?? null,
-    identity: viewerIdentity,
-    identityResolved: viewerIdentityResolved,
   });
 
   const ownerProjectOptions = useMemo(() => {
@@ -170,14 +130,10 @@ export function HomeFeedClient({
   const homeGuideCard = (() => {
     if (viewerState.mode === "loading") {
       return (
-        <section className="surface-subtle px-4 py-4 sm:px-5">
-          <div className="text-sm font-semibold text-[var(--text)]">
-            準備を確認しています
-          </div>
-          <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
-            接続状態と登録状況を読み込み中です。
-          </p>
-        </section>
+        <CommunityGuideLoadingCard
+          title="準備を確認しています"
+          body="接続状態と登録状況を読み込み中です。"
+        />
       );
     }
 
@@ -187,51 +143,47 @@ export function HomeFeedClient({
 
     if (viewerState.mode === "unregistered") {
       return (
-        <section className="surface-subtle px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-[var(--text)]">
-                応援はそのままできます。投稿したいときはユーザー登録
-              </div>
-              <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
-                まずは登録すると、自分のページと投稿機能を使い始められます。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
+        <CommunityGuideCard
+          title="応援はそのままできます。投稿したいときはユーザー登録"
+          body="まずは登録すると、自分のページと投稿機能を使い始められます。"
+          actions={
+            <>
               <Link href={`/${username}`} className="btn">
                 プロフィールを見る
               </Link>
               <Link href={viewerWorkspaceHref} className="btn-secondary">
                 ユーザー登録へ
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       );
     }
 
     if (!viewerState.hasCreator) {
-      return null;
+      return (
+        <CommunityGuideCard
+          title="公開ページを整えると、投稿や通知の準備が進みます"
+          body="ホームの流れを見ながら、自分の公開ページも整えると、投稿や応援の受け取りを始めやすくなります。"
+          actions={
+            <Link href={viewerWorkspaceHref} className="btn-secondary">
+              設定を開く
+            </Link>
+          }
+        />
+      );
     }
 
     return (
-      <section className="surface-subtle px-4 py-4 sm:px-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-[var(--text)]">
-              いま見ているのは、みんなの最新投稿です
-            </div>
-            <p className="mt-1 text-xs leading-6 text-[var(--text-subtle)]">
-              気になる投稿に反応しながら流れを見られます。投稿したいときは自分のページへ移動できます。
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href={viewerComposeHref} className="btn-secondary">
-              自分の投稿画面へ
-            </Link>
-          </div>
-        </div>
-      </section>
+      <CommunityGuideCard
+        title="いま見ているのは、みんなの最新投稿です"
+        body="気になる投稿に反応しながら流れを見られます。投稿したいときは自分のページへ移動できます。"
+        actions={
+          <Link href={viewerComposeHref} className="btn-secondary">
+            自分の投稿画面へ
+          </Link>
+        }
+      />
     );
   })();
 

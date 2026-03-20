@@ -1,12 +1,22 @@
 // app/api/creators/random/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import {
+  corsReadOnlyMethods,
+  optionsPreflight,
+  withCorsResponse,
+} from "@/app/api/_lib/cors";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
+import { errJson, jsonResponse } from "@/lib/api/responses";
 import { isCreatorType } from "@/lib/creatorTaxonomy";
 import type { CreatorProfile } from "@/types/creator";
 import { serializeCreatorProfile } from "@/lib/serializers/creator";
 
 export const runtime = "nodejs";
+
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return optionsPreflight(req, undefined, corsReadOnlyMethods);
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -31,7 +41,12 @@ export async function GET(req: NextRequest) {
     );
 
     if (total === 0) {
-      return NextResponse.json<CreatorProfile[]>([]);
+      return withCorsResponse(
+        req,
+        jsonResponse<CreatorProfile[]>([]),
+        undefined,
+        corsReadOnlyMethods
+      );
     }
 
     // 超ざっくりランダム抽出：
@@ -68,15 +83,23 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    return NextResponse.json(result, { status: 200 });
+    return withCorsResponse(
+      req,
+      jsonResponse(result, 200),
+      undefined,
+      corsReadOnlyMethods
+    );
   } catch (e) {
     console.error("RANDOM_CREATORS_ERROR", e);
-    return NextResponse.json(
-      {
-        error: "RANDOM_CREATORS_ERROR",
-        detail: e instanceof Error ? e.message : String(e),
-      },
-      { status: 500 }
+    return withCorsResponse(
+      req,
+      errJson(
+        "RANDOM_CREATORS_ERROR",
+        500,
+        e instanceof Error ? e.message : String(e)
+      ),
+      undefined,
+      corsReadOnlyMethods
     );
   }
 }

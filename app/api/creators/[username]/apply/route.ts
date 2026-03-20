@@ -1,14 +1,15 @@
 // app/api/creators/[username]/apply/route.ts
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { errJson, okJson } from "@/lib/api/responses";
+import {
+  isRecord,
+  toAddressOrNull,
+  toNonEmptyString,
+} from "@/lib/api/guards";
 import { prisma } from "@/lib/prisma";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 type Params = { username: string };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 export async function POST(
   req: NextRequest,
@@ -19,7 +20,7 @@ export async function POST(
   try {
     const body: unknown = await req.json().catch(() => null);
     if (!isRecord(body)) {
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+      return errJson("Invalid JSON", 400);
     }
 
     const {
@@ -42,14 +43,14 @@ export async function POST(
       email?: string;
     };
 
-    if (!rawAddress || !displayName) {
-      return NextResponse.json(
-        { error: "address と displayName は必須です" },
-        { status: 400 }
-      );
+    const normalizedDisplayName = toNonEmptyString(displayName);
+    const walletAddressRaw = toAddressOrNull(rawAddress);
+
+    if (!walletAddressRaw || !normalizedDisplayName) {
+      return errJson("ADDRESS_OR_DISPLAY_NAME_REQUIRED", 400);
     }
 
-    const walletAddress = rawAddress.toLowerCase();
+    const walletAddress = walletAddressRaw.toLowerCase();
     const ownerSession = await requireOwnerSession(req, walletAddress);
     if (!ownerSession.ok) return ownerSession.response;
 
@@ -62,9 +63,9 @@ export async function POST(
       existingByUsername.walletAddress &&
       existingByUsername.walletAddress !== walletAddress
     ) {
-      return NextResponse.json(
-        { error: "このURL（username）は既に別のウォレットで使われています。" },
-        { status: 409 }
+      return errJson(
+        "このURL（username）は既に別のウォレットで使われています。",
+        409
       );
     }
 
@@ -80,7 +81,7 @@ export async function POST(
           username,
           walletAddress,
           email: email ?? null,
-          displayName,
+          displayName: normalizedDisplayName,
           profileText: profileText ?? null,
           avatarUrl: avatarUrl ?? null,
           qrcodeUrl: qrcodeUrl ?? null,
@@ -96,7 +97,7 @@ export async function POST(
           username,
           walletAddress,
           email: email ?? base.email,
-          displayName,
+          displayName: normalizedDisplayName,
           profileText: profileText ?? base.profileText,
           avatarUrl: avatarUrl ?? base.avatarUrl,
           qrcodeUrl: qrcodeUrl ?? base.qrcodeUrl,
@@ -106,8 +107,7 @@ export async function POST(
       });
     }
 
-    return NextResponse.json({
-      ok: true,
+    return okJson({
       creator: {
         username: profileRow.username,
         displayName: profileRow.displayName,
@@ -116,9 +116,6 @@ export async function POST(
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json(
-      { error: "CREATOR_APPLY_FAILED" },
-      { status: 500 }
-    );
+    return errJson("CREATOR_APPLY_FAILED", 500);
   }
 }

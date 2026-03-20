@@ -4,12 +4,11 @@ import { Prisma } from "@prisma/client";
 import { errJson, okJson } from "@/lib/api/responses";
 import {
   isRecord,
-  toAddressOrNull,
   toBigIntOrThrow,
   toBool,
   toNonEmptyString,
 } from "@/lib/api/guards";
-import { requireOwnerSession } from "@/lib/ownerAuthSession";
+import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 
 export const dynamic = "force-dynamic";
 
@@ -53,10 +52,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!isRecord(raw)) return errJson("INVALID_JSON", 400);
 
     const body = raw as PostBody;
-
-    const address = toAddressOrNull(body.address);
-    if (!address) return errJson("ADDRESS_REQUIRED", 400);
-    const ownerSession = await requireOwnerSession(req, address);
+    const ownerSession = await requireOwnerSessionFromBody(req, body);
     if (!ownerSession.ok) return ownerSession.response;
 
     let projectId: bigint | null = null;
@@ -68,7 +64,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const dryRun = toBool(body.dryRun);
 
-    const creator = await resolveCreatorByAddress(address);
+    const creator = await resolveCreatorByAddress(ownerSession.address);
     if (!creator) return errJson("CREATOR_NOT_FOUND", 404);
 
     if (projectId) {
