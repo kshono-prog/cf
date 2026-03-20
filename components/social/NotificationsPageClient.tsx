@@ -5,101 +5,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
+import {
+  CommunityGuideCard,
+  CommunityGuideLoadingCard,
+} from "@/components/social/CommunityGuideCard";
+import {
+  parseNotificationsResponse,
+  type NotificationItem,
+  type NotificationKind,
+} from "@/lib/communityApiParsers";
+import {
+  resolveCommunityViewerLinks,
+  resolveCommunityViewerMode,
+} from "@/lib/communityUiState";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
-
-type NotificationKind = "REPLY" | "LIKE" | "SUPPORT" | "NOTICE";
-
-type NotificationItem = {
-  id: string;
-  kind: NotificationKind;
-  createdAt: string;
-  href: string;
-  title: string;
-  body: string;
-  actor:
-    | {
-        username: string;
-        displayName: string;
-        avatarUrl: string | null;
-      }
-    | null;
-  meta: string | null;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function toStringOrNull(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
-}
-
-function parseItems(value: unknown): NotificationItem[] {
-  if (!isRecord(value) || value.ok !== true || !Array.isArray(value.items)) {
-    return [];
-  }
-
-  return value.items
-    .filter((item): item is Record<string, unknown> => isRecord(item))
-    .map((item) => {
-      const id = toStringOrNull(item.id);
-      const kind = toStringOrNull(item.kind);
-      const createdAt = toStringOrNull(item.createdAt);
-      const href = toStringOrNull(item.href);
-      const title = toStringOrNull(item.title);
-      const body = toStringOrNull(item.body);
-      const meta = item.meta === null ? null : toStringOrNull(item.meta);
-      const actor = item.actor;
-
-      if (
-        !id ||
-        !createdAt ||
-        !href ||
-        !title ||
-        body === null ||
-        meta === undefined ||
-        (kind !== "REPLY" &&
-          kind !== "LIKE" &&
-          kind !== "SUPPORT" &&
-          kind !== "NOTICE")
-      ) {
-        return null;
-      }
-
-      let parsedActor: NotificationItem["actor"] = null;
-      if (actor !== null) {
-        if (!isRecord(actor)) return null;
-        const username = toStringOrNull(actor.username);
-        const displayName = toStringOrNull(actor.displayName);
-        const avatarUrl =
-          actor.avatarUrl === null ? null : toStringOrNull(actor.avatarUrl);
-
-        if (!username || !displayName || avatarUrl === undefined) {
-          return null;
-        }
-
-        parsedActor = {
-          username,
-          displayName,
-          avatarUrl,
-        };
-      }
-
-      return {
-        id,
-        kind,
-        createdAt,
-        href,
-        title,
-        body,
-        actor: parsedActor,
-        meta,
-      };
-    })
-    .filter((item): item is NotificationItem => item !== null);
-}
 
 function formatDateTime(value: string): string {
   const date = new Date(value);
@@ -197,7 +118,7 @@ export function NotificationsPageClient({ username }: { username: string }) {
         }
 
         if (!cancelled) {
-          setItems(parseItems(json));
+          setItems(parseNotificationsResponse(json));
         }
       } catch {
         if (!cancelled) {
@@ -227,89 +148,76 @@ export function NotificationsPageClient({ username }: { username: string }) {
     await appkit.open({ view: "Connect" });
   }
 
-  const viewerMode = (() => {
-    if (!isConnected || !address) return "unconnected" as const;
-    if (!viewerIdentityResolved) return "loading" as const;
-    if (!viewerIdentity?.hasUser) return "unregistered" as const;
-    if (!viewerIdentity.hasCreator) return "userOnly" as const;
-    return "creatorReady" as const;
-  })();
-
-  const settingsHref = viewerIdentity?.creatorUsername
-    ? `/${viewerIdentity.creatorUsername}/mypage`
-    : viewerIdentity?.user?.username
-    ? `/${viewerIdentity.user.username}/mypage`
-    : `/${username}/mypage`;
-  const composeHref = viewerIdentity?.creatorUsername
-    ? `/${viewerIdentity.creatorUsername}/compose`
-    : settingsHref;
-  const compactGuideClass = "surface-subtle px-4 py-4 sm:px-5";
-  const compactGuideTitleClass = "text-sm font-semibold text-[var(--text)]";
-  const compactGuideBodyClass = "mt-1 text-xs leading-6 text-[var(--text-subtle)]";
+  const viewerMode = resolveCommunityViewerMode({
+    isConnected,
+    viewerAddress: address,
+    identityResolved: viewerIdentityResolved,
+    identity: viewerIdentity,
+  });
+  const { settingsHref, composeHref } = resolveCommunityViewerLinks({
+    fallbackUsername: username,
+    identity: viewerIdentity,
+  });
 
   return (
     <div className="space-y-4">
       {viewerMode === "unconnected" ? (
-        <section className={compactGuideClass}>
-          <div className="mx-auto max-w-lg text-center">
-            <h2 className={compactGuideTitleClass}>
-              通知を見るにはウォレット接続が必要です
-            </h2>
-            <p className={compactGuideBodyClass}>
-              接続すると、自分への反応や応援をここでまとめて確認できます。
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <CommunityGuideCard
+          title="通知を見るにはウォレット接続が必要です"
+          body="接続すると、自分への反応や応援をここでまとめて確認できます。"
+          centered
+          maxWidthClassName="max-w-lg"
+          actions={
+            <>
               <button type="button" className="btn" onClick={() => void handleConnect()}>
                 ウォレット接続
               </button>
               <Link href={`/${username}`} className="btn-secondary">
                 プロフィールを見る
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       ) : viewerMode === "loading" ? (
-        <div className={`${compactGuideClass} text-xs text-[var(--text-subtle)]`}>
-          使える機能を確認しています
-        </div>
+        <CommunityGuideLoadingCard
+          title="使える機能を確認しています"
+          centered
+          maxWidthClassName="max-w-lg"
+        />
       ) : viewerMode === "unregistered" ? (
-        <section className={compactGuideClass}>
-          <div className="mx-auto max-w-lg text-center">
-            <h2 className={compactGuideTitleClass}>
-              通知を見るには、まずユーザー登録
-            </h2>
-            <p className={compactGuideBodyClass}>
-              いまはウォレット接続まで完了しています。次はユーザー登録をすると、自分のページ準備や投稿の入口が使えるようになります。
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <CommunityGuideCard
+          title="通知を見るには、まずユーザー登録"
+          body="いまはウォレット接続まで完了しています。次はユーザー登録をすると、自分のページ準備や投稿の入口が使えるようになります。"
+          centered
+          maxWidthClassName="max-w-lg"
+          actions={
+            <>
               <Link href={settingsHref} className="btn">
                 ユーザー登録へ
               </Link>
               <Link href={`/${username}/search`} className="btn-secondary">
                 検索へ
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       ) : viewerMode === "userOnly" ? (
-        <section className={compactGuideClass}>
-          <div className="mx-auto max-w-lg text-center">
-            <h2 className={compactGuideTitleClass}>
-              通知を受け取るには、公開ページの準備が必要です
-            </h2>
-            <p className={compactGuideBodyClass}>
-              返信や応援の通知は、公開ページを使い始めると確認できるようになります。次は設定から公開ページの準備へ進めます。
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <CommunityGuideCard
+          title="通知を受け取るには、公開ページの準備が必要です"
+          body="返信や応援の通知は、公開ページを使い始めると確認できるようになります。次は設定から公開ページの準備へ進めます。"
+          centered
+          maxWidthClassName="max-w-lg"
+          actions={
+            <>
               <Link href={settingsHref} className="btn">
                 設定を開く
               </Link>
               <Link href={composeHref} className="btn-secondary">
                 投稿の準備を見る
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       ) : (
         <>
           <section className="surface-card p-4">

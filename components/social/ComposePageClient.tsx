@@ -7,6 +7,10 @@ import { useAccount } from "wagmi";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import { PublicOwnerComposerCard } from "@/components/profile/PublicOwnerComposerCard";
 import {
+  CommunityGuideCard,
+  CommunityGuideLoadingCard,
+} from "@/components/social/CommunityGuideCard";
+import {
   parsePublicViewerMeResponse,
   resolvePublicViewerState,
 } from "@/lib/publicViewerState";
@@ -103,114 +107,99 @@ export function ComposePageClient(props: ComposePageClientProps) {
   const ownProfileHref = viewerState.creatorUsername
     ? `/${viewerState.creatorUsername}`
     : onboardingHref;
-  const compactGuideClass = "surface-subtle px-4 py-4 sm:px-5";
-  const compactGuideTitleClass = "text-sm font-semibold text-[var(--text)]";
-  const compactGuideBodyClass = "mt-1 text-xs leading-6 text-[var(--text-subtle)]";
 
   const composeGuide = (() => {
     if (viewerState.mode === "loading") {
       return (
-        <section className={compactGuideClass}>
-          <div className="mx-auto max-w-xl text-center">
-            <h2 className={compactGuideTitleClass}>
-              投稿の準備を確認しています
-            </h2>
-            <p className={compactGuideBodyClass}>
-              接続状態と登録状況を読み込み中です。
-            </p>
-          </div>
-        </section>
+        <CommunityGuideLoadingCard
+          title="投稿の準備を確認しています"
+          body="接続状態と登録状況を読み込み中です。"
+          centered
+          maxWidthClassName="max-w-xl"
+        />
       );
     }
 
     if (viewerState.mode === "unconnected") {
       return (
-        <section className={compactGuideClass}>
-          <div className="mx-auto max-w-xl text-center">
-            <h2 className={compactGuideTitleClass}>
-              投稿を始めるには、まずウォレット接続
-            </h2>
-            <p className={compactGuideBodyClass}>
-              このアプリでは、ウォレット接続のあとにユーザー登録をすると、自分のページを作って投稿できるようになります。
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <CommunityGuideCard
+          title="投稿を始めるには、まずウォレット接続"
+          body="このアプリでは、ウォレット接続のあとにユーザー登録をすると、自分のページを作って投稿できるようになります。"
+          centered
+          maxWidthClassName="max-w-xl"
+          actions={
+            <>
               <button type="button" className="btn" onClick={() => void handleConnect()}>
                 ウォレット接続
               </button>
               <Link href={onboardingHref} className="btn-secondary">
                 使い方を見る
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       );
     }
 
     if (viewerState.mode === "unregistered") {
       return (
-        <section className={compactGuideClass}>
-          <div className="mx-auto max-w-xl text-center">
-            <h2 className={compactGuideTitleClass}>
-              ユーザー登録をすると投稿できます
-            </h2>
-            <p className={compactGuideBodyClass}>
-              表示名とユーザー名を登録すると、自分のページと投稿機能を使い始められます。
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <CommunityGuideCard
+          title="ユーザー登録をすると投稿できます"
+          body="表示名とユーザー名を登録すると、自分のページと投稿機能を使い始められます。"
+          centered
+          maxWidthClassName="max-w-xl"
+          actions={
+            <>
               <Link href={onboardingHref} className="btn">
                 ユーザー登録へ
               </Link>
               <Link href={`/${props.username}`} className="btn-secondary">
                 プロフィールを見る
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       );
     }
 
     if (!viewerState.hasCreator) {
       return (
-        <section className={compactGuideClass}>
-          <div className="mx-auto max-w-xl text-center">
-            <h2 className={compactGuideTitleClass}>
-              公開ページを整えると投稿できます
-            </h2>
-            <p className={compactGuideBodyClass}>
-              ユーザー登録は完了しています。次は公開ページを整えると、投稿と応援の受け取りを始められます。
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <CommunityGuideCard
+          title="公開ページを整えると投稿できます"
+          body="ユーザー登録は完了しています。次は公開ページを整えると、投稿と応援の受け取りを始められます。"
+          centered
+          maxWidthClassName="max-w-xl"
+          actions={
+            <>
               <Link href={onboardingHref} className="btn">
                 設定を開く
               </Link>
               <Link href={`/${props.username}`} className="btn-secondary">
                 プロフィールを見る
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       );
     }
 
     return (
-      <section className={compactGuideClass}>
-        <div className="mx-auto max-w-xl text-center">
-          <h2 className={compactGuideTitleClass}>
-            いま見ているのは {pageDisplayName} さんの投稿画面です
-          </h2>
-          <p className={compactGuideBodyClass}>
-            投稿したいときは、自分の投稿画面へ移動してください。ここでは投稿の流れだけを確認できます。
-          </p>
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
+      <CommunityGuideCard
+        title={`いま見ているのは ${pageDisplayName} さんの投稿画面です`}
+        body="投稿したいときは、自分の投稿画面へ移動してください。ここでは投稿の流れだけを確認できます。"
+        centered
+        maxWidthClassName="max-w-xl"
+        actions={
+          <>
             <Link href={ownComposeHref} className="btn">
               自分の投稿画面へ
             </Link>
             <Link href={ownProfileHref} className="btn-secondary">
               自分のページを見る
             </Link>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
     );
   })();
 

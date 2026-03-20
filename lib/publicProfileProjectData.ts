@@ -12,7 +12,7 @@ import {
 } from "@/lib/supportProfileView";
 import type { CreatorProfile } from "@/types/creator";
 
-type PublicProfileProjectData = {
+export type PublicProfileProjectData = {
   projectId: string | null;
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
   publicSummary: PublicSummaryLite | null;
@@ -20,7 +20,7 @@ type PublicProfileProjectData = {
   recruitingProjects: SupportProjectView[];
 };
 
-type ProjectRow = {
+export type PublicProfileProjectRow = {
   id: bigint;
   creatorProfileId: bigint | null;
   title: string;
@@ -58,21 +58,26 @@ type ContributionGroupRow = {
   _sum: { amountDecimal: Prisma.Decimal | null };
 };
 
+export type PublicProfileContributionTotals = Map<
+  string,
+  { JPYC: Prisma.Decimal; USDC: Prisma.Decimal }
+>;
+
 const ZERO_DECIMAL = new Prisma.Decimal(0);
 
-function normalizeProjectRows(rows: RawProjectRow[]): ProjectRow[] {
+function normalizeProjectRows(rows: RawProjectRow[]): PublicProfileProjectRow[] {
   return rows.filter(
-    (row): row is ProjectRow =>
+    (row): row is PublicProfileProjectRow =>
       row.creatorProfileId !== null &&
       (row.currency === "JPYC" || row.currency === "USDC")
   );
 }
 
 function selectProjectByCurrency(args: {
-  projects: ProjectRow[];
+  projects: PublicProfileProjectRow[];
   preferredId: string | null;
   currency: "JPYC" | "USDC";
-}): ProjectRow | null {
+}): PublicProfileProjectRow | null {
   const projectsForCurrency = args.projects.filter(
     (project) => project.currency === args.currency
   );
@@ -90,8 +95,8 @@ function selectProjectByCurrency(args: {
 
 function buildContributionTotals(
   rows: ContributionGroupRow[]
-): Map<string, { JPYC: Prisma.Decimal; USDC: Prisma.Decimal }> {
-  const totals = new Map<string, { JPYC: Prisma.Decimal; USDC: Prisma.Decimal }>();
+): PublicProfileContributionTotals {
+  const totals: PublicProfileContributionTotals = new Map();
 
   for (const row of rows) {
     const key = row.projectId.toString();
@@ -108,7 +113,7 @@ function buildContributionTotals(
 
 async function loadContributionTotals(
   projectIds: bigint[]
-): Promise<Map<string, { JPYC: Prisma.Decimal; USDC: Prisma.Decimal }>> {
+): Promise<PublicProfileContributionTotals> {
   if (projectIds.length === 0) return new Map();
 
   const rows = await withPrismaRetry(() =>
@@ -136,8 +141,8 @@ async function loadContributionTotals(
 }
 
 function buildProjectView(
-  project: ProjectRow,
-  totals: Map<string, { JPYC: Prisma.Decimal; USDC: Prisma.Decimal }>
+  project: PublicProfileProjectRow,
+  totals: PublicProfileContributionTotals
 ): SupportProjectView {
   const projectTotals = totals.get(project.id.toString()) ?? {
     JPYC: ZERO_DECIMAL,
@@ -239,6 +244,62 @@ function buildPublicSummary(project: SupportProjectView | null): PublicSummaryLi
   };
 }
 
+export function derivePublicProfileProjectData(args: {
+  projects: PublicProfileProjectRow[];
+  totals: PublicProfileContributionTotals;
+  activeProjectIdJpyc: string | null;
+  activeProjectIdUsdc: string | null;
+  creator: Pick<CreatorProfile, "displayName" | "profile">;
+}): PublicProfileProjectData {
+  const selectedJpyc = selectProjectByCurrency({
+    projects: args.projects,
+    preferredId: args.activeProjectIdJpyc,
+    currency: "JPYC",
+  });
+  const selectedUsdc = selectProjectByCurrency({
+    projects: args.projects,
+    preferredId: args.activeProjectIdUsdc,
+    currency: "USDC",
+  });
+
+  const projectsByCurrency = {
+    JPYC: selectedJpyc ? buildProjectView(selectedJpyc, args.totals) : null,
+    USDC: selectedUsdc ? buildProjectView(selectedUsdc, args.totals) : null,
+  };
+  const projectIdsByCurrency = {
+    JPYC: selectedJpyc?.id.toString() ?? null,
+    USDC: selectedUsdc?.id.toString() ?? null,
+  };
+  const projectId = projectIdsByCurrency.JPYC ?? projectIdsByCurrency.USDC ?? null;
+  const activeProject =
+    (projectId && projectsByCurrency.JPYC?.projectId === projectId
+      ? projectsByCurrency.JPYC
+      : null) ??
+    (projectId && projectsByCurrency.USDC?.projectId === projectId
+      ? projectsByCurrency.USDC
+      : null);
+
+  const recruitingProjects = args.projects
+    .filter(
+      (project) =>
+        !PUBLIC_CLOSED_PROJECT_STATUSES.has(project.status) &&
+        project.goal?.achievedAt == null
+    )
+    .map((project) => buildProjectView(project, args.totals));
+
+  return {
+    projectId,
+    projectIdsByCurrency,
+    publicSummary: buildPublicSummary(activeProject),
+    supportProfileView: buildSupportProfile({
+      creator: args.creator,
+      primaryProjectId: projectId,
+      projectsByCurrency,
+    }),
+    recruitingProjects,
+  };
+}
+
 export async function loadPublicProfileProjectData(args: {
   creatorProfileId: bigint;
   activeProjectIdJpyc: string | null;
@@ -275,51 +336,11 @@ export async function loadPublicProfileProjectData(args: {
   const projects = normalizeProjectRows(rawProjects);
   const totals = await loadContributionTotals(projects.map((project) => project.id));
 
-  const selectedJpyc = selectProjectByCurrency({
+  return derivePublicProfileProjectData({
     projects,
-    preferredId: args.activeProjectIdJpyc,
-    currency: "JPYC",
+    totals,
+    activeProjectIdJpyc: args.activeProjectIdJpyc,
+    activeProjectIdUsdc: args.activeProjectIdUsdc,
+    creator: args.creator,
   });
-  const selectedUsdc = selectProjectByCurrency({
-    projects,
-    preferredId: args.activeProjectIdUsdc,
-    currency: "USDC",
-  });
-
-  const projectsByCurrency = {
-    JPYC: selectedJpyc ? buildProjectView(selectedJpyc, totals) : null,
-    USDC: selectedUsdc ? buildProjectView(selectedUsdc, totals) : null,
-  };
-  const projectIdsByCurrency = {
-    JPYC: selectedJpyc?.id.toString() ?? null,
-    USDC: selectedUsdc?.id.toString() ?? null,
-  };
-  const projectId = projectIdsByCurrency.JPYC ?? projectIdsByCurrency.USDC ?? null;
-  const activeProject =
-    (projectId && projectsByCurrency.JPYC?.projectId === projectId
-      ? projectsByCurrency.JPYC
-      : null) ??
-    (projectId && projectsByCurrency.USDC?.projectId === projectId
-      ? projectsByCurrency.USDC
-      : null);
-
-  const recruitingProjects = projects
-    .filter(
-      (project) =>
-        !PUBLIC_CLOSED_PROJECT_STATUSES.has(project.status) &&
-        project.goal?.achievedAt == null
-    )
-    .map((project) => buildProjectView(project, totals));
-
-  return {
-    projectId,
-    projectIdsByCurrency,
-    publicSummary: buildPublicSummary(activeProject),
-    supportProfileView: buildSupportProfile({
-      creator: args.creator,
-      primaryProjectId: projectId,
-      projectsByCurrency,
-    }),
-    recruitingProjects,
-  };
 }

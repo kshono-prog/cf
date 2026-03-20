@@ -14,17 +14,20 @@
 
 ```bash
 npm run dev
-npm run lint
-npx tsc --noEmit
-npm run build
+npm run verify
+npm run verify:prisma
+npm run measure:public-pages
+npm run audit:data-integrity
 ```
 
 ## 開発時の確認順
 
-1. lint
-2. type check
+1. `npm run verify`
+2. Prisma / migration を触ったときだけ `npm run verify:prisma`
 3. 対象画面の手動確認
 4. 対象 API の正常系確認
+5. public 重要導線を触ったときは `docs/runbooks/public-surface-measurement.md`
+6. Goal / Project / CreatorProfile を触ったときは `docs/runbooks/data-integrity-audit.md`
 
 AI Office を触るとき:
 
@@ -36,3 +39,4 @@ AI Office を触るとき:
 - migration や schema 変更は勝手に進めない
 - 送金系や bridge 系は UI だけでなく API 側も確認する
 - env var を前提にした変更は docs に記録する
+- `typecheck` は `next typegen` を先に実行するので、単体でも確認できる

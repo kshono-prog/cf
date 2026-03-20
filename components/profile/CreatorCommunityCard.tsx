@@ -3,29 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+  parseFollowSummaryResponse,
+  type FollowSummary,
+} from "@/lib/communityApiParsers";
+import { mapFollowActionError } from "@/lib/communityUiState";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import type { PublicViewerState } from "@/lib/publicViewerState";
-
-type FollowPreview = {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
-};
-
-type FollowSummary = {
-  creator: FollowPreview;
-  counts: {
-    followers: number;
-    following: number;
-  };
-  viewer: {
-    hasUser: boolean;
-    isOwner: boolean;
-    follows: boolean;
-  };
-  followers: FollowPreview[];
-};
 
 type Props = {
   username: string;
@@ -40,83 +24,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function toStringOrNull(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
-}
-
-function toNumberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function parsePreview(value: unknown): FollowPreview | null {
-  if (!isRecord(value)) return null;
-
-  const id = toStringOrNull(value.id);
-  const username = toStringOrNull(value.username);
-  const displayName = toStringOrNull(value.displayName);
-  const avatarUrl =
-    value.avatarUrl === null ? null : toStringOrNull(value.avatarUrl);
-
-  if (!id || !username || !displayName || avatarUrl === undefined) return null;
-
-  return {
-    id,
-    username,
-    displayName,
-    avatarUrl,
-  };
-}
-
-function parseFollowSummary(value: unknown): FollowSummary {
-  if (
-    !isRecord(value) ||
-    value.ok !== true ||
-    !isRecord(value.counts) ||
-    !isRecord(value.viewer) ||
-    !Array.isArray(value.followers)
-  ) {
-    throw new Error("FOLLOW_SUMMARY_INVALID");
-  }
-
-  const creator = parsePreview(value.creator);
-  const followers = toNumberOrNull(value.counts.followers);
-  const following = toNumberOrNull(value.counts.following);
-  if (!creator || followers === null || following === null) {
-    throw new Error("FOLLOW_SUMMARY_INVALID");
-  }
-
-  return {
-    creator,
-    counts: {
-      followers,
-      following,
-    },
-    viewer: {
-      hasUser: value.viewer.hasUser === true,
-      isOwner: value.viewer.isOwner === true,
-      follows: value.viewer.follows === true,
-    },
-    followers: value.followers
-      .map((item) => parsePreview(item))
-      .filter((item): item is FollowPreview => item !== null),
-  };
-}
-
 function countLabel(value: number): string {
   return value.toLocaleString("ja-JP");
-}
-
-function mapActionError(message: string): string {
-  switch (message) {
-    case "ADDRESS_REQUIRED":
-      return "フォローするにはウォレット接続が必要です。";
-    case "VIEWER_NOT_REGISTERED":
-      return "フォローするには先にユーザー登録をしてください。";
-    case "CANNOT_FOLLOW_SELF":
-      return "自分自身はフォローできません。";
-    default:
-      return "フォローの更新に失敗しました。";
-  }
 }
 
 export function CreatorCommunityCard(props: Props) {
@@ -150,7 +59,7 @@ export function CreatorCommunityCard(props: Props) {
       if (!response.ok) {
         throw new Error("FOLLOW_FETCH_FAILED");
       }
-      setSummary(parseFollowSummary(json));
+      setSummary(parseFollowSummaryResponse(json));
     } catch {
       setError("フォロワー情報を読み込めませんでした。");
     } finally {
@@ -193,11 +102,11 @@ export function CreatorCommunityCard(props: Props) {
           isRecord(json) && typeof json.error === "string" ? json.error : "";
         throw new Error(errorCode);
       }
-      setSummary(parseFollowSummary(json));
+      setSummary(parseFollowSummaryResponse(json));
     } catch (mutationError) {
       setError(
         mutationError instanceof Error
-          ? mapActionError(mutationError.message)
+          ? mapFollowActionError(mutationError.message)
           : "フォローの更新に失敗しました。"
       );
     } finally {

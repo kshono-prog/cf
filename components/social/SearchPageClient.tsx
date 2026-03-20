@@ -5,8 +5,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/shared/Avatar";
+import {
+  CommunityGuideCard,
+  CommunityGuideLoadingCard,
+} from "@/components/social/CommunityGuideCard";
 import { SupportProjectSummaryCard } from "@/components/support/SupportProjectSummaryCard";
 import type { FeedPost } from "@/components/feed/feedTypes";
+import {
+  resolveCommunityViewerLinks,
+  resolveCommunityViewerMode,
+} from "@/lib/communityUiState";
 import type { DiscoverCreator } from "@/lib/discoverCreators";
 import { parsePublicViewerMeResponse } from "@/lib/publicViewerState";
 import { fetchPublicViewerIdentityCached } from "@/lib/publicViewerIdentityClient";
@@ -44,7 +52,7 @@ type SearchPageClientProps = {
 };
 
 export function SearchPageClient(props: SearchPageClientProps) {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const [query, setQuery] = useState("");
   const [loading] = useState(false);
   const [error] = useState<string | null>(null);
@@ -56,7 +64,7 @@ export function SearchPageClient(props: SearchPageClientProps) {
   > | null>(null);
 
   useEffect(() => {
-    if (!address) {
+    if (!address || !isConnected) {
       setViewerIdentity(null);
       setViewerIdentityResolved(true);
       return;
@@ -88,7 +96,7 @@ export function SearchPageClient(props: SearchPageClientProps) {
     return () => {
       cancelled = true;
     };
-  }, [address]);
+  }, [address, isConnected]);
 
   const normalizedQuery = query.trim().toLowerCase();
   const filteredCreators = useMemo(() => {
@@ -151,40 +159,24 @@ export function SearchPageClient(props: SearchPageClientProps) {
     );
   }, [creators, filteredCreators, normalizedQuery]);
 
-  const viewerMode = (() => {
-    if (!address) return "unconnected" as const;
-    if (!viewerIdentityResolved) return "loading" as const;
-    if (!viewerIdentity?.hasUser) return "unregistered" as const;
-    if (!viewerIdentity.hasCreator) return "userOnly" as const;
-    return "creatorReady" as const;
-  })();
-
-  const settingsHref = viewerIdentity?.creatorUsername
-    ? `/${viewerIdentity.creatorUsername}/mypage`
-    : viewerIdentity?.user?.username
-    ? `/${viewerIdentity.user.username}/mypage`
-    : `/${props.username}/mypage`;
-  const composeHref = viewerIdentity?.creatorUsername
-    ? `/${viewerIdentity.creatorUsername}/compose`
-    : settingsHref;
-  const notificationsHref = viewerIdentity?.creatorUsername
-    ? `/${viewerIdentity.creatorUsername}/notifications`
-    : settingsHref;
-  const compactGuideClass = "surface-subtle px-4 py-4 sm:px-5";
-  const compactGuideTitleClass = "text-sm font-semibold text-[var(--text)]";
-  const compactGuideBodyClass = "mt-1 text-xs leading-6 text-[var(--text-subtle)]";
+  const viewerMode = resolveCommunityViewerMode({
+    isConnected,
+    viewerAddress: address,
+    identityResolved: viewerIdentityResolved,
+    identity: viewerIdentity,
+  });
+  const { settingsHref, composeHref, notificationsHref } = resolveCommunityViewerLinks({
+    fallbackUsername: props.username,
+    identity: viewerIdentity,
+  });
 
   const searchGuide = (() => {
     if (viewerMode === "loading") {
       return (
-        <section className={compactGuideClass}>
-          <div className={compactGuideTitleClass}>
-            使える機能を確認しています
-          </div>
-          <p className={compactGuideBodyClass}>
-            接続状態と登録状況を読み込み中です。
-          </p>
-        </section>
+        <CommunityGuideLoadingCard
+          title="使える機能を確認しています"
+          body="接続状態と登録状況を読み込み中です。"
+        />
       );
     }
 
@@ -194,26 +186,20 @@ export function SearchPageClient(props: SearchPageClientProps) {
 
     if (viewerMode === "unregistered") {
       return (
-        <section className={compactGuideClass}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className={compactGuideTitleClass}>
-                検索しながら、次はユーザー登録
-              </div>
-              <p className={compactGuideBodyClass}>
-                検索と閲覧はそのまま使えます。投稿や自分のページ準備を始めたいときは、まずユーザー登録へ進みます。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
+        <CommunityGuideCard
+          title="検索しながら、次はユーザー登録"
+          body="検索と閲覧はそのまま使えます。投稿や自分のページ準備を始めたいときは、まずユーザー登録へ進みます。"
+          actions={
+            <>
               <Link href={settingsHref} className="btn">
                 ユーザー登録へ
               </Link>
               <Link href={`/${props.username}`} className="btn-secondary">
                 プロフィールを見る
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       );
     }
 
@@ -222,26 +208,20 @@ export function SearchPageClient(props: SearchPageClientProps) {
     }
 
     return (
-      <section className={compactGuideClass}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className={compactGuideTitleClass}>
-              検索しながら、そのまま行動できます
-            </div>
-            <p className={compactGuideBodyClass}>
-              気になる人や投稿を探しながら、自分の投稿画面や通知にもすぐ移動できます。
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <CommunityGuideCard
+        title="検索しながら、そのまま行動できます"
+        body="気になる人や投稿を探しながら、自分の投稿画面や通知にもすぐ移動できます。"
+        actions={
+          <>
             <Link href={composeHref} className="btn">
               投稿する
             </Link>
             <Link href={notificationsHref} className="btn-secondary">
               通知を見る
             </Link>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
     );
   })();
 

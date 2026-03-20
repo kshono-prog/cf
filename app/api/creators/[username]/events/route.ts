@@ -6,6 +6,7 @@ import {
   isEventCategory,
   type EventCategory,
 } from "@/lib/creatorTaxonomy";
+import { fetchCreatorPublishedEventsByUsername } from "@/lib/publicEventsApi";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 type EventPostBody = {
@@ -76,47 +77,9 @@ export async function GET(
   _req: NextRequest,
   ctx: RouteContext<"/api/creators/[username]/events">
 ): Promise<NextResponse> {
-  // RouteContext により params は Promise になる
   const { username } = await ctx.params;
-
-  try {
-    const creator = await withPrismaRetry(() =>
-      prisma.creatorProfile.findUnique({
-        where: { username },
-        select: { id: true },
-      })
-    );
-
-    if (!creator) {
-      // クリエイターがまだ存在しない場合は 404 ではなく空配列を返す
-      return NextResponse.json({ events: [] });
-    }
-
-    const events = await withPrismaRetry(() =>
-      prisma.event.findMany({
-        where: { creatorProfileId: creator.id, isPublished: true },
-        orderBy: { startAt: "asc" },
-      })
-    );
-
-    // BigInt をそのまま返すと JSON 化で落ちるので、文字列に変換する
-    return NextResponse.json({
-      events: events.map((e: (typeof events)[number]) => ({
-        id: e.id.toString(),
-        title: e.title,
-        description: e.description,
-        // API レスポンスでは startAt を date として返す
-        date: e.startAt ? e.startAt.toISOString() : null,
-        // goalAmountJpyc を goalAmount として返す
-        goalAmount: serializeGoalAmount(e.goalAmountJpyc),
-        categories: e.eventCategories.filter(isEventCategory),
-        // placeName / placeUrl / ticketUrl などは必要になったらここに追加
-      })),
-    });
-  } catch (error: unknown) {
-    console.error("EVENT_LIST_ERROR", error);
-    return NextResponse.json({ error: "EVENT_LIST_FAILED" }, { status: 500 });
-  }
+  const response = await fetchCreatorPublishedEventsByUsername(username);
+  return NextResponse.json(response.body, { status: response.status });
 }
 
 // POST: イベント登録（マイページから利用）

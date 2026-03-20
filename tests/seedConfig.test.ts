@@ -27,3 +27,23 @@ test("parseSeedProjectConfig falls back safely when optional env vars are absent
     goalDeadline: null,
   });
 });
+
+test("parseSeedProjectConfig rejects invalid currency values", () => {
+  assert.throws(
+    () =>
+      parseSeedProjectConfig({
+        SEED_PROJECT_CURRENCY: "JPY",
+      }),
+    /Invalid SEED_PROJECT_CURRENCY/
+  );
+});
+
+test("parseSeedProjectConfig rejects invalid deadline values", () => {
+  assert.throws(
+    () =>
+      parseSeedProjectConfig({
+        SEED_GOAL_DEADLINE: "not-a-date",
+      }),
+    /Invalid SEED_GOAL_DEADLINE/
+  );
+});

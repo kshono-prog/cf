@@ -6,13 +6,14 @@
 
 ## リリース前チェック
 
-1. `npm run lint`
-2. `npx tsc --noEmit`
-3. `npm run build`
-4. 変更対象画面の手動確認
-5. 変更対象 API の異常系確認
-6. env var 変更有無の確認
-7. migration 変更有無の確認
+1. `npm run verify`
+2. migration / schema 変更がある場合は `npm run verify:prisma`
+3. public 重要導線を触った場合は `npm run measure:public-pages`
+4. Goal / Project / CreatorProfile を触った場合は `npm run audit:data-integrity`
+5. 変更対象画面の手動確認
+6. 変更対象 API の異常系確認
+7. env var 変更有無の確認
+8. migration 変更有無の確認
 
 ## 特に注意する領域
 
@@ -28,4 +29,3 @@
 - どこに影響するか
 - 未確認事項
 - ロールバックしづらい変更の有無
-
