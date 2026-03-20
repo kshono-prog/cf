@@ -2,10 +2,8 @@
 
 import React from "react";
 
-import {
-  AiOfficeEmptyState,
-  AiOfficeStatusNotice,
-} from "@/components/mypage/AiOfficeFeedback";
+import { AiOfficeStatusNotice } from "@/components/mypage/AiOfficeFeedback";
+import { getAiOfficeCreateSectionCopy } from "@/components/mypage/aiOfficeCreateSectionCopy";
 import { AiOfficeTaskInputFields } from "@/components/mypage/AiOfficeTaskInputFields";
 import {
   getAiOfficeRoleGuidance,
@@ -35,7 +33,6 @@ type TaskTypeCopy = {
 
 type Props = {
   loading: boolean;
-  waitingApprovalCount: number;
   contentSummary: AiOfficeContentSummaryView;
   usefulness: AiOfficeUsefulnessSummaryView;
   tasks: AgentTaskView[];
@@ -100,13 +97,19 @@ export function AiOfficeCreateSection(props: Props) {
         : undefined,
     [props.usefulness.roleBreakdown, selectedRole]
   );
+  const createSectionCopy = React.useMemo(
+    () => getAiOfficeCreateSectionCopy(selectedRole?.roleId),
+    [selectedRole]
+  );
 
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-gray-200 bg-white p-4">
-        <div className="text-sm font-semibold text-gray-900">1. 投稿の状況を確認する</div>
+        <div className="text-sm font-semibold text-gray-900">
+          {createSectionCopy.title}
+        </div>
         <div className="mt-1 text-xs text-gray-500">
-          このアプリ内の投稿と反応をもとにAIが下書きを作成します。
+          {createSectionCopy.description}
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
@@ -138,7 +141,7 @@ export function AiOfficeCreateSection(props: Props) {
             投稿指標を更新する
           </button>
           <div className="text-xs leading-5 text-gray-500">
-            投稿がまだない場合でも次のアクション提案や配分の下書きは使えます。告知系の下書き精度は、投稿後に上がります。
+            {createSectionCopy.helper}
           </div>
         </div>
       </div>
@@ -150,22 +153,6 @@ export function AiOfficeCreateSection(props: Props) {
             告知・宣伝・財務・ファン対応などの担当から近いものを選ぶと、AIがプロジェクトの状況と投稿をもとに下書きを作ります。
           </div>
         </div>
-
-        {props.waitingApprovalCount > 0 ? (
-          <AiOfficeEmptyState
-            title={`先に確認したい承認待ちが ${props.waitingApprovalCount} 件あります`}
-            description="新しい下書きを増やす前に、承認待ちで内容を確認しておくと運営が止まりません。"
-          >
-            <button
-              type="button"
-              className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-800 disabled:opacity-40"
-              onClick={() => props.onOpenInbox()}
-              disabled={props.loading}
-            >
-              承認待ちを開く
-            </button>
-          </AiOfficeEmptyState>
-        ) : null}
 
         <div
           className={`rounded-2xl border px-4 py-3 ${

@@ -4,7 +4,7 @@ Phase 2 UX: `AI Office` を `Overview / Create / Inbox` に分ける
 
 ## Goal
 
-`AI Office` を 1 画面に詰め込んだ operator UI ではなく、`状況確認 / 作成 / 承認待ち確認` の3役に分けて理解しやすくする。
+`AI Office` を 1 画面に詰め込んだ operator UI ではなく、`概要確認 / 下書き作成 / 承認待ち確認` の3役に分けて理解しやすくする。
 
 ## Scope
 
@@ -27,7 +27,7 @@ Phase 2 UX: `AI Office` を `Overview / Create / Inbox` に分ける
 
 ## Acceptance Criteria
 
-- first view で `状況 / 作成 / Inbox` の3役が分かる
+- first view で `概要 / 下書きを作る / 承認待ち` の3役が分かる
 - `AI Office` の top-level に mixed responsibilities が残らない
 - 既存の作成 / 承認 / 却下フローを壊していない
 

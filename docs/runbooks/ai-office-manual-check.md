@@ -31,10 +31,27 @@
 - 同じ画面を撮り直した場合は末尾に `-v2`, `-v3` を付ける
 - スクリーンショットには URL、active tab、主要見出しが入るようにする
 
+## 違和感メモの残し方
+
+- `minimum` では 1 から 3 件、`full` では 3 から 5 件の高信号な違和感に絞る
+- 1 件ごとに次の形式で `notes.md` に残す
+
+```md
+- Screen:
+- State:
+- Observation:
+- Why it matters:
+- Expected:
+- Severity: low / medium / high
+```
+
+- その場で大きく直し始めず、まずは `copy / CTA / notice / approval flow / handoff` に分類する
+- `wallet / bridge / distribution` の仕様変更が必要そうなら、所感だけ残して別 task に切る
+
 ## 最小キャプチャセット
 
 1. `01-settings-ai-office-entry.png`
-   `AI事務所（Role-Based Phase1）` 見出し、`状況 / 下書きを作る / 承認待ち` が見えている
+   `AI事務所` 見出し、`概要 / 下書きを作る / 承認待ち` が見えている
 2. `02-create-manager-task.png`
    `下書きを作る` タブ、`2. 役割から選ぶ`、`Manager Agent`、`Manager Agent の次アクションを整理する`、`この内容で作成` が見えている
 3. `03-manager-task-created.png`
@@ -79,11 +96,11 @@
    - 途中経過を見たいときは `npm run manual-check:ai-office:status -- --date <YYYY-MM-DD>` で `status.md` を更新する
 1. `npm run dev` を起動する
 2. 対象 creator の [`/[username]/mypage`] を開く
-3. 設定画面の [`AI事務所（Phase1）`](/Users/shounokazuaki/cf/components/mypage/SettingsPageClient.tsx) セクション、または [`/[username]/mypage/supporters`] を開く
-4. 画面上部の `状況 / 下書きを作る / 承認待ち` のうち、まず `下書きを作る` を開く
+3. 設定画面の [`AI事務所`](/Users/shounokazuaki/cf/components/mypage/SettingsPageClient.tsx) セクション、または [`/[username]/mypage/supporters`] を開く
+4. 画面上部の `概要 / 下書きを作る / 承認待ち` のうち、まず `下書きを作る` を開く
 5. `2. 役割から選ぶ` で `Manager Agent` を選ぶ
 6. `MANAGER_NEXT_ACTIONS` は投稿がなくても確認できる
-7. 告知文案や週次レポートの精度も見たい場合は、先に Creator Founding 内で1件投稿してから、`下書きを作る` タブの `Creator Founding の投稿指標を更新` または `状況` タブの `内部指標を更新する` を押す
+7. 告知文案や週次レポートの精度も見たい場合は、先に Creator Founding 内で1件投稿してから、`下書きを作る` タブの `Creator Founding の投稿指標を更新` または `概要` タブの `内部指標を更新する` を押す
 
 任意の事前スモーク確認:
 
@@ -95,7 +112,9 @@
 
 補足:
 
-- settings 画面の section title は `AI事務所（Phase1）`、その中に表示される panel 見出しは `AI事務所（Role-Based Phase1）`
+- settings 画面の section title と panel 見出しは `AI事務所`
+- top-level tab のユーザー向けラベルは `概要 / 下書きを作る / 承認待ち`
+- 承認待ち件数の主な確認場所は `概要` の notice と `承認待ち` タブであり、ヘッダー右上の重複バッジには依存しない
 - 投稿を増やしたい場合は `/<username>/mypage/support-page#posting-compose` を開く
 - AI事務所だけ確認したい場合は `/<username>/mypage#ai-office-phase1` でよい
 - task の detail は `承認待ち` または `最近作った内容` から開く
@@ -116,18 +135,18 @@
 ## 最短確認
 
 1. `/[username]/mypage#ai-office-phase1` を開く
-2. `AI事務所（Role-Based Phase1）` の中で `下書きを作る` を開く
+2. `AI事務所` の中で `下書きを作る` を開く
 3. `Manager Agent` を選び、task が `Manager Agent の次アクションを整理する` になっていることを確認する
 4. `公開前に承認する` をオンのまま `この内容で作成` を押す
-5. `承認待ち` に件数が増えるか、`状況` の `最近作った内容` に task が増えることを確認する
+5. `承認待ち` に件数が増えるか、`概要` の `最近作った内容` に task が増えることを確認する
 6. 必要なら `承認待ち` で role chip を切り替え、対象 role だけに絞れることを確認する
 7. `下書きを作る` に戻り、選択中 role に承認待ちがある場合は、その role の `承認待ちを見る` 導線が出ることを確認する
 8. role で絞った `承認待ち` または role を選んだ `下書きを作る` の URL をリロードし、同じ tab / role のまま再開できることを確認する
-9. `状況` または `承認待ち` に `最近使った role 導線` が出て、`最終利用` と必要なら `承認待ち` 件数が見えることを確認する
+9. `概要` または `承認待ち` に `最近使った role 導線` が出て、`最終利用` と必要なら `承認待ち` 件数が見えることを確認する
 10. `保留が長い` または `承認待ち` がある role の shortcut が先頭寄りに出て、必要なら `先に確認` と分かることを確認する
 11. その shortcut から、同じ role の `承認待ち` と `下書きを作る` の両方へ移動できることを確認する
 12. その shortcut に `Inbox リンクをコピー` と `Create リンクをコピー` の両方が出ることを確認する
-13. いずれかの link をコピーすると、`最近コピーした role link` が `状況` または `承認待ち` に出て、同じ文脈を開き直したり再コピーしたりできることを確認する
+13. いずれかの link をコピーすると、`最近コピーした role link` が `概要` または `承認待ち` に出て、同じ文脈を開き直したり再コピーしたりできることを確認する
 14. `01-settings-ai-office-entry.png` から `04-manager-task-detail.png` までを保存する
 
 ここまでできれば、Phase 1A の基本動作は確認できています。
@@ -302,7 +321,7 @@
 1. `/<username>/mypage/support-page#posting-compose` を開く
 2. `投稿・AI事務所` セクションの投稿 composer か既存投稿一覧を確認する
 3. まだ投稿がない場合は 1 件作る
-4. `AI事務所（Phase1）` に戻り、`下書きを作る` タブなら `Creator Founding の投稿指標を更新`、`状況` タブなら `内部指標を更新する` を押す
+4. `AI事務所` に戻り、`下書きを作る` タブなら `Creator Founding の投稿指標を更新`、`概要` タブなら `内部指標を更新する` を押す
 5. `12-posting-metrics-before.png` と `13-posting-metrics-after.png` を保存する
 
 期待結果:

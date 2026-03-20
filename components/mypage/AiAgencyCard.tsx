@@ -15,6 +15,7 @@ import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import { AI_OFFICE_LABEL } from "@/lib/uxCopy";
 
 type Props = {
   address: Address | undefined;
@@ -180,7 +181,7 @@ export function AiAgencyCard(props: Props) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div>
-        <div className="text-sm font-semibold text-gray-900">AIアシスタント</div>
+        <div className="text-sm font-semibold text-gray-900">{AI_OFFICE_LABEL}</div>
         <div className="mt-1 text-xs leading-5 text-gray-600">
           投稿・分析・告知の担当AIを整理し、将来の自動化処理の土台をここで管理します。
         </div>
@@ -331,7 +332,7 @@ export function AiAgencyCard(props: Props) {
                 <WorkspaceEmptyState
                   compact
                   title="job はまだありません"
-                  description="まずは分析 job を 1 件 queue に入れて、AI 事務所の土台を試せます。"
+                  description="まずは分析 job を 1 件 queue に入れて、AI事務所の土台を試せます。"
                 />
               ) : (
                 jobs.slice(0, 6).map((job) => (

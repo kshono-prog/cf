@@ -9,6 +9,7 @@ import {
   WorkspaceLoadingCard,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import { AI_OFFICE_LABEL } from "@/lib/uxCopy";
 
 type Props = {
   address: Address | undefined;
@@ -59,7 +60,7 @@ const AiAgencyCard = dynamic(
     ),
   {
     loading: () => (
-      <WorkspaceLoadingCard title="AI 事務所の拡張を読み込んでいます" />
+      <WorkspaceLoadingCard title={`${AI_OFFICE_LABEL}の拡張を読み込んでいます`} />
     ),
   }
 );
@@ -76,7 +77,7 @@ export function PostingAiOfficeSection(props: Props) {
       <WorkspaceStatusNotice
         tone="info"
         title="投稿・反応・支援・AIによる運用をひとつの画面でまとめて管理できます。"
-        description="外部SNS連携なしで、公開プロフィールの投稿やチップを維持したまま、投稿管理とAIアシスタントをここで一元化できます。"
+        description={`外部SNS連携なしで、公開プロフィールの投稿やチップを維持したまま、投稿管理と${AI_OFFICE_LABEL}をここで一元化できます。`}
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">
@@ -110,4 +111,3 @@ export function PostingAiOfficeSection(props: Props) {
     </div>
   );
 }
-

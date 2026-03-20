@@ -28,9 +28,11 @@ AI Office runtime note:
 - keep task creation and approval as dedicated endpoints
 - keep read-side data composition in service modules
 - keep dashboard response parsing and runtime validation in dedicated helpers instead of inside `AiOfficePanel`
+- keep AI Office user-facing navigation documented as `概要 / 下書きを作る / 承認待ち`, while preserving `OVERVIEW / CREATE / INBOX` as the internal URL/state model
 - stage role-based agents behind the existing approval model before introducing external or billable execution paths
 - treat x402 as a future boundary for low-risk intelligence APIs, not for bridge or distribution execution
 - apply CORS allowlists only to explicitly externalizable low-risk read or draft APIs, not to settlement or broad internal surfaces
+- prefer `GET,OPTIONS` for cross-origin read-only surfaces, and keep mixed read/write routes read-only from the CORS boundary unless they are split
 - keep `public viewer identity` same-origin only until privacy expectations and downstream cache consumers are explicitly designed for cross-origin use
 
 Creator mypage runtime note:

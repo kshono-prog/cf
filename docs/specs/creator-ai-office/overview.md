@@ -42,6 +42,15 @@ role-based surface:
 - `Fan Relation`
   - お礼、再案内、支援者向けメッセージ
 
+top-level tabs:
+
+- `概要`
+  - usefulness metrics、最近使った担当、承認待ち notice、最近作った内容を見る入口
+- `下書きを作る`
+  - 担当を選んで task を起票し、必要なら同じ担当の承認待ちへ戻る入口
+- `承認待ち`
+  - 承認待ちキュー、一括操作、最近の履歴を role ごとに確認する入口
+
 usefulness metrics:
 
 - `対応率`
@@ -56,6 +65,7 @@ usefulness metrics:
   - 承認または却下までにかかった時間の中央値
 
 Phase 1 では、この指標を `AI Office Overview` に出して「どの agent output が使われているか」を読む。
+ユーザー向けの tab ラベルは `概要 / 下書きを作る / 承認待ち` とし、承認待ち件数の主な確認場所は `概要` の notice と `承認待ち` タブに寄せる。
 role を選んで作った task は、`Manager / Promotion / Finance / Fan Relation` ごとの対応率としても確認する。
 また `Create` 画面では、この role usefulness を使って「先に確認したい role」または「いま試しやすい role」を案内する。
 role を選んだあとの task card も、最近の承認率や承認待ち件数を手がかりに並び替えて表示する。

@@ -54,6 +54,7 @@ import { getEmptyAiOfficeUsefulnessSummary } from "@/components/mypage/aiOfficeT
 import type { TaskType } from "@/lib/agentTaskParsers";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import {
+  AI_OFFICE_LABEL,
   getAgentTaskTypeCopy,
   getAiOfficeMessageState,
 } from "@/lib/uxCopy";
@@ -757,7 +758,7 @@ export function AiOfficePanel(props: {
     <div className="rounded-xl border bg-white p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">AIアシスタント</h3>
+          <h3 className="font-semibold">{AI_OFFICE_LABEL}</h3>
           <p className="text-xs text-gray-500 mt-1">
             告知・お礼・分析・資金管理などの担当別に、下書き作成と承認待ち確認をまとめて行えます。
           </p>
@@ -874,7 +875,6 @@ export function AiOfficePanel(props: {
           {activeView === "CREATE" ? (
             <AiOfficeCreateSection
               loading={loading}
-              waitingApprovalCount={waitingApprovalCount}
               contentSummary={contentSummary}
               usefulness={usefulness}
               tasks={tasks}

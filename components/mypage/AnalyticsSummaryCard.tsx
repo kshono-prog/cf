@@ -11,6 +11,7 @@ import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import { AI_OFFICE_LABEL } from "@/lib/uxCopy";
 
 type Props = {
   address: Address | undefined;
@@ -127,7 +128,7 @@ export function AnalyticsSummaryCard(props: Props) {
             </div>
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
               <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
-                AI 事務所
+                {AI_OFFICE_LABEL}
               </div>
               <div className="mt-2 text-xl font-semibold text-gray-900">
                 {summary.agents.total}

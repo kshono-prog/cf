@@ -1,6 +1,6 @@
 # Project State
 
-最終更新: 2026-03-18
+最終更新: 2026-03-21
 
 ## 現在のテーマ
 
@@ -102,6 +102,10 @@
 - 公開プロフィールの wallet section を `接続 -> ネットワーク -> 通貨 -> 金額 -> 送金` の順に整理し、動画の後に配置
 - 公開プロフィールの header / goal / video / wallet / footer の surface tone を揃え、全体をライト基調で統一
 - 公開プロフィールの `Creator support` と `Goal/進捗` を同じ surface にまとめ、footer は元の見え方へ戻した
+- `AI Office` の top-level tab を `概要 / 下書きを作る / 承認待ち` の user-facing label に揃え、承認待ちの主導線を `概要` notice と `Inbox` に寄せた
+- `/mypage` の直アクセスを `advanced` ではなく `home` 起点に戻した
+- `compose / search / notifications / events` の public/community 導線と loading 表示を小さい差分で見直し、誤遷移や dead branch を減らした
+- guard / owner auth / env / API response / CORS / Prisma retry / route integration test を横断的に整備し、追加開発前の基盤を固めた
 
 ## 進行中の重点課題
 
@@ -155,7 +159,8 @@ AIが自動で進めてよい:
 4. `creatorReady` の first view 追加後の section label / CTA hierarchy を手動確認して詰める
 5. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
 6. `AI Office` minimum / full manual check を実画面で回し、capture と違和感メモを残す
-7. `Promotion Agent` / `posting compose` と `Finance Agent` / `settlement Draft` の handoff を実画面で確認し、必要なら copy と前提条件を微調整する
+7. `AI Office` manual check の違和感を 3 から 5 件に絞り、最優先 1 件を小さい polish task として実装する
+8. `Promotion Agent` / `posting compose` と `Finance Agent` / `settlement Draft` の handoff を実画面で確認し、必要なら copy と前提条件を微調整する
 
 直近完了:
 
@@ -220,7 +225,7 @@ AIが自動で進めてよい:
 最低限必須:
 
 - `npm run lint`
-- `tsc --noEmit`
+- `npm run typecheck`
 
 重要変更時:
 

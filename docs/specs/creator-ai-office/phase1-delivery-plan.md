@@ -17,6 +17,7 @@ As of 2026-03-18:
 - `Finance Agent -> settlement Draft` handoff is implemented as a Phase 1 extension
 
 The remaining work is no longer core Phase 1 feature delivery. It is manual validation, UX polish, and deciding the first Phase 2 priorities from real usage.
+The expected operating loop is now `manual check -> narrow findings to 3-5 items -> fix the highest-priority issue in one small PR`.
 
 ## Phase 1 Outcome
 

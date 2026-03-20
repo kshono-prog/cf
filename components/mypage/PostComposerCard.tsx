@@ -10,6 +10,7 @@ import {
   POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
 } from "@/components/mypage/postingComposeHandoff";
 import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { AI_OFFICE_LABEL } from "@/lib/uxCopy";
 
 type Props = {
   address: Address | undefined;
@@ -76,7 +77,7 @@ export function PostComposerCard(props: Props) {
       return "";
     });
     setHandoffNotice(
-      `AIアシスタントの告知文案を投稿欄に反映しました。内容を確認してから投稿してください。`
+      `${AI_OFFICE_LABEL}の告知文案を投稿欄に反映しました。内容を確認してから投稿してください。`
     );
     setError(null);
     setSuccess(null);

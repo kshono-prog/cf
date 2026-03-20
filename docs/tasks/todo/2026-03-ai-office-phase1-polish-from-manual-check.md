@@ -4,13 +4,15 @@ AI Office: manual check findings を Phase 1 UX polish に反映する
 
 ## Goal
 
-minimum / full manual check で見つかった文言や導線の違和感を、`1 Issue = 1 PR` で小さく解消するための polish task を切り出せる状態にする。
+minimum / full manual check で見つかった文言や導線の違和感を 3 から 5 件に絞り、最優先 1 件を `1 Issue = 1 PR` で小さく解消できる状態にする。
 
 ## Scope
 
 - manual check artifact から findings を収集する
 - `copy / CTA / notice / role guidance / settlement handoff` の違和感を分類する
+- findings を 3 から 5 件の高信号な候補に絞る
 - high-risk 変更を除いた Phase 1 UX polish 候補を優先順に並べる
+- 最優先 1 件を次の実装対象として明示する
 - 必要なら追従 task を 1 finding = 1 task で追加する
 
 ## Non-Goals
@@ -30,7 +32,9 @@ minimum / full manual check で見つかった文言や導線の違和感を、`
 ## Acceptance Criteria
 
 - manual check findings が `copy / information hierarchy / handoff / approval flow` などに整理されている
+- findings が 3 から 5 件に絞られている
 - 次に直す task が reviewable な粒度で切れている
+- 最優先 1 件が `fix now` として選ばれている
 - high-risk 変更は別扱いだと明記されている
 
 ## Risks
@@ -43,4 +47,4 @@ minimum / full manual check で見つかった文言や導線の違和感を、`
 - artifact review
 - backlog / TASKS の更新差分レビュー
 - follow-up task の粒度確認
-
+- 最優先 1 件の妥当性確認

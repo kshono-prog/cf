@@ -43,6 +43,7 @@ AI Office: full manual check を実画面で完了する
 - `Finance Agent -> settlement Draft` の handoff が実画面で確認できている
 - `posting metrics` 更新導線の文言差とわかりやすさがメモに残っている
 - approval flow の role chip / reload / bulk action に違和感があれば具体例つきで残っている
+- high-signal な違和感が 3 から 5 件に絞れるだけのメモが `notes.md` に残っている
 
 ## Risks
 
@@ -54,4 +55,3 @@ AI Office: full manual check を実画面で完了する
 - `npm run manual-check:ai-office:minimum -- --base-url http://127.0.0.1:3001 --username <username>`
 - 実画面で full セットを 1 周
 - `notes.md` と screenshot の見比べ
-

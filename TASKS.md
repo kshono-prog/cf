@@ -34,6 +34,7 @@
 ### AI Office
 
 - completed: `AI Office` now has `Overview / Create / Inbox` level separation
+- completed: user-facing tab labels now read `概要 / 下書きを作る / 承認待ち`, and pending guidance is centered in `概要` notice and `承認待ち` flow
 - completed: task-type select has been replaced with action cards in `Create`
 - completed: `Inbox` now prioritizes `承認待ちキュー -> 一括操作 -> 最近の履歴`
 - completed: `Overview / Create / Inbox` now share success / empty / error display patterns
@@ -44,8 +45,8 @@
 - completed: usefulness metrics, role filters, deep links, recent shortcuts, and copied role links now support the guided flow
 - completed: `Promotion Agent` announcement drafts can now hand off to `support-page` posting compose while `Fan Relation Agent` keeps a copy-only boundary
 - completed: `minimum` manual check can now prepare `notes / links / status` artifacts and run one-shot smoke preflight
-- next: run the minimum/full manual check on real screens and use those findings to decide the first Phase 2 UX adjustments
-- next: turn manual-check findings into small polish tasks instead of one large UX catch-all
+- next: run the minimum/full manual check on real screens and narrow the findings to 3 から 5 件
+- next: choose the highest-priority finding and fix it as the next small polish issue
 
 ### Onboarding
 
@@ -63,5 +64,5 @@
 
 1. Write Phase 0 UX spec for screen purpose, CTA priority, and terminology
 2. Run the `AI Office` minimum manual check and record capture-backed findings
-3. Hand-review `settlement`, `mypage`, and `AI Office` after the new guided flow / shared feedback pattern
-4. Extend `AI Office` usefulness from approval tracking to posting / settlement follow-through
+3. Narrow `AI Office` manual-check findings to 3 から 5 件 and choose the top 1 polish issue
+4. Hand-review `settlement`, `mypage`, and `AI Office` after the new guided flow / shared feedback pattern
