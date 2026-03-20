@@ -3,50 +3,20 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { EventDateTime } from "@/components/EventDateTime";
 import { MyPageFooter } from "@/components/MyPageFooter";
-import type { CreatorProfile } from "@/lib/profileTypes";
-import {
-  parseCreatorProfile,
-  parseCreatorPublicDto,
-} from "@/lib/serializers/creator";
 import {
   CREATOR_TYPE_LABELS,
   CREATOR_TYPE_OPTIONS,
   EVENT_CATEGORY_LABELS,
   EVENT_CATEGORY_OPTIONS,
 } from "@/lib/creatorTaxonomy";
+import {
+  loadEventsPageData,
+} from "@/lib/eventsPageData";
 
 // このプロジェクトの PageProps に合わせて Promise にする
 type EventsPageProps = {
   params: Promise<{ username: string }>;
   searchParams?: Promise<{ creatorType?: string; category?: string }>;
-};
-
-type EventDto = {
-  id: string;
-  title: string;
-  description?: string | null;
-  date?: string | null;
-  goalAmount?: number | null;
-  categories?: string[];
-};
-
-type PublicEventDto = EventDto & {
-  categories?: string[];
-  creator: {
-    username: string;
-    displayName?: string | null;
-    avatarUrl?: string | null;
-    themeColor?: string | null;
-    creatorType?: string | null;
-  };
-};
-
-type RandomCreatorCard = {
-  username: string;
-  displayName?: string;
-  profile?: string | null;
-  avatarUrl?: string | null;
-  creatorType?: string | null;
 };
 
 export default async function EventsPage({
@@ -58,23 +28,16 @@ export default async function EventsPage({
   const activeCreatorType = resolvedSearchParams.creatorType ?? "";
   const activeCategory = resolvedSearchParams.category ?? "";
 
-  const BASE_URL =
-    process.env.NEXT_PUBLIC_BASE_URL || "https://nagesen-v2.vercel.app";
-
-  // --- クリエイター情報 ---
-  let creator: CreatorProfile | null = null;
-  try {
-    const res = await fetch(
-      `${BASE_URL}/api/creators/${encodeURIComponent(username)}`,
-      { next: { revalidate: 60 } }
-    );
-    if (!res.ok) notFound();
-    const data: unknown = await res.json().catch(() => null);
-    creator = parseCreatorPublicDto(data);
-  } catch (error: unknown) {
-    console.error("Failed to fetch creator in events page:", error);
-    notFound();
-  }
+  const {
+    creator,
+    events,
+    publicEvents,
+    randomCreators,
+  } = await loadEventsPageData({
+    username,
+    activeCreatorType,
+    activeCategory,
+  });
   if (!creator) notFound();
 
   const themeColor = creator.themeColor ?? "#005bbb";
@@ -89,88 +52,6 @@ export default async function EventsPage({
     if (next.category) params.set("category", next.category);
     const query = params.toString();
     return query ? `/${username}/events?${query}` : `/${username}/events`;
-  }
-
-  // --- [username] の公開イベント一覧 ---
-  let events: EventDto[] = [];
-  try {
-    const eventsRes = await fetch(
-      `${BASE_URL}/api/creators/${encodeURIComponent(username)}/events`,
-      { next: { revalidate: 30 } }
-    );
-
-    if (eventsRes.ok) {
-      const data = (await eventsRes.json()) as { events?: EventDto[] };
-      events = data.events ?? [];
-    } else {
-      console.error(
-        "Failed to fetch creator events:",
-        eventsRes.status,
-        await eventsRes.text()
-      );
-    }
-  } catch (error: unknown) {
-    console.error("Failed to fetch creator events:", error);
-  }
-
-  // --- [username] 以外の全ユーザー公開イベント一覧 ---
-  let publicEvents: PublicEventDto[] = [];
-  try {
-    const publicRes = await fetch(
-      `${BASE_URL}/api/events/public?exclude=${encodeURIComponent(
-        username
-      )}&limit=80${
-        activeCategory ? `&category=${encodeURIComponent(activeCategory)}` : ""
-      }`,
-      { next: { revalidate: 30 } }
-    );
-
-    if (publicRes.ok) {
-      const data = (await publicRes.json()) as { events?: PublicEventDto[] };
-      publicEvents = data.events ?? [];
-    } else {
-      console.error(
-        "Failed to fetch public events:",
-        publicRes.status,
-        await publicRes.text()
-      );
-    }
-  } catch (error: unknown) {
-    console.error("Failed to fetch public events:", error);
-  }
-
-  // --- ランダムクリエイター一覧（既存） ---
-  let randomCreators: RandomCreatorCard[] = [];
-  try {
-    const randomRes = await fetch(
-      `${BASE_URL}/api/creators/random?limit=100${
-        activeCreatorType
-          ? `&creatorType=${encodeURIComponent(activeCreatorType)}`
-          : ""
-      }`,
-      {
-        next: { revalidate: 60 },
-      }
-    );
-
-    if (randomRes.ok) {
-      const data: unknown = await randomRes.json().catch(() => null);
-      const creators = Array.isArray(data)
-        ? data
-            .map((entry) => parseCreatorProfile(entry))
-            .filter((entry): entry is CreatorProfile => entry !== null)
-        : [];
-
-      randomCreators = creators.map((c) => ({
-        username: c.username,
-        displayName: c.displayName,
-        profile: c.profile ?? null,
-        avatarUrl: c.avatarUrl ?? null,
-        creatorType: c.creatorType ?? null,
-      }));
-    }
-  } catch (error: unknown) {
-    console.error("Failed to fetch random creators:", error);
   }
 
   return (

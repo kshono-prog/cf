@@ -3,13 +3,8 @@ import { notFound } from "next/navigation";
 
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import type { PublicSummaryLite } from "@/lib/publicSummary";
-import {
-  buildSupportProfileView,
-  type SupportProfileView,
-  type SupportProjectView,
-} from "@/lib/supportProfileView";
-import { loadRecruitingProjectViews } from "@/lib/recruitingProjects";
-import { resolvePublicCreatorProjectData } from "@/lib/publicCreatorProjects";
+import type { SupportProfileView, SupportProjectView } from "@/lib/supportProfileView";
+import { loadPublicProfileProjectData } from "@/lib/publicProfileProjectData";
 
 type PublicPageData = {
   creator: NonNullable<Awaited<ReturnType<typeof getCreatorProfileByUsername>>>["creator"];
@@ -29,18 +24,12 @@ async function loadPublicPageDataUncached(
   if (!creatorResult) return null;
 
   const { creator, profile } = creatorResult;
-  const profileId = BigInt(profile.id);
-
-  const [projectData, recruitingProjects] = await Promise.all([
-    resolvePublicCreatorProjectData({
-      creatorProfileId: profileId,
-      activeProjectIdJpyc: profile.activeProjectIdJpyc ?? null,
-      activeProjectIdUsdc: profile.activeProjectIdUsdc ?? null,
-    }),
-    loadRecruitingProjectViews({
-      creatorProfileId: profileId,
-    }),
-  ]);
+  const projectData = await loadPublicProfileProjectData({
+    creatorProfileId: BigInt(profile.id),
+    activeProjectIdJpyc: profile.activeProjectIdJpyc ?? null,
+    activeProjectIdUsdc: profile.activeProjectIdUsdc ?? null,
+    creator,
+  });
 
   return {
     creator,
@@ -48,14 +37,8 @@ async function loadPublicPageDataUncached(
     projectId: projectData.projectId,
     projectIdsByCurrency: projectData.projectIdsByCurrency,
     publicSummary: includePublicSummary ? projectData.publicSummary : null,
-    recruitingProjects,
-    supportProfileView: buildSupportProfileView({
-      creator,
-      activeProjectId: projectData.projectId,
-      projectIdsByCurrency: projectData.projectIdsByCurrency,
-      summariesByCurrency: projectData.summariesByCurrency,
-      activeSummary: projectData.activeSummary,
-    }),
+    recruitingProjects: projectData.recruitingProjects,
+    supportProfileView: projectData.supportProfileView,
   };
 }
 

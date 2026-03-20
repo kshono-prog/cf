@@ -1,6 +1,5 @@
 import type { FeedListView } from "@/lib/feedList";
 import type { CreatorProfile } from "@/lib/profileTypes";
-import type { PublicSummaryLite } from "@/lib/publicSummary";
 import type {
   SupportProfileView,
   SupportProjectView,
@@ -15,7 +14,6 @@ type ProfileClientSectionProps = {
     JPYC: string | null;
     USDC: string | null;
   } | null;
-  publicSummary?: PublicSummaryLite | null;
   supportProfileView?: SupportProfileView | null;
   recruitingProjects?: SupportProjectView[] | null;
   initialFeed?: FeedListView | null;
@@ -26,7 +24,6 @@ export function ProfileClientSection({
   creator,
   projectId,
   projectIdsByCurrency,
-  publicSummary,
   supportProfileView,
   recruitingProjects,
   initialFeed,
@@ -37,7 +34,6 @@ export function ProfileClientSection({
       creator={creator}
       projectId={projectId}
       projectIdsByCurrency={projectIdsByCurrency ?? undefined}
-      publicSummary={publicSummary ?? null}
       supportProfileView={supportProfileView ?? null}
       recruitingProjects={recruitingProjects ?? []}
       initialFeed={initialFeed ?? null}

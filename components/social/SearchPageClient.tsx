@@ -110,12 +110,7 @@ export function SearchPageClient(props: SearchPageClientProps) {
         matchesQuery(creator.displayName, normalizedQuery) ||
         matchesQuery(creator.username, normalizedQuery) ||
         matchesQuery(creator.profile ?? "", normalizedQuery) ||
-        matchesRecruitingProject ||
-        matchesQuery(creator.supportProfileView.draft?.title ?? "", normalizedQuery) ||
-        matchesQuery(
-          creator.supportProfileView.draft?.description ?? "",
-          normalizedQuery
-        )
+        matchesRecruitingProject
       );
     });
   }, [creators, normalizedQuery]);

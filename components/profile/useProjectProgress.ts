@@ -5,6 +5,12 @@ import { autoReverifyPending, postReverify } from "@/lib/reverifyClient";
 import { buildSupportProjectView, type SupportProfileView } from "@/lib/supportProfileView";
 import { isRecord } from "@/lib/publicSummary";
 import { getErrorMessage, type Currency } from "@/components/profile/profileClientHelpers";
+import {
+  getSupportedViemChains,
+  isSupportedChainId,
+  type SupportedChainId,
+} from "@/lib/chainConfig";
+import { getTokenOnChain } from "@/lib/tokenRegistry";
 
 type ProgressByChainRow = {
   chainId: number;
@@ -61,6 +67,8 @@ export type ProjectProgressApi = {
 
 type Args = {
   activeProjectId: string | null;
+  activeSupportProjectCurrency: Currency | null;
+  activeSupportProjectGoalAchievedAt: string | null;
   creatorDisplayName: string;
   creatorProfile: string | null;
   username: string;
@@ -71,8 +79,18 @@ type Args = {
   ) => void;
 };
 
+function getSupportedChainIdsForCurrency(currency: Currency | null): SupportedChainId[] {
+  if (!currency) return [];
+
+  const chains = getSupportedViemChains();
+  const ids = chains.map((chain) => chain.id).filter((id) => isSupportedChainId(id));
+  return ids.filter((id) => getTokenOnChain(currency, id) != null);
+}
+
 export function useProjectProgress({
   activeProjectId,
+  activeSupportProjectCurrency,
+  activeSupportProjectGoalAchievedAt,
   creatorDisplayName,
   creatorProfile,
   username,
@@ -82,10 +100,25 @@ export function useProjectProgress({
 }: Args) {
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
-  const [goalAchievedAt, setGoalAchievedAt] = useState<string | null>(null);
-  const [supportedJpycChainIds, setSupportedJpycChainIds] = useState<number[]>([]);
+  const [goalAchievedAt, setGoalAchievedAt] = useState<string | null>(
+    activeSupportProjectGoalAchievedAt
+  );
+  const [supportedJpycChainIds, setSupportedJpycChainIds] = useState<number[]>(
+    activeSupportProjectCurrency === "JPYC"
+      ? getSupportedChainIdsForCurrency(activeSupportProjectCurrency)
+      : []
+  );
   const [supportedChainIdsByCurrency, setSupportedChainIdsByCurrency] =
-    useState<ProgressSupportedChainIdsByCurrency>({ JPYC: [], USDC: [] });
+    useState<ProgressSupportedChainIdsByCurrency>({
+      JPYC:
+        activeSupportProjectCurrency === "JPYC"
+          ? getSupportedChainIdsForCurrency("JPYC")
+          : [],
+      USDC:
+        activeSupportProjectCurrency === "USDC"
+          ? getSupportedChainIdsForCurrency("USDC")
+          : [],
+    });
   const [autoReverifyRunning, setAutoReverifyRunning] = useState(false);
 
   const reverifyOnViewBusyRef = useRef(false);
@@ -255,15 +288,31 @@ export function useProjectProgress({
     }
   }, [activeProjectId, fetchProjectProgressSafe]);
 
+  useEffect(() => {
+    setGoalAchievedAt(activeSupportProjectGoalAchievedAt);
+
+    const supportedChainIds = getSupportedChainIdsForCurrency(
+      activeSupportProjectCurrency
+    );
+    setSupportedJpycChainIds(
+      activeSupportProjectCurrency === "JPYC" ? supportedChainIds : []
+    );
+    setSupportedChainIdsByCurrency({
+      JPYC: activeSupportProjectCurrency === "JPYC" ? supportedChainIds : [],
+      USDC: activeSupportProjectCurrency === "USDC" ? supportedChainIds : [],
+    });
+  }, [activeSupportProjectCurrency, activeSupportProjectGoalAchievedAt]);
+
   // Initial progress fetch
   useEffect(() => {
     if (!activeProjectId) return;
 
     attemptedThisViewRef.current.set.clear();
+    setProgressError(null);
+    if (!viewerIsOwner) return;
+
     void fetchProjectProgressSafe();
-    if (viewerIsOwner) {
-      void autoReverifyPendingOnView();
-    }
+    void autoReverifyPendingOnView();
   }, [
     activeProjectId,
     autoReverifyPendingOnView,

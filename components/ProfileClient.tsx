@@ -12,7 +12,6 @@ import {
   clampPct,
   type Currency,
 } from "@/components/profile/profileClientHelpers";
-import type { PublicSummaryLite } from "@/lib/publicSummary";
 import type { SelectedPostTipContext } from "@/components/feed/feedTypes";
 import { LazyFeedSection } from "@/components/feed/LazyFeedSection";
 import { Avatar } from "@/components/shared/Avatar";
@@ -78,7 +77,6 @@ type Props = {
     JPYC: string | null;
     USDC: string | null;
   } | null;
-  publicSummary?: PublicSummaryLite | null;
   supportProfileView?: SupportProfileView | null;
   recruitingProjects?: SupportProjectView[];
   initialFeed?: FeedListView | null;
@@ -267,6 +265,8 @@ export default function ProfileClient({
     fetchProjectProgressSafe,
   } = useProjectProgress({
     activeProjectId,
+    activeSupportProjectCurrency: activeSupportProject?.currency ?? null,
+    activeSupportProjectGoalAchievedAt: activeSupportProject?.achievedAt ?? null,
     creatorDisplayName: creator.displayName || username,
     creatorProfile: creator.profile ?? null,
     username,
