@@ -28,6 +28,15 @@ async function main() {
   for (const [username, data] of entries) {
     console.log(`\n=== Processing ${username} ===`);
 
+    if (
+      typeof data.goalTitle === "string" ||
+      typeof data.goalTargetJpyc === "number"
+    ) {
+      console.warn(
+        "  ⚠ legacy goal fields found in source data. Migrate them to Project.goal before import if needed."
+      );
+    }
+
     // ========== CreatorProfile を upsert ==========
     const profile = await prisma.creatorProfile.upsert({
       where: { username },
@@ -40,9 +49,6 @@ async function main() {
         avatarUrl: data.avatar || null,
         qrcodeUrl: data.qrcode || null,
         externalUrl: data.url || null,
-        goalTitle: data.goalTitle || null,
-        goalTargetJpyc:
-          typeof data.goalTargetJpyc === "number" ? data.goalTargetJpyc : null,
         themeColor: data.themeColor || null,
         status: "PUBLISHED",
       },
@@ -53,9 +59,6 @@ async function main() {
         avatarUrl: data.avatar || null,
         qrcodeUrl: data.qrcode || null,
         externalUrl: data.url || null,
-        goalTitle: data.goalTitle || null,
-        goalTargetJpyc:
-          typeof data.goalTargetJpyc === "number" ? data.goalTargetJpyc : null,
         themeColor: data.themeColor || null,
         // status は JSON にないので、既存値を維持したいなら触らない
       },

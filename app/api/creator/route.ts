@@ -6,17 +6,14 @@ import {
   type CreatorType,
 } from "@/lib/creatorTaxonomy";
 
-import type {
-  CreatorProfile,
-  SocialLinks,
-  YoutubeVideo,
-} from "@/types/creator";
+import type { SocialLinks, YoutubeVideo } from "@/types/creator";
 import {
   errMyPageMutationResponse,
   okMyPageMutationResponse,
 } from "@/lib/mypageApiResponses";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 import { isRecord, toOptionalString } from "@/lib/api/guards";
+import { serializeCreatorProfile } from "@/lib/serializers/creator";
 
 export const dynamic = "force-dynamic";
 
@@ -265,37 +262,19 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       return jsonErr("CREATOR_RELOAD_FAILED", 500);
     }
 
-    // socials を整形
-    const socialsResult: SocialLinks = {};
-    for (const link of result.socialLinks) {
-      if (isAllowedSocialType(link.type) && link.url) {
-        socialsResult[link.type] = link.url;
-      }
-    }
-
-    // youtubeVideos を整形
-    const youtubeResult: YoutubeVideo[] = result.youtubeVideos.map((v) => ({
-      url: v.url,
-      title: v.title ?? "",
-      description: v.description ?? "",
-    }));
-
-    const responseCreator: CreatorProfile = {
+    const responseCreator = serializeCreatorProfile({
       username: result.username,
-      address: result.walletAddress ?? undefined,
       displayName: result.displayName,
+      profileText: result.profileText,
       avatarUrl: result.avatarUrl,
-      profile: result.profileText,
-      qrcode: result.qrcodeUrl,
-      url: result.externalUrl,
+      qrcodeUrl: result.qrcodeUrl,
+      externalUrl: result.externalUrl,
       themeColor: result.themeColor,
-      creatorType:
-        typeof result.creatorType === "string" && isCreatorType(result.creatorType)
-          ? result.creatorType
-          : null,
-      socials: socialsResult,
-      youtubeVideos: youtubeResult,
-    };
+      creatorType: result.creatorType,
+      walletAddress: result.walletAddress,
+      socialLinks: result.socialLinks,
+      youtubeVideos: result.youtubeVideos,
+    });
 
     return okMyPageMutationResponse(walletAddress, { creator: responseCreator });
   } catch (e: unknown) {

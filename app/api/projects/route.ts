@@ -1,6 +1,7 @@
 // app/api/projects/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildCreatorProjectActivationFields } from "@/lib/creatorProjectActivation";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 
 export const runtime = "nodejs";
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     const creator = await prisma.creatorProfile.findUnique({
       where: { walletAddress: ownerAddress },
-      select: { id: true, activeProjectId: true },
+      select: { id: true },
     });
 
     if (!creator) {
@@ -123,10 +124,10 @@ export async function POST(req: NextRequest) {
 
       await tx.creatorProfile.update({
         where: { id: creator.id },
-        data:
-          currency === "USDC"
-            ? { activeProjectId: project.id, activeProjectIdUsdc: project.id }
-            : { activeProjectId: project.id, activeProjectIdJpyc: project.id },
+        data: buildCreatorProjectActivationFields({
+          projectId: project.id,
+          currency,
+        }),
         select: { id: true },
       });
 
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: true,
-        activeProjectId: result.id.toString(),
+        projectId: result.id.toString(),
         project: {
           id: result.id.toString(),
           title: result.title,

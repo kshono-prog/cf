@@ -128,10 +128,11 @@ export function useContributionFlow({
       (progress?.goal?.achievedAt && progress.goal.achievedAt.length > 0
         ? progress.goal.achievedAt
         : null) ?? goalAchievedAt;
-    const targetRaw =
-      progress?.progress.targetAmount ?? progress?.progress.targetJpyc ?? null;
+    const targetRaw = progress?.progress.targetAmount ?? null;
     const confirmedRaw =
-      progress?.progress.confirmedTotal ?? progress?.progress.confirmedJpyc ?? 0;
+      progress?.progress.confirmedAmount ??
+      progress?.progress.confirmedTotal ??
+      0;
     const target =
       typeof targetRaw === "number" && Number.isFinite(targetRaw) ? targetRaw : null;
     const confirmed =

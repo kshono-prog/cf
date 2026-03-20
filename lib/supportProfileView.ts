@@ -1,4 +1,8 @@
 import type { SummaryViewData, CurrencyCode } from "@/lib/mypage/accountPageTypes";
+import {
+  resolveConfirmedAmount,
+  resolveGoalTargetAmount,
+} from "@/lib/fundingAmounts";
 import type { CreatorProfile } from "@/types/creator";
 
 export type SupportProjectStatus = "OPEN" | "ACHIEVED" | "NO_GOAL";
@@ -31,7 +35,7 @@ export type SupportProfileView = {
 };
 
 type BuildSupportProfileViewArgs = {
-  creator: Pick<CreatorProfile, "displayName" | "goalTitle" | "profile">;
+  creator: Pick<CreatorProfile, "displayName" | "profile">;
   activeProjectId: string | null;
   projectIdsByCurrency: {
     JPYC: string | null;
@@ -108,14 +112,8 @@ export function buildSupportProjectViewFromSummary(
     currency,
     title: summary.project.title,
     description: summary.project.description,
-    targetAmount:
-      typeof summary.goal?.targetAmount === "number"
-        ? summary.goal.targetAmount
-        : summary.goal?.targetAmountJpyc ?? null,
-    confirmedAmount:
-      typeof summary.progress.confirmedTotal === "number"
-        ? summary.progress.confirmedTotal
-        : summary.progress.confirmedJpyc,
+    targetAmount: resolveGoalTargetAmount(summary.goal),
+    confirmedAmount: resolveConfirmedAmount(summary.progress),
     progressPct: summary.progress.progressPct,
     achievedAt: summary.goal?.achievedAt ?? null,
     deadline: summary.goal?.deadline ?? null,
@@ -166,17 +164,21 @@ export function buildSupportProfileView(
     !args.activeProjectId &&
     !args.projectIdsByCurrency.JPYC &&
     !args.projectIdsByCurrency.USDC &&
-    (typeof args.creator.goalTitle === "string" ||
+    (typeof args.creator.displayName === "string" ||
       typeof args.creator.profile === "string");
 
   if (hasDraftSource) {
+    const draftTitle = args.creator.displayName
+      ? `${args.creator.displayName}の公開ページは準備中です`
+      : null;
+
     return {
       mode: "draft",
       activeCurrency: null,
       activeProjectId: null,
       projectsByCurrency,
       draft: {
-        title: args.creator.goalTitle ?? null,
+        title: draftTitle,
         description: args.creator.profile ?? null,
       },
     };

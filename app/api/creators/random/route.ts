@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import { isCreatorType } from "@/lib/creatorTaxonomy";
 import type { CreatorProfile } from "@/types/creator";
+import { serializeCreatorProfile } from "@/lib/serializers/creator";
 
 export const runtime = "nodejs";
 
@@ -51,27 +52,21 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    const result: CreatorProfile[] = rows.map((p) => {
-      // SocialLinks / YoutubeVideo は必要なら後で拡張でもOK
-      return {
+    const result: CreatorProfile[] = rows.map((p) =>
+      serializeCreatorProfile({
         username: p.username,
-        address: p.walletAddress ?? undefined,
         displayName: p.displayName,
+        profileText: p.profileText,
         avatarUrl: p.avatarUrl,
-        profile: p.profileText,
-        qrcode: p.qrcodeUrl,
-        url: p.externalUrl,
-        goalTitle: p.goalTitle,
-        goalTargetJpyc: p.goalTargetJpyc ?? undefined,
+        qrcodeUrl: p.qrcodeUrl,
+        externalUrl: p.externalUrl,
         themeColor: p.themeColor,
-        creatorType:
-          typeof p.creatorType === "string" && isCreatorType(p.creatorType)
-            ? p.creatorType
-            : null,
-        socials: {}, // ここはひとまず空でもOK（必要なら /api/me と同じ整形を足せる）
-        youtubeVideos: [],
-      };
-    });
+        creatorType: p.creatorType,
+        walletAddress: p.walletAddress,
+        socialLinks: p.socialLinks,
+        youtubeVideos: p.youtubeVideos,
+      })
+    );
 
     return NextResponse.json(result, { status: 200 });
   } catch (e) {

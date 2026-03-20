@@ -38,21 +38,19 @@ function createActiveDashboard(params?: {
             id: "goal-1",
             unitCurrency: "JPYC",
             targetAmount: 1000,
-            targetAmountJpyc: 1000,
             achievedAt: params?.goalAchievedAt ?? null,
             deadline: null,
           }
         : null,
       progress: {
         currency: "JPYC",
-        confirmedJpyc: 200,
+        confirmedAmount: 200,
         confirmedTotal: 200,
         confirmedByCurrency: {
           JPYC: 200,
           USDC: 0,
         },
         targetAmount: 1000,
-        targetJpyc: 1000,
         progressPct: 20,
         totals: {
           JPYC: "200",
@@ -72,7 +70,7 @@ function createActiveDashboard(params?: {
       goal: {
         id: "goal-1",
         achievedAt: params?.goalAchievedAt ?? null,
-        targetAmountJpyc: 1000,
+        targetAmount: 1000,
       },
       settlement: {
         id: "settlement-1",
@@ -148,7 +146,7 @@ test("buildCreatorReadyQuickActions prioritizes waiting approvals", () => {
     onOpenPublicPage,
   });
 
-  assert.equal(actions[0]?.title, "承認待ちを先に片づける");
+  assert.equal(actions[0]?.title, "AIの承認待ちを確認する");
   assert.equal(actions[0]?.onAction, onOpenSupporterResponse);
   assert.equal(actions[1]?.onAction, onOpenSupportPage);
   assert.equal(actions[2]?.onAction, onOpenPublicPage);
@@ -165,7 +163,7 @@ test("buildCreatorReadyQuickActions falls back to setup guidance when no project
     onOpenPublicPage: () => undefined,
   });
 
-  assert.equal(actions[0]?.title, "最初のプロフィールと支援設定を準備する");
+  assert.equal(actions[0]?.title, "プロフィールと支援設定を準備する");
   assert.equal(actions[0]?.onAction, onOpenSupportPage);
 });
 
@@ -195,7 +193,7 @@ test("buildCreatorReadyQuickActions suggests outreach once project and goal exis
     onOpenPublicPage: () => undefined,
   });
 
-  assert.equal(actions[0]?.title, "今週の告知やお礼を進める");
+  assert.equal(actions[0]?.title, "告知やお礼の下書きを進める");
   assert.equal(actions[0]?.onAction, onOpenSupporterResponse);
 });
 
@@ -210,7 +208,7 @@ test("buildCreatorReadyBetaActions keeps beta entry points stable", () => {
 
   assert.deepEqual(
     actions.map((action) => action.title),
-    ["metrics と拡張下書き", "精算と高リスク設定"]
+    ["分析・拡張機能", "精算・送金設定"]
   );
   assert.equal(actions[0]?.onAction, onOpenSupporterResponse);
   assert.equal(actions[1]?.onAction, onOpenAdvancedSettings);

@@ -388,7 +388,8 @@ export async function POST(
           ? {
               id: goal.id.toString(),
               projectId: goal.projectId.toString(),
-              targetAmountJpyc: goal.targetAmountJpyc,
+              targetAmount: goal.targetAmount ?? goal.targetAmountJpyc,
+              targetAmountJpyc: goal.targetAmount ?? goal.targetAmountJpyc,
               deadline: goal.deadline ? goal.deadline.toISOString() : null,
               achievedAt: goal.achievedAt
                 ? goal.achievedAt.toISOString()
@@ -468,7 +469,8 @@ export async function POST(
         ? {
             id: goal.id.toString(),
             projectId: goal.projectId.toString(),
-            targetAmountJpyc: goal.targetAmountJpyc,
+            targetAmount: goal.targetAmount ?? goal.targetAmountJpyc,
+            targetAmountJpyc: goal.targetAmount ?? goal.targetAmountJpyc,
             deadline: goal.deadline ? goal.deadline.toISOString() : null,
             achievedAt: goal.achievedAt ? goal.achievedAt.toISOString() : null,
             settlementPolicy: goal.settlementPolicy,

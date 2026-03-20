@@ -172,8 +172,7 @@ Project は「目標・内訳・進捗」を束ねる最小単位です。
 - displayName
 - walletAddress
 - themeColor
-- goalTitle / goalTargetJpyc
-- activeProjectId
+- activeProjectIdJpyc / activeProjectIdUsdc
 
 ### Project
 
@@ -182,6 +181,7 @@ Project は「目標・内訳・進捗」を束ねる最小単位です。
 - purposeMode
 - status
 - creatorProfileId
+- Goal（Project 側が正本）
 
 ### Contribution
 
@@ -208,6 +208,26 @@ Project は「目標・内訳・進捗」を束ねる最小単位です。
 - 表示は原則 `cache: "no-store"`（保存後の即時反映を優先）
 - Project が存在しない場合、進捗 UI は表示されません
 - PENDING が残る場合は reverify / refresh で回収します
+
+### Seed メモ
+
+- `npm run db:seed` は `CreatorProfile + Project + 通貨別 activeProjectId + optional Goal` を作れます
+- `SEED_PROJECT_CURRENCY=JPYC|USDC` で seed project の通貨を指定できます
+- `SEED_GOAL_TARGET_AMOUNT` を指定すると `Project.goal` が作成されます
+- `SEED_GOAL_DEADLINE` は ISO 文字列で指定できます
+- `docs/runbooks/project-goal-smoke-check.md` に public / mypage / AI snapshot の smoke check 手順があります
+
+### Legacy goal cleanup
+
+- `node scripts/backfillLegacyGoalsToProjects.cjs` で外部 `users.json` の `goalTargetJpyc` を `Project.goal` へ backfill できます
+- `LEGACY_USERS_JSON=/abs/path/users.json` を付けると別ファイルを指定できます
+- `goalTitle` は現行 schema に保存先がないため、script は `target amount` と `deadline` だけを移します
+
+### Active project cleanup
+
+- 新規 project 作成と seed は通貨別 `activeProjectIdJpyc / activeProjectIdUsdc` を正本として更新します
+- generic `activeProjectId` は schema から削除済みです
+- migration 適用前に通貨別 active project が埋まっていることを確認してから deploy してください
 
 ---
 

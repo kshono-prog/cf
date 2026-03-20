@@ -1,5 +1,7 @@
 // prisma/seed.ts
 import { PrismaClient } from "@prisma/client";
+import { buildCreatorProjectActivationFields } from "@/lib/creatorProjectActivation";
+import { parseSeedProjectConfig } from "./seedConfig";
 
 const prisma = new PrismaClient();
 
@@ -80,11 +82,16 @@ async function seedCreatorAndActiveProject(): Promise<void> {
   const projectTitle = optionalEnv("SEED_PROJECT_TITLE") ?? "Seed Project";
   const projectDescription =
     optionalEnv("SEED_PROJECT_DESCRIPTION") ?? "Seeded project for development";
+  const seedProjectConfig = parseSeedProjectConfig(process.env);
+  const projectCurrency = seedProjectConfig.currency;
+  const projectPurposeMode = seedProjectConfig.purposeMode;
+  const goalTargetAmount = seedProjectConfig.goalTargetAmount;
+  const goalDeadline = seedProjectConfig.goalDeadline;
 
-  // 重要: ActiveProject は CreatorProfile.activeProjectId が unique のため
-  // 既に別projectが刺さっている状態で別projectを作ると制約に引っかかります。
-  // ここでは「（1）プロジェクトを作る →（2）activeProjectId をその projectId に更新」
-  // を 1トランザクションで実施します。
+  // 1) CreatorProfile を用意
+  // 2) Project を作成
+  // 3) 通貨別 activeProjectId を更新
+  // 4) 必要なら Goal を作成
   await prisma.$transaction(async (tx) => {
     const profile = await tx.creatorProfile.upsert({
       where: { walletAddress },
@@ -106,18 +113,38 @@ async function seedCreatorAndActiveProject(): Promise<void> {
         title: projectTitle,
         description: projectDescription,
         status: "DRAFT",
+        purposeMode: projectPurposeMode,
+        currency: projectCurrency,
         ownerAddress: walletAddress,
         creatorProfileId: profile.id,
-        // defaultChainPolicy / purposeMode は DB 側デフォルトがある前提
       },
       select: { id: true },
     });
 
-    // activeProjectId を上書き（既存があっても更新）
     await tx.creatorProfile.update({
       where: { id: profile.id },
-      data: { activeProjectId: project.id },
+      data: buildCreatorProjectActivationFields({
+        projectId: project.id,
+        currency: projectCurrency,
+      }),
     });
+
+    if (goalTargetAmount !== null) {
+      await tx.goal.upsert({
+        where: { projectId: project.id },
+        update: {
+          targetAmount: goalTargetAmount,
+          targetAmountJpyc: goalTargetAmount,
+          deadline: goalDeadline,
+        },
+        create: {
+          projectId: project.id,
+          targetAmount: goalTargetAmount,
+          targetAmountJpyc: goalTargetAmount,
+          deadline: goalDeadline,
+        },
+      });
+    }
   });
 }
 

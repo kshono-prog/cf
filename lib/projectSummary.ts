@@ -58,11 +58,12 @@ export async function getProjectSummaryView(
     projectCurrency,
     totalConfirmed[projectCurrency]
   );
-  const targetJpyc = project.goal?.targetAmountJpyc ?? null;
+  const targetAmount =
+    project.goal?.targetAmount ?? project.goal?.targetAmountJpyc ?? null;
 
   const progressPct =
-    targetJpyc && targetJpyc > 0
-      ? Math.min(100, (confirmedCurrencyInt / targetJpyc) * 100)
+    targetAmount && targetAmount > 0
+      ? Math.min(100, (confirmedCurrencyInt / targetAmount) * 100)
       : 0;
 
   return {
@@ -84,8 +85,9 @@ export async function getProjectSummaryView(
       ? {
           id: project.goal.id.toString(),
           unitCurrency: projectCurrency,
-          targetAmount: project.goal.targetAmountJpyc,
-          targetAmountJpyc: project.goal.targetAmountJpyc,
+          targetAmount: project.goal.targetAmount ?? project.goal.targetAmountJpyc,
+          targetAmountJpyc:
+            project.goal.targetAmount ?? project.goal.targetAmountJpyc,
           achievedAt: project.goal.achievedAt
             ? project.goal.achievedAt.toISOString()
             : null,
@@ -96,14 +98,15 @@ export async function getProjectSummaryView(
       : null,
     progress: {
       currency: projectCurrency,
+      confirmedAmount: confirmedCurrencyInt,
       confirmedJpyc: confirmedCurrencyInt,
       confirmedTotal: confirmedCurrencyInt,
       confirmedByCurrency: {
         JPYC: projectCurrency === "JPYC" ? confirmedCurrencyInt : 0,
         USDC: projectCurrency === "USDC" ? confirmedCurrencyInt : 0,
       },
-      targetAmount: targetJpyc,
-      targetJpyc,
+      targetAmount,
+      targetJpyc: targetAmount,
       progressPct,
       totals: {
         JPYC: decToString(totalConfirmed.JPYC),

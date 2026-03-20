@@ -21,7 +21,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 // 強めガード：未知キーを許さない（事故防止）
-const ALLOWED_KEYS = new Set(["targetAmountJpyc"]);
+const ALLOWED_KEYS = new Set(["targetAmount", "targetAmountJpyc"]);
 
 function assertNoUnknownKeys(raw: Record<string, unknown>): void {
   for (const k of Object.keys(raw)) {
@@ -29,7 +29,7 @@ function assertNoUnknownKeys(raw: Record<string, unknown>): void {
   }
 }
 
-function parseTargetAmountJpyc(v: unknown): number {
+function parseTargetAmount(v: unknown): number {
   // JSON number 以外拒否（文字列で来たら 400）
   if (typeof v !== "number" || !Number.isFinite(v)) {
     throw new Error("TARGET_AMOUNT_INVALID");
@@ -50,7 +50,8 @@ function serializeGoal(goal: Goal) {
   return {
     id: goal.id.toString(),
     projectId: goal.projectId.toString(),
-    targetAmountJpyc: goal.targetAmountJpyc,
+    targetAmount: goal.targetAmount,
+    targetAmountJpyc: goal.targetAmount,
     deadline: goal.deadline ? goal.deadline.toISOString() : null,
     achievedAt: goal.achievedAt ? goal.achievedAt.toISOString() : null,
     settlementPolicy: goal.settlementPolicy,
@@ -94,7 +95,7 @@ export async function PATCH(
       return NextResponse.json({ error: code }, { status: 400 });
     }
 
-    if (!("targetAmountJpyc" in raw)) {
+    if (!("targetAmount" in raw) && !("targetAmountJpyc" in raw)) {
       return NextResponse.json(
         { error: "TARGET_AMOUNT_REQUIRED" },
         { status: 400 }
@@ -146,9 +147,9 @@ export async function PATCH(
       );
     }
 
-    let targetAmountJpyc: number;
+    let targetAmount: number;
     try {
-      targetAmountJpyc = parseTargetAmountJpyc(raw.targetAmountJpyc);
+      targetAmount = parseTargetAmount(raw.targetAmount ?? raw.targetAmountJpyc);
     } catch (e: unknown) {
       const code = e instanceof Error ? e.message : "TARGET_AMOUNT_INVALID";
       return NextResponse.json({ error: code }, { status: 400 });
@@ -159,7 +160,8 @@ export async function PATCH(
     const updated = await prisma.goal.update({
       where: { id: goal.id },
       data: {
-        targetAmountJpyc,
+        targetAmount,
+        targetAmountJpyc: targetAmount,
         updatedAt: now,
       },
     });

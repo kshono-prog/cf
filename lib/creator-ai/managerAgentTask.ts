@@ -24,8 +24,8 @@ export type ManagerAgentSuggestedAction = {
 
 export type ManagerAgentTaskEvidence = {
   projectStatus: string | null;
-  confirmedJpyc: number;
-  targetJpyc: number | null;
+  confirmedAmount: number;
+  targetAmount: number | null;
   progressPct: number;
   goalConfigured: boolean;
   goalAchieved: boolean;
@@ -42,7 +42,7 @@ export type ManagerAgentProjectSnapshot = {
   currency: string | null;
   status: string;
   goalId: string | null;
-  goalTargetJpyc: number | null;
+  goalTargetAmount: number | null;
   achievedAt: string | null;
   deadline: string | null;
 };
@@ -86,8 +86,11 @@ function buildManagerEvidence(
 ): ManagerAgentTaskEvidence {
   return {
     projectStatus: summary?.project.status ?? null,
-    confirmedJpyc: summary?.progress.confirmedJpyc ?? 0,
-    targetJpyc: summary?.progress.targetJpyc ?? null,
+    confirmedAmount:
+      summary?.progress.confirmedAmount ??
+      summary?.progress.confirmedTotal ??
+      0,
+    targetAmount: summary?.progress.targetAmount ?? null,
     progressPct: summary?.progress.progressPct ?? 0,
     goalConfigured: summary ? summary.goal !== null : false,
     goalAchieved: summary?.goal?.achievedAt != null,
@@ -110,7 +113,7 @@ function buildProjectSnapshot(
     currency: summary.project.currency ?? null,
     status: summary.project.status,
     goalId: summary.goal?.id ?? null,
-    goalTargetJpyc: summary.goal?.targetAmountJpyc ?? null,
+    goalTargetAmount: summary.goal?.targetAmount ?? null,
     achievedAt: summary.goal?.achievedAt ?? null,
     deadline: summary.goal?.deadline ?? null,
   };

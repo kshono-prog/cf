@@ -81,7 +81,7 @@ export async function POST(
       sum._sum.amountDecimal ?? null
     );
 
-    const target = project.goal.targetAmountJpyc;
+    const target = project.goal.targetAmount ?? project.goal.targetAmountJpyc;
     if (confirmedJpycFloor < target) {
       return errJson("GOAL_NOT_REACHED", 400);
     }

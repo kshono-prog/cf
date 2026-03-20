@@ -1,5 +1,6 @@
 // /lib/mypage/types.ts
 import type { CreatorProfile } from "@/types/creator";
+import type { ProjectIdsByCurrency } from "@/lib/mypage/accountPageTypes";
 
 export type MeStatus = {
   hasUser: boolean;
@@ -11,10 +12,7 @@ export type MeStatus = {
   } | null;
   creator?: CreatorProfile | null;
   projectId?: string | null;
-  projectIdsByCurrency?: {
-    JPYC: string | null;
-    USDC: string | null;
-  };
+  projectIdsByCurrency?: ProjectIdsByCurrency;
 };
 
 export type Status =

@@ -22,9 +22,9 @@ import {
 import { getTokenOnChain, type TokenKey } from "@/lib/tokenRegistry";
 import type { WalletBalances } from "@/lib/walletService";
 import type { CreatorProfile } from "@/lib/profileTypes";
+import { parseCreatorPublicDto } from "@/lib/serializers/creator";
 import { TipThanksCard } from "@/components/profile/TipThanksCard";
 import { WalletSection } from "@/components/profile/WalletSection";
-import { isRecord } from "@/lib/publicSummary";
 import {
   addAmount,
   clearLastTx,
@@ -84,7 +84,6 @@ type Props = {
     JPYC: number[];
     USDC: number[];
   } | null;
-  showLegacyCard: boolean;
   headerColor: string;
   selectedProjectId: string | null;
   selectedProjectTitle: string | null;
@@ -106,7 +105,6 @@ export function ProfileWalletClient({
   projectIdsByCurrency,
   supportedJpycChainIds,
   supportedChainIdsByCurrency,
-  showLegacyCard,
   headerColor,
   selectedProjectId,
   selectedProjectTitle,
@@ -134,8 +132,6 @@ export function ProfileWalletClient({
   const [status, setStatus] = useState<string>("");
   const [sending, setSending] = useState(false);
 
-  const requiredChainConfig = getChainConfig(selectedChainId);
-
   const toAddress = creator.address ?? "";
   const [currency, setCurrency] = useState<Currency>("JPYC");
   const [amount, setAmount] = useState<string>(TOKENS["JPYC"].presets[0]);
@@ -150,8 +146,6 @@ export function ProfileWalletClient({
   const [fallbackProjectId, setFallbackProjectId] = useState<string | null>(
     projectId
   );
-
-  const [goalCurrentJpyc, setGoalCurrentJpyc] = useState<number | null>(null);
 
   const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(
     null
@@ -375,36 +369,6 @@ export function ProfileWalletClient({
     setWalletLabel(resolveWalletLabel());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connector]);
-
-  async function refreshGoalProgress() {
-    if (!creator.address || !creator.goalTitle || !creator.goalTargetJpyc) {
-      return;
-    }
-
-    const { readBalances } = await import("@/lib/walletService");
-
-    try {
-      const tokenKeys: readonly TokenKey[] = ["JPYC"];
-      const balances = await readBalances({
-        chainId: selectedChainId,
-        account: creator.address as Address,
-        tokenKeys,
-      });
-      const jpyc = balances.tokens.JPYC;
-      if (!jpyc) return;
-
-      const human = Number(jpyc.formatted);
-      setGoalCurrentJpyc(human);
-    } catch {
-      // ignore
-    }
-  }
-
-  useEffect(() => {
-    if (!creator.address || !creator.goalTargetJpyc) return;
-    void refreshGoalProgress();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [creator.address, creator.goalTargetJpyc, selectedChainId]);
 
   async function fetchWalletBalances() {
     if (!connected || !activeAddress) {
@@ -655,7 +619,7 @@ export function ProfileWalletClient({
   } | null> {
     try {
       const response = await fetch(
-        `/api/public/creator?username=${encodeURIComponent(username)}`,
+        `/api/creators/${encodeURIComponent(username)}`,
         {
           cache: "no-store",
         }
@@ -663,22 +627,13 @@ export function ProfileWalletClient({
       if (!response.ok) return null;
 
       const json = (await response.json().catch(() => null)) as unknown;
-      if (!isRecord(json) || json.ok !== true || !isRecord(json.projectIdsByCurrency)) {
-        return null;
-      }
+      const creatorDto = parseCreatorPublicDto(json);
 
       const nextProjectIdsByCurrency = {
-        JPYC:
-          typeof json.projectIdsByCurrency.JPYC === "string"
-            ? json.projectIdsByCurrency.JPYC
-            : null,
-        USDC:
-          typeof json.projectIdsByCurrency.USDC === "string"
-            ? json.projectIdsByCurrency.USDC
-            : null,
+        JPYC: creatorDto.projectIdsByCurrency.JPYC,
+        USDC: creatorDto.projectIdsByCurrency.USDC,
       };
-      const nextActiveProjectId =
-        typeof json.activeProjectId === "string" ? json.activeProjectId : null;
+      const nextActiveProjectId = creatorDto.projectId;
 
       setResolvedProjectIdsByCurrency(nextProjectIdsByCurrency);
       setFallbackProjectId(nextActiveProjectId);
@@ -919,8 +874,6 @@ export function ProfileWalletClient({
       }
 
       clearLastTx();
-      void refreshGoalProgress();
-
       void fetchWalletBalances();
 
       const short = tx.hash.slice(0, 10);
@@ -951,80 +904,8 @@ export function ProfileWalletClient({
     });
   }, [currency, sending]);
 
-  const profileAddressUrl =
-    creator.address && requiredChainConfig?.explorerBaseUrl
-      ? `${requiredChainConfig.explorerBaseUrl}/address/${creator.address}`
-      : requiredChainConfig?.explorerBaseUrl ?? "";
-
   return (
     <>
-      {showLegacyCard && (
-        <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
-          <div className="p-4">
-            <div className="flex justify-between items-baseline mb-2">
-              <div>
-                <p className="text-xs font-semibold text-gray-500">
-                  応援の目安
-                </p>
-                <p className="text-sm font-medium text-gray-800">
-                  {creator.goalTitle}
-                </p>
-              </div>
-              <div className="text-right text-xs text-gray-600">
-                {goalCurrentJpyc != null ? (
-                  <>
-                    <span className="font-mono">
-                      {Math.min(
-                        goalCurrentJpyc,
-                        creator.goalTargetJpyc as number
-                      ).toLocaleString()}
-                    </span>
-                    {" / "}
-                    <span className="font-mono">
-                      {(creator.goalTargetJpyc as number).toLocaleString()}
-                    </span>
-                    <span className="ml-1">JPYC</span>
-                  </>
-                ) : (
-                  <span>読み込み中です</span>
-                )}
-              </div>
-            </div>
-
-            <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden mb-2">
-              <div
-                className="h-full transition-all duration-500"
-                style={{
-                  backgroundColor: headerColor,
-                  width: `${Math.min(
-                    100,
-                    goalCurrentJpyc != null && creator.goalTargetJpyc
-                      ? (goalCurrentJpyc / creator.goalTargetJpyc) * 100
-                      : 0
-                  )}%`,
-                }}
-              />
-            </div>
-
-            <div className="mt-2 text-[11px] leading-relaxed text-gray-500">
-              <p>
-                アドレス確認:&nbsp;
-                <a
-                  className="underline hover:no-underline break-all"
-                  href={profileAddressUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {requiredChainConfig
-                    ? `${requiredChainConfig.shortName} で見る`
-                    : "ブロックチェーンで見る"}
-                </a>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <WalletSection
         connected={connected}
         isWalletConnecting={

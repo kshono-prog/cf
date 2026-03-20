@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { withPrismaRetry } from "@/lib/prismaRetry";
+import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
+import { resolvePublicCreatorProjectData } from "@/lib/publicCreatorProjects";
+import { serializeCreatorPublicDto } from "@/lib/serializers/creator";
 
 type CreatorRouteContext = {
   params: Promise<{ username: string }>;
@@ -12,57 +13,26 @@ export async function GET(
 ): Promise<NextResponse> {
   const { username } = await context.params;
 
-  const profile = await withPrismaRetry(() =>
-    prisma.creatorProfile.findUnique({
-      where: { username },
-      include: {
-        // user: true,  // ← これはもう削除済みで OK
-        socialLinks: true,
-        youtubeVideos: true,
-      },
-    })
-  );
-
-  if (!profile) {
+  const creatorResult = await getCreatorProfileByUsername(username);
+  if (!creatorResult) {
     return NextResponse.json({ error: "CREATOR_NOT_FOUND" }, { status: 404 });
   }
 
-  // socials を { TWITTER: "url", ... } 形式に整形
-  const socials: Record<string, string> = {};
-  for (const link of profile.socialLinks) {
-    socials[link.type] = link.url;
-  }
-
-  return NextResponse.json({
-    username: profile.username,
-    displayName: profile.displayName,
-    profile: profile.profileText,
-    profileText: profile.profileText,
-    avatarUrl: profile.avatarUrl,
-    avatar: profile.avatarUrl,
-    qrcode: profile.qrcodeUrl,
-    url: profile.externalUrl,
-    goalTitle: profile.goalTitle,
-    goalTargetJpyc: profile.goalTargetJpyc,
-    themeColor: profile.themeColor,
-    creatorType: profile.creatorType,
-    address: profile.walletAddress, // CreatorProfile に統合したアドレス
-    projectId: profile.activeProjectId ? profile.activeProjectId.toString() : null,
-    projectIdsByCurrency: {
-      JPYC: profile.activeProjectIdJpyc
-        ? profile.activeProjectIdJpyc.toString()
-        : null,
-      USDC: profile.activeProjectIdUsdc
-        ? profile.activeProjectIdUsdc.toString()
-        : null,
-    },
-    socials,
-    youtubeVideos: profile.youtubeVideos.map((v) => ({
-      url: v.url,
-      title: v.title,
-      description: v.description,
-    })),
+  const { creator, profile } = creatorResult;
+  const projectData = await resolvePublicCreatorProjectData({
+    creatorProfileId: BigInt(profile.id),
+    activeProjectIdJpyc: profile.activeProjectIdJpyc ?? null,
+    activeProjectIdUsdc: profile.activeProjectIdUsdc ?? null,
   });
+
+  return NextResponse.json(
+    serializeCreatorPublicDto({
+      creator,
+      projectId: projectData.projectId,
+      projectIdsByCurrency: projectData.projectIdsByCurrency,
+      latestProjectSummary: projectData.latestProjectSummary,
+    })
+  );
 }
 
 // キャッシュ戦略は必要なら

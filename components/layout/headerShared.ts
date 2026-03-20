@@ -1,4 +1,5 @@
 import type { CreatorProfile } from "@/types/creator";
+import { parseCreatorProfile } from "@/lib/serializers/creator";
 
 export type HeaderViewerUser = {
   username: string;
@@ -40,33 +41,6 @@ function parseUser(value: unknown): HeaderViewerUser | null {
   };
 }
 
-function parseCreator(value: unknown): CreatorProfile | null {
-  if (value === null) return null;
-  if (!isRecord(value)) return null;
-
-  const username = toStringOrNull(value.username);
-  const displayName = toStringOrNull(value.displayName);
-  const profile = value.profile === null ? null : toStringOrNull(value.profile);
-  const avatarUrl =
-    value.avatarUrl === null ? null : toStringOrNull(value.avatarUrl);
-  const url = value.url === null ? null : toStringOrNull(value.url);
-  const themeColor =
-    value.themeColor === null ? null : toStringOrNull(value.themeColor);
-
-  if (!username || !displayName) {
-    return null;
-  }
-
-  return {
-    username,
-    displayName,
-    profile,
-    avatarUrl,
-    url,
-    themeColor,
-  };
-}
-
 export function parseHeaderViewerState(value: unknown): HeaderViewerState | null {
   if (!isRecord(value) || value.ok !== true) return null;
 
@@ -77,7 +51,7 @@ export function parseHeaderViewerState(value: unknown): HeaderViewerState | null
     hasUser,
     hasCreator,
     user: parseUser(value.user),
-    creator: parseCreator(value.creator),
+    creator: parseCreatorProfile(value.creator),
   };
 }
 

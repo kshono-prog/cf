@@ -26,20 +26,18 @@ const BASE_SUMMARY: SummaryViewData = {
     id: "goal-1",
     unitCurrency: "JPYC",
     targetAmount: 1000,
-    targetAmountJpyc: 1000,
     achievedAt: null,
     deadline: null,
   },
   progress: {
     currency: "JPYC",
-    confirmedJpyc: 1200,
+    confirmedAmount: 1200,
     confirmedTotal: 1200,
     confirmedByCurrency: {
       JPYC: 1200,
       USDC: 0,
     },
     targetAmount: 1000,
-    targetJpyc: 1000,
     progressPct: 100,
     totals: {
       JPYC: "1200",
@@ -80,8 +78,11 @@ test("manager task output stores next actions and evidence from summary", () => 
   assert.equal(output.suggestedActions[0]?.recommendedUiTarget, "achieve");
   assert.equal(output.evidence.goalConfigured, true);
   assert.equal(output.evidence.goalAchieved, false);
+  assert.equal(output.evidence.confirmedAmount, 1200);
+  assert.equal(output.evidence.targetAmount, 1000);
   assert.equal(output.evidence.distributionPlanMissing, true);
   assert.equal(output.projectSnapshot?.title, "Spring Live");
+  assert.equal(output.projectSnapshot?.goalTargetAmount, 1000);
   assert.match(output.summary, /next action/);
 });
 

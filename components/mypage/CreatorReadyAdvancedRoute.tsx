@@ -1,14 +1,10 @@
 "use client";
 
-import React from "react";
 import dynamic from "next/dynamic";
 
-import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
-import {
-  WorkspaceLoadingCard,
-  WorkspaceStatusNotice,
-} from "@/components/mypage/WorkspaceFeedback";
-import { useCreatorReadyProjectDashboards } from "@/components/mypage/useCreatorReadyProjectDashboards";
+import { CreatorReadyRoutePanel } from "@/components/mypage/CreatorReadyRoutePanel";
+import { WorkspaceLoadingCard } from "@/components/mypage/WorkspaceFeedback";
+import { useCreatorReadyWorkspaceProjectDashboards } from "@/components/mypage/useCreatorReadyWorkspaceProjectDashboards";
 
 const CreatorAdvancedSettingsSection = dynamic(
   () =>
@@ -23,34 +19,18 @@ const CreatorAdvancedSettingsSection = dynamic(
 );
 
 export function CreatorReadyAdvancedRoute() {
-  const workspace = useCreatorReadyWorkspace();
   const { dashboardError, projectDashboardsByCurrency } =
-    useCreatorReadyProjectDashboards({
-      view: "advanced",
-      address: workspace.address,
-      isConnected: workspace.isConnected,
-      projectIdsByCurrency: workspace.projectIdsByCurrency,
-    });
+    useCreatorReadyWorkspaceProjectDashboards("advanced");
 
   return (
-    <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div>
-        <div className="text-sm font-semibold text-gray-900">
-          精算・詳細設定
-        </div>
-        <div className="mt-1 text-xs leading-5 text-gray-600">
-          目標達成後の配分・精算・ガス代支援など、上級者向けの設定をまとめています。
-        </div>
-      </div>
-      {dashboardError ? (
-        <WorkspaceStatusNotice tone="error" title={dashboardError} />
-      ) : null}
+    <CreatorReadyRoutePanel
+      title="精算・詳細設定"
+      description="目標達成後の配分・精算・ガス代支援など、上級者向けの設定をまとめています。"
+      error={dashboardError}
+    >
       <CreatorAdvancedSettingsSection
-        projectIdsByCurrency={workspace.projectIdsByCurrency}
         projectDashboardsByCurrency={projectDashboardsByCurrency}
-        walletAddress={workspace.address?.toLowerCase() ?? null}
-        isConnected={workspace.isConnected}
       />
-    </div>
+    </CreatorReadyRoutePanel>
   );
 }

@@ -15,19 +15,11 @@ import {
   type NextActionSuggestion,
 } from "@/lib/creator-ai/nextActionSuggestions";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
-import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
+import type { ProjectDashboardsByCurrency } from "@/lib/mypage/dashboardTypes";
+import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 
 type Props = {
-  projectIdsByCurrency: {
-    JPYC: string | null;
-    USDC: string | null;
-  };
-  projectDashboardsByCurrency: {
-    JPYC: MyPageProjectDashboard | null;
-    USDC: MyPageProjectDashboard | null;
-  };
-  walletAddress: string | null;
-  isConnected: boolean;
+  projectDashboardsByCurrency: ProjectDashboardsByCurrency;
 };
 
 const ProjectSettlementPanel = dynamic(
@@ -57,7 +49,7 @@ const GasSupportTabs = dynamic(
 function SettlementWorkspaceCard(props: {
   currency: CurrencyCode;
   projectId: string | null;
-  dashboard: MyPageProjectDashboard | null;
+  dashboard: ProjectDashboardsByCurrency[CurrencyCode];
   walletAddress: string | null;
   isConnected: boolean;
 }) {
@@ -167,8 +159,9 @@ function SettlementWorkspaceCard(props: {
 }
 
 export function CreatorAdvancedSettingsSection(props: Props) {
+  const workspace = useCreatorReadyWorkspace();
   const hasAnyProject = Boolean(
-    props.projectIdsByCurrency.JPYC || props.projectIdsByCurrency.USDC
+    workspace.projectIdsByCurrency.JPYC || workspace.projectIdsByCurrency.USDC
   );
 
   return (
@@ -193,10 +186,10 @@ export function CreatorAdvancedSettingsSection(props: Props) {
               <SettlementWorkspaceCard
                 key={currency}
                 currency={currency}
-                projectId={props.projectIdsByCurrency[currency]}
+                projectId={workspace.projectIdsByCurrency[currency]}
                 dashboard={props.projectDashboardsByCurrency[currency]}
-                walletAddress={props.walletAddress}
-                isConnected={props.isConnected}
+                walletAddress={workspace.address?.toLowerCase() ?? null}
+                isConnected={workspace.isConnected}
               />
             ))}
           </div>

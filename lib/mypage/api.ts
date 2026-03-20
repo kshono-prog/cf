@@ -5,6 +5,7 @@ import type {
   SocialLinks,
   YoutubeVideo,
 } from "@/types/creator";
+import { parseCreatorProfile } from "@/lib/serializers/creator";
 import type { GasEligibility, MeStatus } from "../../lib/mypage/types";
 import type { MyPageDashboardData } from "../../lib/mypage/dashboardTypes";
 import type {
@@ -147,7 +148,8 @@ function parseMeStatusPayload(value: unknown): MeStatus | null {
   if (value.creator === null) {
     creator = null;
   } else if (isRecord(value.creator)) {
-    creator = value.creator as CreatorProfile;
+    creator = parseCreatorProfile(value.creator);
+    if (!creator) return null;
   } else {
     return null;
   }
@@ -828,7 +830,7 @@ export async function createMyPageProject(args: {
   }
 
   const projectId =
-    (isRecord(json) ? asNonEmptyString(json.activeProjectId) : null) ??
+    (isRecord(json) ? asNonEmptyString(json.projectId) : null) ??
     (isRecord(json) ? asNonEmptyString(json.id) : null) ??
     (isRecord(json) && isRecord(json.project)
       ? asNonEmptyString(json.project.id)

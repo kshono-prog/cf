@@ -128,7 +128,7 @@ export function HomeFeedClient({
     const options: Array<{ id: string; label: string }> = [];
     const seen = new Set<string>();
     const defaultLabelBase =
-      creator.goalTitle?.trim() || `${creator.displayName || username} の公開ページ`;
+      creator.displayName?.trim() || `${username} の公開ページ`;
 
     for (const currency of ["JPYC", "USDC"] as const) {
       const nextId = resolvedProjectIdsByCurrency[currency];
@@ -143,7 +143,6 @@ export function HomeFeedClient({
     return options;
   }, [
     creator.displayName,
-    creator.goalTitle,
     resolvedProjectIdsByCurrency,
     username,
   ]);

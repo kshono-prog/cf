@@ -283,9 +283,9 @@ export function CurrencyGoalSettlementPanel(props: {
                 (() => {
                   const unit = summary.project.currency ?? currency;
                   const current =
-                    summary.progress.confirmedTotal ?? summary.progress.confirmedJpyc;
-                  const target =
-                    summary.progress.targetAmount ?? summary.progress.targetJpyc;
+                    summary.progress.confirmedAmount ??
+                    summary.progress.confirmedTotal;
+                  const target = summary.progress.targetAmount;
                   return `${formatAmountByCurrency(current, unit)} / ${
                     target != null ? formatAmountByCurrency(target, unit) : "—"
                   } ${unit}`;

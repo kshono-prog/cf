@@ -1,8 +1,13 @@
 // app/api/public/creator/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { withPrismaRetry } from "@/lib/prismaRetry";
-import { getProjectSummaryView } from "@/lib/projectSummary";
+import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
+import { resolvePublicCreatorProjectData } from "@/lib/publicCreatorProjects";
+import {
+  serializeCreatorPublicDto,
+  type CreatorLatestProjectSummary,
+  type CreatorProjectIdsByCurrency,
+  type CreatorPublicDto,
+} from "@/lib/serializers/creator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,21 +18,10 @@ function isNonEmptyString(v: unknown): v is string {
 
 type PublicOk = {
   ok: true;
-    creator: {
-      username: string;
-      displayName: string;
-      profileText: string | null;
-      avatarUrl: string | null;
-      themeColor: string | null;
-      qrcodeUrl: string | null;
-      externalUrl: string | null;
-      creatorType: string | null;
-    };
-  activeProjectId: string | null;
-  projectIdsByCurrency: {
-    JPYC: string | null;
-    USDC: string | null;
-  };
+  creator: CreatorPublicDto;
+  projectId: string | null;
+  projectIdsByCurrency: CreatorProjectIdsByCurrency;
+  latestProjectSummary: CreatorLatestProjectSummary | null;
   summary: unknown | null; // /api/projects/[id]/summary の応答をそのまま返す
   summariesByCurrency: {
     JPYC: unknown | null;
@@ -53,101 +47,36 @@ export async function GET(
   const username = usernameRaw.trim();
 
   try {
-    const creator = await withPrismaRetry(() =>
-      prisma.creatorProfile.findUnique({
-        where: { username },
-        select: {
-          username: true,
-          displayName: true,
-          profileText: true,
-          avatarUrl: true,
-          themeColor: true,
-          qrcodeUrl: true,
-          externalUrl: true,
-          creatorType: true,
-          activeProjectId: true,
-          activeProjectIdJpyc: true,
-          activeProjectIdUsdc: true,
-          status: true,
-        },
-      })
-    );
-
-    if (!creator) {
+    const creatorResult = await getCreatorProfileByUsername(username);
+    if (!creatorResult) {
       return NextResponse.json(
         { ok: false, error: "CREATOR_NOT_FOUND" },
         { status: 404 }
       );
     }
 
-    // 公開条件が必要ならここで制御（必要な場合のみ有効化）
-    // if (creator.status !== "PUBLISHED") {
-    //   return NextResponse.json({ ok: false, error: "CREATOR_NOT_PUBLISHED" }, { status: 404 });
-    // }
+    const { creator, profile } = creatorResult;
 
-    const activeProjectId = creator.activeProjectId
-      ? creator.activeProjectId.toString()
-      : null;
-    const projectIdsByCurrency = {
-      JPYC: creator.activeProjectIdJpyc
-        ? creator.activeProjectIdJpyc.toString()
-        : null,
-      USDC: creator.activeProjectIdUsdc
-        ? creator.activeProjectIdUsdc.toString()
-        : null,
-    };
-
-    let summary: unknown | null = null;
-    const summariesByCurrency: { JPYC: unknown | null; USDC: unknown | null } = {
-      JPYC: null,
-      USDC: null,
-    };
-
-    const summaryTargets = await Promise.all(
-      (["JPYC", "USDC"] as const).map(async (currency) => {
-        const pid = projectIdsByCurrency[currency];
-        if (!pid) return [currency, null] as const;
-
-        try {
-          return [currency, await getProjectSummaryView(BigInt(pid))] as const;
-        } catch {
-          return [currency, null] as const;
-        }
-      })
-    );
-
-    for (const [currency, currencySummary] of summaryTargets) {
-      summariesByCurrency[currency] = currencySummary;
-    }
-
-    if (activeProjectId) {
-      if (projectIdsByCurrency.JPYC === activeProjectId) {
-        summary = summariesByCurrency.JPYC;
-      } else if (projectIdsByCurrency.USDC === activeProjectId) {
-        summary = summariesByCurrency.USDC;
-      } else {
-        summary = await getProjectSummaryView(BigInt(activeProjectId)).catch(
-          () => null
-        );
-      }
-    }
+    const projectData = await resolvePublicCreatorProjectData({
+      creatorProfileId: BigInt(profile.id),
+      activeProjectIdJpyc: profile.activeProjectIdJpyc ?? null,
+      activeProjectIdUsdc: profile.activeProjectIdUsdc ?? null,
+    });
+    const creatorDto = serializeCreatorPublicDto({
+      creator,
+      projectId: projectData.projectId,
+      projectIdsByCurrency: projectData.projectIdsByCurrency,
+      latestProjectSummary: projectData.latestProjectSummary,
+    });
 
     return NextResponse.json({
       ok: true,
-      creator: {
-        username: creator.username,
-        displayName: creator.displayName,
-        profileText: creator.profileText,
-        avatarUrl: creator.avatarUrl,
-        themeColor: creator.themeColor,
-        qrcodeUrl: creator.qrcodeUrl,
-        externalUrl: creator.externalUrl,
-        creatorType: creator.creatorType,
-      },
-      activeProjectId,
-      projectIdsByCurrency,
-      summary,
-      summariesByCurrency,
+      creator: creatorDto,
+      projectId: creatorDto.projectId,
+      projectIdsByCurrency: creatorDto.projectIdsByCurrency,
+      latestProjectSummary: creatorDto.latestProjectSummary,
+      summary: projectData.activeSummary,
+      summariesByCurrency: projectData.summariesByCurrency,
     });
   } catch (e: unknown) {
     return NextResponse.json(

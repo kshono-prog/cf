@@ -5,6 +5,10 @@ import { EventDateTime } from "@/components/EventDateTime";
 import { MyPageFooter } from "@/components/MyPageFooter";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import {
+  parseCreatorProfile,
+  parseCreatorPublicDto,
+} from "@/lib/serializers/creator";
+import {
   CREATOR_TYPE_LABELS,
   CREATOR_TYPE_OPTIONS,
   EVENT_CATEGORY_LABELS,
@@ -65,7 +69,8 @@ export default async function EventsPage({
       { next: { revalidate: 60 } }
     );
     if (!res.ok) notFound();
-    creator = (await res.json()) as CreatorProfile;
+    const data: unknown = await res.json().catch(() => null);
+    creator = parseCreatorPublicDto(data);
   } catch (error: unknown) {
     console.error("Failed to fetch creator in events page:", error);
     notFound();
@@ -149,8 +154,14 @@ export default async function EventsPage({
     );
 
     if (randomRes.ok) {
-      const data = (await randomRes.json()) as CreatorProfile[];
-      randomCreators = data.map((c) => ({
+      const data: unknown = await randomRes.json().catch(() => null);
+      const creators = Array.isArray(data)
+        ? data
+            .map((entry) => parseCreatorProfile(entry))
+            .filter((entry): entry is CreatorProfile => entry !== null)
+        : [];
+
+      randomCreators = creators.map((c) => ({
         username: c.username,
         displayName: c.displayName,
         profile: c.profile ?? null,

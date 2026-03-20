@@ -1,4 +1,5 @@
 export type CurrencyCode = "JPYC" | "USDC";
+export type ProjectIdsByCurrency = Record<CurrencyCode, string | null>;
 
 export type SummaryProject = {
   id: string;
@@ -18,22 +19,23 @@ export type SummaryProject = {
 export type SummaryGoal = {
   id: string;
   unitCurrency?: CurrencyCode;
-  targetAmount?: number;
-  targetAmountJpyc: number;
+  targetAmount: number;
+  targetAmountJpyc?: number;
   achievedAt: string | null;
   deadline: string | null;
 } | null;
 
 export type SummaryProgress = {
   currency?: CurrencyCode;
-  confirmedJpyc: number;
+  confirmedAmount: number;
   confirmedTotal?: number;
+  confirmedJpyc?: number;
   confirmedByCurrency?: {
     JPYC: number;
     USDC: number;
   };
-  targetAmount?: number | null;
-  targetJpyc: number | null;
+  targetAmount: number | null;
+  targetJpyc?: number | null;
   progressPct: number;
   totals: {
     JPYC: string | null;

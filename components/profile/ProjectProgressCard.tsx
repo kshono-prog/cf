@@ -8,7 +8,7 @@ import { formatReadableNumber } from "@/lib/numberFormat";
 export type ProgressByChainRow = {
   chainId: number;
   confirmedAmountDecimal: string | null;
-  confirmedAmountJpyc: number;
+  confirmedAmount: number;
 };
 
 export type ProjectProgressCardProps = {
@@ -122,8 +122,8 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
         const n = Number(r.confirmedAmountDecimal ?? "0");
         return Number.isFinite(n) ? n : 0;
       }
-      return typeof r.confirmedAmountJpyc === "number"
-        ? r.confirmedAmountJpyc
+      return typeof r.confirmedAmount === "number"
+        ? r.confirmedAmount
         : 0;
     },
     [isUsdc]

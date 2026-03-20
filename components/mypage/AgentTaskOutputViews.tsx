@@ -295,8 +295,8 @@ type ManagerNextActionsOutputView = {
   suggestedActions: ManagerSuggestedActionView[];
   evidence: {
     projectStatus: string | null;
-    confirmedJpyc: number;
-    targetJpyc: number | null;
+    confirmedAmount: number;
+    targetAmount: number | null;
     progressPct: number;
     goalConfigured: boolean;
     goalAchieved: boolean;
@@ -312,7 +312,7 @@ type ManagerNextActionsOutputView = {
     currency: string | null;
     status: string;
     goalId: string | null;
-    goalTargetJpyc: number | null;
+    goalTargetAmount: number | null;
     achievedAt: string | null;
     deadline: string | null;
   } | null;
@@ -378,8 +378,8 @@ function parseManagerNextActionsOutput(
   const evidence = evidenceRaw
     ? {
         projectStatus: asStringOrNull(evidenceRaw.projectStatus),
-        confirmedJpyc: asNumberOrNull(evidenceRaw.confirmedJpyc) ?? 0,
-        targetJpyc: asNumberOrNull(evidenceRaw.targetJpyc),
+        confirmedAmount: asNumberOrNull(evidenceRaw.confirmedAmount) ?? 0,
+        targetAmount: asNumberOrNull(evidenceRaw.targetAmount),
         progressPct: asNumberOrNull(evidenceRaw.progressPct) ?? 0,
         goalConfigured: evidenceRaw.goalConfigured === true,
         goalAchieved: evidenceRaw.goalAchieved === true,
@@ -404,7 +404,7 @@ function parseManagerNextActionsOutput(
           currency: asStringOrNull(snapshotRaw.currency),
           status: asStringOrNull(snapshotRaw.status) ?? "",
           goalId: asStringOrNull(snapshotRaw.goalId),
-          goalTargetJpyc: asNumberOrNull(snapshotRaw.goalTargetJpyc),
+          goalTargetAmount: asNumberOrNull(snapshotRaw.goalTargetAmount),
           achievedAt: asStringOrNull(snapshotRaw.achievedAt),
           deadline: asStringOrNull(snapshotRaw.deadline),
         }
@@ -447,8 +447,8 @@ function ManagerNextActionsOutputCard(props: {
             {output.projectSnapshot.currency
               ? ` / currency: ${output.projectSnapshot.currency}`
               : ""}
-            {output.projectSnapshot.goalTargetJpyc != null
-              ? ` / target: ${output.projectSnapshot.goalTargetJpyc.toLocaleString()}`
+            {output.projectSnapshot.goalTargetAmount != null
+              ? ` / target: ${output.projectSnapshot.goalTargetAmount.toLocaleString()}`
               : ""}
           </div>
         </div>

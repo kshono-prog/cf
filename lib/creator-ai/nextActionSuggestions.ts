@@ -31,13 +31,13 @@ export type SummaryInput = {
   };
   goal: {
     id: string;
-    targetAmountJpyc: number;
+    targetAmount: number;
     achievedAt: string | null;
     deadline: string | null;
   } | null;
   progress: {
-    confirmedJpyc: number;
-    targetJpyc: number | null;
+    confirmedAmount: number;
+    targetAmount: number | null;
     progressPct: number;
   };
   distributionPlan: unknown;
@@ -146,8 +146,8 @@ export function getNextActionSuggestions(
   }
 
   const suggestions: NextActionSuggestion[] = [];
-  const target = summary.progress.targetJpyc;
-  const confirmed = summary.progress.confirmedJpyc;
+  const target = summary.progress.targetAmount;
+  const confirmed = summary.progress.confirmedAmount;
   const goalAchieved = summary.goal?.achievedAt !== null;
   const planMissing = isDistributionPlanMissing(summary);
   const bridgeReflected = hasBridgeReflected(summary);

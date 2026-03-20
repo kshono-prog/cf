@@ -3,28 +3,11 @@ import { cache } from "react";
 
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import { prisma } from "@/lib/prisma";
-import { isCreatorType } from "@/lib/creatorTaxonomy";
-import type {
-  CreatorProfile,
-  SocialLinks,
-  YoutubeVideo,
-} from "@/types/creator";
 import type { MeStatus } from "@/lib/mypage/types";
-
-const allowedSocialTypes = [
-  "twitter",
-  "instagram",
-  "youtube",
-  "facebook",
-  "tiktok",
-  "website",
-] as const;
-
-type AllowedSocialType = (typeof allowedSocialTypes)[number];
-
-function isAllowedSocialType(value: string): value is AllowedSocialType {
-  return (allowedSocialTypes as readonly string[]).includes(value);
-}
+import {
+  resolveCreatorProjectSelection,
+  serializeCreatorProfile,
+} from "@/lib/serializers/creator";
 
 function normalizeAddress(input: string): string {
   return input.trim().toLowerCase();
@@ -69,7 +52,6 @@ const getMeStatusByWalletAddressCached = cache(
             themeColor: true,
             creatorType: true,
             walletAddress: true,
-            activeProjectId: true,
             activeProjectIdJpyc: true,
             activeProjectIdUsdc: true,
             status: true,
@@ -88,45 +70,23 @@ const getMeStatusByWalletAddressCached = cache(
       if (!profile) return emptyMeStatus();
 
       const hasCreator = profile.status === "PUBLISHED";
-
-      const socialsResult: SocialLinks = {};
-      for (const row of profile.socialLinks) {
-        if (isAllowedSocialType(row.type) && row.url) {
-          socialsResult[row.type] = row.url;
-        }
-      }
-
-      const youtubeResult: YoutubeVideo[] = profile.youtubeVideos.map((v) => ({
-        url: v.url,
-        title: v.title ?? "",
-        description: v.description ?? "",
-      }));
-
-      const creator: CreatorProfile = {
+      const creator = serializeCreatorProfile({
         username: profile.username,
-        address: profile.walletAddress ?? undefined,
         displayName: profile.displayName,
+        profileText: profile.profileText,
         avatarUrl: profile.avatarUrl,
-        profile: profile.profileText,
-        qrcode: profile.qrcodeUrl,
-        url: profile.externalUrl,
+        qrcodeUrl: profile.qrcodeUrl,
+        externalUrl: profile.externalUrl,
         themeColor: profile.themeColor,
-        creatorType:
-          typeof profile.creatorType === "string" && isCreatorType(profile.creatorType)
-            ? profile.creatorType
-            : null,
-        socials: socialsResult,
-        youtubeVideos: youtubeResult,
-      };
-
-      const projectIdsByCurrency = {
-        JPYC: profile.activeProjectIdJpyc
-          ? profile.activeProjectIdJpyc.toString()
-          : null,
-        USDC: profile.activeProjectIdUsdc
-          ? profile.activeProjectIdUsdc.toString()
-          : null,
-      };
+        creatorType: profile.creatorType,
+        walletAddress: profile.walletAddress,
+        socialLinks: profile.socialLinks,
+        youtubeVideos: profile.youtubeVideos,
+      });
+      const projectSelection = resolveCreatorProjectSelection({
+        activeProjectIdJpyc: profile.activeProjectIdJpyc?.toString() ?? null,
+        activeProjectIdUsdc: profile.activeProjectIdUsdc?.toString() ?? null,
+      });
 
       return {
         hasUser: true,
@@ -137,10 +97,8 @@ const getMeStatusByWalletAddressCached = cache(
           profile: profile.profileText,
         },
         creator: hasCreator ? creator : null,
-        projectId: profile.activeProjectId
-          ? profile.activeProjectId.toString()
-          : projectIdsByCurrency.JPYC,
-        projectIdsByCurrency,
+        projectId: projectSelection.projectId,
+        projectIdsByCurrency: projectSelection.projectIdsByCurrency,
       };
     },
     ["me-status-by-wallet-address"],

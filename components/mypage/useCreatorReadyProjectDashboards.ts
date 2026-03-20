@@ -10,24 +10,17 @@ import type { Address } from "viem";
 import { fetchMyPageDashboard } from "@/lib/mypage/api";
 import type {
   MyPageDashboardData,
-  MyPageProjectDashboard,
+  ProjectDashboardsByCurrency,
 } from "@/lib/mypage/dashboardTypes";
 import {
   projectMyPageDashboardDataForView,
 } from "@/lib/mypage/dashboardTypes";
+import type { ProjectIdsByCurrency } from "@/lib/mypage/accountPageTypes";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
-const EMPTY_PROJECT_DASHBOARDS: {
-  JPYC: MyPageProjectDashboard | null;
-  USDC: MyPageProjectDashboard | null;
-} = {
+const EMPTY_PROJECT_DASHBOARDS: ProjectDashboardsByCurrency = {
   JPYC: null,
   USDC: null,
-};
-
-type ProjectIdsByCurrency = {
-  JPYC: string | null;
-  USDC: string | null;
 };
 
 function buildDashboardQueryKey(args: {

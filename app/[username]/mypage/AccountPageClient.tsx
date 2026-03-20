@@ -1,15 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import { useAccount } from "wagmi";
-import type { Address } from "viem";
 
-import type { CreatorProfile } from "@/types/creator";
-
-import type { MeStatus, Status } from "@/lib/mypage/types";
 import { generateRandomId } from "@/lib/mypage/helpers";
-
-import { fetchMe } from "@/lib/api/creator";
 
 import { CreatorReadyAccountView } from "@/components/mypage/CreatorReadyAccountView";
 import { SettingsPageClient } from "@/components/mypage/SettingsPageClient";
@@ -19,7 +13,9 @@ import { UnconnectedMyPageView } from "@/components/mypage/UnconnectedMyPageView
 import { UserOnlyMyPageView } from "@/components/mypage/UserOnlyMyPageView";
 import { useMyPageProfileState } from "@/components/mypage/useMyPageProfileState";
 import { useMyPageShellState } from "@/components/mypage/useMyPageShellState";
+import { useMyPageMeStatus } from "@/components/mypage/useMyPageMeStatus";
 import { useAccountPageActions } from "@/components/mypage/useAccountPageActions";
+import { CreatorReadyWorkspaceProvider } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
 type Props = {
@@ -38,9 +34,6 @@ export default function AccountPageClient({
   initialProjectIdsByCurrency = { JPYC: null, USDC: null },
 }: Props) {
   const { address, isConnected } = useAccount();
-
-  const [status, setStatus] = useState<Status>("loading");
-  const [me, setMe] = useState<MeStatus | null>(null);
 
   const generatedUsername = useMemo(
     () => `user_${generateRandomId()}`,
@@ -81,110 +74,23 @@ export default function AccountPageClient({
     applyCreatorProfile,
   } = useMyPageProfileState(generatedUsername);
 
-  const [localProjectId, setLocalProjectId] = useState<string | null>(initialProjectId);
-  const [projectIdsByCurrency, setProjectIdsByCurrency] = useState<{
-    JPYC: string | null;
-    USDC: string | null;
-  }>(initialProjectIdsByCurrency);
-
-  // ── P1-3: hydrate form only on initial load ──────────────────────────────
-  const hydratedRef = useRef(false);
-
-  const pickDefaultProjectId = useCallback((data: MeStatus): string | null => {
-    return (
-      data.projectId ??
-      data.projectIdsByCurrency?.JPYC ??
-      data.projectIdsByCurrency?.USDC ??
-      null
-    );
-  }, []);
-
-  /** Updates server-derived state (status, me, projectIds). No form changes. */
-  const fetchSummary = useCallback(
-    async (addr: Address): Promise<MeStatus | null> => {
-      const result = await fetchMe(addr);
-      if (!result.ok) return null;
-
-      const meData = result.data;
-      setMe(meData);
-      const nextProjectIds =
-        meData.projectIdsByCurrency ?? { JPYC: null, USDC: null };
-      setProjectIdsByCurrency(nextProjectIds);
-      setLocalProjectId(pickDefaultProjectId(meData));
-
-      if (!meData.hasUser) {
-        setStatus("noUser");
-      } else if (!meData.hasCreator || !meData.creator) {
-        setStatus("userOnly");
-      } else {
-        setStatus("creatorReady");
-      }
-
-      return meData;
-    },
-    [pickDefaultProjectId]
-  );
-
-  /** Applies server data to form fields. Should only run once on initial load. */
-  const hydrateFormFromSummary = useCallback(
-    (meData: MeStatus) => {
-      if (!meData.hasUser) {
-        resetProfileState(username);
-        return;
-      }
-      if (!meData.hasCreator || !meData.creator) {
-        applyUserOnly(meData.user, username);
-        return;
-      }
-      applyCreatorProfile(meData.creator as CreatorProfile, meData.user, username);
-    },
-    [applyCreatorProfile, applyUserOnly, resetProfileState, username]
-  );
-
-  const loadMeStatus = useCallback(
-    async (addr: Address): Promise<boolean> => {
-      const meData = await fetchSummary(addr);
-      if (!meData) {
-        setStatus("loading");
-        return false;
-      }
-
-      if (!hydratedRef.current) {
-        hydrateFormFromSummary(meData);
-        hydratedRef.current = true;
-      }
-
-      return true;
-    },
-    [fetchSummary, hydrateFormFromSummary]
-  );
-
-  useEffect(() => {
-    if (!isConnected || !address) {
-      setStatus("unconnected");
-      setMe(null);
-      setLocalProjectId(null);
-      setProjectIdsByCurrency({ JPYC: null, USDC: null });
-      hydratedRef.current = false;
-      resetProfileState(username);
-      return;
-    }
-
-    const addr: Address = address;
-    let cancelled = false;
-
-    async function run(): Promise<void> {
-      setStatus("loading");
-      const ok = await loadMeStatus(addr);
-      if (cancelled || ok) return;
-      setStatus("loading");
-    }
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [isConnected, address, loadMeStatus, resetProfileState, username]);
+  const {
+    status,
+    me,
+    localProjectId,
+    projectIdsByCurrency,
+    refreshMeStatus,
+    syncActiveProjectId,
+  } = useMyPageMeStatus({
+    address,
+    isConnected,
+    username,
+    initialProjectId,
+    initialProjectIdsByCurrency,
+    resetProfileState,
+    applyUserOnly,
+    applyCreatorProfile,
+  });
 
   // ── P1-1: API handlers in useAccountPageActions ───────────────────────────
   const { saving, error, handleSaveUser, handleApplyCreator, handleSaveCreatorProfile } =
@@ -200,7 +106,7 @@ export default function AccountPageClient({
       creatorType,
       socials,
       youtubeVideos,
-      onSaved: fetchSummary,
+      onSaved: refreshMeStatus,
       cancelEditingProfile,
     });
 
@@ -267,14 +173,11 @@ export default function AccountPageClient({
     /\/$/,
     ""
   );
+  const workspaceBasePath = `/${username}/mypage`;
 
-  const sharedCreatorReadyProps = {
-    initialWorkspaceView,
-    workspaceBasePath: `/${username}/mypage`,
+  const workspaceState = {
     meCreatorUsername: creatorUsername,
     eventBaseUrl,
-    themeColor,
-    error,
     localProjectId,
     address,
     isConnected,
@@ -303,20 +206,23 @@ export default function AccountPageClient({
     saving,
     onSubmitProfile: (e: React.FormEvent) => void handleSaveCreatorProfile(e),
     projectIdsByCurrency,
-    onActiveProjectIdChange: (pid: string | null, changedCur: "JPYC" | "USDC") => {
-      setProjectIdsByCurrency((prev) => ({
-        ...prev,
-        [changedCur]: pid,
-      }));
-      setLocalProjectId(pid);
-    },
+    onActiveProjectIdChange: syncActiveProjectId,
     openSections,
     onToggleSection: toggleSection,
   };
 
-  if (renderMode === "settings") {
-    return <SettingsPageClient {...sharedCreatorReadyProps} />;
-  }
-
-  return <CreatorReadyAccountView {...sharedCreatorReadyProps} />;
+  return (
+    <CreatorReadyWorkspaceProvider value={workspaceState}>
+      {renderMode === "settings" ? (
+        <SettingsPageClient workspaceBasePath={workspaceBasePath} error={error} />
+      ) : (
+        <CreatorReadyAccountView
+          initialWorkspaceView={initialWorkspaceView}
+          workspaceBasePath={workspaceBasePath}
+          themeColor={themeColor}
+          error={error}
+        />
+      )}
+    </CreatorReadyWorkspaceProvider>
+  );
 }

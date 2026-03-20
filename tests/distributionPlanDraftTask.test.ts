@@ -27,20 +27,18 @@ const BASE_SUMMARY: SummaryViewData = {
     id: "goal-1",
     unitCurrency: "JPYC",
     targetAmount: 1000,
-    targetAmountJpyc: 1000,
     achievedAt: "2026-03-18T00:00:00.000Z",
     deadline: null,
   },
   progress: {
     currency: "JPYC",
-    confirmedJpyc: 1200,
+    confirmedAmount: 1200,
     confirmedTotal: 1200,
     confirmedByCurrency: {
       JPYC: 1200,
       USDC: 0,
     },
     targetAmount: 1000,
-    targetJpyc: 1000,
     progressPct: 100,
     totals: {
       JPYC: "1200",
@@ -61,7 +59,7 @@ const BASE_SETTLEMENT: ProjectSettlementData = {
   goal: {
     id: "goal-1",
     achievedAt: "2026-03-18T00:00:00.000Z",
-    targetAmountJpyc: 1000,
+    targetAmount: 1000,
   },
   settlement: {
     id: "settlement-1",

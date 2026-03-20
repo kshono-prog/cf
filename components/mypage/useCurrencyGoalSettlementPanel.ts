@@ -31,9 +31,7 @@ function applyGoalDraftsFromSummary(
     return;
   }
 
-  setTargetInput(
-    String(summary.goal.targetAmount ?? summary.goal.targetAmountJpyc)
-  );
+  setTargetInput(String(summary.goal.targetAmount));
   setDeadlineInput(
     summary.goal.deadline ? summary.goal.deadline.slice(0, 10) : ""
   );

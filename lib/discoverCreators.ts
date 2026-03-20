@@ -2,14 +2,13 @@ import { unstable_cache } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
-import { getProjectSummaryView } from "@/lib/projectSummary";
 import {
   buildSupportProfileView,
   type SupportProfileView,
   type SupportProjectView,
 } from "@/lib/supportProfileView";
-import type { SummaryViewData } from "@/lib/mypage/accountPageTypes";
 import { loadRecruitingProjectViews } from "@/lib/recruitingProjects";
+import { resolvePublicCreatorProjectData } from "@/lib/publicCreatorProjects";
 
 export type DiscoverCreator = {
   username: string;
@@ -25,49 +24,20 @@ type CreatorRow = {
   displayName: string | null;
   profileText: string | null;
   avatarUrl: string | null;
-  goalTitle: string | null;
-  walletAddress: string | null;
-  activeProjectId: bigint | null;
   activeProjectIdJpyc: bigint | null;
   activeProjectIdUsdc: bigint | null;
   id: bigint;
 };
 
-function toProjectIdString(value: bigint | null): string | null {
-  return value != null ? value.toString() : null;
-}
-
-async function loadSummaryIfPresent(
-  projectId: string | null
-): Promise<SummaryViewData | null> {
-  if (!projectId) return null;
-
-  try {
-    return await getProjectSummaryView(BigInt(projectId));
-  } catch {
-    return null;
-  }
-}
-
 async function buildDiscoverCreator(row: CreatorRow): Promise<DiscoverCreator> {
-  const projectIdsByCurrency = {
-    JPYC: toProjectIdString(row.activeProjectIdJpyc),
-    USDC: toProjectIdString(row.activeProjectIdUsdc),
-  };
-  const activeProjectId = toProjectIdString(row.activeProjectId);
-
-  const [jpycSummary, usdcSummary, activeSummary, recruitingProjects] =
-    await Promise.all([
-    loadSummaryIfPresent(projectIdsByCurrency.JPYC),
-    loadSummaryIfPresent(projectIdsByCurrency.USDC),
-    activeProjectId &&
-    activeProjectId !== projectIdsByCurrency.JPYC &&
-    activeProjectId !== projectIdsByCurrency.USDC
-      ? loadSummaryIfPresent(activeProjectId)
-      : Promise.resolve(null),
+  const [projectData, recruitingProjects] = await Promise.all([
+    resolvePublicCreatorProjectData({
+      creatorProfileId: row.id,
+      activeProjectIdJpyc: row.activeProjectIdJpyc?.toString() ?? null,
+      activeProjectIdUsdc: row.activeProjectIdUsdc?.toString() ?? null,
+    }),
     loadRecruitingProjectViews({
       creatorProfileId: row.id,
-      ownerAddress: row.walletAddress,
     }),
   ]);
 
@@ -80,16 +50,12 @@ async function buildDiscoverCreator(row: CreatorRow): Promise<DiscoverCreator> {
     supportProfileView: buildSupportProfileView({
       creator: {
         displayName: row.displayName ?? row.username,
-        goalTitle: row.goalTitle ?? null,
         profile: row.profileText ?? null,
       },
-      activeProjectId,
-      projectIdsByCurrency,
-      summariesByCurrency: {
-        JPYC: jpycSummary,
-        USDC: usdcSummary,
-      },
-      activeSummary,
+      activeProjectId: projectData.projectId,
+      projectIdsByCurrency: projectData.projectIdsByCurrency,
+      summariesByCurrency: projectData.summariesByCurrency,
+      activeSummary: projectData.activeSummary,
     }),
   };
 }
@@ -108,9 +74,6 @@ async function getDiscoverCreatorsUncached(limit: number): Promise<DiscoverCreat
         displayName: true,
         profileText: true,
         avatarUrl: true,
-        goalTitle: true,
-        walletAddress: true,
-        activeProjectId: true,
         activeProjectIdJpyc: true,
         activeProjectIdUsdc: true,
       },

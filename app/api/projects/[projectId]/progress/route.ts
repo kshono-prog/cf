@@ -99,12 +99,12 @@ export async function GET(
       .map((r) => ({
         chainId: r.chainId,
         confirmedAmountDecimal: decToString(r._sum.amountDecimal ?? null),
-        confirmedAmountJpyc: decimalToAmountByCurrency(
+        confirmedAmount: decimalToAmountByCurrency(
           projectCurrency,
           r._sum.amountDecimal ?? null
         ),
       }))
-      .sort((a, b) => b.confirmedAmountJpyc - a.confirmedAmountJpyc);
+      .sort((a, b) => b.confirmedAmount - a.confirmedAmount);
 
     // ---- purpose別（JPYCのみ / 対応チェーンのみ / CONFIRMED）----
     const sumByPurpose = await prisma.contribution.groupBy({
@@ -143,7 +143,7 @@ export async function GET(
           label: meta?.label ?? null,
           description: meta?.description ?? null,
           confirmedAmountDecimal: decToString(r._sum.amountDecimal ?? null),
-          confirmedAmountJpyc: decimalToAmountByCurrency(
+          confirmedAmount: decimalToAmountByCurrency(
             projectCurrency,
             r._sum.amountDecimal ?? null
           ),
@@ -162,19 +162,19 @@ export async function GET(
       _sum: { amountDecimal: true },
     });
 
-    const noPurposeJpyc = decimalToAmountByCurrency(
+    const noPurposeConfirmedAmount = decimalToAmountByCurrency(
       projectCurrency,
       sumNoPurpose._sum.amountDecimal ?? null
     );
 
     // ---- goal進捗（JPYC+USDC / 対応チェーン合算を正とする）----
     const goal = project.goal;
-    const targetJpyc = goal?.targetAmountJpyc ?? null;
+    const targetAmount = goal?.targetAmount ?? goal?.targetAmountJpyc ?? null;
 
-    const confirmedJpycInt = confirmedCurrencyInt;
+    const confirmedAmount = confirmedCurrencyInt;
     const progressPct =
-      targetJpyc && targetJpyc > 0
-        ? Math.min(100, (confirmedJpycInt / targetJpyc) * 100)
+      targetAmount && targetAmount > 0
+        ? Math.min(100, (confirmedAmount / targetAmount) * 100)
         : 0;
 
     return okJson({
@@ -192,8 +192,8 @@ export async function GET(
             id: goal.id.toString(),
             projectId: goal.projectId.toString(),
             unitCurrency: projectCurrency,
-            targetAmount: goal.targetAmountJpyc,
-            targetAmountJpyc: goal.targetAmountJpyc,
+            targetAmount,
+            targetAmountJpyc: targetAmount,
             deadline: goal.deadline ? goal.deadline.toISOString() : null,
             achievedAt: goal.achievedAt ? goal.achievedAt.toISOString() : null,
             settlementPolicy: goal.settlementPolicy,
@@ -203,14 +203,15 @@ export async function GET(
         : null,
       progress: {
         currency: projectCurrency,
-        confirmedJpyc: confirmedJpycInt,
-        confirmedTotal: confirmedJpycInt,
+        confirmedAmount,
+        confirmedJpyc: confirmedAmount,
+        confirmedTotal: confirmedAmount,
         confirmedByCurrency: {
-          JPYC: projectCurrency === "JPYC" ? confirmedJpycInt : 0,
-          USDC: projectCurrency === "USDC" ? confirmedJpycInt : 0,
+          JPYC: projectCurrency === "JPYC" ? confirmedAmount : 0,
+          USDC: projectCurrency === "USDC" ? confirmedAmount : 0,
         },
-        targetAmount: targetJpyc,
-        targetJpyc,
+        targetAmount,
+        targetJpyc: targetAmount,
         progressPct,
 
         // 透明性（「どのチェーンを合算対象にしているか」）
@@ -236,7 +237,8 @@ export async function GET(
 
         // purpose 集計（JPYC / 対応チェーン / CONFIRMED）
         perPurpose,
-        noPurposeConfirmedJpyc: noPurposeJpyc,
+        noPurposeConfirmedAmount,
+        noPurposeConfirmedJpyc: noPurposeConfirmedAmount,
       },
       purposes: project.purposes.map((p) => ({
         id: p.id.toString(),

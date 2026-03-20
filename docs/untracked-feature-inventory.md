@@ -20,7 +20,6 @@
 - `app/[username]/layout.tsx`
 - `app/[username]/loading.tsx`
 - `app/[username]/ProfileClientSection.tsx`
-- `app/[username]/ProfileClientWrapper.tsx`
 - `app/[username]/manifest.webmanifest/route.ts`
 - `components/ProfileClient.tsx`
 - `components/BottomNav.tsx`
@@ -37,7 +36,6 @@
 - `components/profile/profileClientHelpers.ts`
 - `types/creator.ts`
 - `lib/creatorProfile.ts`
-- `lib/getProfile.ts`
 - `lib/profileTypes.ts`
 - `lib/publicSummary.ts`
 - `lib/numberFormat.ts`

@@ -16,8 +16,6 @@ model CreatorProfile {
   avatarUrl           String?
   qrcodeUrl           String?
   externalUrl         String?
-  goalTitle           String?
-  goalTargetJpyc      Int?
   themeColor          String?
   creatorType         String?
   walletAddress       String?                 @unique
@@ -25,7 +23,6 @@ model CreatorProfile {
   status              String                  @default("PUBLISHED")
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
-  activeProjectId     BigInt?
   activeProjectIdJpyc BigInt?
   activeProjectIdUsdc BigInt?
   socialLinks         CreatorSocialLink[]
@@ -222,6 +219,7 @@ model Contribution {
 model Goal {
   id               BigInt      @id @default(autoincrement())
   projectId        BigInt      @unique(map: "Goal_projectId_unique")
+  targetAmount     Int
   targetAmountJpyc Int
   deadline         DateTime?   @db.Timestamptz(6)
   achievedAt       DateTime?   @db.Timestamptz(6)

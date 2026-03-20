@@ -19,7 +19,7 @@ type GoalPayload = {
   projectId: string;
   unitCurrency: Currency;
   targetAmount: number;
-  targetAmountJpyc: number;
+  targetAmountJpyc?: number;
   deadline: string | null;
   achievedAt: string | null;
   createdAt: string;
@@ -39,6 +39,7 @@ type Params = { projectId: string };
 function serializeGoal(goal: {
   id: bigint;
   projectId: bigint;
+  targetAmount: number;
   targetAmountJpyc: number;
   deadline: Date | null;
   achievedAt: Date | null;
@@ -49,8 +50,8 @@ function serializeGoal(goal: {
     id: goal.id.toString(),
     projectId: goal.projectId.toString(),
     unitCurrency,
-    targetAmount: goal.targetAmountJpyc,
-    targetAmountJpyc: goal.targetAmountJpyc,
+    targetAmount: goal.targetAmount,
+    targetAmountJpyc: goal.targetAmount,
     deadline: goal.deadline ? goal.deadline.toISOString() : null,
     achievedAt: goal.achievedAt ? goal.achievedAt.toISOString() : null,
     createdAt: goal.createdAt.toISOString(),
@@ -79,6 +80,7 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
       select: {
         id: true,
         projectId: true,
+        targetAmount: true,
         targetAmountJpyc: true,
         deadline: true,
         achievedAt: true,
@@ -143,17 +145,20 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
       where: { projectId: pid },
       create: {
         projectId: pid,
+        targetAmount: Math.floor(targetAmount),
         targetAmountJpyc: Math.floor(targetAmount),
         deadline: deadlineDate,
         settlementPolicy: {},
       },
       update: {
+        targetAmount: Math.floor(targetAmount),
         targetAmountJpyc: Math.floor(targetAmount),
         deadline: deadlineDate,
       },
       select: {
         id: true,
         projectId: true,
+        targetAmount: true,
         targetAmountJpyc: true,
         deadline: true,
         achievedAt: true,

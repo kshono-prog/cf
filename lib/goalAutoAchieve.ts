@@ -3,7 +3,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 
 /**
  * Goal 自動達成判定ユーティリティ
- * - project.currency の CONFIRMED 合計が targetAmountJpyc に到達したら goal.achievedAt を立てる
+ * - project.currency の CONFIRMED 合計が targetAmount に到達したら goal.achievedAt を立てる
  * - project.status は「進行中ステータス」のときだけ GOAL_ACHIEVED に更新（巻き戻し防止）
  * - 冪等（既に achievedAt があれば何もしない）
  *
@@ -42,8 +42,8 @@ export type AutoAchieveResult =
       achieved: true;
       changed: boolean; // 今回 achievedAt が立ったか
       projectStatusUpdated: boolean;
-      confirmedJpyc: number;
-      targetJpyc: number;
+      confirmedAmount: number;
+      targetAmount: number;
       achievedAtIso: string; // 現在の achievedAt
     }
   | {
@@ -54,8 +54,8 @@ export type AutoAchieveResult =
         | "TARGET_INVALID"
         | "NOT_REACHED"
         | "ALREADY_ACHIEVED";
-      confirmedJpyc: number;
-      targetJpyc: number | null;
+      confirmedAmount: number;
+      targetAmount: number | null;
     };
 
 /**
@@ -81,8 +81,8 @@ export async function tryAutoAchieveGoal(params: {
       ok: true,
       achieved: false,
       reason: "GOAL_NOT_SET",
-      confirmedJpyc: 0,
-      targetJpyc: null,
+      confirmedAmount: 0,
+      targetAmount: null,
     };
   }
   const projectCurrency = toCurrency(project.currency);
@@ -91,14 +91,14 @@ export async function tryAutoAchieveGoal(params: {
       ok: true,
       achieved: false,
       reason: "TARGET_INVALID",
-      confirmedJpyc: 0,
-      targetJpyc: null,
+      confirmedAmount: 0,
+      targetAmount: null,
     };
   }
 
   const goal = await params.db.goal.findUnique({
     where: { projectId: params.projectId },
-    select: { id: true, targetAmountJpyc: true, achievedAt: true },
+    select: { id: true, targetAmount: true, targetAmountJpyc: true, achievedAt: true },
   });
 
   if (!goal) {
@@ -106,19 +106,19 @@ export async function tryAutoAchieveGoal(params: {
       ok: true,
       achieved: false,
       reason: "GOAL_NOT_SET",
-      confirmedJpyc: 0,
-      targetJpyc: null,
+      confirmedAmount: 0,
+      targetAmount: null,
     };
   }
 
-  const targetJpyc = goal.targetAmountJpyc;
-  if (!Number.isFinite(targetJpyc) || targetJpyc <= 0) {
+  const targetAmount = goal.targetAmount ?? goal.targetAmountJpyc;
+  if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
     return {
       ok: true,
       achieved: false,
       reason: "TARGET_INVALID",
-      confirmedJpyc: 0,
-      targetJpyc: Number.isFinite(targetJpyc) ? targetJpyc : null,
+      confirmedAmount: 0,
+      targetAmount: Number.isFinite(targetAmount) ? targetAmount : null,
     };
   }
 
@@ -128,8 +128,8 @@ export async function tryAutoAchieveGoal(params: {
       ok: true,
       achieved: false,
       reason: "ALREADY_ACHIEVED",
-      confirmedJpyc: 0,
-      targetJpyc,
+      confirmedAmount: 0,
+      targetAmount,
     };
   }
 
@@ -143,15 +143,15 @@ export async function tryAutoAchieveGoal(params: {
     _sum: { amountDecimal: true },
   });
 
-  const confirmedJpyc = decimalToJpycIntFloor(sum._sum.amountDecimal ?? null);
+  const confirmedAmount = decimalToJpycIntFloor(sum._sum.amountDecimal ?? null);
 
-  if (confirmedJpyc < targetJpyc) {
+  if (confirmedAmount < targetAmount) {
     return {
       ok: true,
       achieved: false,
       reason: "NOT_REACHED",
-      confirmedJpyc,
-      targetJpyc,
+      confirmedAmount,
+      targetAmount,
     };
   }
 
@@ -187,8 +187,8 @@ export async function tryAutoAchieveGoal(params: {
     achieved: true,
     changed: g.count > 0,
     projectStatusUpdated: p.count > 0,
-    confirmedJpyc,
-    targetJpyc,
+    confirmedAmount,
+    targetAmount,
     achievedAtIso: achievedAt.toISOString(),
   };
 }

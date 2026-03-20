@@ -287,7 +287,6 @@ export default function ProfileClient({
   });
 
   const displayName = creator.displayName || username;
-  const showLegacyCard = false;
   const supportMode = supportProfileState.mode;
   const supportCardReady = activeSupportProject !== null;
   const supportTitle =
@@ -822,7 +821,6 @@ export default function ProfileClient({
               projectIdsByCurrency={resolvedProjectIdsByCurrency}
               supportedJpycChainIds={supportedJpycChainIds}
               supportedChainIdsByCurrency={supportedChainIdsByCurrency}
-              showLegacyCard={showLegacyCard}
               headerColor={creator.themeColor || "#2563eb"}
               selectedProjectId={selectedSupportProject?.projectId ?? null}
               selectedProjectTitle={selectedSupportProject?.title ?? null}

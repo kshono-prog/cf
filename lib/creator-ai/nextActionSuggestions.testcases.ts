@@ -20,13 +20,13 @@ const BASE_SUMMARY = {
   },
   goal: {
     id: "goal-1",
-    targetAmountJpyc: 1000,
+    targetAmount: 1000,
     achievedAt: null,
     deadline: null,
   },
   progress: {
-    confirmedJpyc: 250,
-    targetJpyc: 1000,
+    confirmedAmount: 250,
+    targetAmount: 1000,
     progressPct: 25,
   },
   distributionPlan: null,
@@ -78,8 +78,8 @@ export const NEXT_ACTION_TEST_CASES: NextActionTestCase[] = [
       summary: {
         ...BASE_SUMMARY,
         progress: {
-          confirmedJpyc: 1000,
-          targetJpyc: 1000,
+          confirmedAmount: 1000,
+          targetAmount: 1000,
           progressPct: 100,
         },
       },
@@ -98,8 +98,8 @@ export const NEXT_ACTION_TEST_CASES: NextActionTestCase[] = [
           achievedAt: "2026-03-17T00:00:00.000Z",
         },
         progress: {
-          confirmedJpyc: 1200,
-          targetJpyc: 1000,
+          confirmedAmount: 1200,
+          targetAmount: 1000,
           progressPct: 100,
         },
       },
@@ -118,8 +118,8 @@ export const NEXT_ACTION_TEST_CASES: NextActionTestCase[] = [
           achievedAt: "2026-03-17T00:00:00.000Z",
         },
         progress: {
-          confirmedJpyc: 1200,
-          targetJpyc: 1000,
+          confirmedAmount: 1200,
+          targetAmount: 1000,
           progressPct: 100,
         },
         distributionPlan: {
@@ -145,8 +145,8 @@ export const NEXT_ACTION_TEST_CASES: NextActionTestCase[] = [
           achievedAt: "2026-03-17T00:00:00.000Z",
         },
         progress: {
-          confirmedJpyc: 1200,
-          targetJpyc: 1000,
+          confirmedAmount: 1200,
+          targetAmount: 1000,
           progressPct: 100,
         },
         distributionPlan: {
@@ -173,8 +173,8 @@ export const NEXT_ACTION_TEST_CASES: NextActionTestCase[] = [
           achievedAt: "2026-03-17T00:00:00.000Z",
         },
         progress: {
-          confirmedJpyc: 1200,
-          targetJpyc: 1000,
+          confirmedAmount: 1200,
+          targetAmount: 1000,
           progressPct: 100,
         },
         distributionPlan: {

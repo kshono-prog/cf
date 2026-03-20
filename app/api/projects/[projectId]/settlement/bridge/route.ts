@@ -91,7 +91,13 @@ export async function POST(
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true, ownerAddress: true },
+      select: {
+        id: true,
+        ownerAddress: true,
+        goal: {
+          select: { achievedAt: true },
+        },
+      },
     });
 
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
@@ -99,6 +105,9 @@ export async function POST(
     const owner = lowerOrNull(project.ownerAddress);
     if (!owner || owner !== wallet.toLowerCase()) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
+    }
+    if (!project.goal?.achievedAt) {
+      return errJson("BRIDGE_REQUIRES_GOAL_ACHIEVED", 400);
     }
 
     const now = new Date();

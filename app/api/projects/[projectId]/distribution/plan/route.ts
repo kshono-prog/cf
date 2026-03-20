@@ -9,6 +9,7 @@ import {
   toBigIntOrThrow,
   lowerOrNull,
 } from "@/lib/api/guards";
+import { toCurrency } from "@/lib/currencyUtils";
 import { requireOwnerSession } from "@/lib/ownerAuthSession";
 import type { DistributionPlanJson } from "@/types/distribution";
 
@@ -38,9 +39,11 @@ export async function GET(
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true, status: true, ownerAddress: true },
+      select: { id: true, status: true, ownerAddress: true, currency: true },
     });
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+    const projectCurrency = toCurrency(project.currency);
+    if (!projectCurrency) return errJson("PROJECT_CURRENCY_INVALID", 400);
 
     if (!project.ownerAddress) return errJson("FORBIDDEN_NOT_OWNER", 403);
 
@@ -49,7 +52,7 @@ export async function GET(
 
     // ✅ 最新の PLAN_ONLY を取得（あればそれが plan）
     const latestPlan = await prisma.distributionRun.findFirst({
-      where: { projectId, mode: "PLAN_ONLY" },
+      where: { projectId, mode: "PLAN_ONLY", currency: projectCurrency },
       orderBy: { createdAt: "desc" },
       select: { id: true, planJson: true, createdAt: true },
     });
@@ -61,6 +64,7 @@ export async function GET(
       planMeta: latestPlan
         ? {
             distributionRunId: latestPlan.id,
+            currency: projectCurrency,
             savedAt: latestPlan.createdAt.toISOString(),
           }
         : null,
@@ -68,6 +72,9 @@ export async function GET(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PROJECT_ID_INVALID") return errJson("PROJECT_ID_INVALID", 400);
+    if (msg === "PROJECT_CURRENCY_INVALID") {
+      return errJson("PROJECT_CURRENCY_INVALID", 400);
+    }
     console.error("DISTRIBUTION_PLAN_GET_FAILED", e);
     return errJson("DISTRIBUTION_PLAN_GET_FAILED", 500);
   }
@@ -95,13 +102,17 @@ export async function PUT(
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { ownerAddress: true, id: true },
+      select: { ownerAddress: true, id: true, currency: true },
     });
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
 
     const owner = lowerOrNull(project.ownerAddress);
     if (!owner || owner !== addr.toLowerCase()) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
+    }
+    const projectCurrency = toCurrency(project.currency);
+    if (!projectCurrency) {
+      return errJson("PROJECT_CURRENCY_INVALID", 400);
     }
 
     // ✅ Projectに保存しない。DistributionRun(mode=PLAN_ONLY)で保存する
@@ -110,7 +121,7 @@ export async function PUT(
         projectId,
         mode: "PLAN_ONLY",
         chainId: 0, // plan保存段階では未確定でも良いので 0
-        currency: "JPYC",
+        currency: projectCurrency,
         planJson: plan as DistributionPlanJson as Prisma.InputJsonValue,
         txHashes: [] as Prisma.InputJsonValue,
         dryRun: true,
@@ -129,6 +140,9 @@ export async function PUT(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PROJECT_ID_INVALID") return errJson("PROJECT_ID_INVALID", 400);
+    if (msg === "PROJECT_CURRENCY_INVALID") {
+      return errJson("PROJECT_CURRENCY_INVALID", 400);
+    }
     console.error("DISTRIBUTION_PLAN_PUT_FAILED", e);
     return errJson("DISTRIBUTION_PLAN_PUT_FAILED", 500);
   }

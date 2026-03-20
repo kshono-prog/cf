@@ -58,6 +58,22 @@ function isDistributeAllowLogOnly(): boolean {
   return process.env.DISTRIBUTE_ALLOW_LOG_ONLY === "true";
 }
 
+function isDistributionPlanEmpty(plan: unknown): boolean {
+  if (Array.isArray(plan)) {
+    return plan.length === 0;
+  }
+
+  if (!isRecord(plan)) {
+    return true;
+  }
+
+  if (Array.isArray(plan.entries)) {
+    return plan.entries.length === 0;
+  }
+
+  return Object.keys(plan).length === 0;
+}
+
 export async function POST(
   req: NextRequest,
   ctx: { params: Promise<Params> }
@@ -77,7 +93,7 @@ export async function POST(
     const chainId = toChainId((raw as Body).chainId);
     if (chainId == null) return errJson("CHAIN_ID_REQUIRED", 400);
 
-    const currency = toCurrency((raw as Body).currency) ?? "JPYC";
+    const requestedCurrency = toCurrency((raw as Body).currency);
 
     const txHashes = parseTxHashes((raw as Body).txHashes);
     if (!txHashes) return errJson("TX_HASHES_INVALID", 400);
@@ -91,14 +107,21 @@ export async function POST(
         ownerAddress: true,
         status: true,
         bridgedAt: true,
+        currency: true,
       },
     });
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
+    const projectCurrency = toCurrency(project.currency);
+    if (!projectCurrency) return errJson("PROJECT_CURRENCY_INVALID", 400);
 
     const owner = lowerOrNull(project.ownerAddress);
     if (!owner || owner !== addr.toLowerCase()) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
+    if (requestedCurrency && requestedCurrency !== projectCurrency) {
+      return errJson("PROJECT_CURRENCY_MISMATCH", 400);
+    }
+    const currency = requestedCurrency ?? projectCurrency;
 
     // ✅ 分離ルール：原則 BRIDGED 後のみ
     // ただしデモ/検証時は env で LOG_ONLY ブリッジ後も許可する
@@ -136,11 +159,14 @@ export async function POST(
 
     // ✅ 最新 plan を DistributionRun(mode=PLAN_ONLY) から取る
     const latestPlan = await prisma.distributionRun.findFirst({
-      where: { projectId, mode: "PLAN_ONLY" },
+      where: { projectId, mode: "PLAN_ONLY", currency: projectCurrency },
       orderBy: { createdAt: "desc" },
       select: { planJson: true },
     });
     if (!latestPlan) return errJson("DISTRIBUTION_PLAN_NOT_SET", 400);
+    if (isDistributionPlanEmpty(latestPlan.planJson)) {
+      return errJson("DISTRIBUTION_PLAN_EMPTY", 400);
+    }
 
     const now = new Date();
 
@@ -185,6 +211,9 @@ export async function POST(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "PROJECT_ID_INVALID") return errJson("PROJECT_ID_INVALID", 400);
+    if (msg === "PROJECT_CURRENCY_INVALID") {
+      return errJson("PROJECT_CURRENCY_INVALID", 400);
+    }
     console.error("DISTRIBUTION_EXECUTE_FAILED", e);
     return errJson("DISTRIBUTION_EXECUTE_FAILED", 500);
   }

@@ -42,13 +42,21 @@ export async function POST(
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { ownerAddress: true },
+      select: {
+        ownerAddress: true,
+        goal: {
+          select: { achievedAt: true },
+        },
+      },
     });
     if (!project) return errJson("PROJECT_NOT_FOUND", 404);
 
     const owner = lowerOrNull(project.ownerAddress);
     if (!owner || owner !== addr.toLowerCase()) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
+    }
+    if (!project.goal?.achievedAt) {
+      return errJson("BRIDGE_REQUIRES_GOAL_ACHIEVED", 400);
     }
 
     // projectId が一致する run のみ更新（安全策）

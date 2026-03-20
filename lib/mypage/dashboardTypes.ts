@@ -12,10 +12,15 @@ export type MyPageProjectDashboard = {
   settlement: ProjectSettlementData | null;
 };
 
+export type ProjectDashboardsByCurrency = Record<
+  CurrencyCode,
+  MyPageProjectDashboard | null
+>;
+
 export type MyPageDashboardData = {
   me: MeStatus;
   selectedProjectId: string | null;
-  projectsByCurrency: Record<CurrencyCode, MyPageProjectDashboard | null>;
+  projectsByCurrency: ProjectDashboardsByCurrency;
 };
 
 export type MyPageDashboardLoadOptions = {

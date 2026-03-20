@@ -29,8 +29,6 @@ export async function POST(
       avatarUrl,
       qrcodeUrl,
       externalUrl,
-      goalTitle,
-      goalTargetJpyc,
       themeColor,
       email,
     } = body as {
@@ -40,8 +38,6 @@ export async function POST(
       avatarUrl?: string;
       qrcodeUrl?: string;
       externalUrl?: string;
-      goalTitle?: string;
-      goalTargetJpyc?: number;
       themeColor?: string;
       email?: string;
     };
@@ -89,8 +85,6 @@ export async function POST(
           avatarUrl: avatarUrl ?? null,
           qrcodeUrl: qrcodeUrl ?? null,
           externalUrl: externalUrl ?? null,
-          goalTitle: goalTitle ?? null,
-          goalTargetJpyc: goalTargetJpyc ?? null,
           themeColor: themeColor ?? null,
         },
       });
@@ -107,11 +101,6 @@ export async function POST(
           avatarUrl: avatarUrl ?? base.avatarUrl,
           qrcodeUrl: qrcodeUrl ?? base.qrcodeUrl,
           externalUrl: externalUrl ?? base.externalUrl,
-          goalTitle: goalTitle ?? base.goalTitle,
-          goalTargetJpyc:
-            typeof goalTargetJpyc === "number"
-              ? goalTargetJpyc
-              : base.goalTargetJpyc,
           themeColor: themeColor ?? base.themeColor,
         },
       });

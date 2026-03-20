@@ -4,147 +4,18 @@
 import React from "react";
 import { CreatorProfileEditForm } from "./CreatorProfileEditForm";
 import { CreatorProfileViewCard } from "./CreatorProfileViewCard";
-import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
+import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 
 type Props = {
-  username: string;
-  editing: boolean;
-  onStartEdit: () => void;
-  onCancelEdit: () => void;
-
-  displayName: string;
-  profile: string;
-  externalUrl: string;
-
-  // ✅ 旧goalは廃止したので削除
-  // goalTitle: string;
-  // goalTargetJpyc: string;
-
-  avatarUrl: string;
-  themeColor: string;
-  creatorType: CreatorProfile["creatorType"];
-
-  socials: SocialLinks;
-  youtubeVideos: YoutubeVideo[];
-
-  avatarFile: File | null;
-  avatarPreview: string | null;
-
-  setDisplayName: (v: string) => void;
-  setProfile: (v: string) => void;
-  setExternalUrl: (v: string) => void;
-  setCreatorType: (v: CreatorProfile["creatorType"]) => void;
-
-  // ✅ 旧goalは廃止したので削除
-  // setGoalTitle: (v: string) => void;
-  // setGoalTargetJpyc: (v: string) => void;
-
-  setThemeColor: (v: string) => void;
-
-  setSocials: (v: SocialLinks) => void;
-  setYoutubeVideos: (v: YoutubeVideo[]) => void;
-
-  setAvatarFile: (v: File | null) => void;
-  setAvatarPreview: (v: string | null) => void;
-
-  saving: boolean;
-  onSubmit: (e: React.FormEvent) => void;
-
   extraSections?: React.ReactNode;
-  baseUrl?: string;
 };
 
 export function CreatorProfileSection(props: Props) {
-  const {
-    username,
-    editing,
-    onStartEdit,
-    onCancelEdit,
+  const workspace = useCreatorReadyWorkspace();
 
-    displayName,
-    profile,
-    externalUrl,
-    // ✅ 削除
-    // goalTitle,
-    // goalTargetJpyc,
-
-    avatarUrl,
-    themeColor,
-    creatorType,
-
-    socials,
-    youtubeVideos,
-
-    avatarFile,
-    avatarPreview,
-
-    setDisplayName,
-    setProfile,
-    setExternalUrl,
-    setCreatorType,
-
-    // ✅ 削除
-    // setGoalTitle,
-    // setGoalTargetJpyc,
-
-    setThemeColor,
-
-    setSocials,
-    setYoutubeVideos,
-
-    setAvatarFile,
-    setAvatarPreview,
-
-    saving,
-    onSubmit,
-    extraSections,
-    baseUrl,
-  } = props;
-
-  if (!editing) {
-    return (
-      <CreatorProfileViewCard
-        displayName={displayName}
-        profile={profile}
-        avatarUrl={avatarUrl}
-        externalUrl={externalUrl}
-        themeColor={themeColor}
-        creatorType={creatorType}
-        socials={socials}
-        youtubeVideos={youtubeVideos}
-        onEdit={onStartEdit}
-      />
-    );
+  if (!workspace.editingProfile) {
+    return <CreatorProfileViewCard />;
   }
 
-  return (
-    <CreatorProfileEditForm
-      username={username}
-      displayName={displayName}
-      profile={profile}
-      externalUrl={externalUrl}
-      avatarUrl={avatarUrl}
-      themeColor={themeColor}
-      creatorType={creatorType}
-      socials={socials}
-      youtubeVideos={youtubeVideos}
-      avatarFile={avatarFile}
-      avatarPreview={avatarPreview}
-      setDisplayName={setDisplayName}
-      setProfile={setProfile}
-      setExternalUrl={setExternalUrl}
-      setCreatorType={setCreatorType}
-      setThemeColor={setThemeColor}
-      setSocials={setSocials}
-      setYoutubeVideos={setYoutubeVideos}
-      setAvatarFile={setAvatarFile}
-      setAvatarPreview={setAvatarPreview}
-      saving={saving}
-      onSubmit={onSubmit}
-      onCancel={onCancelEdit}
-      baseUrl={baseUrl}
-      extraSections={extraSections}
-      onAvatarPreviewRevoke={(prevUrl) => URL.revokeObjectURL(prevUrl)}
-    />
-  );
+  return <CreatorProfileEditForm extraSections={props.extraSections} />;
 }

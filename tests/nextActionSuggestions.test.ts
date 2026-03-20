@@ -44,13 +44,13 @@ test("isDistributionPlanMissing treats saved PLAN_ONLY runs as plan availability
       },
       goal: {
         id: "goal-1",
-        targetAmountJpyc: 1000,
+        targetAmount: 1000,
         achievedAt: "2026-03-17T00:00:00.000Z",
         deadline: null,
       },
       progress: {
-        confirmedJpyc: 1000,
-        targetJpyc: 1000,
+        confirmedAmount: 1000,
+        targetAmount: 1000,
         progressPct: 100,
       },
       distributionPlan: [],

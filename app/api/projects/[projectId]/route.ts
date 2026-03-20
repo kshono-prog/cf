@@ -88,7 +88,10 @@ export async function GET(
       goal: project.goal
         ? {
             id: project.goal.id.toString(),
-            targetAmountJpyc: project.goal.targetAmountJpyc,
+            targetAmount:
+              project.goal.targetAmount ?? project.goal.targetAmountJpyc,
+            targetAmountJpyc:
+              project.goal.targetAmount ?? project.goal.targetAmountJpyc,
             achievedAt: project.goal.achievedAt
               ? project.goal.achievedAt.toISOString()
               : null,

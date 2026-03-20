@@ -4,7 +4,11 @@ import React from "react";
 import type { Address } from "viem";
 
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
-import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
+import type {
+  CurrencyCode,
+  ProjectIdsByCurrency,
+} from "@/lib/mypage/accountPageTypes";
+import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 import type {
   OpenSections,
   SectionKey,
@@ -42,10 +46,20 @@ export type CreatorReadyWorkspaceState = {
   setAvatarPreview: React.Dispatch<React.SetStateAction<string | null>>;
   saving: boolean;
   onSubmitProfile: (e: React.FormEvent) => void;
-  projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
+  projectIdsByCurrency: ProjectIdsByCurrency;
   onActiveProjectIdChange: (pid: string | null, changedCur: CurrencyCode) => void;
   openSections: OpenSections;
   onToggleSection: (key: SectionKey) => void;
+};
+
+export type CreatorReadyWorkspaceShellProps = {
+  workspaceBasePath: string;
+  themeColor: string;
+  error: string | null;
+};
+
+export type CreatorReadyAccountViewProps = CreatorReadyWorkspaceShellProps & {
+  initialWorkspaceView: WorkspaceView;
 };
 
 const CreatorReadyWorkspaceContext =

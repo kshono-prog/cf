@@ -1,5 +1,5 @@
 import type { CreatorProfile } from "@/types/creator";
-import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
+import type { ProjectDashboardsByCurrency } from "@/lib/mypage/dashboardTypes";
 
 export type PublicReadinessItem = {
   key:
@@ -28,10 +28,7 @@ export function buildPublicReadiness(args: {
   profile: string;
   avatarUrl: string;
   creatorType: CreatorProfile["creatorType"];
-  projectDashboardsByCurrency: {
-    JPYC: MyPageProjectDashboard | null;
-    USDC: MyPageProjectDashboard | null;
-  };
+  projectDashboardsByCurrency: ProjectDashboardsByCurrency;
 }): PublicReadiness {
   const hasDisplayName = args.displayName.trim().length > 0;
   const hasProfile = args.profile.trim().length > 0;

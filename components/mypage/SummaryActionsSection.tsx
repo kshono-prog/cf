@@ -37,8 +37,8 @@ export type SummaryActionsSectionProps = {
 function renderProgressText(summary: SummaryResponseOk): string {
   const unit = summary.project.currency ?? "JPYC";
   const current =
-    summary.progress.confirmedTotal ?? summary.progress.confirmedJpyc;
-  const target = summary.progress.targetAmount ?? summary.progress.targetJpyc;
+    summary.progress.confirmedAmount ?? summary.progress.confirmedTotal;
+  const target = summary.progress.targetAmount;
 
   return `${current.toLocaleString()} / ${
     target != null ? target.toLocaleString() : "—"

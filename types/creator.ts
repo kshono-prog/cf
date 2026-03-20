@@ -23,27 +23,8 @@ export type CreatorProfile = {
   profile?: string | null;
   qrcode?: string | null;
   url?: string | null;
-  /** @deprecated 旧Goal。Project Goal を正本とする。編集不可。 */
-  readonly goalTitle?: string | null;
-  /** @deprecated 旧Goal。Project Goal を正本とする。編集不可。 */
-  readonly goalTargetJpyc?: number | null;
   themeColor?: string | null;
   creatorType?: CreatorType | null;
   socials?: SocialLinks;
   youtubeVideos?: YoutubeVideo[];
 };
-
-// export type CreatorProfile = {
-//   username: string;
-//   displayName?: string;
-//   profileText?: string; // ★追加（bio相当）
-//   avatar?: string;
-//   qrcode?: string;
-//   url?: string;
-//   goalTitle?: string;
-//   goalTargetJpyc?: number;
-//   themeColor?: string;
-//   address?: string;
-//   socials?: Record<string, string>;
-//   youtubeVideos?: YoutubeVideo[];
-// };

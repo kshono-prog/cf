@@ -1,12 +1,12 @@
 export type PublicSummaryLite = {
   goal: {
-    targetAmountJpyc: number;
+    targetAmount: number;
     achievedAt: string | null;
     deadline: string | null;
   } | null;
   progress: {
-    confirmedJpyc: number;
-    targetJpyc: number | null;
+    confirmedAmount: number;
+    targetAmount: number | null;
     progressPct: number;
   } | null;
 };
@@ -23,11 +23,15 @@ export function pickPublicSummaryLite(summary: unknown): PublicSummaryLite {
 
   const goal =
     isRecord(goalRaw) &&
-    typeof goalRaw.targetAmountJpyc === "number" &&
+    (typeof goalRaw.targetAmount === "number" ||
+      typeof goalRaw.targetAmountJpyc === "number") &&
     (typeof goalRaw.achievedAt === "string" || goalRaw.achievedAt === null) &&
     (typeof goalRaw.deadline === "string" || goalRaw.deadline === null)
       ? {
-          targetAmountJpyc: goalRaw.targetAmountJpyc,
+          targetAmount:
+            typeof goalRaw.targetAmount === "number"
+              ? goalRaw.targetAmount
+              : (goalRaw.targetAmountJpyc as number),
           achievedAt: goalRaw.achievedAt as string | null,
           deadline: goalRaw.deadline as string | null,
         }
@@ -35,13 +39,26 @@ export function pickPublicSummaryLite(summary: unknown): PublicSummaryLite {
 
   const progress =
     isRecord(progressRaw) &&
-    typeof progressRaw.confirmedJpyc === "number" &&
-    (typeof progressRaw.targetJpyc === "number" ||
+    (typeof progressRaw.confirmedAmount === "number" ||
+      typeof progressRaw.confirmedTotal === "number" ||
+      typeof progressRaw.confirmedJpyc === "number") &&
+    (typeof progressRaw.targetAmount === "number" ||
+      progressRaw.targetAmount === null ||
+      typeof progressRaw.targetJpyc === "number" ||
       progressRaw.targetJpyc === null) &&
     typeof progressRaw.progressPct === "number"
       ? {
-          confirmedJpyc: progressRaw.confirmedJpyc,
-          targetJpyc: progressRaw.targetJpyc as number | null,
+          confirmedAmount:
+            typeof progressRaw.confirmedAmount === "number"
+              ? progressRaw.confirmedAmount
+              : typeof progressRaw.confirmedTotal === "number"
+                ? progressRaw.confirmedTotal
+                : (progressRaw.confirmedJpyc as number),
+          targetAmount:
+            typeof progressRaw.targetAmount === "number" ||
+            progressRaw.targetAmount === null
+              ? (progressRaw.targetAmount as number | null)
+              : (progressRaw.targetJpyc as number | null),
           progressPct: progressRaw.progressPct,
         }
       : null;

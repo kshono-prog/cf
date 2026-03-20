@@ -15,7 +15,8 @@ export type ProjectSettlementData = {
   goal: {
     id: string;
     achievedAt: string | null;
-    targetAmountJpyc: number;
+    targetAmount: number;
+    targetAmountJpyc?: number;
   } | null;
   settlement: {
     id: string;
@@ -129,6 +130,7 @@ export async function getProjectSettlementView(
             select: {
               id: true,
               achievedAt: true,
+              targetAmount: true,
               targetAmountJpyc: true,
             },
           },
@@ -175,7 +177,8 @@ export async function getProjectSettlementView(
         ? {
             id: data.goal.id.toString(),
             achievedAt: data.goal.achievedAt?.toISOString() ?? null,
-            targetAmountJpyc: data.goal.targetAmountJpyc,
+            targetAmount: data.goal.targetAmount,
+            targetAmountJpyc: data.goal.targetAmount,
           }
         : null,
       settlement: {
@@ -265,6 +268,7 @@ export async function getProjectSettlementView(
             select: {
               id: true,
               achievedAt: true,
+              targetAmount: true,
               targetAmountJpyc: true,
             },
           },
@@ -284,7 +288,8 @@ export async function getProjectSettlementView(
         ? {
             id: fallback.goal.id.toString(),
             achievedAt: fallback.goal.achievedAt?.toISOString() ?? null,
-            targetAmountJpyc: fallback.goal.targetAmountJpyc,
+            targetAmount: fallback.goal.targetAmount,
+            targetAmountJpyc: fallback.goal.targetAmount,
           }
         : null,
       settlement: buildFallbackSettlement({

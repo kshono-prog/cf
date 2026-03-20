@@ -20,20 +20,11 @@ const ZERO_DECIMAL = new Prisma.Decimal(0);
 
 export async function loadRecruitingProjectViews(args: {
   creatorProfileId: bigint;
-  ownerAddress?: string | null;
 }): Promise<SupportProjectView[]> {
-  const projectWhereOr: Array<
-    { creatorProfileId: bigint } | { ownerAddress: string }
-  > = [{ creatorProfileId: args.creatorProfileId }];
-
-  if (args.ownerAddress) {
-    projectWhereOr.push({ ownerAddress: args.ownerAddress.toLowerCase() });
-  }
-
   const projectRows = await withPrismaRetry(() =>
     prisma.project.findMany({
       where: {
-        OR: projectWhereOr,
+        creatorProfileId: args.creatorProfileId,
         status: {
           notIn: Array.from(PUBLIC_CLOSED_PROJECT_STATUSES),
         },
@@ -45,6 +36,7 @@ export async function loadRecruitingProjectViews(args: {
         currency: true,
         goal: {
           select: {
+            targetAmount: true,
             targetAmountJpyc: true,
             achievedAt: true,
             deadline: true,
@@ -110,7 +102,8 @@ export async function loadRecruitingProjectViews(args: {
         currency,
         totals[currency]
       );
-      const targetAmount = project.goal?.targetAmountJpyc ?? null;
+      const targetAmount =
+        project.goal?.targetAmount ?? project.goal?.targetAmountJpyc ?? null;
       const progressPct =
         targetAmount && targetAmount > 0
           ? Math.min(100, (confirmedAmount / targetAmount) * 100)

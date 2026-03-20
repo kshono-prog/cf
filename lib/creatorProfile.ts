@@ -3,63 +3,12 @@ import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
-import {
-  isCreatorType,
-} from "@/lib/creatorTaxonomy";
-import {
-  SOCIAL_ICON_CONFIG,
-  type CreatorProfile,
-  type SocialKey,
-  type SocialLinks,
-  type YoutubeVideo,
-} from "@/lib/profileTypes";
-
-const SOCIAL_KEYS = SOCIAL_ICON_CONFIG.map((item) => item.key);
-
-function isSocialKey(value: string): value is SocialKey {
-  return SOCIAL_KEYS.includes(value as SocialKey);
-}
-
-function normalizeCreator(raw: {
-  username: string;
-  displayName: string | null;
-  profileText: string | null;
-  avatarUrl: string | null;
-  qrcodeUrl: string | null;
-  externalUrl: string | null;
-  goalTitle: string | null;
-  goalTargetJpyc: number | null;
-  themeColor: string | null;
-  creatorType: string | null;
-  walletAddress: string | null;
-  socials?: SocialLinks;
-  youtubeVideos?: YoutubeVideo[];
-}): CreatorProfile {
-  return {
-    username: raw.username,
-    address: raw.walletAddress ?? undefined,
-    displayName: raw.displayName ?? raw.username,
-    avatarUrl: raw.avatarUrl ?? null,
-    profile: raw.profileText ?? null,
-    qrcode: raw.qrcodeUrl ?? null,
-    url: raw.externalUrl ?? null,
-    goalTitle: raw.goalTitle ?? null,
-    goalTargetJpyc: raw.goalTargetJpyc ?? null,
-    themeColor: raw.themeColor ?? null,
-    creatorType:
-      typeof raw.creatorType === "string" && isCreatorType(raw.creatorType)
-        ? raw.creatorType
-        : null,
-    socials: raw.socials,
-    youtubeVideos: raw.youtubeVideos,
-  };
-}
+import { serializeCreatorProfile } from "@/lib/serializers/creator";
 
 type CreatorProfileRecord = {
   id: string;
   username: string;
   walletAddress: string | null;
-  activeProjectId: string | null;
   activeProjectIdJpyc: string | null;
   activeProjectIdUsdc: string | null;
 };
@@ -78,41 +27,28 @@ const getCreatorProfileByUsernameCached = unstable_cache(
 
     if (!profile) return null;
 
-    const socials: SocialLinks = {};
-    for (const link of profile.socialLinks) {
-      if (isSocialKey(link.type)) {
-        socials[link.type] = link.url;
-      }
-    }
     const safeProfile: CreatorProfileRecord = {
       id: profile.id.toString(),
       username: profile.username,
       walletAddress: profile.walletAddress,
-      activeProjectId: profile.activeProjectId?.toString() ?? null,
       activeProjectIdJpyc: profile.activeProjectIdJpyc?.toString() ?? null,
       activeProjectIdUsdc: profile.activeProjectIdUsdc?.toString() ?? null,
     };
 
     return {
       profile: safeProfile,
-      creator: normalizeCreator({
+      creator: serializeCreatorProfile({
         username: profile.username,
         displayName: profile.displayName,
         profileText: profile.profileText,
         avatarUrl: profile.avatarUrl,
         qrcodeUrl: profile.qrcodeUrl,
         externalUrl: profile.externalUrl,
-        goalTitle: profile.goalTitle,
-        goalTargetJpyc: profile.goalTargetJpyc,
         themeColor: profile.themeColor,
         creatorType: profile.creatorType,
         walletAddress: profile.walletAddress,
-        socials,
-        youtubeVideos: profile.youtubeVideos.map((video) => ({
-          url: video.url,
-          title: video.title ?? "",
-          description: video.description ?? "",
-        })),
+        socialLinks: profile.socialLinks,
+        youtubeVideos: profile.youtubeVideos,
       }),
     };
   },

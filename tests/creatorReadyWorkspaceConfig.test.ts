@@ -31,7 +31,7 @@ test("creatorReady workspace helpers preserve tier grouping", () => {
 test("creatorReady workspace lookup returns matching beta notes", () => {
   assert.equal(
     getCreatorReadyWorkspaceConfig("advanced")?.betaNote,
-    "Gas support と高度な bridge / CCTP は beta 扱いです。"
+    "ブリッジ・送金機能は試験提供中です。"
   );
   assert.equal(getCreatorReadyWorkspaceConfig("home")?.tier, "MVP");
 });

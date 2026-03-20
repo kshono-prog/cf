@@ -9,7 +9,8 @@ import { getErrorMessage, type Currency } from "@/components/profile/profileClie
 type ProgressByChainRow = {
   chainId: number;
   confirmedAmountDecimal: string | null;
-  confirmedAmountJpyc: number;
+  confirmedAmount: number;
+  confirmedAmountJpyc?: number;
 };
 
 type ProgressSupportedChainIdsByCurrency = {
@@ -23,18 +24,19 @@ export type ProjectProgressApi = {
   goal: {
     id: string;
     unitCurrency?: Currency;
-    targetAmount?: number;
-    targetAmountJpyc: number;
+    targetAmount: number;
+    targetAmountJpyc?: number;
     achievedAt: string | null;
     deadline?: string | null;
   } | null;
   progress: {
     currency?: Currency;
-    confirmedJpyc: number;
+    confirmedAmount: number;
     confirmedTotal?: number;
+    confirmedJpyc?: number;
     confirmedByCurrency?: { JPYC: number; USDC: number };
-    targetAmount?: number | null;
-    targetJpyc: number | null;
+    targetAmount: number | null;
+    targetJpyc?: number | null;
     progressPct: number;
     supportedChainIds?: number[];
     supportedJpycChainIds: number[];
@@ -48,9 +50,11 @@ export type ProjectProgressApi = {
       label: string | null;
       description: string | null;
       confirmedAmountDecimal: string | null;
-      confirmedAmountJpyc: number;
+      confirmedAmount: number;
+      confirmedAmountJpyc?: number;
     }>;
-    noPurposeConfirmedJpyc: number;
+    noPurposeConfirmedAmount: number;
+    noPurposeConfirmedJpyc?: number;
   };
   purposes: Array<{ id: string; title?: string | null }>;
 };
@@ -116,10 +120,9 @@ export function useProjectProgress({
 
       const typed = json as ProjectProgressApi;
       const confirmed = Number(
-        typed.progress.confirmedTotal ?? typed.progress.confirmedJpyc ?? 0
+        typed.progress.confirmedAmount ?? typed.progress.confirmedTotal ?? 0
       );
-      const target =
-        typed.progress.targetAmount ?? typed.progress.targetJpyc ?? null;
+      const target = typed.progress.targetAmount ?? null;
       const idsLegacy = Array.isArray(typed.progress.supportedJpycChainIds)
         ? typed.progress.supportedJpycChainIds.filter(
             (value): value is number => typeof value === "number" && Number.isFinite(value)
