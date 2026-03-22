@@ -332,7 +332,7 @@ export function AiAgencyCard(props: Props) {
                 <WorkspaceEmptyState
                   compact
                   title="job はまだありません"
-                  description="まずは分析 job を 1 件 queue に入れて、AI事務所の土台を試せます。"
+                  description="まずは分析 job を 1 件 queue に入れて、AIアシスタントの土台を試せます。"
                 />
               ) : (
                 jobs.slice(0, 6).map((job) => (

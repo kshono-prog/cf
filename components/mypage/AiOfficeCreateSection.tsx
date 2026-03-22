@@ -1,44 +1,19 @@
 "use client";
 
-import React from "react";
-
-import { AiOfficeStatusNotice } from "@/components/mypage/AiOfficeFeedback";
-import { getAiOfficeCreateSectionCopy } from "@/components/mypage/aiOfficeCreateSectionCopy";
+import { AI_OFFICE_TASK_CHOICES } from "@/components/mypage/aiOfficeTaskConfig";
 import { AiOfficeTaskInputFields } from "@/components/mypage/AiOfficeTaskInputFields";
-import {
-  getAiOfficeRoleGuidance,
-  getAiOfficeRoleChoices,
-  getAiOfficeRoleUsefulness,
-  getAiOfficeTaskRoleChoices,
-  getAiOfficeTaskUsefulness,
-  sortAiOfficeTaskChoicesByUsefulness,
-} from "@/components/mypage/aiOfficeTaskConfig";
 import type {
-  AiOfficeContentSummaryView,
-  AiOfficeUsefulnessSummaryView,
-  AgentTaskView,
   AnnouncementChannel,
   DraftTone,
   SupporterMessagePurpose,
   TranslationLang,
 } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
-import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
-
-type TaskTypeCopy = {
-  label: string;
-  helper?: string;
-};
 
 type Props = {
   loading: boolean;
-  contentSummary: AiOfficeContentSummaryView;
-  usefulness: AiOfficeUsefulnessSummaryView;
-  tasks: AgentTaskView[];
-  selectedRoleId: CreatorAiAgentRole;
   taskType: TaskType;
-  taskTypeCopy: TaskTypeCopy;
   requiresApproval: boolean;
   translationInput: string;
   translationLang: TranslationLang;
@@ -49,7 +24,6 @@ type Props = {
   includeSupportSummary: boolean;
   supporterMessagePurpose: SupporterMessagePurpose;
   translationResult: string;
-  onRoleChange: (value: CreatorAiAgentRole) => void;
   onTaskTypeChange: (value: TaskType) => void;
   onRequiresApprovalChange: (value: boolean) => void;
   onTranslationInputChange: (value: string) => void;
@@ -60,408 +34,76 @@ type Props = {
   onIncludeMetricsSummaryChange: (value: boolean) => void;
   onIncludeSupportSummaryChange: (value: boolean) => void;
   onSupporterMessagePurposeChange: (value: SupporterMessagePurpose) => void;
-  onCollectMetrics: () => void;
-  onOpenInbox: (roleId?: CreatorAiAgentRole) => void;
   onCreateTask: () => void;
   onTranslateText: () => void;
 };
 
+const TASK_CHOICES_WITH_INPUT = [
+  "TRANSLATE",
+  "WEEKLY_REPORT",
+  "ANNOUNCEMENT_DRAFT",
+  "SUPPORTER_MESSAGE_DRAFT",
+] as const;
+
 export function AiOfficeCreateSection(props: Props) {
-  const roleChoices = React.useMemo(() => getAiOfficeRoleChoices(), []);
-  const selectedRole =
-    roleChoices.find((role) => role.roleId === props.selectedRoleId) ??
-    roleChoices[0] ??
-    null;
-  const selectedTaskRoles = React.useMemo(
-    () => getAiOfficeTaskRoleChoices(props.taskType),
-    [props.taskType]
-  );
-  const roleGuidance = React.useMemo(
-    () => getAiOfficeRoleGuidance(roleChoices, props.usefulness.roleBreakdown),
-    [props.usefulness.roleBreakdown, roleChoices]
-  );
-  const sortedTaskChoices = React.useMemo(
-    () =>
-      selectedRole
-        ? sortAiOfficeTaskChoicesByUsefulness(selectedRole.taskChoices, props.tasks)
-        : [],
-    [props.tasks, selectedRole]
-  );
-  const selectedRoleUsefulness = React.useMemo(
-    () =>
-      selectedRole
-        ? getAiOfficeRoleUsefulness(
-            selectedRole.roleId,
-            props.usefulness.roleBreakdown
-          )
-        : undefined,
-    [props.usefulness.roleBreakdown, selectedRole]
-  );
-  const createSectionCopy = React.useMemo(
-    () => getAiOfficeCreateSectionCopy(selectedRole?.roleId),
-    [selectedRole]
+  const hasInputFields = (TASK_CHOICES_WITH_INPUT as readonly string[]).includes(
+    props.taskType
   );
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-gray-200 bg-white p-4">
-        <div className="text-sm font-semibold text-gray-900">
-          {createSectionCopy.title}
-        </div>
-        <div className="mt-1 text-xs text-gray-500">
-          {createSectionCopy.description}
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <div className="text-[11px] text-gray-500">公開中の投稿</div>
-            <div className="mt-2 text-lg font-semibold text-gray-900">
-              {props.contentSummary.publishedPosts}
-            </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <div className="text-[11px] text-gray-500">下書き</div>
-            <div className="mt-2 text-lg font-semibold text-gray-900">
-              {props.contentSummary.draftPosts}
-            </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <div className="text-[11px] text-gray-500">AI生成の投稿</div>
-            <div className="mt-2 text-lg font-semibold text-gray-900">
-              {props.contentSummary.aiGeneratedPosts}
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 disabled:opacity-40"
-            onClick={props.onCollectMetrics}
-            disabled={props.loading}
-          >
-            投稿指標を更新する
-          </button>
-          <div className="text-xs leading-5 text-gray-500">
-            {createSectionCopy.helper}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-4">
-        <div>
-          <div className="text-sm font-semibold text-gray-900">2. 担当を選ぶ</div>
-          <div className="mt-1 text-xs text-gray-500">
-            告知・宣伝・財務・ファン対応などの担当から近いものを選ぶと、AIがプロジェクトの状況と投稿をもとに下書きを作ります。
-          </div>
-        </div>
-
-        <div
-          className={`rounded-2xl border px-4 py-3 ${
-            roleGuidance.tone === "attention"
-              ? "border-amber-200 bg-amber-50"
-              : roleGuidance.tone === "recommended"
-                ? "border-emerald-200 bg-emerald-50"
-                : "border-slate-200 bg-slate-50"
-          }`}
-        >
-          <div
-            className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${
-              roleGuidance.tone === "attention"
-                ? "text-amber-700"
-                : roleGuidance.tone === "recommended"
-                  ? "text-emerald-700"
-                  : "text-slate-600"
-            }`}
-          >
-            担当からの提案
-          </div>
-          <div
-            className={`mt-1 text-sm font-semibold ${
-              roleGuidance.tone === "attention"
-                ? "text-amber-950"
-                : roleGuidance.tone === "recommended"
-                  ? "text-emerald-950"
-                  : "text-slate-900"
-            }`}
-          >
-            {roleGuidance.title}
-          </div>
-          <div
-            className={`mt-1 text-xs leading-5 ${
-              roleGuidance.tone === "attention"
-                ? "text-amber-800"
-                : roleGuidance.tone === "recommended"
-                  ? "text-emerald-800"
-                  : "text-slate-700"
-            }`}
-          >
-            {roleGuidance.description}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {roleGuidance.tone === "attention" ? (
-              <button
-                type="button"
-                className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 disabled:opacity-40"
-                onClick={() =>
-                  roleGuidance.roleId
-                    ? props.onOpenInbox(roleGuidance.roleId)
-                    : props.onOpenInbox()
-                }
-                disabled={props.loading}
-              >
-                承認待ちを開く
-              </button>
-            ) : roleGuidance.roleId ? (
-              <button
-                type="button"
-                className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 disabled:opacity-40"
-                onClick={() => {
-                  if (roleGuidance.roleId) {
-                    props.onRoleChange(roleGuidance.roleId);
-                  }
-                }}
-                disabled={props.loading}
-              >
-                この担当を選ぶ
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {roleChoices.map((role) => {
-            const isActive = selectedRole?.roleId === role.roleId;
-            const roleUsefulness = getAiOfficeRoleUsefulness(
-              role.roleId,
-              props.usefulness.roleBreakdown
-            );
-
+      {/* ── Task type grid ── */}
+      <div className="card p-4">
+        <div className="section-label">何を作りますか？</div>
+        <p className="caption-text mt-1">
+          タスクを選ぶとAIがプロジェクトの状況をもとに下書きを作ります。
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {AI_OFFICE_TASK_CHOICES.map((choice) => {
+            const isActive = props.taskType === choice.taskType;
+            const copy = getAgentTaskTypeCopy(choice.taskType);
             return (
               <button
-                key={role.roleId}
+                key={choice.taskType}
                 type="button"
-                className={`rounded-2xl border p-4 text-left transition ${
+                className={`rounded-2xl border p-3.5 text-left transition ${
                   isActive
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-gray-200 bg-white text-gray-900 hover:border-slate-400"
+                    ? "border-[var(--accent)] bg-[var(--surface-subtle)] ring-2 ring-[var(--line)]"
+                    : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--accent)] hover:bg-[var(--surface-subtle)]"
                 }`}
-                onClick={() => props.onRoleChange(role.roleId)}
+                onClick={() => props.onTaskTypeChange(choice.taskType)}
                 disabled={props.loading}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-semibold">{role.label}</div>
+                <div className="flex items-start justify-between gap-2">
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      isActive
-                        ? "bg-white/15 text-white"
-                        : role.tier === "BETA"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-slate-100 text-slate-800"
-                    }`}
+                    className={`section-label ${isActive ? "text-[var(--accent)]" : ""}`}
                   >
-                    {role.tier === "BETA" ? "試験中" : "通常"}
+                    {choice.eyebrow}
                   </span>
+                  {isActive ? (
+                    <span className="status-badge status-badge-ok shrink-0">選択中</span>
+                  ) : choice.tier === "BETA" ? (
+                    <span className="status-badge status-badge-warn shrink-0">試験中</span>
+                  ) : null}
                 </div>
                 <div
-                  className={`mt-2 text-xs leading-5 ${
-                    isActive ? "text-white/80" : "text-gray-600"
+                  className={`mt-1.5 text-sm font-semibold ${
+                    isActive ? "text-[var(--accent)]" : "text-[var(--text)]"
                   }`}
                 >
-                  {role.roleHelper}
+                  {copy.label}
                 </div>
-                <div
-                  className={`mt-2 text-[11px] ${
-                    isActive ? "text-white/70" : "text-gray-500"
-                  }`}
-                >
-                  {roleUsefulness
-                    ? roleUsefulness.waitingApprovalCount > 0
-                      ? `承認待ち ${roleUsefulness.waitingApprovalCount} 件 / 保留が長い ${roleUsefulness.ignoredCount} 件`
-                      : `対応率 ${(roleUsefulness.followThroughRate * 100).toFixed(
-                          0
-                        )}% / 承認 ${roleUsefulness.approvedCount} 件`
-                    : `${role.executionBoundary === "advisory_only" ? "提案中心" : "承認前提"} / ${role.taskChoices.length}種類`}
-                </div>
+                <p className="mt-1 caption-text line-clamp-2">{choice.whenToUse}</p>
               </button>
             );
           })}
         </div>
+      </div>
 
-        {selectedRole ? (
-          <div className="space-y-3 rounded-2xl border border-gray-200 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">
-                  3. {selectedRole.label} に任せる内容
-                </div>
-                <div className="mt-1 text-xs leading-5 text-gray-500">
-                  {selectedRole.roleHelper}
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                    selectedRole.tier === "BETA"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-slate-100 text-slate-800"
-                  }`}
-                >
-                  {selectedRole.tier === "BETA" ? "試験中" : "通常"}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {selectedRole.executionBoundary === "advisory_only"
-                    ? "提案と整理が中心"
-                    : "下書きは必ず承認前提"}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {selectedRoleUsefulness &&
-              selectedRoleUsefulness.waitingApprovalCount > 0 ? (
-                <div className="xl:col-span-3">
-                  <AiOfficeStatusNotice
-                    tone={
-                      selectedRoleUsefulness.ignoredCount > 0
-                        ? "attention"
-                        : "info"
-                    }
-                    title={
-                      selectedRoleUsefulness.ignoredCount > 0
-                        ? `${selectedRole.label} に保留が長い承認待ちがあります`
-                        : `${selectedRole.label} に承認待ちがあります`
-                    }
-                    description={
-                      selectedRoleUsefulness.ignoredCount > 0
-                        ? `承認待ち ${selectedRoleUsefulness.waitingApprovalCount} 件のうち ${selectedRoleUsefulness.ignoredCount} 件は長く止まっています。先に確認してから新しい下書きへ進めます。`
-                        : `この担当では承認待ちが ${selectedRoleUsefulness.waitingApprovalCount} 件あります。内容確認を先に済ませると、新しい下書きが重なりにくくなります。`
-                    }
-                  >
-                    <button
-                      type="button"
-                      className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 disabled:opacity-40"
-                      onClick={() => props.onOpenInbox(selectedRole.roleId)}
-                      disabled={props.loading}
-                    >
-                      この担当の承認待ちを見る
-                    </button>
-                  </AiOfficeStatusNotice>
-                </div>
-              ) : null}
-              {sortedTaskChoices.map((choice) => {
-                  const copy = getAgentTaskTypeCopy(choice.taskType);
-                  const isActive = props.taskType === choice.taskType;
-                  const taskUsefulness = getAiOfficeTaskUsefulness(
-                    choice.taskType,
-                    props.tasks
-                  );
-                  return (
-                    <button
-                      key={choice.taskType}
-                      type="button"
-                      className={`rounded-2xl border p-4 text-left transition ${
-                        isActive
-                          ? "border-slate-900 bg-slate-900 text-white"
-                          : "border-gray-200 bg-white text-gray-900 hover:border-slate-400"
-                      }`}
-                      onClick={() => props.onTaskTypeChange(choice.taskType)}
-                      disabled={props.loading}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div
-                          className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                            isActive ? "text-white/70" : "text-gray-500"
-                          }`}
-                        >
-                          {choice.eyebrow}
-                        </div>
-                        {choice.tier === "BETA" ? (
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              isActive
-                                ? "bg-white/15 text-white"
-                                : "bg-amber-100 text-amber-800"
-                            }`}
-                          >
-                            試験中
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="mt-2 text-sm font-semibold">{copy.label}</div>
-                      <div
-                        className={`mt-2 text-xs leading-5 ${
-                          isActive ? "text-white/80" : "text-gray-600"
-                        }`}
-                      >
-                        {choice.whenToUse}
-                      </div>
-                      <div
-                        className={`mt-2 text-[11px] ${
-                          isActive ? "text-white/70" : "text-gray-500"
-                        }`}
-                      >
-                        {taskUsefulness.waitingApprovalCount > 0
-                          ? `承認待ち ${taskUsefulness.waitingApprovalCount} 件`
-                          : taskUsefulness.actionableCount > 0
-                            ? `対応率 ${(taskUsefulness.followThroughRate * 100).toFixed(
-                                0
-                              )}% / 承認 ${taskUsefulness.approvedCount} 件`
-                            : taskUsefulness.autoCompletedCount > 0
-                              ? `自動完了 ${taskUsefulness.autoCompletedCount} 件`
-                              : "まだ履歴はありません"}
-                      </div>
-                    </button>
-                  );
-                })}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-2 text-xs text-gray-700">
-            <input
-              type="checkbox"
-              checked={props.requiresApproval}
-              onChange={(e) => props.onRequiresApprovalChange(e.target.checked)}
-              disabled={props.loading}
-            />
-            公開前に承認する
-          </label>
-          <button
-            type="button"
-            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
-            onClick={props.onCreateTask}
-            disabled={props.loading}
-          >
-            この内容で作成
-          </button>
-        </div>
-
-        <div className="rounded-2xl bg-gray-50 p-4">
-          <div className="text-xs text-gray-500">選択中</div>
-          {selectedTaskRoles.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {selectedTaskRoles.map((role) => (
-                <span
-                  key={role.roleId}
-                  className="rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[11px] font-medium text-gray-700"
-                >
-                  {role.label}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          <div className="mt-1 text-sm font-semibold text-gray-900">
-            {props.taskTypeCopy.label}
-          </div>
-          {props.taskTypeCopy.helper ? (
-            <div className="mt-2 text-xs leading-5 text-gray-600">
-              {props.taskTypeCopy.helper}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="rounded-2xl border border-gray-200 p-4 space-y-3">
-          <div className="text-xs text-gray-500">入力</div>
+      {/* ── Input fields (only when task needs them) ── */}
+      {hasInputFields ? (
+        <div className="card p-4 space-y-3">
+          <div className="section-label">詳細設定</div>
           <AiOfficeTaskInputFields
             loading={props.loading}
             taskType={props.taskType}
@@ -481,12 +123,37 @@ export function AiOfficeCreateSection(props: Props) {
             onAnnouncementChannelChange={props.onAnnouncementChannelChange}
             onIncludeMetricsSummaryChange={props.onIncludeMetricsSummaryChange}
             onIncludeSupportSummaryChange={props.onIncludeSupportSummaryChange}
-            onSupporterMessagePurposeChange={
-              props.onSupporterMessagePurposeChange
-            }
+            onSupporterMessagePurposeChange={props.onSupporterMessagePurposeChange}
             onTranslateText={props.onTranslateText}
           />
         </div>
+      ) : null}
+
+      {/* ── Create CTA ── */}
+      <div className="card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label className="inline-flex cursor-pointer items-center gap-2 caption-text select-none">
+            <input
+              type="checkbox"
+              checked={props.requiresApproval}
+              onChange={(e) => props.onRequiresApprovalChange(e.target.checked)}
+              disabled={props.loading}
+              className="accent-slate-700"
+            />
+            公開前に承認する
+          </label>
+          <button
+            type="button"
+            className="btn"
+            onClick={props.onCreateTask}
+            disabled={props.loading}
+          >
+            {props.loading ? "AIが作成中..." : "下書きを作る →"}
+          </button>
+        </div>
+        <p className="mt-2 caption-text">
+          AIが下書きを作成します。「公開前に承認する」をオンにすると、承認してから投稿に反映されます。
+        </p>
       </div>
     </div>
   );

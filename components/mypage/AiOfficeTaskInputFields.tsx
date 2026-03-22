@@ -51,7 +51,7 @@ export function AiOfficeTaskInputFields(props: Props) {
     return (
       <>
         <textarea
-          className="w-full rounded-xl border px-3 py-2 text-sm"
+          className="input min-h-[100px]"
           value={props.translationInput}
           onChange={(e) => props.onTranslationInputChange(e.target.value)}
           placeholder="翻訳したい文章"
@@ -59,7 +59,7 @@ export function AiOfficeTaskInputFields(props: Props) {
         />
         <div className="flex flex-wrap items-center gap-2">
           <select
-            className="rounded-xl border px-3 py-2 text-sm"
+            className="input"
             value={props.translationLang}
             onChange={(e) =>
               props.onTranslationLangChange(e.target.value as TranslationLang)
@@ -73,7 +73,7 @@ export function AiOfficeTaskInputFields(props: Props) {
           </select>
           <button
             type="button"
-            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 disabled:opacity-40"
+            className="btn-secondary"
             onClick={props.onTranslateText}
             disabled={props.loading}
           >
@@ -81,7 +81,7 @@ export function AiOfficeTaskInputFields(props: Props) {
           </button>
         </div>
         {props.translationResult ? (
-          <pre className="whitespace-pre-wrap rounded-xl bg-gray-50 p-3 text-xs text-gray-700">
+          <pre className="whitespace-pre-wrap rounded-xl bg-gray-50 p-3 text-xs text-[var(--text)]">
             {props.translationResult}
           </pre>
         ) : (
@@ -97,10 +97,10 @@ export function AiOfficeTaskInputFields(props: Props) {
 
   if (props.taskType === "WEEKLY_REPORT") {
     return (
-      <label className="grid gap-1 text-xs text-gray-700">
+      <label className="grid gap-1 text-xs text-[var(--text)]">
         <span>集計期間（日数）</span>
         <input
-          className="rounded-xl border px-3 py-2 text-sm"
+          className="input"
           type="number"
           min={1}
           max={31}
@@ -119,10 +119,10 @@ export function AiOfficeTaskInputFields(props: Props) {
   if (props.taskType === "ANNOUNCEMENT_DRAFT") {
     return (
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <label className="grid gap-1 text-xs text-gray-700">
+        <label className="grid gap-1 text-xs text-[var(--text)]">
           <span>届け先</span>
           <select
-            className="rounded-xl border px-3 py-2 text-sm"
+            className="input"
             value={props.announcementChannel}
             onChange={(e) =>
               props.onAnnouncementChannelChange(
@@ -135,10 +135,10 @@ export function AiOfficeTaskInputFields(props: Props) {
             <option value="GENERAL">一般公開向け</option>
           </select>
         </label>
-        <label className="grid gap-1 text-xs text-gray-700">
+        <label className="grid gap-1 text-xs text-[var(--text)]">
           <span>文体</span>
           <select
-            className="rounded-xl border px-3 py-2 text-sm"
+            className="input"
             value={props.draftTone}
             onChange={(e) => props.onDraftToneChange(e.target.value as DraftTone)}
             disabled={props.loading}
@@ -148,10 +148,10 @@ export function AiOfficeTaskInputFields(props: Props) {
             <option value="casual">カジュアル</option>
           </select>
         </label>
-        <label className="grid gap-1 text-xs text-gray-700">
+        <label className="grid gap-1 text-xs text-[var(--text)]">
           <span>根拠に使う期間（日数）</span>
           <input
-            className="rounded-xl border px-3 py-2 text-sm"
+            className="input"
             type="number"
             min={1}
             max={31}
@@ -164,7 +164,7 @@ export function AiOfficeTaskInputFields(props: Props) {
             disabled={props.loading}
           />
         </label>
-        <div className="flex flex-col justify-end gap-2 text-xs text-gray-700">
+        <div className="flex flex-col justify-end gap-2 text-xs text-[var(--text)]">
           <label className="inline-flex items-center gap-2">
             <input
               type="checkbox"
@@ -195,10 +195,10 @@ export function AiOfficeTaskInputFields(props: Props) {
   if (props.taskType === "SUPPORTER_MESSAGE_DRAFT") {
     return (
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <label className="grid gap-1 text-xs text-gray-700">
+        <label className="grid gap-1 text-xs text-[var(--text)]">
           <span>メッセージの目的</span>
           <select
-            className="rounded-xl border px-3 py-2 text-sm"
+            className="input"
             value={props.supporterMessagePurpose}
             onChange={(e) =>
               props.onSupporterMessagePurposeChange(
@@ -211,10 +211,10 @@ export function AiOfficeTaskInputFields(props: Props) {
             <option value="REENGAGEMENT">再度案内する</option>
           </select>
         </label>
-        <label className="grid gap-1 text-xs text-gray-700">
+        <label className="grid gap-1 text-xs text-[var(--text)]">
           <span>文体</span>
           <select
-            className="rounded-xl border px-3 py-2 text-sm"
+            className="input"
             value={props.draftTone}
             onChange={(e) => props.onDraftToneChange(e.target.value as DraftTone)}
             disabled={props.loading}
@@ -224,10 +224,10 @@ export function AiOfficeTaskInputFields(props: Props) {
             <option value="casual">カジュアル</option>
           </select>
         </label>
-        <label className="grid gap-1 text-xs text-gray-700">
+        <label className="grid gap-1 text-xs text-[var(--text)]">
           <span>根拠に使う期間（日数）</span>
           <input
-            className="rounded-xl border px-3 py-2 text-sm"
+            className="input"
             type="number"
             min={1}
             max={90}
@@ -240,7 +240,7 @@ export function AiOfficeTaskInputFields(props: Props) {
             disabled={props.loading}
           />
         </label>
-        <div className="flex flex-col justify-end gap-2 text-xs text-gray-700">
+        <div className="flex flex-col justify-end gap-2 text-xs text-[var(--text)]">
           <label className="inline-flex items-center gap-2">
             <input
               type="checkbox"

@@ -10,7 +10,7 @@ export function CreatorSettingsHeaderSection(props: Props) {
     <section id="settings-root" className="surface-card p-5 sm:p-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)]">
-          設定・準備
+          設定
         </h1>
         <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
           プロフィール・プロジェクト・ウォレット・精算をまとめて管理します。

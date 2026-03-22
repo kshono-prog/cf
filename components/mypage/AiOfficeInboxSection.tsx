@@ -6,17 +6,8 @@ import {
   AiOfficeEmptyState,
   AiOfficeStatusNotice,
 } from "@/components/mypage/AiOfficeFeedback";
-import {
-  formatAiOfficeRecentRoleShortcutTime,
-  sortAiOfficeRecentCopiedRoleLinksByRecency,
-  sortAiOfficeRecentRoleShortcutsByPriority,
-  type AiOfficeRecentCopiedRoleLink,
-  type AiOfficeRecentRoleShortcut,
-} from "@/components/mypage/aiOfficeRecentRoleShortcuts";
-import { buildAiOfficePanelHref } from "@/components/mypage/aiOfficePanelUrlState";
 import { AgentTaskOutput } from "@/components/mypage/AgentTaskOutputViews";
 import {
-  getAiOfficeRoleChoice,
   doesAiOfficeTaskMatchRole,
   getAiOfficeTaskRoleChoices,
 } from "@/components/mypage/aiOfficeTaskConfig";
@@ -38,21 +29,11 @@ type Props = {
   taskFilter: TaskFilter;
   tasks: AgentTaskView[];
   usefulness: AiOfficeUsefulnessSummaryView;
-  recentRoleShortcuts: AiOfficeRecentRoleShortcut[];
-  recentCopiedRoleLinks: AiOfficeRecentCopiedRoleLink[];
   selectedRoleId: CreatorAiAgentRole | null;
   waitingApprovalCount: number;
   selectedTaskIds: string[];
   approvalNote: string;
   onOpenCreateForRole: (roleId: CreatorAiAgentRole) => void;
-  onOpenShortcut: (
-    roleId: CreatorAiAgentRole,
-    activeView: "CREATE" | "INBOX"
-  ) => void;
-  onCopiedRoleLink: (
-    roleId: CreatorAiAgentRole,
-    activeView: "CREATE" | "INBOX"
-  ) => void;
   onRoleFilterChange: (roleId: CreatorAiAgentRole | null) => void;
   onTaskFilterChange: (value: TaskFilter) => void;
   onApprovalNoteChange: (value: string) => void;
@@ -62,8 +43,54 @@ type Props = {
   onRejectSelectedTasks: () => void;
   onToggleTaskSelection: (taskId: string) => void;
   onApproveOne: (taskId: string) => void;
-  onRejectOne: (taskId: string) => void;
+  onRejectOne: (taskId: string, note?: string) => void;
 };
+
+function extractTaskOutputPreview(output: unknown, maxChars = 140): string | null {
+  if (typeof output !== "object" || output === null) return null;
+  const rec = output as Record<string, unknown>;
+  // Content tasks: body field
+  if (typeof rec.body === "string" && rec.body.trim()) {
+    return rec.body.trim().slice(0, maxChars);
+  }
+  // Translation tasks: text field
+  if (typeof rec.text === "string" && rec.text.trim()) {
+    return rec.text.trim().slice(0, maxChars);
+  }
+  // Analysis / propose / manager: summary field
+  if (typeof rec.summary === "string" && rec.summary.trim()) {
+    return rec.summary.trim().slice(0, maxChars);
+  }
+  // Propose tasks: first proposal
+  if (Array.isArray(rec.proposals) && typeof rec.proposals[0] === "string") {
+    return (rec.proposals[0] as string).trim().slice(0, maxChars);
+  }
+  // Manager tasks: first suggested action title
+  if (Array.isArray(rec.suggestedActions)) {
+    const first = rec.suggestedActions[0];
+    if (first && typeof first === "object" && "title" in first && typeof (first as Record<string, unknown>).title === "string") {
+      return ((first as Record<string, unknown>).title as string).trim().slice(0, maxChars);
+    }
+  }
+  return null;
+}
+
+function getApprovalResultLabel(taskType: string): string {
+  const contentTypes = [
+    "ANNOUNCE_POST_DRAFT",
+    "THANK_YOU_POST_DRAFT",
+    "SUPPORT_STORY_POST_DRAFT",
+    "PROPOSE_NEXT_POST",
+    "TRANSLATE_POST",
+  ];
+  if (contentTypes.includes(taskType)) {
+    return "承認すると → 投稿の下書きに追加されます";
+  }
+  if (taskType === "DISTRIBUTION_PLAN_DRAFT") {
+    return "承認すると → 精算プランに反映されます";
+  }
+  return "承認すると → 提案として記録されます";
+}
 
 function AgentTaskCard(props: {
   task: AgentTaskView;
@@ -72,64 +99,139 @@ function AgentTaskCard(props: {
   selectable: boolean;
   onToggleTaskSelection: (taskId: string) => void;
   onApproveOne: (taskId: string) => void;
-  onRejectOne: (taskId: string) => void;
+  onRejectOne: (taskId: string, note?: string) => void;
 }) {
   const { task } = props;
+  const [open, setOpen] = React.useState(false);
+  const [rejectMode, setRejectMode] = React.useState(false);
+  const [localRejectNote, setLocalRejectNote] = React.useState("");
   const statusCopy = getAgentTaskStatusCopy(task.status);
   const taskRoles = getAiOfficeTaskRoleChoices(task.taskType as TaskType);
+  const isWaiting = task.status === "WAITING_APPROVAL";
+  const previewText = extractTaskOutputPreview(task.output);
+
+  function handleRejectConfirm() {
+    props.onRejectOne(task.id, localRejectNote.trim() || undefined);
+    setRejectMode(false);
+    setLocalRejectNote("");
+  }
 
   return (
-    <details className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-700">
-      <summary className="cursor-pointer list-none">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-medium text-gray-900">
-              {getAgentTaskTypeCopy(task.taskType).label}
-            </div>
-            {taskRoles.length > 0 ? (
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {taskRoles.map((role) => (
-                  <span
-                    key={role.roleId}
-                    className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700"
-                  >
-                    {role.label}
-                  </span>
+    <div className="card overflow-hidden">
+      {/* ── Header ── */}
+      <div className="p-4">
+        {/* Row 1: role chips + time */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {taskRoles.map((role) => (
+              <span
+                key={role.roleId}
+                className="status-badge status-badge-neutral"
+              >
+                {role.label}
+              </span>
+            ))}
+          </div>
+          <span className="shrink-0 caption-text">{task.createdAt}</span>
+        </div>
+
+        {/* Row 2: task type label + status badge */}
+        <div className="mt-2 flex items-start justify-between gap-2">
+          <div className="section-title">{getAgentTaskTypeCopy(task.taskType).label}</div>
+          <span
+            className={`shrink-0 status-badge ${
+              task.status === "WAITING_APPROVAL"
+                ? "status-badge-warn"
+                : task.status === "APPROVED"
+                  ? "status-badge-ok"
+                  : task.status === "REJECTED"
+                    ? "status-badge-error"
+                    : "status-badge-neutral"
+            }`}
+          >
+            {statusCopy.label}
+          </span>
+        </div>
+
+        {/* Row 3: content preview (always visible) */}
+        {previewText ? (
+          <div className="mt-3 rounded-xl bg-[var(--surface-subtle)] border border-[var(--line)] px-3 py-2.5">
+            <p className="text-sm leading-relaxed text-[var(--text)] line-clamp-3">
+              {previewText}
+              {previewText.length >= 140 ? "…" : ""}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Row 4: what happens after approval */}
+        {isWaiting ? (
+          <p className="mt-2 caption-text">
+            {getApprovalResultLabel(task.taskType)}
+          </p>
+        ) : null}
+
+        {/* Row 5: expand/collapse full output */}
+        <button
+          type="button"
+          className="mt-2 text-xs font-medium text-[var(--accent)] hover:opacity-75 transition-opacity"
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? "閉じる ↑" : "全文を見る ↓"}
+        </button>
+      </div>
+
+      {/* ── Full output (expandable) ── */}
+      {open ? (
+        <div className="border-t border-[var(--line)] px-4 pb-4 pt-3">
+          <AgentTaskOutput
+            taskType={task.taskType}
+            output={task.output}
+            projectId={task.projectId}
+          />
+          {task.auditLogs.length > 0 ? (
+            <details className="mt-3">
+              <summary className="cursor-pointer caption-text hover:text-[var(--text)]">
+                操作履歴 ({task.auditLogs.length}件)
+              </summary>
+              <div className="mt-2 space-y-1 rounded-xl bg-[var(--surface-subtle)] p-3 caption-text">
+                {task.auditLogs.map((log) => (
+                  <div key={log.id}>
+                    {getAgentTaskAuditActionLabel(log.action)}
+                    {log.note ? ` — ${log.note}` : ""}
+                  </div>
                 ))}
               </div>
-            ) : null}
-            <div className="mt-1 text-[11px] text-gray-600">
-              {statusCopy.label}
-              {statusCopy.helper ? ` / ${statusCopy.helper}` : ""}
-            </div>
-          </div>
-          <div className="text-[11px] text-gray-500">{task.createdAt}</div>
+            </details>
+          ) : null}
         </div>
-      </summary>
+      ) : null}
 
-      {props.selectable ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <label className="inline-flex items-center gap-2 text-[11px] text-gray-700">
+      {/* ── Action bar — always visible for WAITING_APPROVAL ── */}
+      {props.selectable && isWaiting && !rejectMode ? (
+        <div className="flex items-center gap-2 border-t border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+          <label className="inline-flex shrink-0 items-center gap-1.5 caption-text cursor-pointer">
             <input
               type="checkbox"
               checked={props.selected}
               onChange={() => props.onToggleTaskSelection(task.id)}
               disabled={props.loading}
+              className="accent-slate-700"
             />
-            このタスクを選択
+            一括に含める
           </label>
+          <span className="flex-1" />
           <button
             type="button"
-            className="rounded-full border px-3 py-1.5 text-[11px] font-medium disabled:opacity-40"
+            className="btn"
             onClick={() => props.onApproveOne(task.id)}
             disabled={props.loading}
           >
-            承認
+            {props.loading ? "処理中..." : "✓ 承認する"}
           </button>
           <button
             type="button"
-            className="rounded-full border px-3 py-1.5 text-[11px] font-medium disabled:opacity-40"
-            onClick={() => props.onRejectOne(task.id)}
+            className="btn-secondary"
+            onClick={() => setRejectMode(true)}
             disabled={props.loading}
           >
             却下
@@ -137,34 +239,44 @@ function AgentTaskCard(props: {
         </div>
       ) : null}
 
-      <div className="mt-3">
-        <AgentTaskOutput
-          taskType={task.taskType}
-          output={task.output}
-          projectId={task.projectId}
-        />
-      </div>
-
-      {task.auditLogs.length > 0 ? (
-        <div className="mt-3 rounded-xl bg-white p-3">
-          <div className="text-[11px] font-medium text-gray-700">操作履歴</div>
-          <div className="mt-2 space-y-1 text-[11px] text-gray-600">
-            {task.auditLogs.map((log) => (
-              <div key={log.id}>
-                {getAgentTaskAuditActionLabel(log.action)}
-                {log.note ? ` / ${log.note}` : ""}
-              </div>
-            ))}
+      {/* ── Inline reject ── */}
+      {props.selectable && isWaiting && rejectMode ? (
+        <div className="border-t border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 space-y-2">
+          <div className="text-xs font-semibold text-[var(--danger)]">却下の理由（任意）</div>
+          <input
+            type="text"
+            className="input text-sm"
+            value={localRejectNote}
+            onChange={(e) => setLocalRejectNote(e.target.value)}
+            placeholder="理由を入力（省略できます）"
+            disabled={props.loading}
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn-danger"
+              onClick={handleRejectConfirm}
+              disabled={props.loading}
+            >
+              {props.loading ? "処理中..." : "却下を確定"}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => { setRejectMode(false); setLocalRejectNote(""); }}
+              disabled={props.loading}
+            >
+              キャンセル
+            </button>
           </div>
         </div>
       ) : null}
-    </details>
+    </div>
   );
 }
 
 export function AiOfficeInboxSection(props: Props) {
-  const [copiedLinkKey, setCopiedLinkKey] = React.useState<string | null>(null);
-  const { onCopiedRoleLink } = props;
   const matchesSelectedRole = React.useCallback(
     (task: AgentTaskView) =>
       props.selectedRoleId === null ||
@@ -190,91 +302,7 @@ export function AiOfficeInboxSection(props: Props) {
       : props.usefulness.roleBreakdown.find(
           (role) => role.roleId === props.selectedRoleId
         ) ?? null;
-  const recentRoleShortcuts = React.useMemo(
-    () =>
-      sortAiOfficeRecentRoleShortcutsByPriority(
-        props.recentRoleShortcuts.map((shortcut) => {
-        const roleChoice = getAiOfficeRoleChoice(shortcut.roleId);
-        const roleBreakdown =
-          props.usefulness.roleBreakdown.find(
-            (role) => role.roleId === shortcut.roleId
-          ) ?? null;
-        return {
-          ...shortcut,
-          label: roleChoice?.label ?? shortcut.roleId,
-          waitingApprovalCount: roleBreakdown?.waitingApprovalCount ?? 0,
-          ignoredCount: roleBreakdown?.ignoredCount ?? 0,
-          lastUsedLabel: formatAiOfficeRecentRoleShortcutTime(shortcut.lastUsedAt),
-        };
-      })
-      ),
-    [props.recentRoleShortcuts, props.usefulness.roleBreakdown]
-  );
-  const recentCopiedRoleLinkCards = React.useMemo(
-    () =>
-      sortAiOfficeRecentCopiedRoleLinksByRecency(
-        props.recentCopiedRoleLinks.map((link) => {
-          const roleChoice = getAiOfficeRoleChoice(link.roleId);
-          return {
-            ...link,
-            label: roleChoice?.label ?? link.roleId,
-            copiedLabel: formatAiOfficeRecentRoleShortcutTime(link.copiedAt),
-          };
-        })
-      ),
-    [props.recentCopiedRoleLinks]
-  );
 
-  React.useEffect(() => {
-    if (copiedLinkKey === null) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setCopiedLinkKey((current) =>
-        current === copiedLinkKey ? null : current
-      );
-    }, 2000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [copiedLinkKey]);
-
-  const copyRoleLink = React.useCallback(
-    async (
-      roleId: CreatorAiAgentRole,
-      activeView: "CREATE" | "INBOX",
-      key: string
-    ) => {
-      if (
-        typeof window === "undefined" ||
-        typeof window.navigator.clipboard?.writeText !== "function"
-      ) {
-        return;
-      }
-
-      const href = buildAiOfficePanelHref({
-        pathname: window.location.pathname,
-        hash: window.location.hash || "#ai-office-phase1",
-        currentSearchParams: new URLSearchParams(window.location.search),
-        state: {
-          activeView,
-          selectedRoleId: roleId,
-          selectedInboxRoleId: activeView === "INBOX" ? roleId : null,
-        },
-      });
-
-      try {
-        await window.navigator.clipboard.writeText(
-          `${window.location.origin}${href}`
-        );
-        onCopiedRoleLink(roleId, activeView);
-        setCopiedLinkKey(key);
-      } catch {
-        return;
-      }
-    },
-    [onCopiedRoleLink]
-  );
   const prioritizedRoleNotice = React.useMemo(() => {
     const staleRole = [...props.usefulness.roleBreakdown]
       .filter((role) => role.ignoredCount > 0)
@@ -315,32 +343,32 @@ export function AiOfficeInboxSection(props: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+      <div className="card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-gray-900">承認待ち</div>
-            <div className="mt-1 text-xs text-gray-500">
+            <div className="section-title">承認待ち</div>
+            <div className="mt-1 caption-text">
               AIが作成した提案を確認して、承認または却下できます。
             </div>
           </div>
           <div className="grid min-w-[240px] gap-2 sm:grid-cols-2">
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <div className="text-[11px] font-medium text-amber-900">
+              <div className="text-[11px] font-medium text-amber-800">
                 今すぐ確認する
               </div>
-              <div className="mt-1 text-2xl font-semibold text-amber-950">
+              <div className="mt-1 text-2xl font-semibold text-amber-700">
                 {filteredWaitingTasks.length}
               </div>
-              <div className="text-[11px] text-amber-800">承認待ちのタスク</div>
+              <div className="text-[11px] text-amber-700">承認待ちのタスク</div>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <div className="text-[11px] font-medium text-gray-700">
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+              <div className="text-[11px] font-medium text-[var(--text)]">
                 最近の履歴
               </div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">
+              <div className="mt-1 text-2xl font-semibold text-[var(--text)]">
                 {filteredHistoryTasks.length}
               </div>
-              <div className="text-[11px] text-gray-600">
+              <div className="caption-text">
                 完了または却下済みのタスク
               </div>
             </div>
@@ -356,7 +384,7 @@ export function AiOfficeInboxSection(props: Props) {
         >
           <button
             type="button"
-            className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 disabled:opacity-40"
+            className="btn-secondary"
             onClick={() => props.onRoleFilterChange(prioritizedRoleNotice.roleId)}
             disabled={props.loading}
           >
@@ -365,187 +393,13 @@ export function AiOfficeInboxSection(props: Props) {
         </AiOfficeStatusNotice>
       ) : null}
 
-      {recentRoleShortcuts.length > 0 ? (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="text-sm font-semibold text-gray-900">
-            最近使った担当
-          </div>
-          <div className="mt-1 text-xs text-gray-500">
-            さっき開いていた担当の下書きや承認待ちに、そのまま戻れます。
-          </div>
-          <div className="mt-3 space-y-2">
-            {recentRoleShortcuts.map((shortcut, index) => (
-              <div
-                key={`${shortcut.roleId}:${shortcut.activeView}`}
-                className="rounded-xl bg-gray-50 px-3 py-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="text-xs font-semibold text-gray-900">
-                      {shortcut.label}
-                    </div>
-                    {index === 0 &&
-                    (shortcut.ignoredCount > 0 ||
-                      shortcut.waitingApprovalCount > 0) ? (
-                      <span className="rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[10px] font-medium text-amber-900">
-                        先に確認
-                      </span>
-                    ) : null}
-                  </div>
-                  <span className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700">
-                    {shortcut.activeView === "INBOX" ? "承認待ち" : "下書き"}
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-600">
-                  <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
-                    最終利用: {shortcut.lastUsedLabel}
-                  </span>
-                  {shortcut.waitingApprovalCount > 0 ? (
-                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">
-                      承認待ち {shortcut.waitingApprovalCount} 件
-                    </span>
-                  ) : null}
-                  {shortcut.ignoredCount > 0 ? (
-                    <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-1 text-rose-700">
-                      保留が長い {shortcut.ignoredCount} 件
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className={`rounded-full border bg-white px-3 py-1.5 text-[11px] font-medium disabled:opacity-40 ${
-                      shortcut.ignoredCount > 0 ||
-                      shortcut.waitingApprovalCount > 0
-                        ? "border-amber-300 text-amber-900"
-                        : "border-gray-300 text-gray-800"
-                    }`}
-                    onClick={() =>
-                      props.onOpenShortcut(shortcut.roleId, "INBOX")
-                    }
-                    disabled={props.loading}
-                  >
-                    この担当の承認待ちを開く
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800 disabled:opacity-40"
-                    onClick={() =>
-                      props.onOpenShortcut(shortcut.roleId, "CREATE")
-                    }
-                    disabled={props.loading}
-                  >
-                    この担当で下書きを作る
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 disabled:opacity-40"
-                    onClick={() =>
-                      void copyRoleLink(
-                        shortcut.roleId,
-                        "INBOX",
-                        `${shortcut.roleId}:INBOX:recent`
-                      )
-                    }
-                    disabled={props.loading}
-                  >
-                    {copiedLinkKey === `${shortcut.roleId}:INBOX:recent`
-                      ? "承認待ちリンクをコピー済み"
-                      : "承認待ちリンクをコピー"}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 disabled:opacity-40"
-                    onClick={() =>
-                      void copyRoleLink(
-                        shortcut.roleId,
-                        "CREATE",
-                        `${shortcut.roleId}:CREATE:recent`
-                      )
-                    }
-                    disabled={props.loading}
-                  >
-                    {copiedLinkKey === `${shortcut.roleId}:CREATE:recent`
-                      ? "下書きリンクをコピー済み"
-                      : "下書きリンクをコピー"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {recentCopiedRoleLinkCards.length > 0 ? (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="text-sm font-semibold text-gray-900">
-            コピーしたリンク履歴
-          </div>
-          <div className="mt-1 text-xs text-gray-500">
-            共有や運用メモで使った承認待ち・下書きのリンクを、ここから再コピーできます。
-          </div>
-          <div className="mt-3 space-y-2">
-            {recentCopiedRoleLinkCards.map((link) => (
-              <div
-                key={`${link.roleId}:${link.activeView}`}
-                className="rounded-xl bg-gray-50 px-3 py-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-gray-900">
-                    {link.label}
-                  </div>
-                  <span className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700">
-                    {link.activeView === "INBOX" ? "承認待ち" : "下書き"}
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-600">
-                  <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
-                    コピー: {link.copiedLabel}
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800 disabled:opacity-40"
-                    onClick={() =>
-                      props.onOpenShortcut(link.roleId, link.activeView)
-                    }
-                    disabled={props.loading}
-                  >
-                    {link.activeView === "INBOX"
-                      ? "承認待ちを開く"
-                      : "下書きを作る"}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 disabled:opacity-40"
-                    onClick={() =>
-                      void copyRoleLink(
-                        link.roleId,
-                        link.activeView,
-                        `${link.roleId}:${link.activeView}:copied`
-                      )
-                    }
-                    disabled={props.loading}
-                  >
-                    {copiedLinkKey === `${link.roleId}:${link.activeView}:copied`
-                      ? "リンクをコピー済み"
-                      : "もう一度コピー"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+      <div className="card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-gray-900">
+            <div className="section-title">
               承認待ちキュー
             </div>
-            <div className="mt-1 text-xs text-gray-500">
+            <div className="mt-1 caption-text">
               各担当から上がっている承認待ちの提案を確認します。
             </div>
           </div>
@@ -557,11 +411,7 @@ export function AiOfficeInboxSection(props: Props) {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            className={`rounded-full border px-3 py-1.5 text-[11px] font-medium ${
-              props.selectedRoleId === null
-                ? "border-slate-900 bg-slate-900 text-white"
-                : "border-gray-300 bg-white text-gray-800"
-            }`}
+            className={props.selectedRoleId === null ? "action-pill-active" : "action-pill"}
             onClick={() => props.onRoleFilterChange(null)}
             disabled={props.loading}
           >
@@ -571,17 +421,13 @@ export function AiOfficeInboxSection(props: Props) {
             <button
               key={role.roleId}
               type="button"
-              className={`rounded-full border px-3 py-1.5 text-[11px] font-medium ${
-                props.selectedRoleId === role.roleId
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-gray-300 bg-white text-gray-800"
-              }`}
+              className={props.selectedRoleId === role.roleId ? "action-pill-active" : "action-pill"}
               onClick={() => props.onRoleFilterChange(role.roleId)}
               disabled={props.loading}
             >
               {role.label}
               {role.waitingApprovalCount > 0
-                ? ` / 承認待ち ${role.waitingApprovalCount}`
+                ? ` (${role.waitingApprovalCount})`
                 : ""}
             </button>
           ))}
@@ -603,7 +449,7 @@ export function AiOfficeInboxSection(props: Props) {
               {selectedRoleBreakdown ? (
                 <button
                   type="button"
-                  className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 disabled:opacity-40"
+                  className="btn-secondary"
                   onClick={() =>
                     props.onOpenCreateForRole(selectedRoleBreakdown.roleId)
                   }
@@ -630,7 +476,7 @@ export function AiOfficeInboxSection(props: Props) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+      <div className="card p-4">
         {filteredWaitingTasks.length > 0 ? (
           <AiOfficeStatusNotice
             tone="attention"
@@ -648,7 +494,7 @@ export function AiOfficeInboxSection(props: Props) {
             {!hasSelectedTasks ? (
               <button
                 type="button"
-                className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 disabled:opacity-40"
+                className="btn"
                 onClick={props.onSelectAllWaitingTasks}
                 disabled={props.loading}
               >
@@ -658,16 +504,16 @@ export function AiOfficeInboxSection(props: Props) {
           </AiOfficeStatusNotice>
         ) : null}
 
-        <div className="rounded-2xl border border-gray-200 p-4 space-y-3">
+        <div className="card p-4 space-y-3">
           <div>
-            <div className="text-sm font-semibold text-gray-900">一括操作</div>
-            <div className="mt-1 text-xs text-gray-500">承認メモ</div>
-            <div className="mt-1 text-xs text-gray-600">
+            <div className="section-title">一括操作</div>
+            <div className="mt-1 caption-text">承認メモ</div>
+            <div className="mt-1 caption-text">
               承認や却下の理由を残したいときに使います。却下時は入力必須です。
             </div>
           </div>
           <input
-            className="w-full rounded-xl border px-3 py-2 text-sm"
+            className="input w-full"
             value={props.approvalNote}
             onChange={(e) => props.onApprovalNoteChange(e.target.value)}
             maxLength={300}
@@ -675,60 +521,58 @@ export function AiOfficeInboxSection(props: Props) {
             disabled={props.loading}
           />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-gray-600">
+            <span className="caption-text">
               選択中: {props.selectedTaskIds.length} / 承認待ち:{" "}
               {filteredWaitingTasks.length}
             </span>
             <button
               type="button"
-              className="rounded-full border px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+              className="btn-secondary"
               onClick={props.onSelectAllWaitingTasks}
               disabled={props.loading || filteredWaitingTasks.length === 0}
             >
-              承認待ちを全選択
+              全選択
             </button>
             <button
               type="button"
-              className="rounded-full border px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+              className="btn-secondary"
               onClick={props.onClearSelectedTasks}
               disabled={props.loading || props.selectedTaskIds.length === 0}
             >
-              選択解除
+              解除
             </button>
             <button
               type="button"
-              className="rounded-full border px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+              className="btn"
               onClick={props.onApproveSelectedTasks}
               disabled={props.loading || props.selectedTaskIds.length === 0}
             >
-              選択を一括承認
+              {props.loading ? "処理中..." : "一括承認"}
             </button>
             <button
               type="button"
-              className="rounded-full border px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+              className="btn-danger"
               onClick={props.onRejectSelectedTasks}
               disabled={props.loading || props.selectedTaskIds.length === 0}
             >
-              選択を一括却下
+              {props.loading ? "処理中..." : "一括却下"}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+      <div className="card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-gray-900">最近の履歴</div>
-            <div className="mt-1 text-xs text-gray-500">
+            <div className="section-title">最近の履歴</div>
+            <div className="mt-1 caption-text">
               すでに処理したタスクや、結果を見返したい下書きを確認できます。
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-                props.taskFilter === "ALL" ? "bg-gray-100" : ""
-              }`}
+              className={props.taskFilter === "ALL" ? "action-pill-active" : "action-pill"}
               onClick={() => props.onTaskFilterChange("ALL")}
               disabled={props.loading}
             >
@@ -736,9 +580,7 @@ export function AiOfficeInboxSection(props: Props) {
             </button>
             <button
               type="button"
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-                props.taskFilter === "WAITING_APPROVAL" ? "bg-gray-100" : ""
-              }`}
+              className={props.taskFilter === "WAITING_APPROVAL" ? "action-pill-active" : "action-pill"}
               onClick={() => props.onTaskFilterChange("WAITING_APPROVAL")}
               disabled={props.loading}
             >
@@ -768,7 +610,7 @@ export function AiOfficeInboxSection(props: Props) {
               {selectedRoleBreakdown ? (
                 <button
                   type="button"
-                  className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 disabled:opacity-40"
+                  className="btn-secondary"
                   onClick={() =>
                     props.onOpenCreateForRole(selectedRoleBreakdown.roleId)
                   }

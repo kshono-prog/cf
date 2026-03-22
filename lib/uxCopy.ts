@@ -12,8 +12,8 @@ type MessageState = {
   description?: string;
 };
 
-export const AI_OFFICE_LABEL = "AI事務所";
-export const POSTING_AI_OFFICE_LABEL = "投稿・AI事務所";
+export const AI_OFFICE_LABEL = "AIアシスタント";
+export const POSTING_AI_OFFICE_LABEL = "投稿・AIアシスタント";
 
 const TASK_TYPE_COPY: Record<TaskType, Copy> = {
   MANAGER_NEXT_ACTIONS: {

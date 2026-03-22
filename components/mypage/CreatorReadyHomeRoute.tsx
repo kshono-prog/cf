@@ -19,7 +19,7 @@ const CreatorWorkspaceAiOfficePanel = dynamic(
       (mod) => mod.CreatorWorkspaceAiOfficePanel
     ),
   {
-    loading: () => <WorkspaceLoadingCard title="AI事務所を読み込んでいます" />,
+    loading: () => <WorkspaceLoadingCard title="AIアシスタントを読み込んでいます" />,
   }
 );
 
@@ -75,7 +75,7 @@ export function CreatorReadyHomeRoute(props: Props) {
 
   const setupDescription = profileMissing
     ? "まずプロフィール（名前・紹介文）を設定すると、支援者に伝わる公開ページの土台ができます。"
-    : "支援を受け取るための目標金額がまだ設定されていません。設定・準備から整えましょう。";
+    : "支援を受け取るための目標金額がまだ設定されていません。「設定」から整えましょう。";
 
   return (
     <div className="space-y-4">
@@ -91,9 +91,9 @@ export function CreatorReadyHomeRoute(props: Props) {
           <button
             type="button"
             onClick={props.onOpenSettings}
-            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"
+            className="btn"
           >
-            設定・準備を開く
+            設定を開く
           </button>
         </WorkspaceStatusNotice>
       ) : null}
@@ -101,14 +101,14 @@ export function CreatorReadyHomeRoute(props: Props) {
         <WorkspaceStatusNotice
           tone="attention"
           title="精算が必要な状態のプロジェクトがあります"
-          description="目標達成または精算対象のプロジェクトがあります。設定・準備から確認してください。"
+          description="目標達成または精算対象のプロジェクトがあります。「設定」タブから確認してください。"
         >
           <button
             type="button"
             onClick={props.onOpenSettings}
-            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"
+            className="btn"
           >
-            設定・準備を開く
+            設定を開く
           </button>
         </WorkspaceStatusNotice>
       ) : null}
@@ -116,20 +116,17 @@ export function CreatorReadyHomeRoute(props: Props) {
         <WorkspaceStatusNotice
           tone="attention"
           title="まずここから始めましょう"
-          description="AI事務所があなたの最初の一歩をサポートします。プロフィールの改善案を作ってもらうところから始めてみましょう。"
+          description="AIアシスタントがあなたの最初の一歩をサポートします。プロフィールの改善案を作ってもらうところから始めてみましょう。"
         >
           <a
             href={aiOfficeCreateHref}
-            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"
+            className="btn"
           >
-            AI事務所にはじめての一歩を相談する
+            AIアシスタントに相談する →
           </a>
         </WorkspaceStatusNotice>
       ) : null}
-      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4" id="ai-office">
-        <div className="mb-3 text-sm font-semibold text-[var(--text)]">
-          AI事務所
-        </div>
+      <div className="card p-4" id="ai-office">
         <CreatorWorkspaceAiOfficePanel />
       </div>
       <CreatorReadyWeeklySummarySection

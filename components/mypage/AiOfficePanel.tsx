@@ -7,23 +7,11 @@ import { AiOfficeStatusNotice } from "@/components/mypage/AiOfficeFeedback";
 import { AiOfficeInboxSection } from "@/components/mypage/AiOfficeInboxSection";
 import { AiOfficeOverviewSection } from "@/components/mypage/AiOfficeOverviewSection";
 import {
-  AI_OFFICE_RECENT_COPIED_ROLE_LINKS_STORAGE_KEY,
-  AI_OFFICE_RECENT_ROLE_SHORTCUTS_STORAGE_KEY,
-  parseAiOfficeRecentCopiedRoleLinks,
-  parseAiOfficeRecentRoleShortcuts,
-  rememberAiOfficeRecentCopiedRoleLink,
-  rememberAiOfficeRecentRoleShortcut,
-  type AiOfficeRecentCopiedRoleLink,
-  type AiOfficeRecentRoleShortcut,
-} from "@/components/mypage/aiOfficeRecentRoleShortcuts";
-import {
   buildAiOfficePanelSearchParams,
   parseAiOfficePanelUrlState,
 } from "@/components/mypage/aiOfficePanelUrlState";
 import {
   parseAiOfficeContentSummary,
-  parseAiOfficeMetrics,
-  parseAiOfficeMetricTrends,
   parseAiOfficeTasks,
   parseAiOfficeUsefulnessSummary,
 } from "@/components/mypage/aiOfficeDashboardParsers";
@@ -44,8 +32,6 @@ import type {
   AiOfficeView,
   AnnouncementChannel,
   DraftTone,
-  MetricSnapshotView,
-  MetricTrendDayView,
   SupporterMessagePurpose,
   TaskFilter,
   TranslationLang,
@@ -55,7 +41,6 @@ import type { TaskType } from "@/lib/agentTaskParsers";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import {
   AI_OFFICE_LABEL,
-  getAgentTaskTypeCopy,
   getAiOfficeMessageState,
 } from "@/lib/uxCopy";
 import { isRecord } from "@/lib/api/guards";
@@ -74,21 +59,6 @@ export function AiOfficePanel(props: {
   const [tasks, setTasks] = useState<AgentTaskView[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [metricsTotals, setMetricsTotals] = useState<{
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-  }>({
-    views: 0,
-    likes: 0,
-    comments: 0,
-    shares: 0,
-  });
-  const [metricsSnapshots, setMetricsSnapshots] = useState<MetricSnapshotView[]>(
-    []
-  );
-  const [metricTrends, setMetricTrends] = useState<MetricTrendDayView[]>([]);
   const [contentSummary, setContentSummary] = useState<AiOfficeContentSummaryView>({
     totalPosts: 0,
     publishedPosts: 0,
@@ -127,23 +97,9 @@ export function AiOfficePanel(props: {
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [activeView, setActiveView] = useState<AiOfficeView>(DEFAULT_AI_OFFICE_VIEW);
   const [hasHydratedUrlState, setHasHydratedUrlState] = useState<boolean>(false);
-  const [recentRoleShortcuts, setRecentRoleShortcuts] = useState<
-    AiOfficeRecentRoleShortcut[]
-  >([]);
-  const [recentCopiedRoleLinks, setRecentCopiedRoleLinks] = useState<
-    AiOfficeRecentCopiedRoleLink[]
-  >([]);
-  const [hasHydratedRecentRoleShortcuts, setHasHydratedRecentRoleShortcuts] =
-    useState<boolean>(false);
-  const [hasHydratedRecentCopiedRoleLinks, setHasHydratedRecentCopiedRoleLinks] =
-    useState<boolean>(false);
   const BULK_CONFIRM_THRESHOLD = 5;
 
   const canUse = isConnected && !!walletAddress;
-  const currentTaskTypeCopy = useMemo(
-    () => getAgentTaskTypeCopy(taskType),
-    [taskType]
-  );
   const visibleMessage = useMemo(
     () => getAiOfficeMessageState(message),
     [message]
@@ -234,10 +190,6 @@ export function AiOfficePanel(props: {
 
       setTasks(parseAiOfficeTasks({ tasks: dashboardJson.tasks }));
 
-      const parsedMetrics = parseAiOfficeMetrics(dashboardJson.metrics);
-      setMetricsTotals(parsedMetrics.totals);
-      setMetricsSnapshots(parsedMetrics.snapshots);
-      setMetricTrends(parseAiOfficeMetricTrends(dashboardJson.trends));
       setContentSummary(parseAiOfficeContentSummary(dashboardJson.content));
       setUsefulness(parseAiOfficeUsefulnessSummary(dashboardJson.usefulness));
     } catch {
@@ -343,91 +295,6 @@ export function AiOfficePanel(props: {
     }
   }, [activeView, hasHydratedUrlState, selectedInboxRoleId, selectedRoleId]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      const rawValue = window.localStorage.getItem(
-        AI_OFFICE_RECENT_ROLE_SHORTCUTS_STORAGE_KEY
-      );
-      const parsedValue: unknown =
-        rawValue === null ? [] : JSON.parse(rawValue) as unknown;
-      setRecentRoleShortcuts(parseAiOfficeRecentRoleShortcuts(parsedValue));
-    } catch {
-      setRecentRoleShortcuts([]);
-    } finally {
-      setHasHydratedRecentRoleShortcuts(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      const rawValue = window.localStorage.getItem(
-        AI_OFFICE_RECENT_COPIED_ROLE_LINKS_STORAGE_KEY
-      );
-      const parsedValue: unknown =
-        rawValue === null ? [] : JSON.parse(rawValue) as unknown;
-      setRecentCopiedRoleLinks(parseAiOfficeRecentCopiedRoleLinks(parsedValue));
-    } catch {
-      setRecentCopiedRoleLinks([]);
-    } finally {
-      setHasHydratedRecentCopiedRoleLinks(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (
-      !hasHydratedRecentRoleShortcuts ||
-      typeof window === "undefined" ||
-      activeView === "OVERVIEW"
-    ) {
-      return;
-    }
-
-    const nextShortcut =
-      activeView === "CREATE"
-        ? {
-            roleId: selectedRoleId,
-            activeView: "CREATE" as const,
-            lastUsedAt: new Date().toISOString(),
-          }
-        : selectedInboxRoleId
-          ? {
-              roleId: selectedInboxRoleId,
-              activeView: "INBOX" as const,
-              lastUsedAt: new Date().toISOString(),
-            }
-          : null;
-
-    if (nextShortcut === null) {
-      return;
-    }
-
-    setRecentRoleShortcuts((current) => {
-      const next = rememberAiOfficeRecentRoleShortcut(current, nextShortcut);
-      try {
-        window.localStorage.setItem(
-          AI_OFFICE_RECENT_ROLE_SHORTCUTS_STORAGE_KEY,
-          JSON.stringify(next)
-        );
-      } catch {
-        return current;
-      }
-      return next;
-    });
-  }, [
-    activeView,
-    hasHydratedRecentRoleShortcuts,
-    selectedInboxRoleId,
-    selectedRoleId,
-  ]);
-
   async function collectMetrics(): Promise<void> {
     if (!walletAddress) return;
 
@@ -504,8 +371,9 @@ export function AiOfficePanel(props: {
         return;
       }
 
-      setMessage("AIが下書きを作成しました。");
       await refresh();
+      setActiveView("INBOX");
+      setMessage("AIが下書きを作成しました。承認待ちを確認してください。");
     } catch {
       setMessage("下書きの作成に失敗しました。");
     } finally {
@@ -513,16 +381,13 @@ export function AiOfficePanel(props: {
     }
   }
 
-  async function approveTasks(taskIds: string[], action: "APPROVE" | "REJECT"): Promise<void> {
+  async function approveTasks(taskIds: string[], action: "APPROVE" | "REJECT", inlineNote?: string): Promise<void> {
     if (!walletAddress) return;
     if (taskIds.length === 0) {
       setMessage("処理する提案を選択してください。");
       return;
     }
-    if (action === "REJECT" && approvalNote.trim().length === 0) {
-      setMessage("却下時は承認メモを入力してください。");
-      return;
-    }
+    // bulk threshold confirmation
     if (taskIds.length > BULK_CONFIRM_THRESHOLD) {
       const label = action === "APPROVE" ? "承認" : "却下";
       const ok = window.confirm(
@@ -530,6 +395,9 @@ export function AiOfficePanel(props: {
       );
       if (!ok) return;
     }
+
+    // note: for inline single-task rejects, use inlineNote; for bulk, use global approvalNote
+    const noteToUse = inlineNote !== undefined ? inlineNote : approvalNote.trim();
 
     setLoading(true);
     setMessage(null);
@@ -547,7 +415,7 @@ export function AiOfficePanel(props: {
               ? { taskId: taskIds[0] }
               : { taskIds }),
             action,
-            note: approvalNote.trim() || null,
+            note: noteToUse || null,
           }),
         },
       });
@@ -656,18 +524,18 @@ export function AiOfficePanel(props: {
   }> = [
     {
       id: "OVERVIEW",
-      label: "概要",
-      helper: "AIの状況と担当ごとの提案をまとめて確認する",
+      label: "ホーム",
+      helper: "AIアシスタントの状況と最近の作成履歴をまとめて確認できます",
     },
     {
       id: "CREATE",
-      label: "下書きを作る",
-      helper: "担当を選んで告知・お礼などの下書きを作る",
+      label: "作成",
+      helper: "何を作るか選ぶと、AIがプロジェクトの状況をもとに下書きを作ります",
     },
     {
       id: "INBOX",
-      label: "承認待ち",
-      helper: "承認待ちの提案や最近の下書きを確認する",
+      label: "受信トレイ",
+      helper: "AIが作った下書きをここで確認・承認・却下できます",
     },
   ];
 
@@ -723,49 +591,18 @@ export function AiOfficePanel(props: {
     [handleRoleChange]
   );
 
-  const rememberCopiedRoleLink = useCallback(
-    (roleId: CreatorAiAgentRole, activeView: "CREATE" | "INBOX") => {
-      if (
-        !hasHydratedRecentCopiedRoleLinks ||
-        typeof window === "undefined"
-      ) {
-        return;
-      }
-
-      const copiedLink: AiOfficeRecentCopiedRoleLink = {
-        roleId,
-        activeView,
-        copiedAt: new Date().toISOString(),
-      };
-
-      setRecentCopiedRoleLinks((current) => {
-        const next = rememberAiOfficeRecentCopiedRoleLink(current, copiedLink);
-        try {
-          window.localStorage.setItem(
-            AI_OFFICE_RECENT_COPIED_ROLE_LINKS_STORAGE_KEY,
-            JSON.stringify(next)
-          );
-        } catch {
-          return current;
-        }
-        return next;
-      });
-    },
-    [hasHydratedRecentCopiedRoleLinks]
-  );
-
   return (
-    <div className="rounded-xl border bg-white p-4 space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="card p-4 space-y-4">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold">{AI_OFFICE_LABEL}</h3>
-          <p className="text-xs text-gray-500 mt-1">
-            告知・お礼・分析・資金管理などの担当別に、下書き作成と承認待ち確認をまとめて行えます。
+          <h3 className="section-title">{AI_OFFICE_LABEL}</h3>
+          <p className="caption-text mt-0.5">
+            告知・お礼・週報など、AIが下書きを作るのでホームで確認・承認するだけで使えます。
           </p>
         </div>
         <button
           type="button"
-          className="rounded border px-2 py-1 text-xs disabled:opacity-40"
+          className="btn-secondary shrink-0"
           onClick={() => void refresh()}
           disabled={loading || !canUse}
         >
@@ -774,71 +611,78 @@ export function AiOfficePanel(props: {
       </div>
 
       {!canUse ? (
-        <p className="text-sm text-gray-600">ウォレット接続後に利用できます。</p>
+        <p className="body-text text-[var(--text-subtle)]">ウォレット接続後に利用できます。</p>
       ) : (
         <>
-          <div className="grid gap-2 md:grid-cols-3">
-            {aiOfficeViews.map((view) => (
-              <button
-                key={view.id}
-                type="button"
-                className={`rounded-2xl border px-4 py-3 text-left transition ${
-                  activeView === view.id
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-gray-200 bg-white text-gray-900"
-                }`}
-                onClick={() => setActiveView(view.id)}
-                disabled={loading}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold">{view.label}</span>
+          <div className="border-b border-[var(--line)]">
+            <div className="flex overflow-x-auto">
+              {aiOfficeViews.map((view) => (
+                <button
+                  key={view.id}
+                  type="button"
+                  className={`flex shrink-0 items-center gap-2 border-b-2 px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors disabled:opacity-40 ${
+                    activeView === view.id
+                      ? "border-[var(--text)] text-[var(--text)]"
+                      : "border-transparent text-[var(--text-subtle)] hover:border-[var(--line)] hover:text-[var(--text)]"
+                  }`}
+                  onClick={() => setActiveView(view.id)}
+                  disabled={loading}
+                >
+                  {view.label}
                   {view.id === "INBOX" && waitingApprovalCount > 0 ? (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] ${
-                        activeView === view.id
-                          ? "bg-white/15 text-white"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
+                    <span className="status-badge status-badge-warn">
                       {waitingApprovalCount}
                     </span>
                   ) : null}
-                </div>
-                <div
-                  className={`mt-1 text-xs ${
-                    activeView === view.id ? "text-white/80" : "text-gray-500"
-                  }`}
-                >
-                  {view.helper}
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
+          <p className="caption-text mt-1">
+            {aiOfficeViews.find((v) => v.id === activeView)?.helper}
+          </p>
 
           {visibleMessage ? (
             <AiOfficeStatusNotice
               tone={visibleMessage.tone}
               title={visibleMessage.title}
               description={visibleMessage.description}
+              onRetry={visibleMessage.tone === "error" ? () => void refresh() : undefined}
             />
           ) : null}
 
           {waitingApprovalCount > 0 && activeView !== "INBOX" ? (
             <AiOfficeStatusNotice
               tone="attention"
-              title={`確認待ちの提案が ${waitingApprovalCount} 件あります`}
-              description="承認または却下して、提案の処理を進めてください。"
+              title={`確認待ちの下書きが ${waitingApprovalCount} 件あります`}
+              description="受信トレイで確認・承認・却下できます。"
             >
               <button
                 type="button"
-                className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 disabled:opacity-40"
+                className="btn"
                 onClick={() => {
                   setSelectedInboxRoleId(null);
                   setActiveView("INBOX");
                 }}
                 disabled={loading}
               >
-                提案を確認する
+                受信トレイを見る →
+              </button>
+            </AiOfficeStatusNotice>
+          ) : null}
+
+          {activeView === "OVERVIEW" && tasks.length === 0 && contentSummary.totalPosts === 0 ? (
+            <AiOfficeStatusNotice
+              tone="info"
+              title="まずはここから始めましょう"
+              description="「作成」タブで何を作るか選ぶと、AIがプロジェクトの状況をもとに告知・お礼などの下書きを作ります。"
+            >
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setActiveView("CREATE")}
+              >
+                作成タブへ →
               </button>
             </AiOfficeStatusNotice>
           ) : null}
@@ -848,13 +692,6 @@ export function AiOfficePanel(props: {
               loading={loading}
               waitingApprovalCount={waitingApprovalCount}
               tasks={tasks}
-              contentSummary={contentSummary}
-              usefulness={usefulness}
-              metricsTotals={metricsTotals}
-              metricsSnapshots={metricsSnapshots}
-              metricTrends={metricTrends}
-              recentRoleShortcuts={recentRoleShortcuts}
-              recentCopiedRoleLinks={recentCopiedRoleLinks}
               onOpenCreate={() => setActiveView("CREATE")}
               onOpenCreateForRole={(roleId) => {
                 openRoleShortcut(roleId, "CREATE");
@@ -867,7 +704,6 @@ export function AiOfficePanel(props: {
                 setSelectedInboxRoleId(null);
                 setActiveView("INBOX");
               }}
-              onCopiedRoleLink={rememberCopiedRoleLink}
               onCollectMetrics={() => void collectMetrics()}
             />
           ) : null}
@@ -875,12 +711,7 @@ export function AiOfficePanel(props: {
           {activeView === "CREATE" ? (
             <AiOfficeCreateSection
               loading={loading}
-              contentSummary={contentSummary}
-              usefulness={usefulness}
-              tasks={tasks}
-              selectedRoleId={selectedRoleId}
               taskType={taskType}
-              taskTypeCopy={currentTaskTypeCopy}
               requiresApproval={requiresApproval}
               translationInput={translationInput}
               translationLang={translationLang}
@@ -891,7 +722,6 @@ export function AiOfficePanel(props: {
               includeSupportSummary={includeSupportSummary}
               supporterMessagePurpose={supporterMessagePurpose}
               translationResult={translationResult}
-              onRoleChange={handleRoleChange}
               onTaskTypeChange={handleTaskTypeChange}
               onRequiresApprovalChange={setRequiresApproval}
               onTranslationInputChange={setTranslationInput}
@@ -902,11 +732,6 @@ export function AiOfficePanel(props: {
               onIncludeMetricsSummaryChange={setIncludeMetricsSummary}
               onIncludeSupportSummaryChange={setIncludeSupportSummary}
               onSupporterMessagePurposeChange={setSupporterMessagePurpose}
-              onCollectMetrics={() => void collectMetrics()}
-              onOpenInbox={(roleId) => {
-                setSelectedInboxRoleId(roleId ?? null);
-                setActiveView("INBOX");
-              }}
               onCreateTask={() => void createTask()}
               onTranslateText={() => void translateText()}
             />
@@ -918,8 +743,6 @@ export function AiOfficePanel(props: {
               taskFilter={taskFilter}
               tasks={tasks}
               usefulness={usefulness}
-              recentRoleShortcuts={recentRoleShortcuts}
-              recentCopiedRoleLinks={recentCopiedRoleLinks}
               selectedRoleId={selectedInboxRoleId}
               waitingApprovalCount={waitingApprovalCount}
               selectedTaskIds={selectedTaskIds}
@@ -927,8 +750,6 @@ export function AiOfficePanel(props: {
               onOpenCreateForRole={(roleId) => {
                 openRoleShortcut(roleId, "CREATE");
               }}
-              onOpenShortcut={openRoleShortcut}
-              onCopiedRoleLink={rememberCopiedRoleLink}
               onRoleFilterChange={setSelectedInboxRoleId}
               onTaskFilterChange={setTaskFilter}
               onApprovalNoteChange={setApprovalNote}
@@ -942,7 +763,7 @@ export function AiOfficePanel(props: {
               }
               onToggleTaskSelection={toggleTaskSelection}
               onApproveOne={(taskId) => void approveTasks([taskId], "APPROVE")}
-              onRejectOne={(taskId) => void approveTasks([taskId], "REJECT")}
+              onRejectOne={(taskId, note) => void approveTasks([taskId], "REJECT", note)}
             />
           ) : null}
         </>

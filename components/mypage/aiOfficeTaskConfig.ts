@@ -74,7 +74,7 @@ export const AI_OFFICE_TASK_CHOICES: readonly AiOfficeTaskChoice[] = [
   {
     taskType: "DISTRIBUTION_PLAN_DRAFT",
     eyebrow: "Finance",
-    whenToUse: "配分の draft を AI事務所から settlement に渡したいとき",
+    whenToUse: "配分の draft を AIアシスタントから settlement に渡したいとき",
     tier: "BETA",
   },
   {
@@ -168,7 +168,7 @@ const AI_OFFICE_ROLE_HELPERS: Record<CreatorAiAgentRole, string> = {
   PROMOTION:
     "公開ページ、投稿、告知文の下書きを作り、外に伝える内容を整えます。",
   FINANCE:
-    "進捗や配分準備を整理し、AI事務所から settlement の Draft step へ配分案を渡せます。",
+    "進捗や配分準備を整理し、AIアシスタントから settlement の Draft step へ配分案を渡せます。",
   FAN_RELATION:
     "支援者向けのお礼や再案内を整え、継続的なコミュニケーションを助けます。",
 };
@@ -318,7 +318,7 @@ export function getAiOfficeRoleGuidance(
     tone: "neutral",
     title: "最初の 1 件を作る段階です",
     description:
-      "まずは Manager Agent か Promotion Agent から始めると、AI事務所の使いどころを掴みやすくなります。",
+      "まずは「次の一手を提案する」か「プロフィール改善」から試すと、AIアシスタントの使いどころを掴みやすくなります。",
   };
 }
 

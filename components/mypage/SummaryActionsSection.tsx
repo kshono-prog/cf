@@ -46,13 +46,19 @@ function renderProgressText(summary: SummaryResponseOk): string {
 }
 
 export function SummaryActionsSection(props: SummaryActionsSectionProps) {
+  function msgClass(kind: string) {
+    if (kind === "error") return "alert-error";
+    if (kind === "success") return "alert-ok";
+    return "alert-info";
+  }
+
   return (
-    <div className="rounded-xl border bg-white p-4 space-y-3">
+    <div className="card p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="font-semibold">Summary / Actions</div>
+        <div className="section-title">Summary / Actions</div>
         <div className="flex items-center gap-2">
           <button
-            className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-40"
+            className="btn-secondary"
             onClick={() => void props.refreshSummary()}
             disabled={!props.localProjectId || props.summaryLoading}
             type="button"
@@ -63,34 +69,24 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
       </div>
 
       {!props.localProjectId ? (
-        <div className="text-sm text-gray-600">
-          Project 作成後に Summary を利用できます。
-        </div>
+        <p className="caption-text">Project 作成後に Summary を利用できます。</p>
       ) : (
         <>
           {props.msg && (
-            <div
-              className={`text-xs rounded-lg px-3 py-2 border ${
-                props.msg.kind === "error"
-                  ? "border-rose-200 bg-rose-50 text-rose-800"
-                  : props.msg.kind === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-gray-200 bg-gray-50 text-gray-700"
-              }`}
-            >
+            <div className={msgClass(props.msg.kind)}>
               {props.msg.text}
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <div className="text-xs text-gray-500">Project status</div>
-              <div className="text-sm">{props.summary?.project.status ?? "—"}</div>
+              <div className="section-label">Project status</div>
+              <div className="body-text">{props.summary?.project.status ?? "—"}</div>
             </div>
 
             <div className="space-y-1">
-              <div className="text-xs text-gray-500">Progress</div>
-              <div className="text-sm">
+              <div className="section-label">Progress</div>
+              <div className="body-text">
                 {props.summary ? renderProgressText(props.summary) : "—"}
               </div>
             </div>
@@ -98,18 +94,16 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <div className="text-xs text-gray-500">
-                Distribution plan (JSON)
-              </div>
+              <div className="section-label">Distribution plan (JSON)</div>
               <textarea
-                className="w-full min-h-[140px] rounded-lg border px-3 py-2 font-mono text-[12px]"
+                className="input min-h-[140px] font-mono text-[12px]"
                 value={props.planText}
                 onChange={(e) => props.setPlanText(e.target.value)}
                 disabled={!props.canSavePlan || props.summaryLoading}
                 placeholder='{"recipients":[...]}'
               />
               <button
-                className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+                className="btn"
                 onClick={() => void props.doSavePlan()}
                 disabled={!props.canSavePlan || props.summaryLoading}
                 title={!props.isOwner ? "owner のみ保存できます" : ""}
@@ -120,11 +114,9 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
             </div>
 
             <div className="space-y-1">
-              <div className="text-xs text-gray-500">
-                Distribution result txHashes (JSON or lines)
-              </div>
+              <div className="section-label">Distribution result txHashes (JSON or lines)</div>
               <textarea
-                className="w-full min-h-[140px] rounded-lg border px-3 py-2 font-mono text-[12px]"
+                className="input min-h-[140px] font-mono text-[12px]"
                 value={props.txHashesText}
                 onChange={(e) => props.setTxHashesText(e.target.value)}
                 disabled={!props.canSaveDistResult || props.summaryLoading}
@@ -133,9 +125,9 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <div className="text-xs text-gray-500">currency</div>
+                  <div className="section-label">currency</div>
                   <select
-                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                    className="input"
                     value={props.currency}
                     onChange={(e) =>
                       props.setCurrency(e.target.value as CurrencyCode)
@@ -148,9 +140,9 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-xs text-gray-500">chainId</div>
+                  <div className="section-label">chainId</div>
                   <input
-                    className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
+                    className="input font-mono"
                     value={String(props.distChainId)}
                     onChange={(e) => {
                       const value = Number(e.target.value);
@@ -163,9 +155,9 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
               </div>
 
               <div className="space-y-1">
-                <div className="text-xs text-gray-500">note (optional)</div>
+                <div className="section-label">note (optional)</div>
                 <input
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
+                  className="input"
                   value={props.note}
                   onChange={(e) => props.setNote(e.target.value)}
                   disabled={!props.canSaveDistResult || props.summaryLoading}
@@ -173,7 +165,7 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
               </div>
 
               <button
-                className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+                className="btn"
                 onClick={() => void props.doSaveDistributionResult()}
                 disabled={!props.canSaveDistResult || props.summaryLoading}
                 title={!props.isOwner ? "owner のみ保存できます" : ""}
@@ -198,7 +190,7 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
           </div>
 
           {props.summary?.goal?.achievedAt && (
-            <div className="text-[11px] text-emerald-700">
+            <div className="caption-text">
               achievedAt:{" "}
               <span className="font-mono">{props.summary.goal.achievedAt}</span>
             </div>

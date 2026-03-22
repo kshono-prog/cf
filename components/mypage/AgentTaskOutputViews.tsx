@@ -151,8 +151,8 @@ function AnalyzeOutputCard(props: { output: AnalyzeOutputView }) {
         ).toFixed(1)}%`;
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       {output.totals ? (
         <div className="grid grid-cols-2 gap-1">
           <div>views: {output.totals.views}</div>
@@ -175,9 +175,9 @@ function AnalyzeOutputCard(props: { output: AnalyzeOutputView }) {
         </div>
       ) : null}
       {points.length > 0 ? (
-        <div className="rounded border bg-white p-1">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-1">
           {points.map((point) => (
-            <div key={point.date} className="text-[10px] text-gray-700">
+            <div key={point.date} className="text-[10px] text-[var(--text)]">
               {point.date} v:{point.views} r:{(point.interactionRate * 100).toFixed(1)}%
             </div>
           ))}
@@ -278,12 +278,12 @@ function ProposeOutputCard(props: {
   );
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       {output.metricsHint.length > 0 ? (
-        <div className="rounded border bg-white p-1">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-1">
           {output.metricsHint.slice(0, 3).map((item) => (
-            <div key={item.platform} className="text-[10px] text-gray-700">
+            <div key={item.platform} className="text-[10px] text-[var(--text)]">
               {item.platform} posts:{item.posts} rate:
               {(item.interactionRate * 100).toFixed(1)}% ({item.interactions}/
               {item.views})
@@ -295,12 +295,12 @@ function ProposeOutputCard(props: {
         {output.proposals.slice(0, 3).map((proposal, idx) => (
           <div
             key={`${proposal}:${idx.toString()}`}
-            className="rounded border bg-white px-2 py-1 text-gray-800"
+            className="rounded border bg-white px-2 py-1 text-[var(--text)]"
           >
             <div>{idx + 1}. {proposal}</div>
             <button
               type="button"
-              className="mt-1 rounded-full border border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-700"
+              className="mt-1 rounded-full border border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-[var(--text)]"
               onClick={() => {
                 openComposeWith(proposal, idx);
               }}
@@ -467,7 +467,7 @@ function managerPriorityBadgeClass(
   if (priority === "medium") {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
-  return "border-gray-200 bg-gray-100 text-gray-700";
+  return "border-gray-200 bg-gray-100 text-[var(--text)]";
 }
 
 function ManagerNextActionsOutputCard(props: {
@@ -475,11 +475,11 @@ function ManagerNextActionsOutputCard(props: {
 }) {
   const { output } = props;
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       {output.projectSnapshot ? (
-        <div className="rounded border bg-white p-2 text-gray-700">
-          <div className="font-medium text-gray-800">
+        <div className="rounded border bg-white p-2 text-[var(--text)]">
+          <div className="font-medium text-[var(--text)]">
             {output.projectSnapshot.title}
           </div>
           <div className="mt-1 text-[10px]">
@@ -495,22 +495,22 @@ function ManagerNextActionsOutputCard(props: {
       ) : null}
       {output.evidence ? (
         <div className="flex flex-wrap gap-1">
-          <span className="rounded-full border bg-white px-2 py-1">
+          <span className="status-badge status-badge-neutral">
             progress: {Math.floor(output.evidence.progressPct)}%
           </span>
-          <span className="rounded-full border bg-white px-2 py-1">
+          <span className="status-badge status-badge-neutral">
             goal: {output.evidence.goalConfigured ? "set" : "missing"}
           </span>
-          <span className="rounded-full border bg-white px-2 py-1">
+          <span className="status-badge status-badge-neutral">
             achieved: {output.evidence.goalAchieved ? "yes" : "no"}
           </span>
-          <span className="rounded-full border bg-white px-2 py-1">
+          <span className="status-badge status-badge-neutral">
             plan: {output.evidence.distributionPlanMissing ? "missing" : "ready"}
           </span>
-          <span className="rounded-full border bg-white px-2 py-1">
+          <span className="status-badge status-badge-neutral">
             bridge: {output.evidence.bridgeReflected ? "reflected" : "pending"}
           </span>
-          <span className="rounded-full border bg-white px-2 py-1">
+          <span className="status-badge status-badge-neutral">
             result:{" "}
             {output.evidence.distributionResultSaved ? "saved" : "pending"}
           </span>
@@ -521,7 +521,7 @@ function ManagerNextActionsOutputCard(props: {
           {output.suggestedActions.slice(0, 3).map((action) => (
             <div
               key={action.id}
-              className="rounded border bg-white px-2 py-2 text-gray-800"
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-2 text-[var(--text)]"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="font-medium">{action.title}</div>
@@ -533,18 +533,18 @@ function ManagerNextActionsOutputCard(props: {
                   {action.priority}
                 </span>
               </div>
-              <div className="mt-1 text-[10px] text-gray-500">
+              <div className="mt-1 text-[10px] text-[var(--text-subtle)]">
                 target: {action.recommendedUiTarget}
                 {action.requiresHumanApproval ? " / approval required" : ""}
               </div>
-              <div className="mt-1 text-[10px] whitespace-pre-wrap text-gray-700">
+              <div className="mt-1 text-[10px] whitespace-pre-wrap text-[var(--text)]">
                 {action.reason}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded border border-dashed bg-white px-2 py-2 text-gray-600">
+        <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface)] px-2 py-2 text-[var(--text-subtle)]">
           追加の next action はありません。
         </div>
       )}
@@ -613,19 +613,19 @@ function TranslateOutputCard(props: {
   );
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       <div className="grid gap-1">
         {output.translations.slice(0, 4).map((item, idx) => (
           <div
             key={`${item.lang}:${idx.toString()}`}
-            className="rounded border bg-white px-2 py-2 text-gray-800"
+            className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-2 text-[var(--text)]"
           >
             <div className="flex items-center justify-between gap-2">
-              <div className="text-[10px] text-gray-500">{item.lang}</div>
+              <div className="text-[10px] text-[var(--text-subtle)]">{item.lang}</div>
               <button
                 type="button"
-                className="shrink-0 rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700"
+                className="shrink-0 rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--text)]"
                 onClick={() => openComposeWith(item.lang, item.text)}
               >
                 {sentLang === item.lang ? "送信済み" : "compose に送る"}
@@ -737,13 +737,13 @@ function parseWeeklyReportOutput(v: unknown): WeeklyReportOutputView | null {
 function WeeklyReportOutputCard(props: { output: WeeklyReportOutputView }) {
   const { output } = props;
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       {output.reportingPeriod ? (
         <div>period: last {output.reportingPeriod.days} days</div>
       ) : null}
       {output.metricsSummary ? (
-        <div className="rounded border bg-white p-1">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-1">
           views:{output.metricsSummary.totals.views} likes:
           {output.metricsSummary.totals.likes} comments:
           {output.metricsSummary.totals.comments} shares:
@@ -755,7 +755,7 @@ function WeeklyReportOutputCard(props: { output: WeeklyReportOutputView }) {
         </div>
       ) : null}
       {output.supportSummary ? (
-        <div className="rounded border bg-white p-1">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-1">
           support: {output.supportSummary.contributionCount} contributions / total{" "}
           {output.supportSummary.confirmedAmountTotal.toLocaleString()}
         </div>
@@ -971,10 +971,10 @@ function DistributionPlanDraftTaskOutputCard(props: {
   }, [payloadText]);
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       {output.projectSnapshot ? (
-        <div className="flex flex-wrap gap-2 text-[10px] text-gray-600">
+        <div className="flex flex-wrap gap-2 text-[10px] text-[var(--text-subtle)]">
           <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
             {output.projectSnapshot.title}
           </span>
@@ -993,7 +993,7 @@ function DistributionPlanDraftTaskOutputCard(props: {
       ) : null}
       {output.draftPayload ? (
         <>
-          <div className="flex flex-wrap gap-2 text-[10px] text-gray-600">
+          <div className="flex flex-wrap gap-2 text-[10px] text-[var(--text-subtle)]">
             <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
               source: {output.draftPayload.source}
             </span>
@@ -1004,11 +1004,11 @@ function DistributionPlanDraftTaskOutputCard(props: {
               currency: {output.draftPayload.currency}
             </span>
           </div>
-          <div className="rounded border bg-white p-2">
+          <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-2">
             {output.draftPayload.rows.slice(0, 3).map((row, index) => (
               <div
                 key={`${row.id ?? "row"}:${index.toString()}`}
-                className="text-[10px] text-gray-700"
+                className="text-[10px] text-[var(--text)]"
               >
                 {index + 1}. {row.amountAtomic || "0"} /{" "}
                 {row.recipientAddress || "recipientAddress 未設定"}
@@ -1026,14 +1026,14 @@ function DistributionPlanDraftTaskOutputCard(props: {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+              className="btn-secondary text-[11px]"
               onClick={openSettlementDraft}
             >
               settlement Draft を開く
             </button>
             <button
               type="button"
-              className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+              className="btn-secondary text-[11px]"
               onClick={() => {
                 void copyDraftJson();
               }}
@@ -1043,7 +1043,7 @@ function DistributionPlanDraftTaskOutputCard(props: {
           </div>
         </>
       ) : (
-        <div className="rounded border bg-white px-2 py-1 text-gray-700">
+        <div className="rounded border bg-white px-2 py-1 text-[var(--text)]">
           project 情報が不足しているため、Draft step に渡せる payload はまだありません。
         </div>
       )}
@@ -1159,12 +1159,12 @@ function AnnouncementDraftOutputCard(props: {
   }, [payloadText]);
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
-      <div className="rounded border bg-white px-2 py-1">
-        <div className="text-[10px] text-gray-500">{output.channel}</div>
-        <div className="font-medium text-gray-800">{output.headline}</div>
-        <div className="mt-1 whitespace-pre-wrap text-gray-700">{output.body}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
+        <div className="text-[10px] text-[var(--text-subtle)]">{output.channel}</div>
+        <div className="font-medium text-[var(--text)]">{output.headline}</div>
+        <div className="mt-1 whitespace-pre-wrap text-[var(--text)]">{output.body}</div>
       </div>
       {output.supportingPoints.length > 0 ? (
         <ul className="list-disc pl-4">
@@ -1174,21 +1174,21 @@ function AnnouncementDraftOutputCard(props: {
         </ul>
       ) : null}
       {output.callToAction ? (
-        <div className="rounded border bg-white px-2 py-1 text-gray-700">
+        <div className="rounded border bg-white px-2 py-1 text-[var(--text)]">
           CTA: {output.callToAction}
         </div>
       ) : null}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          className="btn-secondary text-[11px]"
           onClick={openPostingCompose}
         >
           posting compose を開く
         </button>
         <button
           type="button"
-          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          className="btn-secondary text-[11px]"
           onClick={() => {
             void copyDraftText();
           }}
@@ -1266,7 +1266,7 @@ function profilePriorityBadgeClass(
 ): string {
   if (priority === "high") return "border-rose-200 bg-rose-50 text-rose-700";
   if (priority === "medium") return "border-amber-200 bg-amber-50 text-amber-800";
-  return "border-gray-200 bg-gray-100 text-gray-700";
+  return "border-gray-200 bg-gray-100 text-[var(--text)]";
 }
 
 function ProfileUpdateProposalOutputCard(props: {
@@ -1284,8 +1284,8 @@ function ProfileUpdateProposalOutputCard(props: {
   ];
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       <div className="flex flex-wrap gap-1">
         {chips.map((chip) => (
           <span
@@ -1293,13 +1293,13 @@ function ProfileUpdateProposalOutputCard(props: {
             className={`rounded-full border px-2 py-0.5 text-[10px] ${
               chip.ok
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-gray-200 bg-white text-gray-500"
+                : "border-gray-200 bg-white text-[var(--text-subtle)]"
             }`}
           >
             {chip.ok ? "✓" : "–"} {chip.label}
           </span>
         ))}
-        <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-500">
+        <span className="status-badge status-badge-neutral">
           SNS {snap.socialLinkCount.toString()}件
         </span>
       </div>
@@ -1308,7 +1308,7 @@ function ProfileUpdateProposalOutputCard(props: {
           {output.proposals.slice(0, 5).map((proposal) => (
             <div
               key={proposal.field}
-              className="rounded border bg-white px-2 py-2 text-gray-800"
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-2 text-[var(--text)]"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="font-medium">{proposal.suggestionNote}</div>
@@ -1318,14 +1318,14 @@ function ProfileUpdateProposalOutputCard(props: {
                   {proposal.priority}
                 </span>
               </div>
-              <div className="mt-1 text-[10px] text-gray-500">
+              <div className="mt-1 text-[10px] text-[var(--text-subtle)]">
                 {proposal.reason}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded border border-dashed bg-white px-2 py-2 text-gray-600">
+        <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface)] px-2 py-2 text-[var(--text-subtle)]">
           現時点で改善提案はありません。
         </div>
       )}
@@ -1399,7 +1399,7 @@ function parseDailyActionPlanOutput(
 function dailyPriorityBadgeClass(priority: DailyAction["priority"]): string {
   if (priority === "high") return "border-rose-200 bg-rose-50 text-rose-700";
   if (priority === "medium") return "border-amber-200 bg-amber-50 text-amber-800";
-  return "border-gray-200 bg-gray-100 text-gray-600";
+  return "border-[var(--line)] bg-[var(--surface-subtle)] text-[var(--text-subtle)]";
 }
 
 function DailyActionPlanOutputCard(props: {
@@ -1407,13 +1407,13 @@ function DailyActionPlanOutputCard(props: {
 }) {
   const { output } = props;
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       <div className="grid gap-1">
         {output.actions.map((action) => (
           <div
             key={action.id}
-            className="rounded border bg-white px-2 py-2 text-gray-800"
+            className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-2 text-[var(--text)]"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="font-medium">{action.title}</div>
@@ -1423,12 +1423,12 @@ function DailyActionPlanOutputCard(props: {
                 {action.priority}
               </span>
             </div>
-            <div className="mt-1 text-[10px] text-gray-500">{action.reason}</div>
+            <div className="mt-1 text-[10px] text-[var(--text-subtle)]">{action.reason}</div>
           </div>
         ))}
       </div>
       {output.context.daysSinceLastPost !== null && output.context.daysSinceLastPost >= 3 ? (
-        <div className="text-[10px] text-gray-500">
+        <div className="text-[10px] text-[var(--text-subtle)]">
           最終投稿から {output.context.daysSinceLastPost.toString()}日 / 承認待ち{" "}
           {output.context.pendingApprovals.toString()}件
         </div>
@@ -1500,22 +1500,22 @@ function ActivityRestartProposalOutputCard(props: {
 }) {
   const { output } = props;
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       {output.inactivityContext.inactivityNote ? (
-        <div className="text-[10px] text-gray-500">
+        <div className="text-[10px] text-[var(--text-subtle)]">
           {output.inactivityContext.inactivityNote}
         </div>
       ) : null}
       {output.successPatterns.length > 0 ? (
         <div className="space-y-1">
-          <div className="text-[10px] font-medium text-gray-700">
+          <div className="text-[10px] font-medium text-[var(--text)]">
             過去の成功パターン
           </div>
           {output.successPatterns.slice(0, 3).map((pattern, idx) => (
             <div
               key={`${pattern}:${idx.toString()}`}
-              className="rounded border bg-white px-2 py-1 text-[10px] text-gray-700"
+              className="rounded border bg-white px-2 py-1 text-[10px] text-[var(--text)]"
             >
               {pattern}
             </div>
@@ -1526,13 +1526,13 @@ function ActivityRestartProposalOutputCard(props: {
         {output.restartSteps.map((step) => (
           <div
             key={step.step}
-            className="rounded border bg-white px-2 py-2 text-gray-800"
+            className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-2 text-[var(--text)]"
           >
             <div className="font-medium">
               {step.step}. {step.title}
             </div>
-            <div className="mt-1 text-[10px] text-gray-500">{step.description}</div>
-            <div className="mt-1 text-[10px] text-gray-400">
+            <div className="mt-1 text-[10px] text-[var(--text-subtle)]">{step.description}</div>
+            <div className="mt-1 text-[10px] text-[var(--text-subtle)]">
               手間: {step.effort}
             </div>
           </div>
@@ -1628,45 +1628,45 @@ function SupportStoryDraftOutputCard(props: {
   }, [projectId, output.storyText]);
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       <div className="rounded border bg-white px-2 py-2 space-y-2">
         {output.sections.why ? (
           <div>
-            <div className="text-[10px] font-medium text-gray-500">
+            <div className="text-[10px] font-medium text-[var(--text-subtle)]">
               なぜ支援が必要か
             </div>
-            <div className="mt-0.5 text-gray-800">{output.sections.why}</div>
+            <div className="mt-0.5 text-[var(--text)]">{output.sections.why}</div>
           </div>
         ) : null}
         {output.sections.what ? (
           <div>
-            <div className="text-[10px] font-medium text-gray-500">
+            <div className="text-[10px] font-medium text-[var(--text-subtle)]">
               何が実現するか
             </div>
-            <div className="mt-0.5 text-gray-800">{output.sections.what}</div>
+            <div className="mt-0.5 text-[var(--text)]">{output.sections.what}</div>
           </div>
         ) : null}
         {output.sections.progress ? (
           <div>
-            <div className="text-[10px] font-medium text-gray-500">
+            <div className="text-[10px] font-medium text-[var(--text-subtle)]">
               いまの進捗
             </div>
-            <div className="mt-0.5 text-gray-800">{output.sections.progress}</div>
+            <div className="mt-0.5 text-[var(--text)]">{output.sections.progress}</div>
           </div>
         ) : null}
       </div>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          className="btn-secondary text-[11px]"
           onClick={openPostingCompose}
         >
           {sent ? "送信済み" : "compose に送る"}
         </button>
         <button
           type="button"
-          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          className="btn-secondary text-[11px]"
           onClick={() => {
             void copyStory();
           }}
@@ -1745,9 +1745,9 @@ function SupporterResultReportOutputCard(props: {
   );
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
-      <div className="flex flex-wrap gap-1 text-[10px] text-gray-600">
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      <div className="flex flex-wrap gap-1 text-[10px] text-[var(--text-subtle)]">
         <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5">
           {output.goalLabel}
         </span>
@@ -1766,16 +1766,16 @@ function SupporterResultReportOutputCard(props: {
       </div>
       {output.purposeBreakdown.length > 0 ? (
         <div className="space-y-1">
-          <div className="text-[10px] font-medium text-gray-600">用途別内訳</div>
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">用途別内訳</div>
           {output.purposeBreakdown.slice(0, 6).map((item) => (
             <div key={item.purposeLabel} className="space-y-0.5">
-              <div className="flex items-center justify-between text-[10px] text-gray-700">
+              <div className="flex items-center justify-between text-[10px] text-[var(--text)]">
                 <span>{item.purposeLabel}</span>
                 <span>
                   {item.confirmedAmount.toLocaleString()} {output.currency}
                 </span>
               </div>
-              <div className="h-1 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-1 overflow-hidden rounded-full bg-[var(--line)]">
                 <div
                   className="h-full rounded-full bg-emerald-500"
                   style={{
@@ -1787,7 +1787,7 @@ function SupporterResultReportOutputCard(props: {
           ))}
         </div>
       ) : null}
-      <div className="rounded border bg-white px-2 py-1.5 space-y-1 text-[10px] text-gray-700">
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-1.5 space-y-1 text-[10px] text-[var(--text)]">
         <div>合計: {output.totalAmount.toLocaleString()} {output.currency}</div>
         <div>{output.distributionNote}</div>
         <div>{output.activityAfterNote}</div>
@@ -1960,21 +1960,21 @@ function CareerPlanDraftOutputCard(props: {
 }) {
   const { output } = props;
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
       <div className="flex flex-wrap gap-1">
         <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700">
           現在: {output.currentPhase}
         </span>
       </div>
       {output.weeklyPace ? (
-        <div className="rounded border bg-white px-2 py-1.5 text-[10px] text-gray-700">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-1.5 text-[10px] text-[var(--text)]">
           {output.weeklyPace}
         </div>
       ) : null}
       {output.milestones3mo.length > 0 ? (
         <div className="space-y-1">
-          <div className="text-[10px] font-medium text-gray-600">3ヶ月マイルストーン</div>
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">3ヶ月マイルストーン</div>
           {output.milestones3mo.map((m, idx) => (
             <div
               key={`3mo:${idx.toString()}`}
@@ -1990,13 +1990,13 @@ function CareerPlanDraftOutputCard(props: {
       ) : null}
       {output.milestones6mo.length > 0 ? (
         <div className="space-y-1">
-          <div className="text-[10px] font-medium text-gray-600">6ヶ月マイルストーン</div>
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">6ヶ月マイルストーン</div>
           {output.milestones6mo.map((m, idx) => (
             <div
               key={`6mo:${idx.toString()}`}
               className="flex items-start gap-1.5 rounded border border-dashed bg-white px-2 py-1.5"
             >
-              <span className="shrink-0 text-[10px] font-semibold text-gray-400">
+              <span className="shrink-0 text-[10px] font-semibold text-[var(--text-subtle)]">
                 {(idx + 1).toString()}
               </span>
               <span className="text-gray-700">{m}</span>
@@ -2006,11 +2006,11 @@ function CareerPlanDraftOutputCard(props: {
       ) : null}
       {output.focusAreas.length > 0 ? (
         <div className="space-y-0.5">
-          <div className="text-[10px] font-medium text-gray-600">注力領域</div>
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">注力領域</div>
           {output.focusAreas.map((area, idx) => (
             <div
               key={`focus:${idx.toString()}`}
-              className="text-[10px] text-gray-700"
+              className="text-[10px] text-[var(--text)]"
             >
               • {area}
             </div>
@@ -2136,7 +2136,7 @@ export function AgentTaskOutput(props: {
   if (rendered) return rendered;
 
   return (
-    <pre className="mt-1 whitespace-pre-wrap rounded bg-gray-50 p-2 text-[11px]">
+    <pre className="mt-1 whitespace-pre-wrap rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px]">
       {stringifyOutput(output)}
     </pre>
   );
@@ -2207,14 +2207,14 @@ function SupporterMessageDraftOutputCard(props: {
   }, [payloadText]);
 
   return (
-    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
-      <div className="font-medium text-gray-800">{output.summary}</div>
-      <div className="rounded border bg-white px-2 py-1">
-        <div className="text-[10px] text-gray-500">
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
+        <div className="text-[10px] text-[var(--text-subtle)]">
           {output.audience} / {output.purpose}
         </div>
-        <div className="font-medium text-gray-800">{output.subject}</div>
-        <div className="mt-1 whitespace-pre-wrap text-gray-700">{output.body}</div>
+        <div className="font-medium text-[var(--text)]">{output.subject}</div>
+        <div className="mt-1 whitespace-pre-wrap text-[var(--text)]">{output.body}</div>
       </div>
       {output.supportingPoints.length > 0 ? (
         <ul className="list-disc pl-4">
@@ -2223,13 +2223,13 @@ function SupporterMessageDraftOutputCard(props: {
           ))}
         </ul>
       ) : null}
-      <div className="rounded border bg-white px-2 py-1 text-gray-700">
+      <div className="rounded border bg-white px-2 py-1 text-[var(--text)]">
         この下書きは支援者向けのため、public posting compose には直接渡しません。
       </div>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          className="btn-secondary text-[11px]"
           onClick={() => {
             void copyDraftText();
           }}

@@ -43,28 +43,27 @@ const NOTICE_STYLES: Record<
   },
 };
 
+const NOTICE_LABELS: Record<WorkspaceNoticeTone, string> = {
+  success: "完了",
+  error: "エラー",
+  info: "案内",
+  attention: "次にやること",
+};
+
 export function WorkspaceStatusNotice(props: {
   tone: WorkspaceNoticeTone;
   title: string;
   description?: string;
+  onRetry?: () => void;
   children?: React.ReactNode;
 }) {
   const styles = NOTICE_STYLES[props.tone];
-  const label =
-    props.tone === "success"
-      ? "完了"
-      : props.tone === "error"
-        ? "要確認"
-        : props.tone === "attention"
-          ? "次にやること"
-          : "案内";
-
   return (
     <div className={`rounded-2xl border px-4 py-3 ${styles.wrapper}`}>
       <div
         className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${styles.eyebrow}`}
       >
-        {label}
+        {NOTICE_LABELS[props.tone]}
       </div>
       <div className={`mt-1 text-sm font-semibold ${styles.title}`}>
         {props.title}
@@ -74,7 +73,20 @@ export function WorkspaceStatusNotice(props: {
           {props.description}
         </div>
       ) : null}
-      {props.children ? <div className="mt-3">{props.children}</div> : null}
+      {(props.children || props.onRetry) ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {props.children}
+          {props.onRetry ? (
+            <button
+              type="button"
+              className="btn-raised btn-raised-sm"
+              onClick={props.onRetry}
+            >
+              もう一度試す
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
