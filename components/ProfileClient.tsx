@@ -13,6 +13,7 @@ import {
 } from "@/components/profile/profileClientHelpers";
 import { LazyFeedSection } from "@/components/feed/LazyFeedSection";
 import { Avatar } from "@/components/shared/Avatar";
+import { CreatorManagementStrip } from "@/components/profile/CreatorManagementStrip";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import { ProfileViewerGuideCard } from "@/components/profile/ProfileViewerGuideCard";
 import {
@@ -631,6 +632,7 @@ export default function ProfileClient({
           refreshToken={feedRefreshToken}
           initialFeed={initialFeed}
           headerColor={creator.themeColor || "#2563eb"}
+          goalAchievedAt={goalAchievedAt ?? null}
           onSelectTipPost={handleSelectPostTip}
           onFocusWalletSection={openSupportSheet}
         />
@@ -692,5 +694,12 @@ export default function ProfileClient({
     return content;
   }
 
-  return <div className="space-y-4">{content}</div>;
+  return (
+    <div className="space-y-4">
+      {viewerState.isOwner ? (
+        <CreatorManagementStrip username={username} />
+      ) : null}
+      {content}
+    </div>
+  );
 }

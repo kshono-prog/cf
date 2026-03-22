@@ -13,6 +13,6 @@ export default async function MyPageHome({
 
   return renderMyPageWorkspace({
     username,
-    initialWorkspaceView: "home",
+    initialWorkspaceView: "daily-work",
   });
 }

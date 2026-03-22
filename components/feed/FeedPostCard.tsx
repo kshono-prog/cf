@@ -7,6 +7,7 @@ import {
   getFeedPostProjectSupportHref,
   type FeedPost,
 } from "@/components/feed/feedTypes";
+import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import { Avatar } from "@/components/shared/Avatar";
 
 export function ReplyIcon() {
@@ -271,48 +272,52 @@ export function FeedPostCard(props: Props) {
       </div>
 
       {post.mediaUrl ? (
-        <div className="mt-2.5 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
-          {post.mediaType === "IMAGE" ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={post.mediaUrl}
-                alt="post media"
-                className="max-h-[420px] w-full object-cover"
-              />
-            </>
-          ) : showEmbeddedVideo ? (
-            <div className="bg-black">
-              <div className="aspect-video w-full">
-                <iframe
-                  src={youTubeEmbedUrl}
-                  title={`${post.creator.displayName} の動画`}
-                  className="h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
+        post.mediaType === "LINK" ? (
+          <LinkPreviewCard url={post.mediaUrl} />
+        ) : (
+          <div className="mt-2.5 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+            {post.mediaType === "IMAGE" ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.mediaUrl}
+                  alt="post media"
+                  className="max-h-[420px] w-full object-cover"
                 />
+              </>
+            ) : showEmbeddedVideo ? (
+              <div className="bg-black">
+                <div className="aspect-video w-full">
+                  <iframe
+                    src={youTubeEmbedUrl}
+                    title={`${post.creator.displayName} の動画`}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+                <a
+                  href={post.mediaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block border-t border-white/10 px-4 py-3 text-xs font-medium text-white/80 transition hover:text-white"
+                >
+                  YouTube で開く
+                </a>
               </div>
+            ) : (
               <a
                 href={post.mediaUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block border-t border-white/10 px-4 py-3 text-xs font-medium text-white/80 transition hover:text-white"
+                className="block px-4 py-3 text-sm text-sky-700 underline hover:text-sky-800"
               >
-                YouTube で開く
+                動画リンクを開く
               </a>
-            </div>
-          ) : (
-            <a
-              href={post.mediaUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="block px-4 py-3 text-sm text-sky-700 underline hover:text-sky-800"
-            >
-              {post.mediaType === "VIDEO" ? "動画リンクを開く" : "リンクを開く"}
-            </a>
-          )}
-        </div>
+            )}
+          </div>
+        )
       ) : null}
 
       <div

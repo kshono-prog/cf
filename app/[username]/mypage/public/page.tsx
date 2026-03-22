@@ -13,6 +13,6 @@ export default async function MyPagePublic({
 
   return renderMyPageWorkspace({
     username,
-    initialWorkspaceView: "public",
+    initialWorkspaceView: "settings",
   });
 }

@@ -2,10 +2,15 @@
 
 import Image from "next/image";
 
+import { CreatorProfileSection } from "@/components/mypage/CreatorProfileSection";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 
 export function CreatorSettingsBasicInfoSection() {
   const workspace = useCreatorReadyWorkspace();
+
+  if (workspace.editingProfile) {
+    return <CreatorProfileSection />;
+  }
 
   return (
     <section id="basic-info" className="surface-card p-5 sm:p-6">

@@ -2,9 +2,18 @@
 
 ## Purpose
 
-現状機能を `ホーム / 運営 / 公開 / 詳細設定` に再分類し、Phase 0 UX の次アクションとして使える `画面棚卸し表 + 導線マップ + 実装タスク分解` を固定する。
+ユーザー属性（ファン / クリエイター）で体験を完全に分岐させ、クリエイター向けワークスペースを `今日の仕事 / 設定・準備` の2モードに再構築する。
 
 この文書の目的は機能追加ではなく、既存機能の見せ方と入口を整理することにある。
+
+## User Role Separation（最重要原則）
+
+| 属性 | URL | 目的 | 設計思想 |
+|---|---|---|---|
+| ファン・初見 | `/[username]` | クリエイターを理解して応援する | クリーン・感情的・シンプル |
+| クリエイター本人 | `/[username]/mypage` | 毎日の運営とAI事務所を使う | 機能的・AI主役・優先順が明確 |
+
+クリエイターが自分の `/[username]` にアクセスした場合は「管理ストリップ」を上部表示し、ファン目線のページそのものがプレビューとなる。
 
 ## Product Assumptions
 
@@ -14,22 +23,23 @@
 
 最重要ジョブ:
 
-- 今週やることを決める
+- AI事務所の承認待ちを確認して処理する
+- 今日やることを決める
 - 支援ページを整える
-- 支援者への告知やお礼を進める
 
 最初の継続利用理由:
 
-- 毎週ログインすると、次にやること、承認待ち、下書きが揃っている
+- 毎日ログインすると、承認待ちと次にやることがすぐ見える
 
 ## Information Architecture Rule
 
-- トップレベルは `今週の運営 / 支援ページ / 支援者対応 / 詳細設定` の 4 つまで
-- `ホーム` は画面名ではなく体験上の最上位入口として扱う
-- 1画面1主目的を守る
+- クリエイターワークスペースのトップレベルは `今日の仕事 / 設定・準備` の 2モードのみ
+- `今日の仕事` はAI事務所が主役。承認待ちが常に最上部
+- `設定・準備` はプロフィール・プロジェクト・ウォレット・精算のみ
+- `公開ページを見る` はタブではなく、ヘッダーボタン + 設定内リンク + 管理ストリップで代替
 - internal term は UI の前面に出さない
 - 高リスク操作は routine action と同列に置かない
-- advanced / beta / audit 寄り機能は通常導線から外す
+- advanced / beta / audit 寄り機能は設定・準備モード末尾に固定
 
 ## Screen Inventory
 
@@ -57,109 +67,119 @@
 
 ## Target Navigation
 
-### Creator-facing top nav
+### Creator-facing workspace modes
 
-- `今週の運営`
-- `支援ページ`
-- `支援者対応`
-- `詳細設定`
+```
+[ 今日の仕事 ● ]  [ 設定・準備 ]          ← 2モードのみ
+                        [ 投稿する ]  [ ファン目線を確認↗ ]  ← 常時ボタン
+```
+
+### 今日の仕事 モード（デフォルト）
+
+優先順:
+1. AI事務所 承認待ち（最上部、常に表示）
+2. AIに依頼するカード（Manager / Promotion / Finance / Fan Relation）
+3. 今週のサマリー（支援額・投稿数・承認済みタスク数）
+4. 最近の履歴（直近の承認・却下タスク）
+
+### 設定・準備 モード
+
+セクション:
+1. プロフィール（アイコン・名前・紹介文・SNSリンク）→ インライン編集
+2. プロジェクト・目標（JPYC / USDC ）→ インライン編集
+3. 公開ページの準備状況（チェックリスト + ファン目線で確認するリンク）
+4. ウォレット（受取アドレス）
+5. 精算 [試験中]（目標達成後の配分・送金）
 
 ### Mapping from current sections
 
 | 現在 | 今後の置き場 | 備考 |
 | --- | --- | --- |
-| `日々の運営ワークスペース` | `今週の運営` と `支援者対応` に分割 | project/goal と AI Office を分ける |
-| `公開ページとリンク` | `支援ページ` | 公開確認とプロフィール編集を統合 |
-| `ガス代支援` | `詳細設定` | 常用導線から外す |
-| settlement main flow | `詳細設定` ただし goal 達成時のみホームに通知 | 入口だけホームに出す |
-| AI Office | `支援者対応` | Overview/Create/Inbox は維持、名称だけ変える |
+| `ホーム` タブ | `今日の仕事` モード | AI事務所が主役に昇格 |
+| `AIの提案と確認` タブ | `今日の仕事` モードに統合 | タブを廃止して主画面へ |
+| `公開ページ・投稿` タブ | `設定・準備` モード（プロジェクト・プロフィール）| 投稿アクションは今日の仕事ヘッダーへ |
+| `公開ページを見る` タブ | ヘッダーボタン + 設定内リンク + 管理ストリップ | タブ廃止 |
+| `精算・詳細設定` タブ | `設定・準備` モード末尾 [試験中] | タブ廃止、設定内に統合 |
+| `SettingsPageClient` (隠しモード) | `設定・準備` モードとして正式化 | 存在を知られない問題を解消 |
+| AI Office (settings 内) | 廃止（今日の仕事モードが唯一の場所） | 重複を排除 |
 
 ## Route and Entry Map
 
-### Public side
+### Public side（ファン向け）
 
 ```text
-公開プロフィール
-  -> Goal / 活動内容を理解
-  -> 支援ウォレット導線
-  -> 支援完了
+/[username]
+  -> クリエイターを理解する（名前・活動・一行説明）
+  -> 現在のプロジェクト進捗を確認
+  -> [応援する] CTA
+  -> 活動投稿フィード
+  -> 支援後：「あなたの応援がどう使われたか」
+```
+
+クリエイター本人がアクセスした場合:
+```text
+管理ストリップ（上部固定）
+  -> 「これがファンに見えているページです」
+  -> [プロフィールを編集] → 設定・準備モードへ
+  -> [管理に戻る →] → /mypage 今日の仕事モードへ
 ```
 
 ### First-time creator flow
 
 ```text
-マイページ到達
-  -> ウォレット接続
+/mypage → ウォレット接続
   -> ユーザー登録
-  -> プロフィール確認
   -> クリエイター申請
-  -> 初回ホーム
+  -> 今日の仕事モード（初回）
+     -> 設定・準備モードへ誘導（プロフィール・Goal未設定の場合）
+  -> プロフィール設定
   -> Goal 作成
-  -> 公開ページ確認
+  -> ファン目線を確認↗（設定内リンク）
 ```
 
-### Weekly creator flow
+### Daily creator flow
 
 ```text
-今週の運営
-  -> 今やること 1 件を見る
+/mypage → 今日の仕事モード（デフォルト）
+  -> 承認待ちを確認・処理
+  -> 必要なら AIに依頼
+  -> 投稿する
   -> 支援状況を確認
-  -> 必要なら次へ分岐
-     -> 支援ページ
-     -> 支援者対応
-     -> 詳細設定
+  -> （必要なら）設定・準備モードへ切り替え
 ```
 
-### Support-page maintenance flow
+### Settings flow
 
 ```text
-支援ページ
-  -> プロフィールを整える
+/mypage → 設定・準備モード
+  -> プロフィールを整える（インライン編集）
   -> Goal を更新する
-  -> 公開ページを確認する
-  -> 公開状態を維持する
-```
-
-### Supporter-response flow
-
-```text
-支援者対応
-  -> 承認待ちを確認
-  -> 告知またはお礼の下書きを作る
-  -> 承認 / 却下する
-  -> 必要なら再編集する
+  -> ファン目線で確認する↗（公開ページを新タブで開く）
+  -> （目標達成時）精算を開始する
 ```
 
 ### High-risk operations flow
 
 ```text
-ホーム上の通知
-  -> 目標達成 or 配分準備完了
-  -> 詳細設定へ移動
+今日の仕事モード上の通知（目標達成時のみ）
+  -> 設定・準備モード 精算セクションへ移動
   -> settlement guided flow
   -> bridge / draft / preflight / execute / review
 ```
 
-## Home Composition
+## 今日の仕事モード Composition
 
-`今週の運営` は次の順で固定する。
+優先順（固定）:
 
-1. `今やること`
-2. `承認待ち`
-3. `支援状況`
-4. `公開ページの確認`
-5. `必要なら詳細設定へ`
+1. AI事務所 承認待ち件数と一覧
+2. AIに依頼するカード（4ロール）
+3. 今週のサマリー
+4. 最近の履歴
 
-### Home に出すもの
+### 今日の仕事 モードから外すもの
 
-- quick action 1件
-- AI Office 承認待ち件数
-- project / goal health
-- 直近の公開ページ確認導線
-- 目標達成済み project があるときだけ settlement notice
-
-### Home から外すもの
-
+- プロフィール編集
+- Goal 編集
 - gas support の直接操作
 - CCTP jobs 一覧
 - manual result 記録
@@ -171,13 +191,17 @@
 
 | 内部用語 | UI 用語 |
 | --- | --- |
-| creatorReady | 今週の運営 |
-| AI Office | 支援者対応 |
+| creatorReady ホームタブ | 今日の仕事（モード） |
+| settingsPageClient / settings renderMode | 設定・準備（モード） |
+| AI Office | AI事務所 |
 | Overview | いまの状況 |
-| Create | 下書きを作る |
+| Create | AIに依頼する |
 | Inbox | 承認待ち |
-| Project / Goal 管理 | 支援ページの設定 |
-| Settlement | 配分と精算 |
+| supporters タブ | 廃止（今日の仕事モードに統合） |
+| 公開ページ・投稿 タブ | 設定・準備モード内に分割 |
+| 公開ページを見る タブ | 廃止（ヘッダーボタン + 管理ストリップで代替） |
+| Project / Goal 管理 | プロジェクト・目標 |
+| Settlement | 精算 |
 | Bridge | 資金移動 |
 | Gas support | ガス代支援 |
 | CCTP | 高度な資金移動 |
@@ -186,145 +210,152 @@
 
 以下は `1 Issue = 1 PR` で切る前提の実装順。
 
-### Issue 1: 画面棚卸しとラベル固定
+### Issue 1: ワークスペースナビを2モードに変更
 
 Goal:
 
-- 既存画面を `ホーム / 運営 / 公開 / 詳細設定` へ正式に分類する
-- UI に出すラベルを固定する
+- 5タブナビを `今日の仕事 / 設定・準備` の2モードトグルに変える
+- ヘッダーに `投稿する` と `ファン目線を確認↗` ボタンを固定する
 
 Files:
 
-- `docs/specs/ux/phase0-phase1-roadmap.md`
-- `docs/specs/ux/creator-workspace-information-architecture.md`
-- `TASKS.md`
+- `components/mypage/creatorReadyWorkspaceConfig.ts`
+- `components/mypage/CreatorReadyWorkspaceHeader.tsx`
+- `components/mypage/CreatorReadyWorkspaceRouteContent.tsx`
+- `lib/mypage/workspaceView.ts`
+
+Changes:
+
+- WORKSPACE_VIEWS を `daily-work` と `settings` の2つに削減
+- header の tab row をモードトグルに変更
+- 「ファン目線を確認↗」ボタンを追加（`/${username}` を新タブで開く）
+- 「投稿する」ボタンを header に固定
 
 Acceptance:
 
-- top-level nav 名が固定されている
-- internal term の置換方針が決まっている
-- 次の UI task が参照できる
+- タブが5個から2個に減る
+- ヘッダーにいつでもファン目線確認ボタンがある
 
-### Issue 2: creatorReady をホーム化する
+### Issue 2: 「今日の仕事」モードでAI事務所を主画面に
 
 Goal:
 
-- `creatorReady` を機能置き場ではなく `今週の運営` ホームに変える
+- `今日の仕事` モードを「承認待ち→依頼→サマリー→履歴」の順で構成する
+- 承認待ちが0件のときも依頼カードがすぐ見える
 
 Files:
 
-- `components/mypage/CreatorReadyAccountView.tsx`
+- `components/mypage/CreatorReadyHomeRoute.tsx`
 - `components/mypage/CreatorReadyWorkspaceOverview.tsx`
-- `components/mypage/MyPageAccordion.tsx`
+- `components/mypage/CreatorWorkspaceAiOfficePanel.tsx`
+- `components/mypage/CreatorReadyAiApprovalSection.tsx`
 
 Changes:
 
-- 先頭見出しを `クリエイター管理` から `今週の運営` に変更
-- first view を `今やること / 承認待ち / 支援状況 / 公開確認` の順に再編
-- accordion は補助導線に下げる
+- AI事務所（承認待ち一覧 + 依頼カード）を最上部に固定
+- 今週のサマリー（支援額・投稿数・承認済みタスク数）を承認待ちの下へ
+- 旧 quick actions / beta actions / project health を下部または削除
+- settlement notice は目標達成時のみ表示（現状維持）
 
 Acceptance:
 
-- fold 上で次の行動が1つ以上見える
-- `支援ページ` と `支援者対応` への導線が明確
-- gas support は fold 上から消える
+- ページを開いた瞬間にAI事務所の承認待ちが見える
+- 承認待ちが0件でも依頼カードが最上部に表示される
 
-### Issue 3: 支援ページ導線を独立させる
+### Issue 3: 「設定・準備」モードとして SettingsPageClient を正式化
 
 Goal:
 
-- 公開面の編集と確認を `支援ページ` として一塊にする
+- `SettingsPageClient` を `設定・準備` モードとして正式な入口に昇格させる
+- AI Office パネルを設定から除去し、リンクのみに変更
+- プロフィール編集をインライン表示に変える
+- 公開ページの準備状況 + 「ファン目線で確認する」ボタンを設定内に追加
 
 Files:
 
-- `components/mypage/CreatorProjectManagementSection.tsx`
-- `components/mypage/CreatorProfileSection.tsx`
-- `components/mypage/CreatorPublicLinkSection.tsx`
-- `components/mypage/CurrencyProjectManagementBlock.tsx`
+- `components/mypage/SettingsPageClient.tsx`
+- `components/mypage/CreatorSettingsAiOfficeSection.tsx`
+- `components/mypage/CreatorSettingsBasicInfoSection.tsx`
+- `components/mypage/CreatorSettingsProjectSection.tsx`
 
 Changes:
 
-- プロフィール編集、公開リンク、Goal 編集を同じ目的で見せる
-- `公開ページを見る` を primary CTA にする
-- 支援者視点の確認文言を入れる
+- `CreatorSettingsAiOfficeSection` の `CreatorWorkspaceAiOfficePanel` をリンクボタン1つに差し替え
+- プロフィール編集フォームをページ末尾に出現させず、`基本情報` セクション内のインライン展開に変更
+- `公開ページの準備状況` セクションを追加（チェックリスト + 「ファン目線で確認する↗」リンク）
+- 精算セクションを末尾に配置し [試験中] バッジを付ける
 
 Acceptance:
 
-- creator が `公開情報を整える場所` と理解できる
-- profile と public link が分断されない
+- 設定ページにAI事務所の重複がない
+- プロフィール編集ボタンを押すと同じ場所でフォームが開く
+- 「ファン目線で確認する」ボタンが設定モード内に存在する
 
-### Issue 4: AI Office を `支援者対応` に改名する
+### Issue 4: 公開ページにクリエイター管理ストリップを追加
 
 Goal:
 
-- `AI Office` を機能群ではなく `運営補助` の1ワークフローとして見せる
+- クリエイター本人が `/[username]` にアクセスした際、上部に管理ストリップを表示する
+- これにより公開ページそのものがファン目線プレビューとして機能する
 
 Files:
 
-- `components/mypage/AiOfficePanel.tsx`
-- `components/mypage/AiOfficeOverviewSection.tsx`
-- `components/mypage/AiOfficeCreateSection.tsx`
-- `components/mypage/AiOfficeInboxSection.tsx`
-- `lib/uxCopy.ts`
+- `components/ProfileClient.tsx`
+- `components/profile/CreatorManagementStrip.tsx`（新規）
 
 Changes:
 
-- 見出しを `支援者対応` に寄せる
-- `概要 / 下書きを作る / 承認待ち` の文言へ変更
-- `今週やること` から承認待ちを直リンクする
+- `viewerAddress === creator.address` のとき上部ストリップを表示
+- ストリップの内容: 「これがファンに見えているページです」+ [設定・準備を開く] + [管理に戻る→]
+- ストリップはファンのページ表示には影響しない（条件付き）
 
 Acceptance:
 
-- raw task type を選ぶ印象が薄れる
-- `承認待ち -> 下書き作成 -> 承認` の流れが見える
+- クリエイターが自分の公開ページを開くと管理ストリップが表示される
+- ファンが同じURLを開いてもストリップは表示されない
+- 管理ストリップから `/mypage` に直接戻れる
 
-### Issue 5: 詳細設定へ高リスク機能を退避する
+### Issue 5: 投稿アクションを「今日の仕事」ヘッダーに統合
 
 Goal:
 
-- settlement / bridge / gas / event / CCTP を常用導線から外す
+- 「投稿する」を `公開ページ・投稿` タブに依存させず、どのモードからでも操作できる
 
 Files:
 
-- `components/mypage/ProjectSettlementPanel.tsx`
-- `components/mypage/ProjectSettlementAdvancedSection.tsx`
-- `components/mypage/GasSupportTabs.tsx`
+- `components/mypage/CreatorReadyWorkspaceHeader.tsx`
+- `components/mypage/CreatorReadySupportPageRoute.tsx`（投稿部分の参照先変更）
+
+Changes:
+
+- ヘッダーの「投稿する」ボタンを PostComposer へのクイックアクションに接続
+- `公開ページ・投稿` タブの「投稿」部分を設定モードから除去（またはリンクのみ）
+
+Acceptance:
+
+- 「投稿する」がどのモードからでも1クリックで到達できる
+
+### Issue 6: 初回導線を設定・準備モードに寄せる
+
+Goal:
+
+- 初回 creatorReady 到達時は `設定・準備` モードを先に促す（プロフィール・Goal未設定の場合）
+- 設定完了後に `今日の仕事` モードに案内する
+
+Files:
+
+- `components/mypage/CreatorReadyWorkspaceOverview.tsx`
 - `components/mypage/CreatorReadyAccountView.tsx`
 
 Changes:
 
-- `詳細設定` 入口を追加
-- goal 達成時だけ settlement notice をホームに出す
-- CCTP, manual result, gas support は詳細設定配下に固定
+- プロフィール・Goal が未設定の場合は `設定・準備` モードへの誘導バナーを表示
+- 設定完了チェックを `今日の仕事` モード上部の通知として出す
 
 Acceptance:
 
-- routine screen に高リスク操作が常駐しない
-- 必要時だけ詳細設定へ移動できる
-
-### Issue 6: 初回導線を一本道に固定する
-
-Goal:
-
-- `プロフィール作成 -> Goal 作成 -> 公開ページ確認` を初回導線として固定する
-
-Files:
-
-- `components/mypage/NoUserMyPageView.tsx`
-- `components/mypage/UserOnlyMyPageView.tsx`
-- `components/mypage/CreatorReadyWorkspaceOverview.tsx`
-- `components/mypage/MyPageOnboardingProgress.tsx`
-
-Changes:
-
-- creatorReady 初回表示で `最初にやる3手` を明示
-- 初回は `詳細設定` を見せない
-- `公開ページを確認する` を onboarding の終点に置く
-
-Acceptance:
-
-- 初回ユーザーが迷わず1本で進める
-- advanced 機能が途中で混ざらない
+- 初回ユーザーが何をすべきか明確
+- 設定済みのユーザーには誘導バナーが出ない
 
 ## Validation Plan
 

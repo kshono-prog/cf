@@ -6,7 +6,6 @@ import { useAccount } from "wagmi";
 import { generateRandomId } from "@/lib/mypage/helpers";
 
 import { CreatorReadyAccountView } from "@/components/mypage/CreatorReadyAccountView";
-import { SettingsPageClient } from "@/components/mypage/SettingsPageClient";
 import { LoadingMyPageView } from "@/components/mypage/LoadingMyPageView";
 import { NoUserMyPageView } from "@/components/mypage/NoUserMyPageView";
 import { UnconnectedMyPageView } from "@/components/mypage/UnconnectedMyPageView";
@@ -22,7 +21,6 @@ import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 type Props = {
   username: string;
   initialWorkspaceView: WorkspaceView;
-  renderMode?: "workspace" | "settings";
   initialProjectId?: string | null;
   initialProjectIdsByCurrency?: { JPYC: string | null; USDC: string | null };
 };
@@ -30,7 +28,6 @@ type Props = {
 export default function AccountPageClient({
   username,
   initialWorkspaceView,
-  renderMode = "workspace",
   initialProjectId = null,
   initialProjectIdsByCurrency = { JPYC: null, USDC: null },
 }: Props) {
@@ -212,16 +209,12 @@ export default function AccountPageClient({
 
   return (
     <CreatorReadyWorkspaceProvider value={workspaceState}>
-      {renderMode === "settings" ? (
-        <SettingsPageClient workspaceBasePath={workspaceBasePath} error={error} />
-      ) : (
-        <CreatorReadyAccountView
-          initialWorkspaceView={initialWorkspaceView}
-          workspaceBasePath={workspaceBasePath}
-          themeColor={themeColor}
-          error={error}
-        />
-      )}
+      <CreatorReadyAccountView
+        initialWorkspaceView={initialWorkspaceView}
+        workspaceBasePath={workspaceBasePath}
+        themeColor={themeColor}
+        error={error}
+      />
     </CreatorReadyWorkspaceProvider>
   );
 }

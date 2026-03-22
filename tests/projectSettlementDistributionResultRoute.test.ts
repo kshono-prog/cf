@@ -80,8 +80,10 @@ test("handleProjectSettlementDistributionResultPost returns the execution id and
           findUnique: async () => ({
             id: 1n,
             ownerAddress: OWNER_ADDRESS,
-            bridgedAt: new Date("2026-03-20T09:00:00.000Z"),
           }),
+        },
+        projectSettlement: {
+          findUnique: async () => ({ status: "READY_FOR_DISTRIBUTION" }),
         },
         $transaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
           fn({
@@ -126,4 +128,39 @@ test("handleProjectSettlementDistributionResultPost returns the execution id and
       distributedTotalAtomic: "100",
     },
   });
+});
+
+test("handleProjectSettlementDistributionResultPost returns 400 when settlement is not READY_FOR_DISTRIBUTION", async () => {
+  for (const settlementResult of [null, { status: "NOT_READY" }, { status: "BRIDGING" }, { status: "DISTRIBUTED" }] as const) {
+    const response = await handleProjectSettlementDistributionResultPost(
+      createRequest({
+        address: OWNER_ADDRESS,
+        entryId: "entry-1",
+        status: "SENT",
+        txHash: TX_HASH,
+      }),
+      { params: Promise.resolve({ projectId: "1" }) },
+      {
+        requireOwnerSession: async () => ({ ok: true, address: OWNER_ADDRESS }),
+        withPrismaRetry: async <T>(fn: () => Promise<T>) => fn(),
+        db: {
+          project: {
+            findUnique: async () => ({ id: 1n, ownerAddress: OWNER_ADDRESS }),
+          },
+          projectSettlement: {
+            findUnique: async () => settlementResult,
+          },
+          $transaction: async () => {
+            throw new Error("should not start a transaction");
+          },
+        } as never,
+      }
+    );
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {
+      ok: false,
+      error: "DISTRIBUTION_REQUIRES_READY_FOR_DISTRIBUTION",
+    });
+  }
 });

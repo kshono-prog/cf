@@ -4,31 +4,31 @@
 - 対象 creator: `kazu`
 - 保存先: `docs/runbooks/artifacts/ai-office-manual-check/2026-03-21/`
 - 事前スモーク:
-  - `npm run manual-check:ai-office:smoke -- --base-url http://127.0.0.1:3001 --username kazu`
+  - `npm run manual-check:ai-office:smoke -- --base-url http://127.0.0.1:3002 --username kazu`
 
 ## Minimum Deep Links
 
 - Settings / AI Office:
-  - http://127.0.0.1:3001/kazu/mypage#ai-office-phase1
+  - http://127.0.0.1:3002/kazu/mypage#ai-office-phase1
 - Manager Agent Create:
-  - http://127.0.0.1:3001/kazu/mypage?aiOfficeView=CREATE#ai-office-phase1
+  - http://127.0.0.1:3002/kazu/mypage?aiOfficeView=CREATE#ai-office-phase1
 - Promotion Agent Create:
-  - http://127.0.0.1:3001/kazu/mypage?aiOfficeView=CREATE&aiOfficeRole=PROMOTION#ai-office-phase1
+  - http://127.0.0.1:3002/kazu/mypage?aiOfficeView=CREATE&aiOfficeRole=PROMOTION#ai-office-phase1
 - Fan Relation Agent Create:
-  - http://127.0.0.1:3001/kazu/mypage?aiOfficeView=CREATE&aiOfficeRole=FAN_RELATION#ai-office-phase1
+  - http://127.0.0.1:3002/kazu/mypage?aiOfficeView=CREATE&aiOfficeRole=FAN_RELATION#ai-office-phase1
 - Finance Agent Create:
-  - http://127.0.0.1:3001/kazu/mypage?aiOfficeView=CREATE&aiOfficeRole=FINANCE#ai-office-phase1
+  - http://127.0.0.1:3002/kazu/mypage?aiOfficeView=CREATE&aiOfficeRole=FINANCE#ai-office-phase1
 - Finance Agent Inbox:
-  - http://127.0.0.1:3001/kazu/mypage?aiOfficeView=INBOX&aiOfficeRole=FINANCE&aiOfficeInboxRole=FINANCE#ai-office-phase1
+  - http://127.0.0.1:3002/kazu/mypage?aiOfficeView=INBOX&aiOfficeRole=FINANCE&aiOfficeInboxRole=FINANCE#ai-office-phase1
 - Fan Relation Agent Inbox:
-  - http://127.0.0.1:3001/kazu/mypage?aiOfficeView=INBOX&aiOfficeRole=FAN_RELATION&aiOfficeInboxRole=FAN_RELATION#ai-office-phase1
+  - http://127.0.0.1:3002/kazu/mypage?aiOfficeView=INBOX&aiOfficeRole=FAN_RELATION&aiOfficeInboxRole=FAN_RELATION#ai-office-phase1
 
 ## Related Surfaces
 
 - Posting compose:
-  - http://127.0.0.1:3001/kazu/mypage/support-page#posting-compose
+  - http://127.0.0.1:3002/kazu/mypage/support-page#posting-compose
 - Advanced settlement:
-  - http://127.0.0.1:3001/kazu/mypage/advanced
+  - http://127.0.0.1:3002/kazu/mypage/advanced
 
 ## Suggested Screenshot Order
 

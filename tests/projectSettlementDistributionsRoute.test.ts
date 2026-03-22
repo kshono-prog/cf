@@ -83,6 +83,9 @@ test("handleProjectSettlementDistributionsPut returns the saved draft rows and s
             currency: "JPYC",
           }),
         },
+        projectSettlement: {
+          findUnique: async () => ({ status: "READY_FOR_DISTRIBUTION" }),
+        },
         $transaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
           fn({
             distributionEntry: {
@@ -158,5 +161,40 @@ test("handleProjectSettlementDistributionsPut returns the saved draft rows and s
       bridgedTotalAtomic: "100",
       distributedTotalAtomic: "0",
     },
+  });
+});
+
+test("handleProjectSettlementDistributionsPut returns 409 when settlement is already DISTRIBUTED", async () => {
+  const response = await handleProjectSettlementDistributionsPut(
+    createRequest({
+      address: OWNER_ADDRESS,
+      entries: [],
+    }),
+    { params: Promise.resolve({ projectId: "1" }) },
+    {
+      requireOwnerSession: async () => ({ ok: true, address: OWNER_ADDRESS }),
+      withPrismaRetry: async <T>(fn: () => Promise<T>) => fn(),
+      db: {
+        project: {
+          findUnique: async () => ({
+            id: 1n,
+            ownerAddress: OWNER_ADDRESS,
+            currency: "JPYC",
+          }),
+        },
+        projectSettlement: {
+          findUnique: async () => ({ status: "DISTRIBUTED" }),
+        },
+        $transaction: async () => {
+          throw new Error("should not start a transaction");
+        },
+      } as never,
+    }
+  );
+
+  assert.equal(response.status, 409);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    error: "SETTLEMENT_ALREADY_DISTRIBUTED",
   });
 });

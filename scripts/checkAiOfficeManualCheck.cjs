@@ -35,24 +35,30 @@ function parseArgs(argv) {
 function buildChecks(username) {
   return [
     {
-      label: "mypage settings AI Office entry",
+      label: "mypage root (daily-work initial view)",
       path: `/${username}/mypage`,
       expected: ["設定を読み込み中です", "mypage/page.tsx"],
     },
     {
-      label: "supporters AI Office panel",
+      label: "mypage daily-work route",
+      path: `/${username}/mypage/daily-work`,
+      expected: ["設定を読み込み中です", "mypage/daily-work/page.tsx"],
+    },
+    {
+      label: "mypage settings route",
+      path: `/${username}/mypage/settings`,
+      expected: ["設定を読み込み中です", "mypage/settings/page.tsx"],
+    },
+    // backward-compat redirect routes (still exist as pages)
+    {
+      label: "mypage supporters (compat redirect → daily-work)",
       path: `/${username}/mypage/supporters`,
-      expected: ["設定を読み込み中です", "mypage/supporters/page.tsx"],
+      expected: ["設定を読み込み中です"],
     },
     {
-      label: "support-page posting surface",
-      path: `/${username}/mypage/support-page`,
-      expected: ["設定を読み込み中です", "mypage/support-page/page.tsx"],
-    },
-    {
-      label: "advanced settlement draft",
+      label: "mypage advanced (compat redirect → settings)",
       path: `/${username}/mypage/advanced`,
-      expected: ["設定を読み込み中です", "mypage/advanced/page.tsx"],
+      expected: ["設定を読み込み中です"],
     },
   ];
 }

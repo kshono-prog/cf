@@ -214,11 +214,12 @@ payload:
 
 UI rules:
 
-- `ANNOUNCEMENT_DRAFT` task output では `posting compose を開く` と `本文をコピー` を出せる
 - handoff は `support-page#posting-compose` に移動し、textarea と project select の初期値に使う
 - 自動保存や自動公開はしない
-- `SUPPORTER_MESSAGE_DRAFT` は支援者向け文面のため、public posting compose には直接 handoff しない
-- `SUPPORTER_MESSAGE_DRAFT` では copy のみを提供し、用途の境界を UI で明示する
+- `ANNOUNCEMENT_DRAFT` — `posting compose を開く` と `本文をコピー` を出す
+- `SUPPORT_STORY_DRAFT` — `compose に送る` と `ストーリーをコピー` を出す
+- `PROPOSE` — 各提案に `compose に送る` ボタンを出す
+- `SUPPORTER_MESSAGE_DRAFT` は支援者向け文面のため、public posting compose には直接 handoff しない（copy のみ）
 
 ### Distribution Plan Draft Payload
 
@@ -244,6 +245,242 @@ UI rules:
 - `行に反映` は `rows[]` を既存の draft editor に流し込むだけで、自動保存しない
 - bridge / distribution execute には接続しない
 - token は現在の settlement currency に揃える
+
+### `PROFILE_UPDATE_PROPOSAL`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `profileSnapshot` — displayName / hasProfileText / hasAvatar / hasExternalUrl / hasCreatorType / socialLinkCount
+- `proposals[]` — field / priority (high|medium|low) / reason / suggestionNote
+- `nextActions[]`
+- `missingFields[]`
+- `basedOn`
+
+metrics 依存:
+
+- なし
+- `CreatorProfile` と `CreatorSocialLink` のみを参照する
+
+fallback:
+
+- プロフィールが取得できない場合は空の proposals を返す
+- 全フィールド揃っている場合は「改善提案なし」として返す
+
+UI rules:
+
+- copy-only — public posting compose には直接 handoff しない
+- 提案は priority badge 付きカードで表示する
+- profileSnapshot は「揃っている / 未設定」のチップで視覚化する
+
+### `DAILY_ACTION_PLAN`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `actions[]` — id / title / reason / priority (high|medium|low) / category
+- `generatedAt`
+- `context` — daysSinceLastPost / pendingApprovals / recentContributionCount
+- `basedOn`
+
+metrics 依存:
+
+- `Post` 最終投稿日
+- `AgentTask` 承認待ちカウント
+- `Contribution` 直近 7 日集計
+- `Goal` 期限確認
+
+fallback:
+
+- 全 context が 0 件でも action を最低 2 件生成する
+- デフォルト提案 (propose-next) で補完する
+
+UI rules:
+
+- priority badge 付きカードで表示する
+- approval category は赤、posting は amber
+
+### `ACTIVITY_RESTART_PROPOSAL`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `inactivityContext` — daysSinceLastPost / inactivityNote
+- `successPatterns[]`
+- `restartSteps[]` — step / title / description / effort (low|medium|high)
+- `supportContext` — recentContributionCount / recentTotal
+- `basedOn`
+
+metrics 依存:
+
+- `Post` 最終投稿日・過去エンゲージメント
+- `Contribution` 直近 30 日集計
+- `Goal` 達成状況
+
+fallback:
+
+- 過去投稿がない場合も最低 2 ステップを生成する
+
+### `SUPPORT_STORY_DRAFT`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `storyText` — full narrative text
+- `sections` — why / what / progress
+- `context` — creatorLabel / projectLabel / currency / confirmedAmount / targetAmount / progressPct / contributionCount / purposes[]
+- `basedOn`
+
+metrics 依存:
+
+- `Project.description`
+- `Purpose[]`
+- `Goal` 達成状況
+- `Contribution` 集計
+
+fallback:
+
+- Project がない場合は汎用文面を生成する
+
+UI rules:
+
+- 3 セクション (why/what/progress) を個別に表示する
+- storyText 全体を posting compose に handoff できる（`SUPPORT_STORY_DRAFT` sourceTaskType）
+- ストーリーのコピーボタンも提供する
+
+### `SUPPORTER_RESULT_REPORT`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `goalLabel`
+- `achievedAt`
+- `currency`
+- `totalAmount`
+- `purposeBreakdown[]` — purposeLabel / confirmedAmount / contributionCount
+- `distributionNote`
+- `activityAfterNote`
+- `basedOn`
+
+metrics 依存:
+
+- `Project.title / Project.currency`
+- `Goal` 達成状況
+- `Purpose[]` と `Contribution` の purposeId 別集計
+- `DistributionRun` 件数
+- `Post` 件数（Goal 達成後）
+
+fallback:
+
+- `projectId` が指定されていない場合は「プロジェクト未指定」の summary を返す
+- AI 生成不可時はルールベースの summary にフォールバックする
+
+UI rules:
+
+- 用途別棒グラフ形式で purposeBreakdown を表示する
+- goalLabel / achievedAt / totalAmount をカードヘッダーに表示する
+
+### `CAREER_PLAN_DRAFT`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `currentPhase` — 活動初期 / 活動継続期 / 成長期 / 定着期
+- `milestones_3mo[]`
+- `milestones_6mo[]`
+- `focusAreas[]`
+- `weeklyPace`
+- `context` — publishedPostCount90Days / weeklyPostRate / achievedGoalCount / recentContributionCount / recentContributionTotal / totalViews / totalInteractions / topPlatform
+- `basedOn`
+
+metrics 依存:
+
+- `Post` 過去 90 日集計（公開件数・週次ペース）
+- `Goal` 達成件数
+- `Contribution` 過去 90 日集計
+- `ContentMetricSnapshot` 過去 90 日（platform 別 views / interactions）
+
+fallback:
+
+- metrics が少ない場合もフェーズ判定はゼロ件データで実行し、AI または rule-based でマイルストーンを生成する
+
+UI rules:
+
+- 現在フェーズをバッジで表示する
+- 3ヶ月・6ヶ月マイルストーンをタイムライン形式で表示する
+
+### `GROWTH_OPPORTUNITY_ALERT`
+
+input:
+
+- `source`
+- `requestedAt`
+
+output:
+
+- `summary`
+- `opportunities[]` — type / title / insight / action / priority (high|medium|low)
+- `metricsContext` — hasData / recentWindowDays / platforms[]
+- `basedOn`
+
+metrics 依存:
+
+- `ContentMetricSnapshot` 直近 7 日（recent）と 7〜14 日前（previous）を比較
+- platform 別 interaction rate の週次変化率（≥15% 成長 = growing）
+
+fallback:
+
+- データが 0 件の場合は「指標データなし」の opportunity を 1 件生成する
+
+UI rules:
+
+- priority badge 付きカードで opportunities を表示する
+- insight / action を視覚的に分離する
+
+## Posting Compose Handoff の sourceTaskType
+
+`TRANSLATE` も `ANNOUNCEMENT_DRAFT` と同様に `sourceTaskType: "TRANSLATE"` で compose handoff できる。
+翻訳案ごとに「compose に送る」ボタンを提供し、言語を指定して posting compose に事前入力する。
+
+`SUPPORT_STORY_DRAFT` は storyText 全体を compose のひな形として handoff できる。
+`PROPOSE` は各提案テキストを compose のひな形として handoff できる。
+
+handoff できる sourceTaskType:
+
+- `"ANNOUNCEMENT_DRAFT"` — headline + body + callToAction を結合したテキスト
+- `"TRANSLATE"` — 指定言語の翻訳テキスト
+- `"SUPPORT_STORY_DRAFT"` — storyText 全体
+- `"PROPOSE"` — 提案テキスト 1 件
 
 ## 今後の追加ルール
 

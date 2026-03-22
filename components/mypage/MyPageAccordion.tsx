@@ -11,7 +11,7 @@ export type SectionKey =
   | "gas"
   | "project"
   | "supporter"
-  | "sns";
+  | "posting";
 
 export type OpenSections = Record<SectionKey, boolean>;
 

@@ -6,7 +6,11 @@ export const POSTING_COMPOSE_HANDOFF_STORAGE_KEY =
   "cf:posting:compose-handoff";
 
 export type PostingComposeHandoff = {
-  sourceTaskType: "ANNOUNCEMENT_DRAFT";
+  sourceTaskType:
+    | "ANNOUNCEMENT_DRAFT"
+    | "TRANSLATE"
+    | "SUPPORT_STORY_DRAFT"
+    | "PROPOSE";
   projectId: string | null;
   channel: string;
   summary: string;
@@ -59,6 +63,52 @@ export function buildAnnouncementPostingComposeHandoff(args: {
   };
 }
 
+export function buildTranslatePostingComposeHandoff(args: {
+  projectId: string | null;
+  lang: string;
+  translatedText: string;
+  createdAt?: string;
+}): PostingComposeHandoff {
+  return {
+    sourceTaskType: "TRANSLATE",
+    projectId: args.projectId,
+    channel: "GENERAL",
+    summary: `翻訳案（${args.lang}）`,
+    payloadText: args.translatedText,
+    createdAt: args.createdAt ?? new Date().toISOString(),
+  };
+}
+
+export function buildSupportStoryPostingComposeHandoff(args: {
+  projectId: string | null;
+  storyText: string;
+  createdAt?: string;
+}): PostingComposeHandoff {
+  return {
+    sourceTaskType: "SUPPORT_STORY_DRAFT",
+    projectId: args.projectId,
+    channel: "GENERAL",
+    summary: "支援ストーリー",
+    payloadText: args.storyText,
+    createdAt: args.createdAt ?? new Date().toISOString(),
+  };
+}
+
+export function buildProposePostingComposeHandoff(args: {
+  projectId: string | null;
+  proposalText: string;
+  createdAt?: string;
+}): PostingComposeHandoff {
+  return {
+    sourceTaskType: "PROPOSE",
+    projectId: args.projectId,
+    channel: "GENERAL",
+    summary: "投稿案",
+    payloadText: args.proposalText,
+    createdAt: args.createdAt ?? new Date().toISOString(),
+  };
+}
+
 export function parsePostingComposeHandoff(
   value: unknown
 ): PostingComposeHandoff | null {
@@ -67,7 +117,10 @@ export function parsePostingComposeHandoff(
   }
 
   const sourceTaskType =
-    value.sourceTaskType === "ANNOUNCEMENT_DRAFT"
+    value.sourceTaskType === "ANNOUNCEMENT_DRAFT" ||
+    value.sourceTaskType === "TRANSLATE" ||
+    value.sourceTaskType === "SUPPORT_STORY_DRAFT" ||
+    value.sourceTaskType === "PROPOSE"
       ? value.sourceTaskType
       : null;
   const projectId =

@@ -118,10 +118,40 @@ The top of creatorReady should prioritize:
 
 Accordion structure can remain temporarily, but the first visible area should act as a dashboard.
 
+## Phase 2
+
+Phase 2 はユーザー属性によるUX分岐と、クリエイターワークスペースの2モード化を実装する。
+
+### User Role Separation
+
+- public page (`/[username]`) はファン向けとして独立させる
+- creatorReady mypage (`/[username]/mypage`) はクリエイター専用とする
+- クリエイターが自分の `/[username]` にアクセスした場合のみ管理ストリップを表示する
+- ファンが `/[username]` にアクセスしても管理要素は一切表示しない
+
+### Workspace 2-Mode Structure
+
+クリエイターワークスペースのナビゲーションを以下の2モードに統一する:
+
+- `今日の仕事`: AI事務所が主役。承認待ちが常に最上部。投稿・サマリー・履歴が続く。
+- `設定・準備`: プロフィール・プロジェクト・ウォレット・精算のみ。AI Officeは含まない。
+
+### AI Office 配置原則
+
+- AI事務所は `今日の仕事` モードの主画面にのみ存在する
+- `設定・準備` モードや `SettingsPageClient` にAI Officeパネルを重複配置しない
+- `公開ページを見る` タブは廃止し、ヘッダーボタン + 公開ページの管理ストリップで代替する
+
+### Screen Purpose（Phase 2 追加分）
+
+- 今日の仕事モード: AI事務所の承認待ちを処理し、AIに依頼し、活動状況を確認する
+- 設定・準備モード: 公開情報を整え、プロジェクトを管理し、精算を操作する
+- 公開ページ（管理ストリップ付き）: ファンに見えているものをそのまま確認する
+
 ## Out of Scope
 
 - final brand polish
-- full AI Office redesign
 - complete public profile redesign
+- AI による完全自動投稿・完全自動意思決定
 
-Those belong to later UX phases after Phase 0 and Phase 1 are implemented and reviewed.
+Those belong to later UX phases after Phase 0, 1, and 2 are implemented and reviewed.

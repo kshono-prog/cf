@@ -113,6 +113,48 @@ export const AI_OFFICE_TASK_CHOICES: readonly AiOfficeTaskChoice[] = [
     whenToUse: "お礼や再案内のメッセージを作りたいとき",
     tier: "BETA",
   },
+  {
+    taskType: "PROFILE_UPDATE_PROPOSAL",
+    eyebrow: "プロフィール整備",
+    whenToUse: "公開ページを整えるためにプロフィールの改善案を確認したいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "DAILY_ACTION_PLAN",
+    eyebrow: "今日やること",
+    whenToUse: "今日の優先行動を AI に整理してもらいたいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "ACTIVITY_RESTART_PROPOSAL",
+    eyebrow: "再起動を助ける",
+    whenToUse: "活動が止まりかけたとき、再び始めるための小さな一歩を提案してもらいたいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "SUPPORT_STORY_DRAFT",
+    eyebrow: "支援ストーリー",
+    whenToUse: "なぜ支援が必要で何が実現するかを伝わる文章にまとめたいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "SUPPORTER_RESULT_REPORT",
+    eyebrow: "支援結果レポート",
+    whenToUse: "支援がどう活用されたかをファンに伝える結果レポートを作りたいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "CAREER_PLAN_DRAFT",
+    eyebrow: "活動戦略を立てる",
+    whenToUse: "3ヶ月・6ヶ月の成長戦略をAIに整理してもらいたいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "GROWTH_OPPORTUNITY_ALERT",
+    eyebrow: "成長機会を見つける",
+    whenToUse: "直近の指標から今すぐ動ける成長チャンスを確認したいとき",
+    tier: "MVP",
+  },
 ] as const;
 
 export const AI_OFFICE_TASK_TIER_HELPER: Record<ProductTier, string> = {

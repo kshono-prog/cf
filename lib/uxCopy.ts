@@ -50,6 +50,41 @@ const TASK_TYPE_COPY: Record<TaskType, Copy> = {
     label: "支援者メッセージ案を作る",
     helper: "支援者向けのお礼や再案内の文面を作ります。",
   },
+  PROFILE_UPDATE_PROPOSAL: {
+    label: "プロフィール改善案を確認する",
+    helper:
+      "現在のプロフィール情報を見て、公開ページをより伝わりやすくするための改善提案を整理します。",
+  },
+  DAILY_ACTION_PLAN: {
+    label: "今日の行動計画を作る",
+    helper:
+      "承認待ち・投稿状況・目標進捗などを見て、今日優先すべき行動を整理します。",
+  },
+  ACTIVITY_RESTART_PROPOSAL: {
+    label: "再起動プランを作る",
+    helper:
+      "活動が止まりかけたとき、過去の成功パターンをもとに再始動のための小さなステップを提案します。",
+  },
+  SUPPORT_STORY_DRAFT: {
+    label: "支援ストーリーを作る",
+    helper:
+      "なぜ支援が必要で、何が実現し、どう前進するかを伝わる文章にまとめます。",
+  },
+  SUPPORTER_RESULT_REPORT: {
+    label: "支援結果レポートを作る",
+    helper:
+      "支援がどの用途に活用され、活動がどう変わったかをファンに伝えるレポートを生成します。",
+  },
+  CAREER_PLAN_DRAFT: {
+    label: "活動戦略を立てる",
+    helper:
+      "過去90日の投稿・支援・指標をもとに、3ヶ月・6ヶ月の成長マイルストーンを整理します。",
+  },
+  GROWTH_OPPORTUNITY_ALERT: {
+    label: "成長機会を見つける",
+    helper:
+      "直近7日の指標データから、今すぐ動ける成長チャンスを優先度付きで提示します。",
+  },
 };
 
 const TASK_STATUS_COPY: Record<TaskStatus, Copy> = {

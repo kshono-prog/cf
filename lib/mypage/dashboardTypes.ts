@@ -38,15 +38,10 @@ export function getMyPageDashboardLoadOptions(
   view: WorkspaceView
 ): MyPageDashboardLoadOptions {
   switch (view) {
-    case "home":
+    case "daily-work":
       return { includeSummary: true, includeSettlement: true };
-    case "support-page":
-      return { includeSummary: true, includeSettlement: false };
-    case "advanced":
+    case "settings":
       return { includeSummary: true, includeSettlement: true };
-    case "supporters":
-    case "public":
-      return { includeSummary: false, includeSettlement: false };
   }
 }
 
@@ -54,15 +49,10 @@ export function getMyPageDashboardQueryMode(
   view: WorkspaceView
 ): MyPageDashboardQueryMode {
   switch (view) {
-    case "home":
+    case "daily-work":
       return "full";
-    case "support-page":
-      return "summary";
-    case "advanced":
-      return "settlement";
-    case "supporters":
-    case "public":
-      return "none";
+    case "settings":
+      return "full";
   }
 }
 

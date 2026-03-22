@@ -63,6 +63,7 @@ type Props = {
     nextCursor: string | null;
   } | null;
   headerColor: string;
+  goalAchievedAt?: string | null;
   onSelectTipPost: (post: SelectedPostTipContext) => void;
   onFocusWalletSection: () => void;
 };
@@ -146,9 +147,12 @@ export function CreatorFeedSection(props: Props) {
     refreshToken,
     initialFeed = null,
     headerColor,
+    goalAchievedAt = null,
     onSelectTipPost,
     onFocusWalletSection,
   } = props;
+
+  const goalAchievedAtMs = goalAchievedAt ? new Date(goalAchievedAt).getTime() : null;
 
   const [posts, setPosts] = useState<FeedPost[]>(() => initialFeed?.items ?? []);
   const [detailByPostId, setDetailByPostId] = useState<Record<string, PostDetailState>>(
@@ -1054,6 +1058,11 @@ export function CreatorFeedSection(props: Props) {
                         {deletingPostId === post.id ? "削除中..." : "削除"}
                       </button>
                     </div>
+                  ) : goalAchievedAtMs !== null &&
+                    new Date(cardPost.createdAt).getTime() >= goalAchievedAtMs ? (
+                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                      目標達成後の活動
+                    </span>
                   ) : null
                 }
                 selectedForTip={selectedPostId === post.id}

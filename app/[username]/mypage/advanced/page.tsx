@@ -13,6 +13,6 @@ export default async function MyPageAdvanced({
 
   return renderMyPageWorkspace({
     username,
-    initialWorkspaceView: "advanced",
+    initialWorkspaceView: "settings",
   });
 }

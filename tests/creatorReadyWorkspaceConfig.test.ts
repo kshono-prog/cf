@@ -4,34 +4,23 @@ import test from "node:test";
 import {
   CREATOR_READY_WORKSPACE_VIEWS,
   getCreatorReadyWorkspaceConfig,
-  getCreatorReadyWorkspaceGroups,
 } from "../components/mypage/creatorReadyWorkspaceConfig";
 
-test("creatorReady workspace config keeps stable workspace order", () => {
+test("creatorReady workspace config has 2 modes in correct order", () => {
   assert.deepEqual(
     CREATOR_READY_WORKSPACE_VIEWS.map((view) => view.id),
-    ["home", "support-page", "supporters", "public", "advanced"]
+    ["daily-work", "settings"]
   );
 });
 
-test("creatorReady workspace helpers preserve tier grouping", () => {
-  const groups = getCreatorReadyWorkspaceGroups();
-
-  assert.deepEqual(groups.map((group) => group.tier), ["MVP", "BETA"]);
-  assert.deepEqual(
-    groups[0]?.views.map((view) => view.id),
-    ["home", "support-page", "supporters", "public"]
-  );
-  assert.deepEqual(
-    groups[1]?.views.map((view) => view.id),
-    ["advanced"]
-  );
+test("creatorReady workspace config lookup returns matching view", () => {
+  assert.equal(getCreatorReadyWorkspaceConfig("daily-work")?.label, "今日の仕事");
+  assert.equal(getCreatorReadyWorkspaceConfig("settings")?.label, "設定・準備");
 });
 
-test("creatorReady workspace lookup returns matching beta notes", () => {
+test("creatorReady workspace config returns undefined for unknown view", () => {
   assert.equal(
-    getCreatorReadyWorkspaceConfig("advanced")?.betaNote,
-    "ブリッジ・送金機能は試験提供中です。"
+    getCreatorReadyWorkspaceConfig("unknown" as never),
+    undefined
   );
-  assert.equal(getCreatorReadyWorkspaceConfig("home")?.tier, "MVP");
 });

@@ -20,7 +20,7 @@ import {
 import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 
 type Params = { projectId: string };
-type SettlementDistributionsDb = Pick<typeof prisma, "project" | "$transaction">;
+type SettlementDistributionsDb = Pick<typeof prisma, "project" | "projectSettlement" | "$transaction">;
 
 type DistributionInput = {
   id?: unknown;
@@ -191,6 +191,17 @@ export async function handleProjectSettlementDistributionsPut(
     const owner = lowerOrNull(project.ownerAddress);
     if (!owner || owner !== wallet.toLowerCase()) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
+    }
+
+    const existingSettlement = await runWithRetry(() =>
+      db.projectSettlement.findUnique({
+        where: { projectId },
+        select: { status: true },
+      })
+    );
+
+    if (existingSettlement?.status === "DISTRIBUTED") {
+      return errJson("SETTLEMENT_ALREADY_DISTRIBUTED", 409);
     }
 
     const projectToken = toToken(project.currency);

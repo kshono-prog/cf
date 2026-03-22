@@ -66,7 +66,7 @@ export function useCreatorReadyProjectDashboards(args: {
       const result = await fetchMyPageDashboard({
         apiBase: "",
         address,
-        view: "home",
+        view: "daily-work",
       });
 
       if (!result.ok) {

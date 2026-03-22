@@ -15,8 +15,8 @@ export function useCreatorReadyWorkspaceNavigation(args: Args) {
   const workspace = useCreatorReadyWorkspace();
   const router = useRouter();
   const publicPageHref = `/${workspace.meCreatorUsername}`;
-  const postingHref = `${args.workspaceBasePath}/support-page#posting-compose`;
-  const isPostingOpen = workspace.openSections.sns;
+  const postingHref = `${args.workspaceBasePath}/settings#posting-compose`;
+  const isPostingOpen = workspace.openSections.posting;
 
   const navigateToView = React.useCallback(
     (view: WorkspaceView) => {
@@ -25,26 +25,23 @@ export function useCreatorReadyWorkspaceNavigation(args: Args) {
     [args.workspaceBasePath, router]
   );
 
-  const openPublicPage = React.useCallback(() => {
-    router.push(publicPageHref, { scroll: true });
-  }, [publicPageHref, router]);
+  const openPublicPageInNewTab = React.useCallback(() => {
+    window.open(publicPageHref, "_blank", "noopener,noreferrer");
+  }, [publicPageHref]);
 
   const openPostingComposer = React.useCallback(() => {
     if (!isPostingOpen) {
-      workspace.onToggleSection("sns");
+      workspace.onToggleSection("posting");
     }
 
-    if (args.activeView !== "support-page") {
+    if (args.activeView !== "settings") {
       router.push(postingHref, { scroll: true });
       return;
     }
 
     if (typeof window === "undefined") return;
     window.requestAnimationFrame(() => {
-      const postingAnchor =
-        document.getElementById("posting-compose") ??
-        document.getElementById("sns-compose");
-      postingAnchor?.scrollIntoView({
+      document.getElementById("posting-compose")?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
@@ -54,7 +51,7 @@ export function useCreatorReadyWorkspaceNavigation(args: Args) {
   return {
     publicPageHref,
     navigateToView,
-    openPublicPage,
+    openPublicPageInNewTab,
     openPostingComposer,
   };
 }

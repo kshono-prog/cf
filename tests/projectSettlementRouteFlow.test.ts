@@ -194,6 +194,12 @@ function createSettlementTestDb(state: FlowState) {
         },
       }),
     },
+    projectSettlement: {
+      findUnique: async () => {
+        if (!state.bridgeStep) return null;
+        return { status: recomputeSettlementFromState(state).status };
+      },
+    },
     $transaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
       fn({
         projectBridgeStep: {

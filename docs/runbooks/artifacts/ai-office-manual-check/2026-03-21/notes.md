@@ -6,8 +6,9 @@
 - 実施セット: `minimum`
 - 保存先: `docs/runbooks/artifacts/ai-office-manual-check/2026-03-21/`
 - 事前スモーク確認:
-  - 実行済み: `npm run manual-check:ai-office:smoke -- --base-url http://127.0.0.1:3001 --username kazu`
+  - 実行済み: `npm run manual-check:ai-office:smoke -- --base-url http://127.0.0.1:3002 --username kazu`
   - 結果: `mypage / supporters / support-page / advanced` の 4 route が 200 で応答し、SSR loading shell と route marker を確認
+  - 補足: 既存の `http://127.0.0.1:3001` は local server 状態の影響で 500 を返したため、この記録は `3002` の clean dev server を基準にした
 - 取得したスクリーンショット:
   - 今回は未取得
   - `01-settings-ai-office-entry.png`
@@ -67,7 +68,7 @@
 
 ## Machine-Checked Preflight
 
-- [x] `npm run manual-check:ai-office:smoke -- --base-url http://127.0.0.1:3001 --username kazu`
+- [x] `npm run manual-check:ai-office:smoke -- --base-url http://127.0.0.1:3002 --username kazu`
 - [x] `/<username>/mypage`
 - [x] `/<username>/mypage/supporters`
 - [x] `/<username>/mypage/support-page`

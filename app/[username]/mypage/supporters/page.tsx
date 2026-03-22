@@ -13,6 +13,6 @@ export default async function MyPageSupporters({
 
   return renderMyPageWorkspace({
     username,
-    initialWorkspaceView: "supporters",
+    initialWorkspaceView: "daily-work",
   });
 }

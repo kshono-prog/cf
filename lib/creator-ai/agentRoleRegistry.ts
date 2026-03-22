@@ -52,6 +52,10 @@ export const CREATOR_AI_AGENT_ROLE_DEFINITIONS: readonly CreatorAiAgentRoleDefin
       billableReadiness: "internal_candidate",
       candidateTaskTypes: [
         "MANAGER_NEXT_ACTIONS",
+        "DAILY_ACTION_PLAN",
+        "ACTIVITY_RESTART_PROPOSAL",
+        "PROFILE_UPDATE_PROPOSAL",
+        "CAREER_PLAN_DRAFT",
         "PROPOSE",
         "ANALYZE",
         "WEEKLY_REPORT",
@@ -75,7 +79,13 @@ export const CREATOR_AI_AGENT_ROLE_DEFINITIONS: readonly CreatorAiAgentRoleDefin
       phase: "MVP",
       executionBoundary: "approval_required",
       billableReadiness: "x402_candidate",
-      candidateTaskTypes: ["PROPOSE", "ANNOUNCEMENT_DRAFT", "TRANSLATE"],
+      candidateTaskTypes: [
+        "PROPOSE",
+        "ANNOUNCEMENT_DRAFT",
+        "SUPPORT_STORY_DRAFT",
+        "TRANSLATE",
+        "GROWTH_OPPORTUNITY_ALERT",
+      ],
       allowedTargets: ["project", "publicProfile", "summary", "reporting"],
     },
     {
@@ -104,6 +114,7 @@ export const CREATOR_AI_AGENT_ROLE_DEFINITIONS: readonly CreatorAiAgentRoleDefin
       billableReadiness: "x402_candidate",
       candidateTaskTypes: [
         "SUPPORTER_MESSAGE_DRAFT",
+        "SUPPORTER_RESULT_REPORT",
         "ANNOUNCEMENT_DRAFT",
         "WEEKLY_REPORT",
       ],

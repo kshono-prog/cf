@@ -17,6 +17,13 @@ import {
   buildManagerAgentTaskOutput,
   normalizeManagerAgentTaskInput,
 } from "@/lib/creator-ai/managerAgentTask";
+import { buildProfileUpdateProposalOutput } from "@/lib/creator-ai/profileUpdateProposalTask";
+import { buildDailyActionPlanOutput } from "@/lib/creator-ai/dailyActionPlanTask";
+import { buildActivityRestartProposalOutput } from "@/lib/creator-ai/activityRestartProposalTask";
+import { buildSupportStoryDraftOutput } from "@/lib/creator-ai/supportStoryDraftTask";
+import { buildSupporterResultReportOutput } from "@/lib/creator-ai/supporterResultReportTask";
+import { buildCareerPlanDraftOutput } from "@/lib/creator-ai/careerPlanDraftTask";
+import { buildGrowthOpportunityAlertOutput } from "@/lib/creator-ai/growthOpportunityAlertTask";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { getProjectSettlementView } from "@/lib/projectSettlementView";
@@ -24,6 +31,7 @@ import {
   buildTranslationsOutput,
   parseTranslationTaskInput,
 } from "@/lib/translation";
+import { generateJson } from "@/lib/ai";
 
 type TaskExecutorParams = {
   creatorProfileId: bigint;
@@ -275,6 +283,32 @@ function validateSupporterMessageDraftInput(input: unknown): TaskInputValidation
       reportingWindowDays,
       includeMetricsSummary: record.includeMetricsSummary === true,
       includeSupportSummary: record.includeSupportSummary !== false,
+    } as Prisma.InputJsonValue,
+  };
+}
+
+function validateProfileUpdateProposalInput(input: unknown): TaskInputValidationResult {
+  if (input == null) {
+    return {
+      ok: true,
+      value: {
+        source: "mypage",
+        requestedAt: new Date().toISOString(),
+      } as Prisma.InputJsonValue,
+    };
+  }
+  if (!isJsonValueForStorage(input) || typeof input !== "object" || input === null) {
+    return { ok: false, error: "TASK_INPUT_INVALID" };
+  }
+  const record = input as Record<string, unknown>;
+  return {
+    ok: true,
+    value: {
+      source: typeof record.source === "string" ? record.source : "mypage",
+      requestedAt:
+        typeof record.requestedAt === "string"
+          ? record.requestedAt
+          : new Date().toISOString(),
     } as Prisma.InputJsonValue,
   };
 }
@@ -537,15 +571,31 @@ async function buildProposeOutput(params: {
   ranked.sort((a, b) => b.rate - a.rate);
   const top = ranked[0];
 
+  const fallbackProposals = [
+    top
+      ? `${top.platform}向けに、反応率の高い形式を再利用した短尺投稿を3本作成`
+      : "最も反応率の高い投稿形式を再利用して短尺投稿を3本作成",
+    "コメント率の高い投稿テーマを深掘りし、次回配信タイトルに反映",
+    "48時間間隔で告知→本編→振り返りの3連続投稿を試行して比較",
+  ];
+
+  const platformSummary = ranked
+    .slice(0, 3)
+    .map((r) => `${r.platform}: 反応率${(r.rate * 100).toFixed(2)}% / ${r.count}本`)
+    .join(", ");
+
+  const aiResult = await generateJson<{ proposals: string[] }>(
+    `クリエイターの直近${rows.length.toString()}投稿を分析しました。\nプラットフォーム別反応率: ${platformSummary || "データなし"}\n\n実行優先度の高いコンテンツ企画案を3つ提案してください。具体的かつ実行可能な内容で。\n\n以下のJSON形式のみで返してください:\n{"proposals":["提案1","提案2","提案3"]}`,
+    {
+      systemPrompt: "あなたはクリエイターのコンテンツ戦略アドバイザーです。データに基づいた実践的な提案を日本語で返してください。",
+      maxTokens: 400,
+      temperature: 0.7,
+    }
+  );
+
   return {
-    summary: `直近${rows.length}件の反応データから、実行優先度の高い企画案を生成しました。`,
-    proposals: [
-      top
-        ? `${top.platform}向けに、反応率の高い形式を再利用した短尺投稿を3本作成`
-        : "最も反応率の高い投稿形式を再利用して短尺投稿を3本作成",
-      "コメント率の高い投稿テーマを深掘りし、次回配信タイトルに反映",
-      "48時間間隔で告知→本編→振り返りの3連続投稿を試行して比較",
-    ],
+    summary: `直近${rows.length.toString()}件の反応データから、実行優先度の高い企画案を生成しました。`,
+    proposals: aiResult?.proposals?.length ? aiResult.proposals : fallbackProposals,
     metricsHint: ranked.slice(0, 3).map((r) => ({
       platform: r.platform,
       posts: r.count,
@@ -859,43 +909,62 @@ async function buildAnnouncementDraftOutput(params: {
     supportingPoints.push(project.description.slice(0, 120));
   }
 
-  const headline =
+  const headlineFallback =
     channel === "SUPPORTERS"
       ? `${projectLabel} の進捗とお礼をお届けします`
       : `${projectLabel} の最新状況をお知らせします`;
-  const intro =
+  const introFallback =
     channel === "SUPPORTERS"
       ? `${creatorLabel}です。いつも支援ありがとうございます。`
       : `${creatorLabel}です。最近の活動状況をまとめました。`;
-  const metricsLine =
+  const metricsLineFallback =
     includeMetricsSummary && metricRows.length > 0
-      ? `この${windowDays}日で ${totalViews.toLocaleString()} views、${totalInteractions.toLocaleString()} interactions がありました。`
+      ? `この${windowDays.toString()}日で ${totalViews.toLocaleString()} views、${totalInteractions.toLocaleString()} interactions がありました。`
       : "今週は次の発信に向けた準備を進めています。";
-  const supportLine =
+  const supportLineFallback =
     includeSupportSummary && params.projectId
       ? contributionCount > 0
-        ? `${contributionCount}件の支援を受け取り、合計 ${contributionTotal.toLocaleString()} ${
+        ? `${contributionCount.toString()}件の支援を受け取り、合計 ${contributionTotal.toLocaleString()} ${
             project?.currency ?? ""
           } が集まりました。`
         : "今週は大きな支援変動はありませんでしたが、次の告知に向けて導線を整えています。"
       : "";
-  const nextLine = topPlatform
+  const nextLineFallback = topPlatform
     ? `次は ${topPlatform.platform} で反応の良かった切り口を中心に展開します。`
     : "次は進捗共有と次回予告をセットで出す予定です。";
-  const callToAction =
+  const callToActionFallback =
     channel === "SUPPORTERS"
       ? "感想や応援コメントをもらえると次の改善に反映しやすいです。"
       : "気になった方はプロフィールや支援ページも見てもらえるとうれしいです。";
+  const fallbackBody = [introFallback, metricsLineFallback, supportLineFallback, nextLineFallback]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const aiResult = await generateJson<{ headline: string; body: string; callToAction: string }>(
+    `クリエイター「${creatorLabel}」のプロジェクト「${projectLabel}」向けの告知文を書いてください。
+対象: ${channel === "SUPPORTERS" ? "既存支援者" : "一般公開"}
+トーン: ${tone}
+直近${windowDays.toString()}日の活動データ: ${supportingPoints.join(" / ") || "データなし"}
+
+以下のJSON形式のみで返してください:
+{"headline":"タイトル（20文字以内）","body":"本文（150〜250文字）","callToAction":"行動喚起（30文字以内）"}`,
+    {
+      systemPrompt:
+        "あなたはクリエイター支援プラットフォームのコピーライターです。自然な日本語で、読者が応援したくなる文章を書いてください。",
+      maxTokens: 512,
+      temperature: 0.8,
+    }
+  );
 
   return {
     summary:
       channel === "SUPPORTERS"
         ? "支援者向け告知文案を生成しました。"
         : "公開向け告知文案を生成しました。",
-    headline,
+    headline: aiResult?.headline ?? headlineFallback,
     channel,
-    body: [intro, metricsLine, supportLine, nextLine].filter(Boolean).join("\n\n"),
-    callToAction,
+    body: aiResult?.body ?? fallbackBody,
+    callToAction: aiResult?.callToAction ?? callToActionFallback,
     tone,
     supportingPoints,
     basedOn: params.input,
@@ -999,30 +1068,49 @@ async function buildSupporterMessageDraftOutput(params: {
     );
   }
 
-  const subject =
+  const subjectFallback =
     purpose === "THANK_YOU"
       ? `${projectLabel} を支えてくれてありがとうございます`
       : `${projectLabel} の近況をあらためて共有します`;
-  const opening =
+  const openingFallback =
     purpose === "THANK_YOU"
       ? `${creatorLabel}です。いつも応援ありがとうございます。`
       : `${creatorLabel}です。最近の活動状況を共有させてください。`;
-  const supportLine =
+  const supportLineFallback =
     includeSupportSummary && params.projectId
       ? contributionCount > 0
-        ? `この${windowDays}日で ${contributionCount}件の支援を受け取り、合計 ${contributionTotal.toLocaleString()} ${
+        ? `この${windowDays.toString()}日で ${contributionCount.toString()}件の支援を受け取り、合計 ${contributionTotal.toLocaleString()} ${
             project?.currency ?? ""
           } が集まりました。`
-        : `この${windowDays}日では大きな支援変動はありませんでしたが、次の動きに向けて準備を進めています。`
+        : `この${windowDays.toString()}日では大きな支援変動はありませんでしたが、次の動きに向けて準備を進めています。`
       : "";
-  const metricsLine =
+  const metricsLineFallback =
     includeMetricsSummary && metricRows.length > 0
       ? `活動面では ${totalViews.toLocaleString()} views、${totalInteractions.toLocaleString()} interactions がありました。`
       : "";
-  const closing =
+  const closingFallback =
     purpose === "THANK_YOU"
       ? "これからも活動を前に進めていくので、引き続き見守ってもらえるとうれしいです。"
       : "よければ近況への感想や、気になっていることを教えてください。";
+  const fallbackBody = [openingFallback, supportLineFallback, metricsLineFallback, closingFallback]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const aiResult = await generateJson<{ subject: string; body: string; closing: string }>(
+    `クリエイター「${creatorLabel}」のプロジェクト「${projectLabel}」の支援者へのメッセージを書いてください。
+目的: ${purpose === "THANK_YOU" ? "感謝のお礼" : "再接続・近況報告"}
+トーン: ${tone}
+直近${windowDays.toString()}日のデータ: ${supportingPoints.join(" / ") || "データなし"}
+
+以下のJSON形式のみで返してください:
+{"subject":"件名（30文字以内）","body":"本文（150〜200文字）","closing":"締めの一文（40文字以内）"}`,
+    {
+      systemPrompt:
+        "あなたはクリエイター支援プラットフォームのコピーライターです。支援者との関係を大切にする温かい日本語で書いてください。",
+      maxTokens: 512,
+      temperature: 0.8,
+    }
+  );
 
   return {
     summary:
@@ -1031,9 +1119,9 @@ async function buildSupporterMessageDraftOutput(params: {
         : "支援者向け再接続メッセージ案を生成しました。",
     audience: "SUPPORTERS",
     purpose,
-    subject,
-    body: [opening, supportLine, metricsLine, closing].filter(Boolean).join("\n\n"),
-    closing,
+    subject: aiResult?.subject ?? subjectFallback,
+    body: aiResult?.body ?? fallbackBody,
+    closing: aiResult?.closing ?? closingFallback,
     tone,
     supportingPoints,
     basedOn: params.input,
@@ -1370,6 +1458,283 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
       },
     },
     execute: async (params) => buildSupporterMessageDraftOutput(params),
+  },
+  PROFILE_UPDATE_PROPOSAL: {
+    validateInput: validateProfileUpdateProposalInput,
+    outputSchema: {
+      kind: "PROFILE_UPDATE_PROPOSAL",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "プロフィール評価の要約",
+        },
+        profileSnapshot: {
+          type: "object",
+          required: true,
+          description: "現在のプロフィール充足状況",
+        },
+        proposals: {
+          type: "array",
+          required: true,
+          description: "改善提案のリスト",
+        },
+        nextActions: {
+          type: "array",
+          required: true,
+          description: "優先度の高い改善アクション",
+        },
+        missingFields: {
+          type: "array",
+          required: true,
+          description: "未設定または不十分なフィールド名",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) =>
+      buildProfileUpdateProposalOutput({
+        creatorProfileId: params.creatorProfileId,
+        input: params.input,
+      }),
+  },
+  DAILY_ACTION_PLAN: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "DAILY_ACTION_PLAN",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "今日の行動計画の要約",
+        },
+        actions: {
+          type: "array",
+          required: true,
+          description: "優先度付きの今日のアクションリスト",
+        },
+        generatedAt: {
+          type: "string",
+          required: true,
+          description: "生成日時 (ISO 8601)",
+        },
+        context: {
+          type: "object",
+          required: true,
+          description: "生成根拠となるコンテキスト情報",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => buildDailyActionPlanOutput(params),
+  },
+  ACTIVITY_RESTART_PROPOSAL: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "ACTIVITY_RESTART_PROPOSAL",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "再起動提案の要約",
+        },
+        inactivityContext: {
+          type: "object",
+          required: true,
+          description: "非活動状況の文脈情報",
+        },
+        successPatterns: {
+          type: "array",
+          required: true,
+          description: "過去の成功パターン",
+        },
+        restartSteps: {
+          type: "array",
+          required: true,
+          description: "再起動のための段階的なステップ",
+        },
+        supportContext: {
+          type: "object",
+          required: false,
+          description: "直近の支援状況",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => buildActivityRestartProposalOutput(params),
+  },
+  SUPPORT_STORY_DRAFT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "SUPPORT_STORY_DRAFT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "支援ストーリー生成の要約",
+        },
+        storyText: {
+          type: "string",
+          required: true,
+          description: "支援ストーリーの全文",
+        },
+        sections: {
+          type: "object",
+          required: true,
+          description: "why / what / progress の 3 セクション",
+        },
+        context: {
+          type: "object",
+          required: true,
+          description: "生成根拠のスナップショット",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => buildSupportStoryDraftOutput(params),
+  },
+  SUPPORTER_RESULT_REPORT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "SUPPORTER_RESULT_REPORT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "支援結果レポートの要約",
+        },
+        goalLabel: {
+          type: "string",
+          required: true,
+          description: "対象プロジェクト名",
+        },
+        achievedAt: {
+          type: "string",
+          required: false,
+          description: "目標達成日時 (ISO 8601)",
+        },
+        purposeBreakdown: {
+          type: "array",
+          required: true,
+          description: "用途別支援金集計",
+        },
+        totalAmount: {
+          type: "number",
+          required: true,
+          description: "合計支援金額",
+        },
+        distributionNote: {
+          type: "string",
+          required: true,
+          description: "配分実行状況の説明",
+        },
+        activityAfterNote: {
+          type: "string",
+          required: true,
+          description: "達成後の活動状況",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => buildSupporterResultReportOutput(params),
+  },
+  CAREER_PLAN_DRAFT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "CAREER_PLAN_DRAFT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "キャリアプランの要約",
+        },
+        currentPhase: {
+          type: "string",
+          required: true,
+          description: "現在の活動フェーズ",
+        },
+        milestones_3mo: {
+          type: "array",
+          required: true,
+          description: "3ヶ月マイルストーン",
+        },
+        milestones_6mo: {
+          type: "array",
+          required: true,
+          description: "6ヶ月マイルストーン",
+        },
+        focusAreas: {
+          type: "array",
+          required: true,
+          description: "注力すべき領域",
+        },
+        weeklyPace: {
+          type: "string",
+          required: true,
+          description: "週次ペースの推奨",
+        },
+        context: {
+          type: "object",
+          required: true,
+          description: "生成根拠のスナップショット",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => buildCareerPlanDraftOutput(params),
+  },
+  GROWTH_OPPORTUNITY_ALERT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "GROWTH_OPPORTUNITY_ALERT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "成長機会アラートの要約",
+        },
+        opportunities: {
+          type: "array",
+          required: true,
+          description: "成長機会一覧（type / title / insight / action / priority）",
+        },
+        metricsContext: {
+          type: "object",
+          required: true,
+          description: "分析に使用した指標の集計値",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => buildGrowthOpportunityAlertOutput(params),
   },
 };
 

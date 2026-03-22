@@ -18,7 +18,7 @@ import {
 import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 
 type Params = { projectId: string };
-type SettlementDistributionResultDb = Pick<typeof prisma, "project" | "$transaction">;
+type SettlementDistributionResultDb = Pick<typeof prisma, "project" | "projectSettlement" | "$transaction">;
 
 type Body = {
   address?: unknown;
@@ -102,7 +102,7 @@ export async function handleProjectSettlementDistributionResultPost(
     const project = await runWithRetry(() =>
       db.project.findUnique({
         where: { id: projectId },
-        select: { id: true, ownerAddress: true, bridgedAt: true },
+        select: { id: true, ownerAddress: true },
       })
     );
 
@@ -112,8 +112,16 @@ export async function handleProjectSettlementDistributionResultPost(
     if (!owner || owner !== wallet.toLowerCase()) {
       return errJson("FORBIDDEN_NOT_OWNER", 403);
     }
-    if (!project.bridgedAt) {
-      return errJson("DISTRIBUTION_RESULT_REQUIRES_BRIDGED", 400);
+
+    const settlement = await runWithRetry(() =>
+      db.projectSettlement.findUnique({
+        where: { projectId },
+        select: { status: true },
+      })
+    );
+
+    if (!settlement || settlement.status !== "READY_FOR_DISTRIBUTION") {
+      return errJson("DISTRIBUTION_REQUIRES_READY_FOR_DISTRIBUTION", 400);
     }
 
     const now = deps.now?.() ?? new Date();

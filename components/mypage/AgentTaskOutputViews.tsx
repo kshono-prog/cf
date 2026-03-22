@@ -11,6 +11,9 @@ import {
 import {
   buildAnnouncementPostingComposeHandoff,
   buildAnnouncementPostingComposeText,
+  buildTranslatePostingComposeHandoff,
+  buildSupportStoryPostingComposeHandoff,
+  buildProposePostingComposeHandoff,
   buildPostingComposeHref,
   POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
 } from "@/components/mypage/postingComposeHandoff";
@@ -241,8 +244,39 @@ function parseProposeOutput(v: unknown): ProposeOutputView | null {
   return { summary, proposals, metricsHint };
 }
 
-function ProposeOutputCard(props: { output: ProposeOutputView }) {
-  const { output } = props;
+function ProposeOutputCard(props: {
+  output: ProposeOutputView;
+  projectId: string | null;
+}) {
+  const { output, projectId } = props;
+  const [sentIdx, setSentIdx] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (sentIdx === null) return;
+    const id = window.setTimeout(() => setSentIdx(null), 2000);
+    return () => window.clearTimeout(id);
+  }, [sentIdx]);
+
+  const openComposeWith = React.useCallback(
+    (proposalText: string, idx: number) => {
+      if (typeof window === "undefined") return;
+      const handoff = buildProposePostingComposeHandoff({ projectId, proposalText });
+      try {
+        window.localStorage.setItem(
+          POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
+          JSON.stringify(handoff)
+        );
+      } catch {
+        return;
+      }
+      setSentIdx(idx);
+      window.location.assign(
+        buildPostingComposeHref({ pathname: window.location.pathname })
+      );
+    },
+    [projectId]
+  );
+
   return (
     <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
       <div className="font-medium text-gray-800">{output.summary}</div>
@@ -263,7 +297,16 @@ function ProposeOutputCard(props: { output: ProposeOutputView }) {
             key={`${proposal}:${idx.toString()}`}
             className="rounded border bg-white px-2 py-1 text-gray-800"
           >
-            {idx + 1}. {proposal}
+            <div>{idx + 1}. {proposal}</div>
+            <button
+              type="button"
+              className="mt-1 rounded-full border border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-700"
+              onClick={() => {
+                openComposeWith(proposal, idx);
+              }}
+            >
+              {sentIdx === idx ? "送信済み" : "compose に送る"}
+            </button>
           </div>
         ))}
       </div>
@@ -535,8 +578,40 @@ function parseTranslateOutput(v: unknown): TranslateOutputView | null {
   return { summary, translations };
 }
 
-function TranslateOutputCard(props: { output: TranslateOutputView }) {
-  const { output } = props;
+function TranslateOutputCard(props: {
+  output: TranslateOutputView;
+  projectId: string | null;
+}) {
+  const { output, projectId } = props;
+  const [sentLang, setSentLang] = React.useState<string | null>(null);
+
+  const openComposeWith = React.useCallback(
+    (lang: string, text: string) => {
+      if (typeof window === "undefined") return;
+
+      const handoff = buildTranslatePostingComposeHandoff({
+        projectId,
+        lang,
+        translatedText: text,
+      });
+
+      try {
+        window.localStorage.setItem(
+          POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
+          JSON.stringify(handoff)
+        );
+      } catch {
+        return;
+      }
+
+      setSentLang(lang);
+      window.location.assign(
+        buildPostingComposeHref({ pathname: window.location.pathname })
+      );
+    },
+    [projectId]
+  );
+
   return (
     <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
       <div className="font-medium text-gray-800">{output.summary}</div>
@@ -544,10 +619,19 @@ function TranslateOutputCard(props: { output: TranslateOutputView }) {
         {output.translations.slice(0, 4).map((item, idx) => (
           <div
             key={`${item.lang}:${idx.toString()}`}
-            className="rounded border bg-white px-2 py-1 text-gray-800"
+            className="rounded border bg-white px-2 py-2 text-gray-800"
           >
-            <div className="text-[10px] text-gray-500">{item.lang}</div>
-            <div className="whitespace-pre-wrap">{item.text}</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[10px] text-gray-500">{item.lang}</div>
+              <button
+                type="button"
+                className="shrink-0 rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700"
+                onClick={() => openComposeWith(item.lang, item.text)}
+              >
+                {sentLang === item.lang ? "送信済み" : "compose に送る"}
+              </button>
+            </div>
+            <div className="mt-1 whitespace-pre-wrap">{item.text}</div>
           </div>
         ))}
       </div>
@@ -1116,6 +1200,827 @@ function AnnouncementDraftOutputCard(props: {
   );
 }
 
+type ProfileProposalView = {
+  field: string;
+  priority: "high" | "medium" | "low";
+  reason: string;
+  suggestionNote: string;
+};
+
+type ProfileUpdateProposalOutputView = {
+  summary: string;
+  profileSnapshot: {
+    displayName: string;
+    hasProfileText: boolean;
+    hasAvatar: boolean;
+    hasExternalUrl: boolean;
+    hasCreatorType: boolean;
+    socialLinkCount: number;
+  };
+  proposals: ProfileProposalView[];
+  nextActions: string[];
+};
+
+function isProfilePriority(v: unknown): v is ProfileProposalView["priority"] {
+  return v === "high" || v === "medium" || v === "low";
+}
+
+function parseProfileUpdateProposalOutput(
+  v: unknown
+): ProfileUpdateProposalOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+
+  const snapshotRaw = isRecord(v.profileSnapshot) ? v.profileSnapshot : null;
+  if (!snapshotRaw) return null;
+  const profileSnapshot = {
+    displayName: asStringOrNull(snapshotRaw.displayName) ?? "",
+    hasProfileText: snapshotRaw.hasProfileText === true,
+    hasAvatar: snapshotRaw.hasAvatar === true,
+    hasExternalUrl: snapshotRaw.hasExternalUrl === true,
+    hasCreatorType: snapshotRaw.hasCreatorType === true,
+    socialLinkCount: asNumberOrNull(snapshotRaw.socialLinkCount) ?? 0,
+  };
+
+  const proposals: ProfileProposalView[] = [];
+  for (const item of asArray(v.proposals)) {
+    if (!isRecord(item)) continue;
+    const field = asStringOrNull(item.field);
+    const priority = item.priority;
+    const reason = asStringOrNull(item.reason);
+    const suggestionNote = asStringOrNull(item.suggestionNote);
+    if (!field || !isProfilePriority(priority) || !reason || !suggestionNote) continue;
+    proposals.push({ field, priority, reason, suggestionNote });
+  }
+
+  const nextActions = asArray(v.nextActions)
+    .map(asStringOrNull)
+    .filter((x): x is string => !!x);
+
+  return { summary, profileSnapshot, proposals, nextActions };
+}
+
+function profilePriorityBadgeClass(
+  priority: ProfileProposalView["priority"]
+): string {
+  if (priority === "high") return "border-rose-200 bg-rose-50 text-rose-700";
+  if (priority === "medium") return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-gray-200 bg-gray-100 text-gray-700";
+}
+
+function ProfileUpdateProposalOutputCard(props: {
+  output: ProfileUpdateProposalOutputView;
+}) {
+  const { output } = props;
+  const snap = output.profileSnapshot;
+
+  const chips = [
+    { label: "紹介文", ok: snap.hasProfileText },
+    { label: "アイコン", ok: snap.hasAvatar },
+    { label: "SNSリンク", ok: snap.socialLinkCount > 0 },
+    { label: "外部URL", ok: snap.hasExternalUrl },
+    { label: "タイプ", ok: snap.hasCreatorType },
+  ];
+
+  return (
+    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
+      <div className="font-medium text-gray-800">{output.summary}</div>
+      <div className="flex flex-wrap gap-1">
+        {chips.map((chip) => (
+          <span
+            key={chip.label}
+            className={`rounded-full border px-2 py-0.5 text-[10px] ${
+              chip.ok
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-gray-200 bg-white text-gray-500"
+            }`}
+          >
+            {chip.ok ? "✓" : "–"} {chip.label}
+          </span>
+        ))}
+        <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-500">
+          SNS {snap.socialLinkCount.toString()}件
+        </span>
+      </div>
+      {output.proposals.length > 0 ? (
+        <div className="grid gap-1">
+          {output.proposals.slice(0, 5).map((proposal) => (
+            <div
+              key={proposal.field}
+              className="rounded border bg-white px-2 py-2 text-gray-800"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-medium">{proposal.suggestionNote}</div>
+                <span
+                  className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${profilePriorityBadgeClass(proposal.priority)}`}
+                >
+                  {proposal.priority}
+                </span>
+              </div>
+              <div className="mt-1 text-[10px] text-gray-500">
+                {proposal.reason}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded border border-dashed bg-white px-2 py-2 text-gray-600">
+          現時点で改善提案はありません。
+        </div>
+      )}
+      {output.nextActions.length > 0 ? (
+        <ul className="list-disc pl-4">
+          {output.nextActions.map((action, idx) => (
+            <li key={`${action}:${idx.toString()}`}>{action}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+// ── DAILY_ACTION_PLAN ──────────────────────────────────────────────────────
+
+type DailyAction = {
+  id: string;
+  title: string;
+  reason: string;
+  priority: "high" | "medium" | "low";
+  category: string;
+};
+
+type DailyActionPlanOutputView = {
+  summary: string;
+  actions: DailyAction[];
+  generatedAt: string;
+  context: {
+    daysSinceLastPost: number | null;
+    pendingApprovals: number;
+    recentContributionCount: number;
+  };
+};
+
+function isDailyPriority(v: unknown): v is DailyAction["priority"] {
+  return v === "high" || v === "medium" || v === "low";
+}
+
+function parseDailyActionPlanOutput(
+  v: unknown
+): DailyActionPlanOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+
+  const actions: DailyAction[] = [];
+  for (const item of asArray(v.actions)) {
+    if (!isRecord(item)) continue;
+    const id = asStringOrNull(item.id);
+    const title = asStringOrNull(item.title);
+    const reason = asStringOrNull(item.reason);
+    const priority = item.priority;
+    const category = asStringOrNull(item.category) ?? "general";
+    if (!id || !title || !reason || !isDailyPriority(priority)) continue;
+    actions.push({ id, title, reason, priority, category });
+  }
+
+  const ctxRaw = isRecord(v.context) ? v.context : null;
+  const context = {
+    daysSinceLastPost: ctxRaw ? asNumberOrNull(ctxRaw.daysSinceLastPost) : null,
+    pendingApprovals: ctxRaw ? (asNumberOrNull(ctxRaw.pendingApprovals) ?? 0) : 0,
+    recentContributionCount: ctxRaw
+      ? (asNumberOrNull(ctxRaw.recentContributionCount) ?? 0)
+      : 0,
+  };
+
+  return { summary, actions, generatedAt: asStringOrNull(v.generatedAt) ?? "", context };
+}
+
+function dailyPriorityBadgeClass(priority: DailyAction["priority"]): string {
+  if (priority === "high") return "border-rose-200 bg-rose-50 text-rose-700";
+  if (priority === "medium") return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-gray-200 bg-gray-100 text-gray-600";
+}
+
+function DailyActionPlanOutputCard(props: {
+  output: DailyActionPlanOutputView;
+}) {
+  const { output } = props;
+  return (
+    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
+      <div className="font-medium text-gray-800">{output.summary}</div>
+      <div className="grid gap-1">
+        {output.actions.map((action) => (
+          <div
+            key={action.id}
+            className="rounded border bg-white px-2 py-2 text-gray-800"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-medium">{action.title}</div>
+              <span
+                className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${dailyPriorityBadgeClass(action.priority)}`}
+              >
+                {action.priority}
+              </span>
+            </div>
+            <div className="mt-1 text-[10px] text-gray-500">{action.reason}</div>
+          </div>
+        ))}
+      </div>
+      {output.context.daysSinceLastPost !== null && output.context.daysSinceLastPost >= 3 ? (
+        <div className="text-[10px] text-gray-500">
+          最終投稿から {output.context.daysSinceLastPost.toString()}日 / 承認待ち{" "}
+          {output.context.pendingApprovals.toString()}件
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ── ACTIVITY_RESTART_PROPOSAL ──────────────────────────────────────────────
+
+type RestartStep = {
+  step: number;
+  title: string;
+  description: string;
+  effort: "low" | "medium" | "high";
+};
+
+type ActivityRestartProposalOutputView = {
+  summary: string;
+  inactivityContext: {
+    daysSinceLastPost: number | null;
+    inactivityNote: string;
+  };
+  successPatterns: string[];
+  restartSteps: RestartStep[];
+};
+
+function isRestartEffort(v: unknown): v is RestartStep["effort"] {
+  return v === "low" || v === "medium" || v === "high";
+}
+
+function parseActivityRestartProposalOutput(
+  v: unknown
+): ActivityRestartProposalOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+
+  const inactCtxRaw = isRecord(v.inactivityContext) ? v.inactivityContext : null;
+  const inactivityContext = {
+    daysSinceLastPost: inactCtxRaw
+      ? asNumberOrNull(inactCtxRaw.daysSinceLastPost)
+      : null,
+    inactivityNote: inactCtxRaw
+      ? (asStringOrNull(inactCtxRaw.inactivityNote) ?? "")
+      : "",
+  };
+
+  const successPatterns = asArray(v.successPatterns)
+    .map(asStringOrNull)
+    .filter((x): x is string => !!x);
+
+  const restartSteps: RestartStep[] = [];
+  for (const item of asArray(v.restartSteps)) {
+    if (!isRecord(item)) continue;
+    const step = asNumberOrNull(item.step) ?? 0;
+    const title = asStringOrNull(item.title);
+    const description = asStringOrNull(item.description);
+    const effort = item.effort;
+    if (!title || !description || !isRestartEffort(effort)) continue;
+    restartSteps.push({ step, title, description, effort });
+  }
+
+  return { summary, inactivityContext, successPatterns, restartSteps };
+}
+
+function ActivityRestartProposalOutputCard(props: {
+  output: ActivityRestartProposalOutputView;
+}) {
+  const { output } = props;
+  return (
+    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
+      <div className="font-medium text-gray-800">{output.summary}</div>
+      {output.inactivityContext.inactivityNote ? (
+        <div className="text-[10px] text-gray-500">
+          {output.inactivityContext.inactivityNote}
+        </div>
+      ) : null}
+      {output.successPatterns.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-gray-700">
+            過去の成功パターン
+          </div>
+          {output.successPatterns.slice(0, 3).map((pattern, idx) => (
+            <div
+              key={`${pattern}:${idx.toString()}`}
+              className="rounded border bg-white px-2 py-1 text-[10px] text-gray-700"
+            >
+              {pattern}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className="grid gap-1">
+        {output.restartSteps.map((step) => (
+          <div
+            key={step.step}
+            className="rounded border bg-white px-2 py-2 text-gray-800"
+          >
+            <div className="font-medium">
+              {step.step}. {step.title}
+            </div>
+            <div className="mt-1 text-[10px] text-gray-500">{step.description}</div>
+            <div className="mt-1 text-[10px] text-gray-400">
+              手間: {step.effort}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SUPPORT_STORY_DRAFT ────────────────────────────────────────────────────
+
+type SupportStoryDraftOutputView = {
+  summary: string;
+  storyText: string;
+  sections: {
+    why: string;
+    what: string;
+    progress: string;
+  };
+};
+
+function parseSupportStoryDraftOutput(
+  v: unknown
+): SupportStoryDraftOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  const storyText = asStringOrNull(v.storyText);
+  if (!summary || !storyText) return null;
+
+  const sectRaw = isRecord(v.sections) ? v.sections : null;
+  const sections = {
+    why: sectRaw ? (asStringOrNull(sectRaw.why) ?? "") : "",
+    what: sectRaw ? (asStringOrNull(sectRaw.what) ?? "") : "",
+    progress: sectRaw ? (asStringOrNull(sectRaw.progress) ?? "") : "",
+  };
+
+  return { summary, storyText, sections };
+}
+
+function SupportStoryDraftOutputCard(props: {
+  output: SupportStoryDraftOutputView;
+  projectId: string | null;
+}) {
+  const { output, projectId } = props;
+  const [copied, setCopied] = React.useState(false);
+  const [sent, setSent] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!copied) return;
+    const id = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(id);
+  }, [copied]);
+
+  React.useEffect(() => {
+    if (!sent) return;
+    const id = window.setTimeout(() => setSent(false), 2000);
+    return () => window.clearTimeout(id);
+  }, [sent]);
+
+  const copyStory = React.useCallback(async () => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.navigator.clipboard?.writeText !== "function"
+    ) {
+      return;
+    }
+    try {
+      await window.navigator.clipboard.writeText(output.storyText);
+      setCopied(true);
+    } catch {
+      return;
+    }
+  }, [output.storyText]);
+
+  const openPostingCompose = React.useCallback(() => {
+    if (typeof window === "undefined") return;
+    const handoff = buildSupportStoryPostingComposeHandoff({
+      projectId,
+      storyText: output.storyText,
+    });
+    try {
+      window.localStorage.setItem(
+        POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
+        JSON.stringify(handoff)
+      );
+    } catch {
+      return;
+    }
+    setSent(true);
+    window.location.assign(
+      buildPostingComposeHref({ pathname: window.location.pathname })
+    );
+  }, [projectId, output.storyText]);
+
+  return (
+    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
+      <div className="font-medium text-gray-800">{output.summary}</div>
+      <div className="rounded border bg-white px-2 py-2 space-y-2">
+        {output.sections.why ? (
+          <div>
+            <div className="text-[10px] font-medium text-gray-500">
+              なぜ支援が必要か
+            </div>
+            <div className="mt-0.5 text-gray-800">{output.sections.why}</div>
+          </div>
+        ) : null}
+        {output.sections.what ? (
+          <div>
+            <div className="text-[10px] font-medium text-gray-500">
+              何が実現するか
+            </div>
+            <div className="mt-0.5 text-gray-800">{output.sections.what}</div>
+          </div>
+        ) : null}
+        {output.sections.progress ? (
+          <div>
+            <div className="text-[10px] font-medium text-gray-500">
+              いまの進捗
+            </div>
+            <div className="mt-0.5 text-gray-800">{output.sections.progress}</div>
+          </div>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          onClick={openPostingCompose}
+        >
+          {sent ? "送信済み" : "compose に送る"}
+        </button>
+        <button
+          type="button"
+          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-800"
+          onClick={() => {
+            void copyStory();
+          }}
+        >
+          {copied ? "ストーリーをコピー済み" : "ストーリーをコピー"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── SUPPORTER_RESULT_REPORT ────────────────────────────────────────────────
+
+type PurposeBreakdownItem = {
+  purposeLabel: string;
+  confirmedAmount: number;
+  contributionCount: number;
+};
+
+type SupporterResultReportOutputView = {
+  summary: string;
+  goalLabel: string;
+  achievedAt: string | null;
+  currency: string;
+  purposeBreakdown: PurposeBreakdownItem[];
+  totalAmount: number;
+  distributionNote: string;
+  activityAfterNote: string;
+};
+
+function parseSupporterResultReportOutput(
+  v: unknown
+): SupporterResultReportOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  const goalLabel = asStringOrNull(v.goalLabel);
+  if (!summary || !goalLabel) return null;
+
+  const currency = asStringOrNull(v.currency) ?? "JPYC";
+  const achievedAt = asStringOrNull(v.achievedAt);
+  const totalAmount = asNumberOrNull(v.totalAmount) ?? 0;
+  const distributionNote = asStringOrNull(v.distributionNote) ?? "";
+  const activityAfterNote = asStringOrNull(v.activityAfterNote) ?? "";
+
+  const purposeBreakdown: PurposeBreakdownItem[] = [];
+  for (const item of asArray(v.purposeBreakdown)) {
+    if (!isRecord(item)) continue;
+    const purposeLabel = asStringOrNull(item.purposeLabel);
+    if (!purposeLabel) continue;
+    purposeBreakdown.push({
+      purposeLabel,
+      confirmedAmount: asNumberOrNull(item.confirmedAmount) ?? 0,
+      contributionCount: asNumberOrNull(item.contributionCount) ?? 0,
+    });
+  }
+
+  return {
+    summary,
+    goalLabel,
+    achievedAt,
+    currency,
+    purposeBreakdown,
+    totalAmount,
+    distributionNote,
+    activityAfterNote,
+  };
+}
+
+function SupporterResultReportOutputCard(props: {
+  output: SupporterResultReportOutputView;
+}) {
+  const { output } = props;
+  const maxAmount = Math.max(
+    ...output.purposeBreakdown.map((p) => p.confirmedAmount),
+    1
+  );
+
+  return (
+    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
+      <div className="font-medium text-gray-800">{output.summary}</div>
+      <div className="flex flex-wrap gap-1 text-[10px] text-gray-600">
+        <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5">
+          {output.goalLabel}
+        </span>
+        <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5">
+          {output.currency}
+        </span>
+        {output.achievedAt ? (
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700">
+            達成済み
+          </span>
+        ) : (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700">
+            達成前
+          </span>
+        )}
+      </div>
+      {output.purposeBreakdown.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-gray-600">用途別内訳</div>
+          {output.purposeBreakdown.slice(0, 6).map((item) => (
+            <div key={item.purposeLabel} className="space-y-0.5">
+              <div className="flex items-center justify-between text-[10px] text-gray-700">
+                <span>{item.purposeLabel}</span>
+                <span>
+                  {item.confirmedAmount.toLocaleString()} {output.currency}
+                </span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-gray-200">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{
+                    width: `${Math.round((item.confirmedAmount / maxAmount) * 100).toString()}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className="rounded border bg-white px-2 py-1.5 space-y-1 text-[10px] text-gray-700">
+        <div>合計: {output.totalAmount.toLocaleString()} {output.currency}</div>
+        <div>{output.distributionNote}</div>
+        <div>{output.activityAfterNote}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── GROWTH_OPPORTUNITY_ALERT ────────────────────────────────────────────────
+
+type GrowthOpportunityItem = {
+  type: string;
+  title: string;
+  insight: string;
+  action: string;
+  priority: "high" | "medium" | "low";
+};
+
+type GrowthOpportunityAlertOutputView = {
+  summary: string;
+  opportunities: GrowthOpportunityItem[];
+  metricsContext: {
+    totalViews: number;
+    totalInteractions: number;
+    engagementRate: number;
+    topPlatform: string | null;
+    snapshotCount: number;
+  } | null;
+};
+
+function parseGrowthOpportunityAlertOutput(
+  v: unknown
+): GrowthOpportunityAlertOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+  const opportunities = asArray(v.opportunities)
+    .filter(isRecord)
+    .map((item) => ({
+      type: asStringOrNull(item.type) ?? "content_gap",
+      title: asStringOrNull(item.title) ?? "",
+      insight: asStringOrNull(item.insight) ?? "",
+      action: asStringOrNull(item.action) ?? "",
+      priority: (["high", "medium", "low"] as const).includes(
+        item.priority as "high" | "medium" | "low"
+      )
+        ? (item.priority as "high" | "medium" | "low")
+        : "low",
+    }))
+    .filter((o) => o.title);
+  const mc = isRecord(v.metricsContext) ? v.metricsContext : null;
+  const metricsContext = mc
+    ? {
+        totalViews: asNumberOrNull(mc.totalViews) ?? 0,
+        totalInteractions: asNumberOrNull(mc.totalInteractions) ?? 0,
+        engagementRate: asNumberOrNull(mc.engagementRate) ?? 0,
+        topPlatform: asStringOrNull(mc.topPlatform),
+        snapshotCount: asNumberOrNull(mc.snapshotCount) ?? 0,
+      }
+    : null;
+  return { summary, opportunities, metricsContext };
+}
+
+const PRIORITY_BADGE: Record<"high" | "medium" | "low", string> = {
+  high: "bg-red-100 text-red-700",
+  medium: "bg-amber-100 text-amber-700",
+  low: "bg-[var(--line)] text-[var(--muted)]",
+};
+const PRIORITY_LABEL: Record<"high" | "medium" | "low", string> = {
+  high: "高",
+  medium: "中",
+  low: "低",
+};
+
+function GrowthOpportunityAlertOutputCard({
+  output,
+}: {
+  output: GrowthOpportunityAlertOutputView;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-[var(--text)]">{output.summary}</p>
+
+      {output.metricsContext && output.metricsContext.snapshotCount > 0 && (
+        <div className="flex flex-wrap gap-2 text-[11px] text-[var(--muted)]">
+          <span>
+            再生/表示 {output.metricsContext.totalViews.toLocaleString()}
+          </span>
+          <span>
+            反応 {output.metricsContext.totalInteractions.toLocaleString()}
+          </span>
+          <span>
+            反応率{" "}
+            {(output.metricsContext.engagementRate * 100).toFixed(2)}%
+          </span>
+          {output.metricsContext.topPlatform && (
+            <span>TOP: {output.metricsContext.topPlatform}</span>
+          )}
+        </div>
+      )}
+
+      {output.opportunities.length === 0 && (
+        <p className="text-xs text-[var(--muted)]">
+          指標データを記録すると成長機会の分析が可能になります。
+        </p>
+      )}
+
+      <div className="space-y-2">
+        {output.opportunities.map((opp, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-[var(--line)] bg-[var(--bg)] p-3 space-y-1"
+          >
+            <div className="flex items-start gap-2">
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${PRIORITY_BADGE[opp.priority]}`}
+              >
+                優先度{PRIORITY_LABEL[opp.priority]}
+              </span>
+              <span className="text-[13px] font-medium text-[var(--text)]">
+                {opp.title}
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--muted)]">{opp.insight}</p>
+            <p className="text-[11px] font-medium text-[var(--text)]">
+              → {opp.action}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── CAREER_PLAN_DRAFT ──────────────────────────────────────────────────────
+
+type CareerPlanDraftOutputView = {
+  summary: string;
+  currentPhase: string;
+  milestones3mo: string[];
+  milestones6mo: string[];
+  focusAreas: string[];
+  weeklyPace: string;
+};
+
+function parseCareerPlanDraftOutput(
+  v: unknown
+): CareerPlanDraftOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  const currentPhase = asStringOrNull(v.currentPhase);
+  if (!summary || !currentPhase) return null;
+
+  const milestones3mo = asArray(v.milestones_3mo)
+    .map(asStringOrNull)
+    .filter((x): x is string => !!x);
+  const milestones6mo = asArray(v.milestones_6mo)
+    .map(asStringOrNull)
+    .filter((x): x is string => !!x);
+  const focusAreas = asArray(v.focusAreas)
+    .map(asStringOrNull)
+    .filter((x): x is string => !!x);
+  const weeklyPace = asStringOrNull(v.weeklyPace) ?? "";
+
+  return { summary, currentPhase, milestones3mo, milestones6mo, focusAreas, weeklyPace };
+}
+
+function CareerPlanDraftOutputCard(props: {
+  output: CareerPlanDraftOutputView;
+}) {
+  const { output } = props;
+  return (
+    <div className="mt-1 rounded bg-gray-50 p-2 text-[11px] space-y-2">
+      <div className="font-medium text-gray-800">{output.summary}</div>
+      <div className="flex flex-wrap gap-1">
+        <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700">
+          現在: {output.currentPhase}
+        </span>
+      </div>
+      {output.weeklyPace ? (
+        <div className="rounded border bg-white px-2 py-1.5 text-[10px] text-gray-700">
+          {output.weeklyPace}
+        </div>
+      ) : null}
+      {output.milestones3mo.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-gray-600">3ヶ月マイルストーン</div>
+          {output.milestones3mo.map((m, idx) => (
+            <div
+              key={`3mo:${idx.toString()}`}
+              className="flex items-start gap-1.5 rounded border bg-white px-2 py-1.5"
+            >
+              <span className="shrink-0 text-[10px] font-semibold text-indigo-500">
+                {(idx + 1).toString()}
+              </span>
+              <span className="text-gray-800">{m}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {output.milestones6mo.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-gray-600">6ヶ月マイルストーン</div>
+          {output.milestones6mo.map((m, idx) => (
+            <div
+              key={`6mo:${idx.toString()}`}
+              className="flex items-start gap-1.5 rounded border border-dashed bg-white px-2 py-1.5"
+            >
+              <span className="shrink-0 text-[10px] font-semibold text-gray-400">
+                {(idx + 1).toString()}
+              </span>
+              <span className="text-gray-700">{m}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {output.focusAreas.length > 0 ? (
+        <div className="space-y-0.5">
+          <div className="text-[10px] font-medium text-gray-600">注力領域</div>
+          {output.focusAreas.map((area, idx) => (
+            <div
+              key={`focus:${idx.toString()}`}
+              className="text-[10px] text-gray-700"
+            >
+              • {area}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 type OutputRenderer = {
   render: (output: unknown, projectId: string | null) => React.ReactNode | null;
 };
@@ -1140,15 +2045,17 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     },
   },
   PROPOSE: {
-    render: (output) => {
+    render: (output, projectId) => {
       const parsed = parseProposeOutput(output);
-      return parsed ? <ProposeOutputCard output={parsed} /> : null;
+      return parsed ? <ProposeOutputCard output={parsed} projectId={projectId} /> : null;
     },
   },
   TRANSLATE: {
-    render: (output) => {
+    render: (output, projectId) => {
       const parsed = parseTranslateOutput(output);
-      return parsed ? <TranslateOutputCard output={parsed} /> : null;
+      return parsed ? (
+        <TranslateOutputCard output={parsed} projectId={projectId} />
+      ) : null;
     },
   },
   WEEKLY_REPORT: {
@@ -1169,6 +2076,50 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     render: (output) => {
       const parsed = parseSupporterMessageDraftOutput(output);
       return parsed ? <SupporterMessageDraftOutputCard output={parsed} /> : null;
+    },
+  },
+  PROFILE_UPDATE_PROPOSAL: {
+    render: (output) => {
+      const parsed = parseProfileUpdateProposalOutput(output);
+      return parsed ? <ProfileUpdateProposalOutputCard output={parsed} /> : null;
+    },
+  },
+  DAILY_ACTION_PLAN: {
+    render: (output) => {
+      const parsed = parseDailyActionPlanOutput(output);
+      return parsed ? <DailyActionPlanOutputCard output={parsed} /> : null;
+    },
+  },
+  ACTIVITY_RESTART_PROPOSAL: {
+    render: (output) => {
+      const parsed = parseActivityRestartProposalOutput(output);
+      return parsed ? (
+        <ActivityRestartProposalOutputCard output={parsed} />
+      ) : null;
+    },
+  },
+  SUPPORT_STORY_DRAFT: {
+    render: (output, projectId) => {
+      const parsed = parseSupportStoryDraftOutput(output);
+      return parsed ? <SupportStoryDraftOutputCard output={parsed} projectId={projectId} /> : null;
+    },
+  },
+  SUPPORTER_RESULT_REPORT: {
+    render: (output) => {
+      const parsed = parseSupporterResultReportOutput(output);
+      return parsed ? <SupporterResultReportOutputCard output={parsed} /> : null;
+    },
+  },
+  CAREER_PLAN_DRAFT: {
+    render: (output) => {
+      const parsed = parseCareerPlanDraftOutput(output);
+      return parsed ? <CareerPlanDraftOutputCard output={parsed} /> : null;
+    },
+  },
+  GROWTH_OPPORTUNITY_ALERT: {
+    render: (output) => {
+      const parsed = parseGrowthOpportunityAlertOutput(output);
+      return parsed ? <GrowthOpportunityAlertOutputCard output={parsed} /> : null;
     },
   },
 };

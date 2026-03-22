@@ -88,8 +88,8 @@ select {
 .card,
 .surface-card {
   background: var(--surface);
-  border: 0;
-  border-radius: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   box-shadow: none;
 }
 
@@ -793,4 +793,44 @@ html[data-theme="dark"] .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
     font-size: 16px; /* iOS Safari のズームを防ぐ閾値 */
     line-height: 1.5; /* お好みで調整、既存と大きく変えなくてOK */
   }
+}
+
+/* ワークスペース モード切り替え セグメントコントロール */
+.workspace-segment {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.workspace-segment-btn {
+  position: relative;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--text-subtle);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.workspace-segment-btn:hover {
+  color: var(--text);
+}
+
+.workspace-segment-btn-active {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="dark"] .workspace-segment-btn-active {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }

@@ -35,11 +35,10 @@ export function CreatorReadyPostingSection(props: Props) {
 
   return (
     <div id="posting-compose" className="scroll-mt-24">
-      <div id="sns-compose" className="scroll-mt-24" aria-hidden="true" />
       <MyPageAccordion
         open={workspace.openSections}
         onToggle={workspace.onToggleSection}
-        sectionKey="sns"
+        sectionKey="posting"
         title={POSTING_AI_OFFICE_LABEL}
       >
         <div className="mb-3">

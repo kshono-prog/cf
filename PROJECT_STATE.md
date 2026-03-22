@@ -1,13 +1,14 @@
 # Project State
 
-最終更新: 2026-03-21
+最終更新: 2026-03-22
 
 ## 現在のテーマ
 
-- 中核プロダクトを `クリエイター向けAI事務所` に寄せる
-- ただし当面の提供価値は `承認付き半自動運営` に限定する
-- 開発運用も同じ思想で、`監督付き半自動開発` に揃える
-- 次の1か月は `整理 70% / 新機能 30%` で進める
+- **Creator OS ビジョンの接続**: consol.txt の6つの思想の核（毎日迷わない / 止まりかけても戻れる / ファンが支援の手応えを持てる / 無名でも信用が積める / 国境を越えて届く）を実装として反映
+- **ユーザー属性によるUX分岐**: ファン向けと クリエイター向けで体験を完全に分ける
+- **クリエイターワークスペースを2モード化**: `今日の仕事`（AI事務所が主役）と `設定・準備` のみ
+- **AI事務所を主画面に**: 承認待ちが毎日の起点になる状態を作る
+- 当面の提供価値は `承認付き半自動運営` に限定する（完全自動化はしない）
 
 ## 現在のプロダクト定義
 
@@ -106,6 +107,8 @@
 - `/mypage` の直アクセスを `advanced` ではなく `home` 起点に戻した
 - `compose / search / notifications / events` の public/community 導線と loading 表示を小さい差分で見直し、誤遷移や dead branch を減らした
 - guard / owner auth / env / API response / CORS / Prisma retry / route integration test を横断的に整備し、追加開発前の基盤を固めた
+- Phase 2 UX Issues 1〜6 をすべて完了した（2モードナビ・AI事務所主画面・設定正式化・管理ストリップ・投稿ヘッダー統合・初回導線）
+- 旧5タブ時代のデッドコード12ファイルを削除し、`SettingsPageClient` のセクション順と精算 [試験中] 表示を整備した
 
 ## 進行中の重点課題
 
@@ -153,16 +156,26 @@ AIが自動で進めてよい:
 
 ## 次に着手するタスク
 
-1. 公開プロフィールの視覚トーン統一後の見え方と wallet 入力導線を手動確認して微調整する
-2. guided `settlement` と mobile 密度調整後の見え方を手動確認して微調整する
-3. `AI Office` の guided flow をさらに強めるか、現状で十分かを手動確認で判断する
-4. `creatorReady` の first view 追加後の section label / CTA hierarchy を手動確認して詰める
-5. Supabase `DATABASE_URL` / `DIRECT_URL` の運用ガイドを docs に反映する
-6. `AI Office` minimum / full manual check を実画面で回し、capture と違和感メモを残す
-7. `AI Office` manual check の違和感を 3 から 5 件に絞り、最優先 1 件を小さい polish task として実装する
-8. `Promotion Agent` / `posting compose` と `Finance Agent` / `settlement Draft` の handoff を実画面で確認し、必要なら copy と前提条件を微調整する
+Phase 5 完了。次のフェーズは未定。
 
 直近完了:
+
+- Phase 5 Sprint 5-A: `DAILY_ACTION_PLAN` 自動起票（毎朝ホーム画面で今日のタスクが存在しない場合に自動起票）
+- Phase 5 Sprint 5-B: `SUPPORTER_RESULT_REPORT` AgentTask 追加（用途別内訳・配分状況・達成後の活動数を報告）
+- Phase 5 Sprint 5-C: 公開プロフィールに目標達成インパクトカード追加（GoalAchievementImpactCard / goalAchievementImpact.ts）
+- Phase 5 Sprint 5-D: `CAREER_PLAN_DRAFT` AgentTask 追加（3ヶ月・6ヶ月マイルストーンをフェーズ判定付きで生成）
+- Phase 5 Sprint 5-E: 新人向け AI 初回ガイドバナー追加（Post.count === 0 && goalMissing の場合に AI 事務所への誘導を表示）
+- Phase 4 Sprint 4-A: `DAILY_ACTION_PLAN` AgentTask 追加（今日の優先行動を承認待ち・投稿状況・目標期限から生成）
+- Phase 4 Sprint 4-B: `ACTIVITY_RESTART_PROPOSAL` AgentTask 追加（過去成功パターンと段階的再起動ステップを生成）
+- Phase 4 Sprint 4-C: `SUPPORT_STORY_DRAFT` AgentTask 追加（why/what/progress 3 セクション構成の支援ストーリーを生成）
+- Phase 4 Sprint 4-D: 公開プロフィールに活動実績バッジ追加（活動期間・投稿数・目標達成・累計支援者 / schema 変更なし）
+- Phase 4 Sprint 4-E: `TRANSLATE` output に「compose に送る」ボタン追加（PostingComposeHandoff の sourceTaskType を拡張）
+- Phase 3 Sprint A-1: `WEEKLY_REPORT` executor が `contentMetricSnapshot` と `contribution` 集計を実クエリしていることを確認・検証済み
+- Phase 3 Sprint A-2: 活動サマリーカードに `publishedCount` を追加し「うち公開 N件」を表示
+- Phase 3 Sprint C-1: `useProjectSettlementDataFetch` を抽出し `useProjectSettlementPanel` を pure composition layer に分割
+- Phase 3 Sprint C-2: lint 警告ゼロを確認（警告なし）
+- Phase 3 Sprint D-1: `PROFILE_UPDATE_PROPOSAL` AgentTask を追加（executor / registry / Create UI / output renderer / docs）
+
 
 - `SUPPORTER_MESSAGE_DRAFT` を追加
 - `AiOfficePanel` の task type ごとの入力UIを整理

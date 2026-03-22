@@ -1,25 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useChainId, usePublicClient, useWalletClient } from "wagmi";
 
-import {
-  type BridgeStep,
-  type CctpJobView,
-  type DistributionEntry,
-  type DistributionExecutionView,
-  type RefreshProjectSettlement,
-  type SettlementView,
-} from "@/components/mypage/projectSettlementRuntime";
+import { useProjectSettlementDataFetch } from "@/components/mypage/useProjectSettlementDataFetch";
 import { useProjectSettlementBridgeState } from "@/components/mypage/useProjectSettlementBridgeState";
 import { useProjectSettlementDistributionState } from "@/components/mypage/useProjectSettlementDistributionState";
 import { useProjectSettlementExecutionState } from "@/components/mypage/useProjectSettlementExecutionState";
-import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
-import {
-  fetchProjectSettlement,
-  recomputeProjectSettlement,
-} from "@/lib/mypage/api";
 import type { ProjectSettlementData } from "@/lib/projectSettlementView";
+import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 
 type UseProjectSettlementPanelArgs = {
   projectId: string | null;
@@ -44,26 +33,38 @@ export function useProjectSettlementPanel(
     initialData = null,
   } = args;
 
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [settlement, setSettlement] = useState<SettlementView | null>(null);
-  const [bridgeSteps, setBridgeSteps] = useState<BridgeStep[]>([]);
-  const [entries, setEntries] = useState<DistributionEntry[]>([]);
-  const [recentExecutions, setRecentExecutions] = useState<
-    DistributionExecutionView[]
-  >([]);
-  const [cctpJobs, setCctpJobs] = useState<CctpJobView[]>([]);
+  // Refs for callbacks that bridge the fetch → sub-hook circular dep
+  const onApplyRef = useRef<(data: ProjectSettlementData) => void>(() => {});
+  const onClearRef = useRef<() => void>(() => {});
+
+  const {
+    loading,
+    message,
+    settlement,
+    bridgeSteps,
+    entries,
+    recentExecutions,
+    cctpJobs,
+    refresh,
+    recompute,
+    setLoading,
+    setMessage,
+  } = useProjectSettlementDataFetch({
+    projectId,
+    walletAddress,
+    initialData,
+    onApply: useCallback((data) => onApplyRef.current(data), []),
+    onClear: useCallback(() => onClearRef.current(), []),
+  });
 
   const canUse = !!projectId;
-  const refreshRef = useRef<RefreshProjectSettlement>(async () => {});
-  const callRefresh = useCallback(() => refreshRef.current(), []);
 
   const distribution = useProjectSettlementDistributionState({
     projectId,
     walletAddress,
     projectCurrency,
     settlement,
-    refresh: callRefresh,
+    refresh,
     setLoading,
     setMessage,
   });
@@ -78,7 +79,7 @@ export function useProjectSettlementPanel(
     settlement,
     entries,
     draftDirty: distribution.draftDirty,
-    refresh: callRefresh,
+    refresh,
     setLoading,
     setMessage,
   });
@@ -92,110 +93,22 @@ export function useProjectSettlementPanel(
     sourcePublicClient,
     walletClient,
     bridgeSteps,
-    refresh: callRefresh,
+    refresh,
     setLoading,
     setMessage,
   });
-  const {
-    applyDistributionEntries,
-    resetDistributionState,
-    ...distributionState
-  } = distribution;
-  const { resetExecutionRuntime, ...executionState } = execution;
 
-  const applySettlementData = useCallback(
-    (data: ProjectSettlementData) => {
-      setSettlement(data.settlement);
-      setBridgeSteps(data.bridgeSteps);
-      setEntries(data.distributionEntries);
-      setRecentExecutions(data.recentExecutions);
-      setCctpJobs(data.cctpJobs);
-      applyDistributionEntries(data.distributionEntries);
-      resetExecutionRuntime();
-    },
-    [applyDistributionEntries, resetExecutionRuntime]
-  );
-
-  const clearLoadedData = useCallback(() => {
-    setSettlement(null);
-    setBridgeSteps([]);
-    setEntries([]);
-    setRecentExecutions([]);
-    setCctpJobs([]);
-    resetDistributionState();
-    resetExecutionRuntime();
-  }, [resetDistributionState, resetExecutionRuntime]);
-
-  const refresh = useCallback(async () => {
-    if (!projectId) {
-      clearLoadedData();
-      return;
-    }
-
-    setLoading(true);
-    setMessage(null);
-    try {
-      if (!walletAddress) {
-        setMessage("WALLET_NOT_CONNECTED");
-        return;
-      }
-
-      const result = await fetchProjectSettlement({
-        projectId,
-        address: walletAddress,
-      });
-      if (!result.ok) {
-        setMessage(result.error);
-        return;
-      }
-
-      applySettlementData(result.data);
-    } catch {
-      setMessage("SETTLEMENT_FETCH_FAILED");
-    } finally {
-      setLoading(false);
-    }
-  }, [applySettlementData, clearLoadedData, projectId, walletAddress]);
-
+  // Wire sub-hook callbacks into the data-fetch layer via refs
   useEffect(() => {
-    refreshRef.current = refresh;
-  }, [refresh]);
-
-  useEffect(() => {
-    if (!projectId) {
-      clearLoadedData();
-      return;
-    }
-    if (initialData && initialData.project.id === projectId) {
-      applySettlementData(initialData);
-      return;
-    }
-    void refresh();
-  }, [applySettlementData, clearLoadedData, initialData, projectId, refresh]);
-
-  const recompute = useCallback(async () => {
-    if (!projectId || !walletAddress) return;
-
-    setLoading(true);
-    setMessage(null);
-    try {
-      const result = await recomputeProjectSettlement({
-        projectId,
-        address: walletAddress,
-      });
-      if (!result.ok) {
-        setMessage(result.error);
-        return;
-      }
-
-      await refresh();
-      setMessage("settlement status を再計算しました");
-    } catch {
-      setMessage("SETTLEMENT_RECOMPUTE_FAILED");
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId, refresh, walletAddress]);
+    onApplyRef.current = (data) => {
+      distribution.applyDistributionEntries(data.distributionEntries);
+      execution.resetExecutionRuntime();
+    };
+    onClearRef.current = () => {
+      distribution.resetDistributionState();
+      execution.resetExecutionRuntime();
+    };
+  });
 
   return {
     canUse,
@@ -206,12 +119,25 @@ export function useProjectSettlementPanel(
     entries,
     recentExecutions,
     cctpJobs,
-    rows: distributionState.rows,
-    draftDirty: distributionState.draftDirty,
-    isDistributing: executionState.isDistributing,
-    activeEntryId: executionState.activeEntryId,
-    runtimeRowStatus: executionState.runtimeRowStatus,
-    preflight: executionState.preflight,
+    rows: distribution.rows,
+    draftDirty: distribution.draftDirty,
+    totals: distribution.totals,
+    updateDraft: distribution.updateDraft,
+    addDraftRow: distribution.addDraftRow,
+    removeDraftRow: distribution.removeDraftRow,
+    replaceDraftRows: distribution.replaceDraftRows,
+    saveDistributions: distribution.saveDistributions,
+    isDistributing: execution.isDistributing,
+    activeEntryId: execution.activeEntryId,
+    runtimeRowStatus: execution.runtimeRowStatus,
+    preflight: execution.preflight,
+    walletNotice: execution.walletNotice,
+    canDistribute: execution.canDistribute,
+    hasPreflightFailure: execution.hasPreflightFailure,
+    checkBalances: execution.checkBalances,
+    executeDistribution: execution.executeDistribution,
+    runCctpAction: execution.runCctpAction,
+    markEntryResult: execution.markEntryResult,
     bridgeAmountPolygon: bridge.bridgeAmountPolygon,
     setBridgeAmountPolygon: bridge.setBridgeAmountPolygon,
     bridgeTxPolygon: bridge.bridgeTxPolygon,
@@ -222,23 +148,10 @@ export function useProjectSettlementPanel(
     setBridgeTxEthereum: bridge.setBridgeTxEthereum,
     bridgeNowBusy: bridge.bridgeNowBusy,
     bridgeNowStatus: bridge.bridgeNowStatus,
-    totals: distributionState.totals,
-    walletNotice: executionState.walletNotice,
     polygonDone: bridge.polygonDone,
     ethereumDone: bridge.ethereumDone,
-    canDistribute: executionState.canDistribute,
-    hasPreflightFailure: executionState.hasPreflightFailure,
     recordBridge: bridge.recordBridge,
     runOneClickBridge: bridge.runOneClickBridge,
-    updateDraft: distributionState.updateDraft,
-    addDraftRow: distributionState.addDraftRow,
-    removeDraftRow: distributionState.removeDraftRow,
-    replaceDraftRows: distributionState.replaceDraftRows,
-    saveDistributions: distributionState.saveDistributions,
-    checkBalances: executionState.checkBalances,
-    executeDistribution: executionState.executeDistribution,
-    runCctpAction: executionState.runCctpAction,
-    markEntryResult: executionState.markEntryResult,
     recompute,
   };
 }

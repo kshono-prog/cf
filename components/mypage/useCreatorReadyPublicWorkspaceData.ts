@@ -39,9 +39,8 @@ function buildPostingProjectOptions(args: {
 
 export function useCreatorReadyPublicWorkspaceData(view: WorkspaceView) {
   const workspace = useCreatorReadyWorkspace();
-  const dashboardView = view === "public" ? "support-page" : view;
   const { dashboardError, projectDashboardsByCurrency } =
-    useCreatorReadyWorkspaceProjectDashboards(dashboardView);
+    useCreatorReadyWorkspaceProjectDashboards(view);
   const publicReadiness = useCreatorReadyPublicReadiness(
     projectDashboardsByCurrency
   );

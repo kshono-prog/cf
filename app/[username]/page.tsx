@@ -7,6 +7,11 @@ import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 import { loadPublicPageData } from "@/lib/publicPageData";
 import { getInitialPublicFeedListByCreatorId } from "@/lib/feedList";
 import { resolveBaseUrlFromHeaders, withBaseUrl } from "@/utils/baseUrl";
+import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
+import { CreatorActivityCredibilityBadge } from "@/components/profile/CreatorActivityCredibilityBadge";
+import { getAllGoalAchievementImpacts } from "@/lib/goalAchievementImpact";
+import { GoalAchievementImpactSection } from "@/components/profile/GoalAchievementImpactCard";
+import { getLatestSupporterResultReportSummary } from "@/lib/supporterResultReportSummary";
 
 type Params = { username: string };
 
@@ -68,24 +73,15 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<Params> }) {
   const { username } = await params;
-  const publicPageDataPromise = loadPublicPageData(username);
-  const initialFeedPromise = publicPageDataPromise.then((data) =>
-    getInitialPublicFeedListByCreatorId(data.profile.id)
-  );
 
-  const [
-    {
-      creator,
-      projectId,
-      projectIdsByCurrency,
-      supportProfileView,
-      recruitingProjects,
-    },
-    initialFeed,
-  ] = await Promise.all([
-    publicPageDataPromise,
-    initialFeedPromise,
-  ]);
+  // Sequential awaits to avoid exhausting the single Prisma connection pool.
+  // Each function uses unstable_cache (120s), so DB is only hit on cold starts.
+  const { creator, projectId, projectIdsByCurrency, supportProfileView, recruitingProjects, profile } =
+    await loadPublicPageData(username);
+  const initialFeed = await getInitialPublicFeedListByCreatorId(profile.id);
+  const credibility = await getCreatorActivityCredibility(BigInt(profile.id));
+  const impacts = await getAllGoalAchievementImpacts(BigInt(profile.id));
+  const reportSummary = await getLatestSupporterResultReportSummary(BigInt(profile.id));
 
   return (
     <div className="space-y-4">
@@ -98,6 +94,20 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         recruitingProjects={recruitingProjects}
         initialFeed={initialFeed}
       />
+      {credibility.activeMonths > 0 || credibility.totalPostCount > 0 ? (
+        <CreatorActivityCredibilityBadge credibility={credibility} />
+      ) : null}
+      {reportSummary ? (
+        <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4">
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+            支援者へのご報告
+          </div>
+          <p className="text-sm text-[var(--text)] leading-relaxed">
+            {reportSummary.summary}
+          </p>
+        </section>
+      ) : null}
+      <GoalAchievementImpactSection impacts={impacts} />
     </div>
   );
 }

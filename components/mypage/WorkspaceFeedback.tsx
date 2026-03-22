@@ -109,9 +109,9 @@ export function WorkspaceLoadingCard(props: {
   description?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="text-sm font-semibold text-gray-900">{props.title}</div>
-      <div className="mt-2 text-xs text-gray-500">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+      <div className="text-sm font-semibold text-[var(--text)]">{props.title}</div>
+      <div className="mt-2 text-xs text-[var(--text-subtle)]">
         {props.description ?? "必要な面だけを順番に読み込んでいます。"}
       </div>
     </div>

@@ -1,9 +1,6 @@
 export const WORKSPACE_VIEWS = [
-  "home",
-  "support-page",
-  "supporters",
-  "public",
-  "advanced",
+  "daily-work",
+  "settings",
 ] as const;
 
 export type WorkspaceView = (typeof WORKSPACE_VIEWS)[number];
@@ -12,6 +9,15 @@ export function isWorkspaceView(value: string): value is WorkspaceView {
   return WORKSPACE_VIEWS.includes(value as WorkspaceView);
 }
 
+// Legacy URL segment → new WorkspaceView (backward compat)
+const LEGACY_VIEW_MAP: Record<string, WorkspaceView> = {
+  home: "daily-work",
+  supporters: "daily-work",
+  "support-page": "settings",
+  public: "settings",
+  advanced: "settings",
+};
+
 export function resolveWorkspaceView(
   value: string | string[] | undefined | null
 ): WorkspaceView {
@@ -19,5 +25,7 @@ export function resolveWorkspaceView(
     return resolveWorkspaceView(value[0]);
   }
 
-  return value && isWorkspaceView(value) ? value : "home";
+  if (!value) return "daily-work";
+  if (isWorkspaceView(value)) return value;
+  return LEGACY_VIEW_MAP[value] ?? "daily-work";
 }

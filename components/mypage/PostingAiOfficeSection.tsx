@@ -65,6 +65,16 @@ const AiAgencyCard = dynamic(
   }
 );
 
+const MetricsInputCard = dynamic(
+  () =>
+    import("@/components/mypage/MetricsInputCard").then(
+      (mod) => mod.MetricsInputCard
+    ),
+  {
+    loading: () => <WorkspaceLoadingCard title="指標入力フォームを読み込んでいます" />,
+  }
+);
+
 export function PostingAiOfficeSection(props: Props) {
   const [refreshToken, setRefreshToken] = React.useState(0);
 
@@ -100,7 +110,7 @@ export function PostingAiOfficeSection(props: Props) {
           onPostsChanged={handleChanged}
         />
         <div id="posting-ai-office">
-          <div id="sns-ai-office" aria-hidden="true" />
+          <div id="posting-ai-office" aria-hidden="true" />
           <AiAgencyCard
             address={props.address}
             refreshToken={refreshToken}
@@ -108,6 +118,13 @@ export function PostingAiOfficeSection(props: Props) {
           />
         </div>
       </div>
+
+      <MetricsInputCard
+        address={props.address}
+        projectOptions={props.projectOptions}
+        refreshToken={refreshToken}
+        onAdded={handleChanged}
+      />
     </div>
   );
 }
