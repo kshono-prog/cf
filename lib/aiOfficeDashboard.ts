@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { AGENT_TASK_AUDIT_ACTION } from "@/lib/agentTaskAudit";
+import {
+  AGENT_TASK_AUDIT_ACTION,
+  getTaskFollowThroughAuditAction,
+} from "@/lib/agentTaskAudit";
 import { serializeAgentTask, toTaskStatus, toTaskType, type TaskStatus } from "@/lib/agentTasks";
 import {
   CREATOR_AI_AGENT_ROLE_DEFINITIONS,
@@ -27,11 +30,14 @@ type AiOfficeRoleUsefulnessSummary = {
   roleId: CreatorAiAgentRole;
   label: string;
   actionableCount: number;
+  trackedReadyCount: number;
+  usedCount: number;
   waitingApprovalCount: number;
   approvedCount: number;
   rejectedCount: number;
   ignoredCount: number;
   followThroughRate: number;
+  usedRate: number;
 };
 
 function toRate(numerator: number, denominator: number): number {
@@ -99,6 +105,8 @@ export function buildAiOfficeUsefulnessSummary(
 
   let actionableCount = 0;
   let autoCompletedCount = 0;
+  let trackedReadyCount = 0;
+  let usedCount = 0;
   let waitingApprovalCount = 0;
   let approvedCount = 0;
   let rejectedCount = 0;
@@ -122,9 +130,20 @@ export function buildAiOfficeUsefulnessSummary(
       row.auditLogs,
       AGENT_TASK_AUDIT_ACTION.REJECTED
     );
+    const taskType = toTaskType(row.taskType);
+    const followThroughAction = taskType
+      ? getTaskFollowThroughAuditAction(taskType)
+      : null;
 
     if (createdDone) {
       autoCompletedCount += 1;
+    }
+
+    if (followThroughAction && (createdDone || approved)) {
+      trackedReadyCount += 1;
+      if (hasAuditAction(row.auditLogs, followThroughAction)) {
+        usedCount += 1;
+      }
     }
 
     if (!createdWaitingApproval) {
@@ -171,12 +190,15 @@ export function buildAiOfficeUsefulnessSummary(
     createdCount: rows.length,
     actionableCount,
     autoCompletedCount,
+    trackedReadyCount,
     waitingApprovalCount,
     approvedCount,
     rejectedCount,
     ignoredCount,
     followThroughCount,
     followThroughRate: toRate(followThroughCount, actionableCount),
+    usedCount,
+    usedRate: toRate(usedCount, trackedReadyCount),
     approvalRate: toRate(approvedCount, actionableCount),
     rejectionRate: toRate(rejectedCount, actionableCount),
     medianDecisionHours: toMedian(decisionHours),
@@ -208,17 +230,26 @@ export function buildAiOfficeRoleUsefulnessSummary(
       now: params?.now,
       staleAfterHours: params?.staleAfterHours,
     });
-    if (summary.actionableCount === 0) return null;
+    if (
+      summary.actionableCount === 0 &&
+      summary.autoCompletedCount === 0 &&
+      summary.trackedReadyCount === 0
+    ) {
+      return null;
+    }
 
     return {
       roleId: definition.id,
       label: definition.label,
       actionableCount: summary.actionableCount,
+      trackedReadyCount: summary.trackedReadyCount,
+      usedCount: summary.usedCount,
       waitingApprovalCount: summary.waitingApprovalCount,
       approvedCount: summary.approvedCount,
       rejectedCount: summary.rejectedCount,
       ignoredCount: summary.ignoredCount,
       followThroughRate: summary.followThroughRate,
+      usedRate: summary.usedRate,
     };
   }).filter((item): item is AiOfficeRoleUsefulnessSummary => item !== null);
 }

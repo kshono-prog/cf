@@ -1,6 +1,6 @@
 "use client";
 
-import { AI_OFFICE_TASK_CHOICES, requiresApprovalByDefault } from "@/components/mypage/aiOfficeTaskConfig";
+import { AI_OFFICE_TASK_CHOICES } from "@/components/mypage/aiOfficeTaskConfig";
 import { AiOfficeTaskInputFields } from "@/components/mypage/AiOfficeTaskInputFields";
 import type {
   AnnouncementChannel,
@@ -9,6 +9,10 @@ import type {
   TranslationLang,
 } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
+import {
+  canSkipApproval,
+  isInformationalTask,
+} from "@/lib/agentTaskPolicy";
 import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
 
 type Props = {
@@ -56,12 +60,21 @@ const AUTO_POSTABLE_TASK_TYPES = new Set([
   "SUPPORTER_MESSAGE_DRAFT",
 ]);
 
+function getReviewToggleLabel(taskType: TaskType): string {
+  if (taskType === "DISTRIBUTION_PLAN_DRAFT") {
+    return "反映前に確認する";
+  }
+
+  return "結果を確認してから使う";
+}
+
 export function AiOfficeCreateSection(props: Props) {
   const hasInputFields = (TASK_CHOICES_WITH_INPUT as readonly string[]).includes(
     props.taskType
   );
   const canAutoPost = AUTO_POSTABLE_TASK_TYPES.has(props.taskType);
-  const needsApproval = requiresApprovalByDefault(props.taskType);
+  const isInformational = isInformationalTask(props.taskType);
+  const canSkipReview = canSkipApproval(props.taskType);
 
   return (
     <div className="space-y-4">
@@ -145,7 +158,11 @@ export function AiOfficeCreateSection(props: Props) {
       {/* ── Create CTA ── */}
       <div className="card p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          {needsApproval ? (
+          {isInformational ? (
+            <p className="caption-text text-[var(--text-subtle)]">
+              分析や提案は承認不要です。作成するとすぐに内容を確認できます。
+            </p>
+          ) : canSkipReview ? (
             <div className="flex flex-col gap-2">
               <label className="inline-flex cursor-pointer items-center gap-2 caption-text select-none">
                 <input
@@ -155,7 +172,7 @@ export function AiOfficeCreateSection(props: Props) {
                   disabled={props.loading}
                   className="accent-slate-700"
                 />
-                公開前に承認する
+                {getReviewToggleLabel(props.taskType)}
               </label>
               {canAutoPost && (
                 <label className="inline-flex cursor-pointer items-center gap-2 caption-text select-none">
@@ -172,7 +189,7 @@ export function AiOfficeCreateSection(props: Props) {
             </div>
           ) : (
             <p className="caption-text text-[var(--text-subtle)]">
-              分析・提案は承認不要です。作成後すぐに受信トレイに届きます。
+              この内容は確認ステップを挟んでから次に進みます。
             </p>
           )}
           <button
@@ -182,23 +199,27 @@ export function AiOfficeCreateSection(props: Props) {
             disabled={props.loading}
           >
             {props.loading
-              ? "AIが分析中..."
-              : !needsApproval
+              ? "AIが作成中..."
+              : isInformational
               ? "AIに依頼する →"
               : props.autoPost && !props.requiresApproval
               ? "AIが直接投稿する →"
+              : !props.requiresApproval
+              ? "すぐに結果を作る →"
               : props.autoPost
               ? "作成・承認後に自動投稿 →"
               : "下書きを作る →"}
           </button>
         </div>
-        {needsApproval && (
+        {!isInformational && (
           <p className="caption-text">
             {props.autoPost && !props.requiresApproval
               ? "AIが下書きを作り、そのまま投稿します。投稿にはAIマークが付きます。"
               : props.autoPost
               ? "AIが下書きを作り、あなたが承認すると自動で投稿されます。投稿にはAIマークが付きます。"
-              : "AIが下書きを作ります。受信トレイで確認してから投稿できます。"}
+              : props.requiresApproval || !canSkipReview
+              ? "AIが下書きを作ります。内容を確認してから使えます。"
+              : "AIが下書きを作ります。作成後すぐに内容を確認できます。"}
           </p>
         )}
       </div>

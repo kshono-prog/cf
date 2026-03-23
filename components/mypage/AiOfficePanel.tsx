@@ -38,6 +38,10 @@ import type {
 } from "@/components/mypage/aiOfficeTypes";
 import { getEmptyAiOfficeUsefulnessSummary } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
+import {
+  isInformationalTask,
+  requiresApprovalByDefault,
+} from "@/lib/agentTaskPolicy";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import {
   AI_OFFICE_LABEL,
@@ -375,7 +379,21 @@ export function AiOfficePanel(props: {
 
       await refresh();
       setActiveView("INBOX");
-      setMessage("AIが下書きを作成しました。承認待ちを確認してください。");
+      if (autoPost && !requiresApproval) {
+        setMessage(
+          "AIが下書きを作成し、そのまま投稿しました。履歴から内容を確認できます。"
+        );
+      } else if (requiresApprovalByDefault(taskType) && requiresApproval) {
+        setMessage(
+          "AIが下書きを作成しました。必要なら確認してから使えます。"
+        );
+      } else if (isInformationalTask(taskType)) {
+        setMessage("AIが結果を作成しました。履歴からすぐに確認できます。");
+      } else {
+        setMessage(
+          "AIが下書きを作成しました。履歴からすぐに確認できます。"
+        );
+      }
     } catch {
       setMessage("下書きの作成に失敗しました。");
     } finally {
@@ -594,7 +612,7 @@ export function AiOfficePanel(props: {
   );
 
   return (
-    <div className="card p-4 space-y-4">
+    <div className="card p-4 space-y-4" id="ai-office">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="section-title">{AI_OFFICE_LABEL}</h3>
@@ -694,6 +712,7 @@ export function AiOfficePanel(props: {
               loading={loading}
               waitingApprovalCount={waitingApprovalCount}
               tasks={tasks}
+              usefulness={usefulness}
               onOpenCreate={() => setActiveView("CREATE")}
               onOpenCreateForRole={(roleId) => {
                 openRoleShortcut(roleId, "CREATE");
@@ -747,6 +766,7 @@ export function AiOfficePanel(props: {
               taskFilter={taskFilter}
               tasks={tasks}
               usefulness={usefulness}
+              walletAddress={walletAddress}
               selectedRoleId={selectedInboxRoleId}
               waitingApprovalCount={waitingApprovalCount}
               selectedTaskIds={selectedTaskIds}

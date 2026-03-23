@@ -78,6 +78,9 @@ export function parseAiOfficeUsefulnessSummary(
         label,
         actionableCount:
           asNonNegativeNumber(row.actionableCount) ?? 0,
+        trackedReadyCount:
+          asNonNegativeNumber(row.trackedReadyCount) ?? 0,
+        usedCount: asNonNegativeNumber(row.usedCount) ?? 0,
         waitingApprovalCount:
           asNonNegativeNumber(row.waitingApprovalCount) ?? 0,
         approvedCount: asNonNegativeNumber(row.approvedCount) ?? 0,
@@ -85,6 +88,7 @@ export function parseAiOfficeUsefulnessSummary(
         ignoredCount: asNonNegativeNumber(row.ignoredCount) ?? 0,
         followThroughRate:
           asNonNegativeNumber(row.followThroughRate) ?? 0,
+        usedRate: asNonNegativeNumber(row.usedRate) ?? 0,
       };
     })
     .filter(
@@ -101,6 +105,8 @@ export function parseAiOfficeUsefulnessSummary(
     autoCompletedCount:
       asNonNegativeNumber(json.autoCompletedCount) ??
       empty.autoCompletedCount,
+    trackedReadyCount:
+      asNonNegativeNumber(json.trackedReadyCount) ?? empty.trackedReadyCount,
     waitingApprovalCount:
       asNonNegativeNumber(json.waitingApprovalCount) ??
       empty.waitingApprovalCount,
@@ -114,6 +120,8 @@ export function parseAiOfficeUsefulnessSummary(
       empty.followThroughCount,
     followThroughRate:
       asNonNegativeNumber(json.followThroughRate) ?? empty.followThroughRate,
+    usedCount: asNonNegativeNumber(json.usedCount) ?? empty.usedCount,
+    usedRate: asNonNegativeNumber(json.usedRate) ?? empty.usedRate,
     approvalRate:
       asNonNegativeNumber(json.approvalRate) ?? empty.approvalRate,
     rejectionRate:

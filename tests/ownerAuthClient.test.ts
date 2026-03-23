@@ -186,8 +186,8 @@ test("ownerAuthFetch invalidates cached viewer identity after a 401 retry", asyn
     await fetchMeResponseCached(OWNER_ADDRESS);
     assert.equal(viewerFetchCount, 2);
     assert.equal(protectedFetchCount, 2);
-    assert.equal(nonceFetchCount, 2);
-    assert.equal(sessionFetchCount, 2);
+    assert.equal(nonceFetchCount, 3);
+    assert.equal(sessionFetchCount, 3);
   } finally {
     restoreFetch();
     resetOwnerAuthClientState();

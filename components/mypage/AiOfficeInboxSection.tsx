@@ -10,7 +10,6 @@ import { AgentTaskOutput } from "@/components/mypage/AgentTaskOutputViews";
 import {
   doesAiOfficeTaskMatchRole,
   getAiOfficeTaskRoleChoices,
-  requiresApprovalByDefault,
 } from "@/components/mypage/aiOfficeTaskConfig";
 import type {
   AiOfficeUsefulnessSummaryView,
@@ -18,6 +17,7 @@ import type {
   TaskFilter,
 } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
+import { requiresApprovalByDefault } from "@/lib/agentTaskPolicy";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import {
   getAgentTaskAuditActionLabel,
@@ -30,6 +30,7 @@ type Props = {
   taskFilter: TaskFilter;
   tasks: AgentTaskView[];
   usefulness: AiOfficeUsefulnessSummaryView;
+  walletAddress: string | null;
   selectedRoleId: CreatorAiAgentRole | null;
   waitingApprovalCount: number;
   selectedTaskIds: string[];
@@ -78,14 +79,19 @@ function extractTaskOutputPreview(output: unknown, maxChars = 140): string | nul
 
 function getApprovalResultLabel(taskType: string): string {
   if (taskType === "DISTRIBUTION_PLAN_DRAFT") {
-    return "承認すると → 精算プランに反映されます";
+    return "確認すると → Draft step に反映できます";
   }
-  // All other approval-required types produce post content
-  return "承認すると → 投稿として公開されます（または自動投稿）";
+
+  if (taskType === "SUPPORTER_MESSAGE_DRAFT") {
+    return "確認すると → 支援者向けの文面として使えます";
+  }
+
+  return "確認すると → 投稿や共有に使えます";
 }
 
 function AgentTaskCard(props: {
   task: AgentTaskView;
+  walletAddress: string | null;
   loading: boolean;
   selected: boolean;
   selectable: boolean;
@@ -186,6 +192,8 @@ function AgentTaskCard(props: {
             taskType={task.taskType}
             output={task.output}
             projectId={task.projectId}
+            taskId={task.id}
+            walletAddress={props.walletAddress}
           />
           {task.auditLogs.length > 0 ? (
             <details className="mt-3">
@@ -301,6 +309,10 @@ export function AiOfficeInboxSection(props: Props) {
       : props.usefulness.roleBreakdown.find(
           (role) => role.roleId === props.selectedRoleId
         ) ?? null;
+  const trackedReadyCount =
+    selectedRoleBreakdown?.trackedReadyCount ?? props.usefulness.trackedReadyCount;
+  const usedCount = selectedRoleBreakdown?.usedCount ?? props.usefulness.usedCount;
+  const usedRate = selectedRoleBreakdown?.usedRate ?? props.usefulness.usedRate;
 
   const prioritizedRoleNotice = React.useMemo(() => {
     const staleRole = [...props.usefulness.roleBreakdown]
@@ -361,14 +373,12 @@ export function AiOfficeInboxSection(props: Props) {
               <div className="text-[11px] text-amber-700">承認待ちのタスク</div>
             </div>
             <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
-              <div className="text-[11px] font-medium text-[var(--text)]">
-                最近の履歴
-              </div>
+              <div className="text-[11px] font-medium text-[var(--text)]">使われた結果</div>
               <div className="mt-1 text-2xl font-semibold text-[var(--text)]">
-                {filteredHistoryTasks.length}
+                {usedCount}
               </div>
               <div className="caption-text">
-                完了または却下済みのタスク
+                計測対象 {trackedReadyCount} 件 / 活用率 {(usedRate * 100).toFixed(0)}%
               </div>
             </div>
           </div>
@@ -463,6 +473,7 @@ export function AiOfficeInboxSection(props: Props) {
               <AgentTaskCard
                 key={task.id}
                 task={task}
+                walletAddress={props.walletAddress}
                 loading={props.loading}
                 selected={props.selectedTaskIds.includes(task.id)}
                 selectable
@@ -624,6 +635,7 @@ export function AiOfficeInboxSection(props: Props) {
               <AgentTaskCard
                 key={task.id}
                 task={task}
+                walletAddress={props.walletAddress}
                 loading={props.loading}
                 selected={false}
                 selectable={false}

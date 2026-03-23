@@ -115,6 +115,9 @@ const TASK_AUDIT_ACTION_COPY: Record<string, string> = {
   TASK_CREATED_WAITING_APPROVAL: "承認待ちで作成",
   TASK_APPROVED: "承認して完了",
   TASK_REJECTED: "却下",
+  TASK_POSTING_COMPOSE_OPENED: "posting compose を開く",
+  TASK_SETTLEMENT_DRAFT_APPLIED: "settlement draft に反映",
+  TASK_OUTPUT_COPIED: "結果をコピー",
 };
 
 const SETTLEMENT_STATUS_COPY: Record<

@@ -32,11 +32,14 @@ const PAYLOAD = buildDistributionPlanDraftPayload({
 });
 
 test("distribution plan draft handoff keeps project, currency, and payload text", () => {
-  const handoff = buildDistributionPlanDraftHandoff(PAYLOAD);
+  const handoff = buildDistributionPlanDraftHandoff(PAYLOAD, {
+    sourceTaskId: "task-1",
+  });
 
   assert.equal(handoff.projectId, "project-1");
   assert.equal(handoff.currency, "JPYC");
   assert.match(handoff.payloadText, /"projectId": "project-1"/);
+  assert.equal(handoff.sourceTaskId, "task-1");
 });
 
 test("distribution plan draft handoff parser rejects invalid rows", () => {
@@ -47,6 +50,7 @@ test("distribution plan draft handoff parser rejects invalid rows", () => {
       currency: "BTC",
       payloadText: "{}",
       createdAt: "2026-03-18T00:00:00.000Z",
+      sourceTaskId: null,
     }),
     null
   );

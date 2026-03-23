@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Creator Founding should grow from a creator funding UI into an approval-based operating system for creators. This document fixes the staged path for introducing role-based AI agents and x402-ready machine-billable surfaces without weakening current safety boundaries.
+Creator Founding should grow from a creator funding UI into a reviewable operating system for creators. This document fixes the staged path for introducing role-based AI agents and x402-ready machine-billable surfaces without weakening current safety boundaries.
 
 ## Current Foundation
 
@@ -14,7 +14,7 @@ Already present in product or code:
 - goal achievement confirmation
 - bridge and distribution result handling
 - wallet connection and support flow
-- approval-based AI Office task model
+- reviewable AI Office task model
 
 ## Staged Rollout
 
@@ -33,7 +33,7 @@ Focus on advisory AI inside the existing creator workflow.
 - `Finance Agent`
   - draft distribution plan JSON
   - summarize funding inflow and purpose buckets
-- keep all output as `proposal -> human review -> optional execution`
+- keep all output as `proposal -> optional review -> optional execution`
 
 ### Phase 2
 

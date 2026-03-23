@@ -14,8 +14,8 @@ test("creatorReady workspace config has 2 modes in correct order", () => {
 });
 
 test("creatorReady workspace config lookup returns matching view", () => {
-  assert.equal(getCreatorReadyWorkspaceConfig("daily-work")?.label, "今日の仕事");
-  assert.equal(getCreatorReadyWorkspaceConfig("settings")?.label, "設定・準備");
+  assert.equal(getCreatorReadyWorkspaceConfig("daily-work")?.label, "ホーム");
+  assert.equal(getCreatorReadyWorkspaceConfig("settings")?.label, "設定");
 });
 
 test("creatorReady workspace config returns undefined for unknown view", () => {

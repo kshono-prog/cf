@@ -32,6 +32,8 @@ import {
   formatDistributionPlanDraftPayload,
   parseDistributionPlanDraftText,
 } from "@/lib/creator-ai/distributionPlanDraft";
+import { AGENT_TASK_AUDIT_ACTION } from "@/lib/agentTaskAudit";
+import { recordAgentTaskFollowThrough } from "@/lib/agentTaskFollowThroughClient";
 import type {
   CurrencyCode,
   SummaryViewData,
@@ -277,7 +279,14 @@ export function ProjectSettlementPanel(props: Props) {
       tone: "info",
       text: "AIから配分計画の提案を受け取りました。保存前に内容を確認してください。",
     });
-  }, [panel, projectCurrency, projectId]);
+    if (handoff.sourceTaskId) {
+      recordAgentTaskFollowThrough({
+        address: walletAddress,
+        taskId: handoff.sourceTaskId,
+        action: AGENT_TASK_AUDIT_ACTION.SETTLEMENT_DRAFT_APPLIED,
+      });
+    }
+  }, [panel, projectCurrency, projectId, walletAddress]);
 
   const stepRefs = React.useMemo<
     Record<SettlementFlowStepId, React.RefObject<HTMLDivElement | null>>

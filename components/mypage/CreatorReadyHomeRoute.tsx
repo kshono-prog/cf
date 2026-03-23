@@ -126,9 +126,7 @@ export function CreatorReadyHomeRoute(props: Props) {
           </a>
         </WorkspaceStatusNotice>
       ) : null}
-      <div className="card p-4" id="ai-office">
-        <CreatorWorkspaceAiOfficePanel />
-      </div>
+      <CreatorWorkspaceAiOfficePanel />
       <CreatorReadyWeeklySummarySection
         jpycTotal={homeStats.jpycTotal}
         usdcTotal={homeStats.usdcTotal}

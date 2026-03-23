@@ -194,6 +194,8 @@ fallback:
 ## UI Rules
 
 - task type ごとに必要な input だけ表示する
+- 情報整理系 task は作成後すぐに確認できる
+- 下書き系 task は review を挟むかどうかを creator が選べる
 - output は `taskType -> renderer` で表示する
 - structured view に失敗した場合だけ raw JSON fallback を出す
 
@@ -201,7 +203,7 @@ fallback:
 
 ### Posting Compose Handoff Payload
 
-`ANNOUNCEMENT_DRAFT` は approval-only な local handoff で `posting compose` に渡せる。
+`ANNOUNCEMENT_DRAFT` は local handoff で `posting compose` に渡せる。
 
 payload:
 
@@ -220,10 +222,12 @@ UI rules:
 - `SUPPORT_STORY_DRAFT` — `compose に送る` と `ストーリーをコピー` を出す
 - `PROPOSE` — 各提案に `compose に送る` ボタンを出す
 - `SUPPORTER_MESSAGE_DRAFT` は支援者向け文面のため、public posting compose には直接 handoff しない（copy のみ）
+- `SUPPORTER_MESSAGE_DRAFT` の copy は `TASK_OUTPUT_COPIED` を audit に残す
+- `PROPOSE / TRANSLATE / ANNOUNCEMENT_DRAFT / SUPPORT_STORY_DRAFT` で `posting compose` を開いたら `TASK_POSTING_COMPOSE_OPENED` を audit に残す
 
 ### Distribution Plan Draft Payload
 
-Phase 1B の settlement draft builder と `DISTRIBUTION_PLAN_DRAFT` task は、同じ approval-only advisory payload を共有する。
+Phase 1B の settlement draft builder と `DISTRIBUTION_PLAN_DRAFT` task は、同じ reviewable advisory payload を共有する。
 
 payload:
 
@@ -242,7 +246,9 @@ UI rules:
 
 - payload は JSON textarea で確認・編集できる
 - `DISTRIBUTION_PLAN_DRAFT` task output では preview と `Draft step` への handoff に使う
+- local handoff には `sourceTaskId` を含め、どの task の提案かを `Draft step` 側で辿れるようにする
 - `行に反映` は `rows[]` を既存の draft editor に流し込むだけで、自動保存しない
+- 実際に `rows[]` が `Draft step` に反映された時点で `TASK_SETTLEMENT_DRAFT_APPLIED` を audit に残す
 - bridge / distribution execute には接続しない
 - token は現在の settlement currency に揃える
 

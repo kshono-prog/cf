@@ -22,6 +22,8 @@ import {
   type DistributionPlanDraftPayload,
 } from "@/lib/creator-ai/distributionPlanDraft";
 import type { TaskType } from "@/lib/agentTaskParsers";
+import { AGENT_TASK_AUDIT_ACTION } from "@/lib/agentTaskAudit";
+import { recordAgentTaskFollowThrough } from "@/lib/agentTaskFollowThroughClient";
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
@@ -43,6 +45,35 @@ function stringifyOutput(v: unknown): string {
   } catch {
     return "{}";
   }
+}
+
+type OutputActionContext = {
+  projectId: string | null;
+  taskId: string;
+  walletAddress: string | null;
+};
+
+function recordPostingComposeOpened(context: {
+  taskId: string;
+  walletAddress: string | null;
+}): void {
+  recordAgentTaskFollowThrough({
+    address: context.walletAddress,
+    taskId: context.taskId,
+    action: AGENT_TASK_AUDIT_ACTION.POSTING_COMPOSE_OPENED,
+    keepalive: true,
+  });
+}
+
+function recordOutputCopied(context: {
+  taskId: string;
+  walletAddress: string | null;
+}): void {
+  recordAgentTaskFollowThrough({
+    address: context.walletAddress,
+    taskId: context.taskId,
+    action: AGENT_TASK_AUDIT_ACTION.OUTPUT_COPIED,
+  });
 }
 
 type AnalyzeOutputView = {
@@ -247,8 +278,10 @@ function parseProposeOutput(v: unknown): ProposeOutputView | null {
 function ProposeOutputCard(props: {
   output: ProposeOutputView;
   projectId: string | null;
+  taskId: string;
+  walletAddress: string | null;
 }) {
-  const { output, projectId } = props;
+  const { output, projectId, taskId, walletAddress } = props;
   const [sentIdx, setSentIdx] = React.useState<number | null>(null);
 
   React.useEffect(() => {
@@ -270,11 +303,12 @@ function ProposeOutputCard(props: {
         return;
       }
       setSentIdx(idx);
+      recordPostingComposeOpened({ taskId, walletAddress });
       window.location.assign(
         buildPostingComposeHref({ pathname: window.location.pathname })
       );
     },
-    [projectId]
+    [projectId, taskId, walletAddress]
   );
 
   return (
@@ -581,8 +615,10 @@ function parseTranslateOutput(v: unknown): TranslateOutputView | null {
 function TranslateOutputCard(props: {
   output: TranslateOutputView;
   projectId: string | null;
+  taskId: string;
+  walletAddress: string | null;
 }) {
-  const { output, projectId } = props;
+  const { output, projectId, taskId, walletAddress } = props;
   const [sentLang, setSentLang] = React.useState<string | null>(null);
 
   const openComposeWith = React.useCallback(
@@ -605,11 +641,12 @@ function TranslateOutputCard(props: {
       }
 
       setSentLang(lang);
+      recordPostingComposeOpened({ taskId, walletAddress });
       window.location.assign(
         buildPostingComposeHref({ pathname: window.location.pathname })
       );
     },
-    [projectId]
+    [projectId, taskId, walletAddress]
   );
 
   return (
@@ -910,8 +947,9 @@ function parseDistributionPlanDraftTaskOutput(
 
 function DistributionPlanDraftTaskOutputCard(props: {
   output: DistributionPlanDraftTaskOutputView;
+  taskId: string;
 }) {
-  const { output } = props;
+  const { output, taskId } = props;
   const [copied, setCopied] = React.useState(false);
   const payloadText = output.draftPayload
     ? formatDistributionPlanDraftPayload(output.draftPayload)
@@ -934,7 +972,9 @@ function DistributionPlanDraftTaskOutputCard(props: {
       return;
     }
 
-    const handoff = buildDistributionPlanDraftHandoff(output.draftPayload);
+    const handoff = buildDistributionPlanDraftHandoff(output.draftPayload, {
+      sourceTaskId: taskId,
+    });
 
     try {
       window.localStorage.setItem(
@@ -951,7 +991,7 @@ function DistributionPlanDraftTaskOutputCard(props: {
         currency: output.draftPayload.currency,
       })
     );
-  }, [output.draftPayload]);
+  }, [output.draftPayload, taskId]);
 
   const copyDraftJson = React.useCallback(async () => {
     if (
@@ -1086,8 +1126,10 @@ function parseAnnouncementDraftOutput(v: unknown): AnnouncementDraftOutputView |
 function AnnouncementDraftOutputCard(props: {
   output: AnnouncementDraftOutputView;
   projectId: string | null;
+  taskId: string;
+  walletAddress: string | null;
 }) {
-  const { output, projectId } = props;
+  const { output, projectId, taskId, walletAddress } = props;
   const [copied, setCopied] = React.useState(false);
   const payloadText = buildAnnouncementPostingComposeText({
     headline: output.headline,
@@ -1130,6 +1172,7 @@ function AnnouncementDraftOutputCard(props: {
       return;
     }
 
+    recordPostingComposeOpened({ taskId, walletAddress });
     window.location.assign(
       buildPostingComposeHref({ pathname: window.location.pathname })
     );
@@ -1140,6 +1183,8 @@ function AnnouncementDraftOutputCard(props: {
     output.headline,
     output.summary,
     projectId,
+    taskId,
+    walletAddress,
   ]);
 
   const copyDraftText = React.useCallback(async () => {
@@ -1575,8 +1620,10 @@ function parseSupportStoryDraftOutput(
 function SupportStoryDraftOutputCard(props: {
   output: SupportStoryDraftOutputView;
   projectId: string | null;
+  taskId: string;
+  walletAddress: string | null;
 }) {
-  const { output, projectId } = props;
+  const { output, projectId, taskId, walletAddress } = props;
   const [copied, setCopied] = React.useState(false);
   const [sent, setSent] = React.useState(false);
 
@@ -1622,10 +1669,11 @@ function SupportStoryDraftOutputCard(props: {
       return;
     }
     setSent(true);
+    recordPostingComposeOpened({ taskId, walletAddress });
     window.location.assign(
       buildPostingComposeHref({ pathname: window.location.pathname })
     );
-  }, [projectId, output.storyText]);
+  }, [projectId, output.storyText, taskId, walletAddress]);
 
   return (
     <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
@@ -2022,7 +2070,7 @@ function CareerPlanDraftOutputCard(props: {
 }
 
 type OutputRenderer = {
-  render: (output: unknown, projectId: string | null) => React.ReactNode | null;
+  render: (output: unknown, context: OutputActionContext) => React.ReactNode | null;
 };
 
 const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
@@ -2033,9 +2081,14 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     },
   },
   DISTRIBUTION_PLAN_DRAFT: {
-    render: (output) => {
+    render: (output, context) => {
       const parsed = parseDistributionPlanDraftTaskOutput(output);
-      return parsed ? <DistributionPlanDraftTaskOutputCard output={parsed} /> : null;
+      return parsed ? (
+        <DistributionPlanDraftTaskOutputCard
+          output={parsed}
+          taskId={context.taskId}
+        />
+      ) : null;
     },
   },
   ANALYZE: {
@@ -2045,16 +2098,28 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     },
   },
   PROPOSE: {
-    render: (output, projectId) => {
+    render: (output, context) => {
       const parsed = parseProposeOutput(output);
-      return parsed ? <ProposeOutputCard output={parsed} projectId={projectId} /> : null;
+      return parsed ? (
+        <ProposeOutputCard
+          output={parsed}
+          projectId={context.projectId}
+          taskId={context.taskId}
+          walletAddress={context.walletAddress}
+        />
+      ) : null;
     },
   },
   TRANSLATE: {
-    render: (output, projectId) => {
+    render: (output, context) => {
       const parsed = parseTranslateOutput(output);
       return parsed ? (
-        <TranslateOutputCard output={parsed} projectId={projectId} />
+        <TranslateOutputCard
+          output={parsed}
+          projectId={context.projectId}
+          taskId={context.taskId}
+          walletAddress={context.walletAddress}
+        />
       ) : null;
     },
   },
@@ -2065,17 +2130,28 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     },
   },
   ANNOUNCEMENT_DRAFT: {
-    render: (output, projectId) => {
+    render: (output, context) => {
       const parsed = parseAnnouncementDraftOutput(output);
       return parsed ? (
-        <AnnouncementDraftOutputCard output={parsed} projectId={projectId} />
+        <AnnouncementDraftOutputCard
+          output={parsed}
+          projectId={context.projectId}
+          taskId={context.taskId}
+          walletAddress={context.walletAddress}
+        />
       ) : null;
     },
   },
   SUPPORTER_MESSAGE_DRAFT: {
-    render: (output) => {
+    render: (output, context) => {
       const parsed = parseSupporterMessageDraftOutput(output);
-      return parsed ? <SupporterMessageDraftOutputCard output={parsed} /> : null;
+      return parsed ? (
+        <SupporterMessageDraftOutputCard
+          output={parsed}
+          taskId={context.taskId}
+          walletAddress={context.walletAddress}
+        />
+      ) : null;
     },
   },
   PROFILE_UPDATE_PROPOSAL: {
@@ -2099,9 +2175,16 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     },
   },
   SUPPORT_STORY_DRAFT: {
-    render: (output, projectId) => {
+    render: (output, context) => {
       const parsed = parseSupportStoryDraftOutput(output);
-      return parsed ? <SupportStoryDraftOutputCard output={parsed} projectId={projectId} /> : null;
+      return parsed ? (
+        <SupportStoryDraftOutputCard
+          output={parsed}
+          projectId={context.projectId}
+          taskId={context.taskId}
+          walletAddress={context.walletAddress}
+        />
+      ) : null;
     },
   },
   SUPPORTER_RESULT_REPORT: {
@@ -2128,10 +2211,17 @@ export function AgentTaskOutput(props: {
   taskType: string;
   output: unknown;
   projectId: string | null;
+  taskId: string;
+  walletAddress: string | null;
 }) {
-  const { taskType, output, projectId } = props;
+  const { taskType, output, projectId, taskId, walletAddress } = props;
   const renderer = TASK_OUTPUT_RENDERERS[taskType as TaskType];
-  const rendered = renderer?.render(output, projectId) ?? null;
+  const rendered =
+    renderer?.render(output, {
+      projectId,
+      taskId,
+      walletAddress,
+    }) ?? null;
 
   if (rendered) return rendered;
 
@@ -2173,8 +2263,10 @@ function parseSupporterMessageDraftOutput(
 
 function SupporterMessageDraftOutputCard(props: {
   output: SupporterMessageDraftOutputView;
+  taskId: string;
+  walletAddress: string | null;
 }) {
-  const { output } = props;
+  const { output, taskId, walletAddress } = props;
   const [copied, setCopied] = React.useState(false);
   const payloadText = [output.subject, output.body].join("\n\n");
 
@@ -2201,10 +2293,11 @@ function SupporterMessageDraftOutputCard(props: {
     try {
       await window.navigator.clipboard.writeText(payloadText);
       setCopied(true);
+      recordOutputCopied({ taskId, walletAddress });
     } catch {
       return;
     }
-  }, [payloadText]);
+  }, [payloadText, taskId, walletAddress]);
 
   return (
     <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">

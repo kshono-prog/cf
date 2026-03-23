@@ -32,7 +32,19 @@ test("AI Office task choice helpers preserve tier order and task lookup", () => 
   assert.deepEqual(groups.map((group) => group.tier), ["MVP", "BETA"]);
   assert.deepEqual(
     groups[0]?.choices.map((choice) => choice.taskType),
-    ["MANAGER_NEXT_ACTIONS", "PROPOSE", "ANALYZE", "TRANSLATE"]
+    [
+      "MANAGER_NEXT_ACTIONS",
+      "PROPOSE",
+      "ANALYZE",
+      "TRANSLATE",
+      "PROFILE_UPDATE_PROPOSAL",
+      "DAILY_ACTION_PLAN",
+      "ACTIVITY_RESTART_PROPOSAL",
+      "SUPPORT_STORY_DRAFT",
+      "SUPPORTER_RESULT_REPORT",
+      "CAREER_PLAN_DRAFT",
+      "GROWTH_OPPORTUNITY_ALERT",
+    ]
   );
   assert.deepEqual(
     groups[1]?.choices.map((choice) => choice.taskType),
@@ -83,11 +95,14 @@ test("AI Office role guidance points creators to pending or effective roles", ()
       roleId: "FINANCE",
       label: "Finance Agent",
       actionableCount: 2,
+      trackedReadyCount: 0,
+      usedCount: 0,
       waitingApprovalCount: 2,
       approvedCount: 0,
       rejectedCount: 0,
       ignoredCount: 1,
       followThroughRate: 0,
+      usedRate: 0,
     },
   ]);
   assert.equal(attention.tone, "attention");
@@ -98,11 +113,14 @@ test("AI Office role guidance points creators to pending or effective roles", ()
         roleId: "FINANCE",
         label: "Finance Agent",
         actionableCount: 2,
+        trackedReadyCount: 0,
+        usedCount: 0,
         waitingApprovalCount: 2,
         approvedCount: 0,
         rejectedCount: 0,
         ignoredCount: 1,
         followThroughRate: 0,
+        usedRate: 0,
       },
     ])?.ignoredCount,
     1
@@ -113,11 +131,14 @@ test("AI Office role guidance points creators to pending or effective roles", ()
       roleId: "PROMOTION",
       label: "Promotion Agent",
       actionableCount: 3,
+      trackedReadyCount: 0,
+      usedCount: 0,
       waitingApprovalCount: 0,
       approvedCount: 2,
       rejectedCount: 0,
       ignoredCount: 0,
       followThroughRate: 0.6667,
+      usedRate: 0,
     },
   ]);
   assert.equal(recommended.tone, "recommended");

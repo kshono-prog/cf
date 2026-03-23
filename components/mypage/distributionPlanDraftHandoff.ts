@@ -1,6 +1,6 @@
 "use client";
 
-import { isRecord } from "@/lib/api/guards";
+import { isRecord, toNonEmptyString } from "@/lib/api/guards";
 import {
   formatDistributionPlanDraftPayload,
   type DistributionPlanDraftPayload,
@@ -15,6 +15,7 @@ export type DistributionPlanDraftHandoff = {
   currency: CurrencyCode;
   payloadText: string;
   createdAt: string;
+  sourceTaskId: string | null;
 };
 
 function toCurrencyCode(value: unknown): CurrencyCode | null {
@@ -32,13 +33,17 @@ function normalizeCreatorMypagePath(pathname: string): string {
 }
 
 export function buildDistributionPlanDraftHandoff(
-  payload: DistributionPlanDraftPayload
+  payload: DistributionPlanDraftPayload,
+  options?: {
+    sourceTaskId?: string | null;
+  }
 ): DistributionPlanDraftHandoff {
   return {
     projectId: payload.projectId,
     currency: payload.currency,
     payloadText: formatDistributionPlanDraftPayload(payload),
     createdAt: payload.generatedAt,
+    sourceTaskId: options?.sourceTaskId ?? null,
   };
 }
 
@@ -62,6 +67,8 @@ export function parseDistributionPlanDraftHandoff(
     typeof value.createdAt === "string" && value.createdAt.trim().length > 0
       ? value.createdAt
       : null;
+  const sourceTaskId =
+    value.sourceTaskId === null ? null : toNonEmptyString(value.sourceTaskId);
 
   if (!projectId || !currency || !payloadText || !createdAt) {
     return null;
@@ -72,6 +79,7 @@ export function parseDistributionPlanDraftHandoff(
     currency,
     payloadText,
     createdAt,
+    sourceTaskId: sourceTaskId ?? null,
   };
 }
 

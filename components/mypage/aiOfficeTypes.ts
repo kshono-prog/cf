@@ -25,12 +25,15 @@ export type AiOfficeUsefulnessSummaryView = {
   createdCount: number;
   actionableCount: number;
   autoCompletedCount: number;
+  trackedReadyCount: number;
   waitingApprovalCount: number;
   approvedCount: number;
   rejectedCount: number;
   ignoredCount: number;
   followThroughCount: number;
   followThroughRate: number;
+  usedCount: number;
+  usedRate: number;
   approvalRate: number;
   rejectionRate: number;
   medianDecisionHours: number | null;
@@ -41,11 +44,14 @@ export type AiOfficeRoleUsefulnessView = {
   roleId: CreatorAiAgentRole;
   label: string;
   actionableCount: number;
+  trackedReadyCount: number;
+  usedCount: number;
   waitingApprovalCount: number;
   approvedCount: number;
   rejectedCount: number;
   ignoredCount: number;
   followThroughRate: number;
+  usedRate: number;
 };
 
 export function getEmptyAiOfficeUsefulnessSummary(): AiOfficeUsefulnessSummaryView {
@@ -55,12 +61,15 @@ export function getEmptyAiOfficeUsefulnessSummary(): AiOfficeUsefulnessSummaryVi
     createdCount: 0,
     actionableCount: 0,
     autoCompletedCount: 0,
+    trackedReadyCount: 0,
     waitingApprovalCount: 0,
     approvedCount: 0,
     rejectedCount: 0,
     ignoredCount: 0,
     followThroughCount: 0,
     followThroughRate: 0,
+    usedCount: 0,
+    usedRate: 0,
     approvalRate: 0,
     rejectionRate: 0,
     medianDecisionHours: null,

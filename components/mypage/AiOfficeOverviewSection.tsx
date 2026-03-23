@@ -3,9 +3,11 @@
 import React from "react";
 
 import type {
+  AiOfficeUsefulnessSummaryView,
   AgentTaskView,
 } from "@/components/mypage/aiOfficeTypes";
 import { getAiOfficeRoleChoices } from "@/components/mypage/aiOfficeTaskConfig";
+import { AGENT_TASK_AUDIT_ACTION } from "@/lib/agentTaskAudit";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import {
   getAgentTaskStatusCopy,
@@ -16,6 +18,7 @@ type Props = {
   loading: boolean;
   waitingApprovalCount: number;
   tasks: AgentTaskView[];
+  usefulness: AiOfficeUsefulnessSummaryView;
   onOpenCreate: () => void;
   onOpenCreateForRole: (roleId: CreatorAiAgentRole) => void;
   onOpenInbox: (roleId?: CreatorAiAgentRole) => void;
@@ -25,6 +28,13 @@ type Props = {
 export function AiOfficeOverviewSection(props: Props) {
   const roleChoices = React.useMemo(() => getAiOfficeRoleChoices(), []);
   const recentTasks = React.useMemo(() => props.tasks.slice(0, 5), [props.tasks]);
+  const roleUsefulnessMap = React.useMemo(
+    () =>
+      new Map(
+        props.usefulness.roleBreakdown.map((role) => [role.roleId, role] as const)
+      ),
+    [props.usefulness.roleBreakdown]
+  );
 
   return (
     <div className="space-y-4">
@@ -44,7 +54,7 @@ export function AiOfficeOverviewSection(props: Props) {
             ) : (
               <>
                 <div className="mt-1 text-lg font-semibold text-[var(--support)]">問題ありません</div>
-                <p className="mt-1 caption-text">承認待ちはありません。新しい下書きを作ってみましょう。</p>
+                <p className="mt-1 caption-text">承認待ちはありません。新しい依頼や下書きを試してみましょう。</p>
               </>
             )}
           </div>
@@ -78,6 +88,31 @@ export function AiOfficeOverviewSection(props: Props) {
             </button>
           </div>
         </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="text-[11px] font-medium text-[var(--text)]">計測対象</div>
+            <div className="mt-1 text-2xl font-semibold text-[var(--text)]">
+              {props.usefulness.trackedReadyCount}
+            </div>
+            <div className="caption-text">compose / draft / copy に進める結果</div>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <div className="text-[11px] font-medium text-emerald-800">使われた結果</div>
+            <div className="mt-1 text-2xl font-semibold text-emerald-700">
+              {props.usefulness.usedCount}
+            </div>
+            <div className="text-[11px] text-emerald-700">
+              handoff または copy に進んだ件数
+            </div>
+          </div>
+          <div className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
+            <div className="text-[11px] font-medium text-[var(--text)]">活用率</div>
+            <div className="mt-1 text-2xl font-semibold text-[var(--text)]">
+              {(props.usefulness.usedRate * 100).toFixed(0)}%
+            </div>
+            <div className="caption-text">計測対象に限った downstream 利用率</div>
+          </div>
+        </div>
       </div>
 
       {/* ── Area 2: 最近の作成履歴 ── */}
@@ -85,14 +120,14 @@ export function AiOfficeOverviewSection(props: Props) {
         <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-3 border-b border-[var(--line)]">
           <div>
             <div className="section-title">最近の作成履歴</div>
-            <p className="caption-text mt-0.5">AIが作成した下書きの一覧です。</p>
+            <p className="caption-text mt-0.5">AIが作成した結果や下書きの一覧です。</p>
           </div>
         </div>
         <div className="divide-y divide-[var(--line)]">
           {recentTasks.length === 0 ? (
             <div className="px-4 py-6 text-center">
-              <p className="body-text text-[var(--text-subtle)]">まだ下書きが作成されていません</p>
-              <p className="caption-text mt-1">「新しく作成する」から最初の下書きを作ってみてください。</p>
+              <p className="body-text text-[var(--text-subtle)]">まだ依頼結果が作成されていません</p>
+              <p className="caption-text mt-1">「新しく作成する」から最初の依頼を試してみてください。</p>
               <button
                 type="button"
                 className="btn mt-3"
@@ -105,6 +140,12 @@ export function AiOfficeOverviewSection(props: Props) {
           ) : (
             recentTasks.map((task) => {
               const statusCopy = getAgentTaskStatusCopy(task.status);
+              const used = task.auditLogs.some(
+                (log) =>
+                  log.action === AGENT_TASK_AUDIT_ACTION.POSTING_COMPOSE_OPENED ||
+                  log.action === AGENT_TASK_AUDIT_ACTION.SETTLEMENT_DRAFT_APPLIED ||
+                  log.action === AGENT_TASK_AUDIT_ACTION.OUTPUT_COPIED
+              );
               return (
                 <div key={task.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
@@ -114,17 +155,24 @@ export function AiOfficeOverviewSection(props: Props) {
                     <div className="caption-text mt-0.5">{task.createdAt}</div>
                   </div>
                   <span
-                    className={`shrink-0 status-badge ${
-                      task.status === "WAITING_APPROVAL"
-                        ? "status-badge-warn"
-                        : task.status === "APPROVED"
-                          ? "status-badge-ok"
-                          : task.status === "REJECTED"
-                            ? "status-badge-error"
-                            : "status-badge-neutral"
-                    }`}
+                    className="flex shrink-0 items-center gap-1"
                   >
-                    {statusCopy.label}
+                    {used ? (
+                      <span className="status-badge status-badge-ok">使われた</span>
+                    ) : null}
+                    <span
+                      className={`status-badge ${
+                        task.status === "WAITING_APPROVAL"
+                          ? "status-badge-warn"
+                          : task.status === "APPROVED"
+                            ? "status-badge-ok"
+                            : task.status === "REJECTED"
+                              ? "status-badge-error"
+                              : "status-badge-neutral"
+                      }`}
+                    >
+                      {statusCopy.label}
+                    </span>
                   </span>
                 </div>
               );
@@ -152,25 +200,44 @@ export function AiOfficeOverviewSection(props: Props) {
           <p className="caption-text mt-0.5">担当を選んで下書きを作れます。</p>
         </div>
         <div className="divide-y divide-[var(--line)]">
-          {roleChoices.map((role) => (
-            <div key={role.roleId} className="flex items-center gap-3 px-4 py-3.5">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-[var(--text)]">{role.label}</span>
-                  <span className="status-badge status-badge-neutral">{role.taskChoices.length}種類</span>
+          {roleChoices.map((role) => {
+            const roleUsefulness = roleUsefulnessMap.get(role.roleId) ?? null;
+
+            return (
+              <div key={role.roleId} className="flex items-center gap-3 px-4 py-3.5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-[var(--text)]">{role.label}</span>
+                    <span className="status-badge status-badge-neutral">{role.taskChoices.length}種類</span>
+                    {roleUsefulness?.usedCount ? (
+                      <span className="status-badge status-badge-ok">
+                        利用 {roleUsefulness.usedCount}
+                      </span>
+                    ) : null}
+                    {roleUsefulness?.waitingApprovalCount ? (
+                      <span className="status-badge status-badge-warn">
+                        承認待ち {roleUsefulness.waitingApprovalCount}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="caption-text mt-0.5">
+                    {role.roleHelper}
+                    {roleUsefulness?.trackedReadyCount
+                      ? ` / 活用率 ${(roleUsefulness.usedRate * 100).toFixed(0)}%`
+                      : ""}
+                  </div>
                 </div>
-                <div className="caption-text mt-0.5">{role.roleHelper}</div>
+                <button
+                  type="button"
+                  className="btn-secondary shrink-0"
+                  onClick={() => props.onOpenCreateForRole(role.roleId)}
+                  disabled={props.loading}
+                >
+                  下書きを作る
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn-secondary shrink-0"
-                onClick={() => props.onOpenCreateForRole(role.roleId)}
-                disabled={props.loading}
-              >
-                下書きを作る
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

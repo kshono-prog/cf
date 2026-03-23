@@ -20,8 +20,8 @@ import {
   toTaskType,
   validateTaskInput,
 } from "@/lib/agentTasks";
+import { requiresApprovalByDefault } from "@/lib/agentTaskPolicy";
 import { toCreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
-import { requiresApprovalByDefault } from "@/components/mypage/aiOfficeTaskConfig";
 import {
   requireOwnerSessionFromBody,
   requireOwnerSessionFromSearchParams,

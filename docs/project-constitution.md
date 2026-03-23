@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Creator Founding is a creator operations platform that combines public support, project funding, and approval-based AI assistance in one product.
+Creator Founding is a creator operations platform that combines public support, project funding, and reviewable AI assistance in one product.
 
 ## Product Principles
 
 - Keep the main value focused on creator operations, not generic AI novelty.
 - Make support status and next actions understandable from the same workflow.
-- Prefer approval-based assistance over invisible automation.
+- Prefer reviewable assistance over invisible automation.
 - Separate daily work from high-risk funding and settlement controls.
 - Preserve creator trust with clear state, clear ownership, and visible audit trails.
 
@@ -17,7 +17,7 @@ Creator Founding is a creator operations platform that combines public support, 
 - Never auto-execute bridge, settlement, or fund movement without explicit human approval.
 - Treat project status, goal achievement, bridge state, and distribution state as reviewable records.
 - Do not hide owner-only controls or bypass owner checks.
-- Keep suggestions advisory until a human confirms the next step.
+- Keep high-risk or externally meaningful actions reviewable before the next step advances.
 - Avoid expanding risk scope through convenience UI alone.
 
 ## Source of Truth
