@@ -4,7 +4,7 @@
 import { GoogleGenerativeAI, GoogleGenerativeAIError } from "@google/generative-ai";
 
 import type { AiProvider, GenerateOptions } from "./types";
-import { ModelUnavailableError } from "./types";
+import { ModelUnavailableError, extractApiErrorInfo, formatApiErrorSummary } from "./types";
 
 const MODEL_ID = "gemini-2.0-flash-lite";
 
@@ -38,6 +38,9 @@ export class GeminiProvider implements AiProvider {
       if (isModelUnavailable(err)) {
         throw new ModelUnavailableError(this.name, MODEL_ID, err);
       }
+      const info = extractApiErrorInfo(err);
+      const summary = formatApiErrorSummary(info);
+      console.error(`[gemini] API error | ${summary}`);
       throw err;
     }
   }

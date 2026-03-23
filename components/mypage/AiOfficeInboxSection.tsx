@@ -10,6 +10,7 @@ import { AgentTaskOutput } from "@/components/mypage/AgentTaskOutputViews";
 import {
   doesAiOfficeTaskMatchRole,
   getAiOfficeTaskRoleChoices,
+  requiresApprovalByDefault,
 } from "@/components/mypage/aiOfficeTaskConfig";
 import type {
   AiOfficeUsefulnessSummaryView,
@@ -76,20 +77,11 @@ function extractTaskOutputPreview(output: unknown, maxChars = 140): string | nul
 }
 
 function getApprovalResultLabel(taskType: string): string {
-  const contentTypes = [
-    "ANNOUNCE_POST_DRAFT",
-    "THANK_YOU_POST_DRAFT",
-    "SUPPORT_STORY_POST_DRAFT",
-    "PROPOSE_NEXT_POST",
-    "TRANSLATE_POST",
-  ];
-  if (contentTypes.includes(taskType)) {
-    return "承認すると → 投稿の下書きに追加されます";
-  }
   if (taskType === "DISTRIBUTION_PLAN_DRAFT") {
     return "承認すると → 精算プランに反映されます";
   }
-  return "承認すると → 提案として記録されます";
+  // All other approval-required types produce post content
+  return "承認すると → 投稿として公開されます（または自動投稿）";
 }
 
 function AgentTaskCard(props: {
@@ -108,6 +100,7 @@ function AgentTaskCard(props: {
   const statusCopy = getAgentTaskStatusCopy(task.status);
   const taskRoles = getAiOfficeTaskRoleChoices(task.taskType as TaskType);
   const isWaiting = task.status === "WAITING_APPROVAL";
+  const isApprovalRequired = requiresApprovalByDefault(task.taskType as TaskType);
   const previewText = extractTaskOutputPreview(task.output);
 
   function handleRejectConfirm() {
@@ -138,19 +131,25 @@ function AgentTaskCard(props: {
         {/* Row 2: task type label + status badge */}
         <div className="mt-2 flex items-start justify-between gap-2">
           <div className="section-title">{getAgentTaskTypeCopy(task.taskType).label}</div>
-          <span
-            className={`shrink-0 status-badge ${
-              task.status === "WAITING_APPROVAL"
-                ? "status-badge-warn"
-                : task.status === "APPROVED"
-                  ? "status-badge-ok"
-                  : task.status === "REJECTED"
-                    ? "status-badge-error"
-                    : "status-badge-neutral"
-            }`}
-          >
-            {statusCopy.label}
-          </span>
+          {!isApprovalRequired && task.status === "DONE" ? (
+            <span className="shrink-0 status-badge status-badge-neutral">
+              確認できます
+            </span>
+          ) : (
+            <span
+              className={`shrink-0 status-badge ${
+                task.status === "WAITING_APPROVAL"
+                  ? "status-badge-warn"
+                  : task.status === "APPROVED"
+                    ? "status-badge-ok"
+                    : task.status === "REJECTED"
+                      ? "status-badge-error"
+                      : "status-badge-neutral"
+              }`}
+            >
+              {statusCopy.label}
+            </span>
+          )}
         </div>
 
         {/* Row 3: content preview (always visible) */}
@@ -163,8 +162,8 @@ function AgentTaskCard(props: {
           </div>
         ) : null}
 
-        {/* Row 4: what happens after approval */}
-        {isWaiting ? (
+        {/* Row 4: what happens after approval (only for approval-required tasks) */}
+        {isWaiting && isApprovalRequired ? (
           <p className="mt-2 caption-text">
             {getApprovalResultLabel(task.taskType)}
           </p>
@@ -206,8 +205,8 @@ function AgentTaskCard(props: {
         </div>
       ) : null}
 
-      {/* ── Action bar — always visible for WAITING_APPROVAL ── */}
-      {props.selectable && isWaiting && !rejectMode ? (
+      {/* ── Action bar — only for approval-required tasks in WAITING_APPROVAL ── */}
+      {props.selectable && isWaiting && isApprovalRequired && !rejectMode ? (
         <div className="flex items-center gap-2 border-t border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
           <label className="inline-flex shrink-0 items-center gap-1.5 caption-text cursor-pointer">
             <input
@@ -240,7 +239,7 @@ function AgentTaskCard(props: {
       ) : null}
 
       {/* ── Inline reject ── */}
-      {props.selectable && isWaiting && rejectMode ? (
+      {props.selectable && isWaiting && isApprovalRequired && rejectMode ? (
         <div className="border-t border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 space-y-2">
           <div className="text-xs font-semibold text-[var(--danger)]">却下の理由（任意）</div>
           <input

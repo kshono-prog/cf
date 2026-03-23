@@ -4,7 +4,7 @@
 import OpenAI from "openai";
 
 import type { AiProvider, GenerateOptions } from "./types";
-import { ModelUnavailableError } from "./types";
+import { ModelUnavailableError, extractApiErrorInfo, formatApiErrorSummary } from "./types";
 
 const MODEL_ID = "gpt-4.1-nano";
 
@@ -39,6 +39,9 @@ export class OpenAiProvider implements AiProvider {
       if (isModelUnavailable(err)) {
         throw new ModelUnavailableError(this.name, MODEL_ID, err);
       }
+      const info = extractApiErrorInfo(err);
+      const summary = formatApiErrorSummary(info);
+      console.error(`[openai] API error | ${summary}`);
       throw err;
     }
   }

@@ -7,6 +7,28 @@ import type {
   TranslationLang,
 } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
+
+/**
+ * Tasks that require human approval before taking effect.
+ * These produce publishable content or trigger financial operations.
+ */
+export const APPROVAL_REQUIRED_TASK_TYPES = new Set<TaskType>([
+  "ANNOUNCEMENT_DRAFT",       // 投稿として公開する告知文
+  "TRANSLATE",                // 翻訳して投稿する
+  "WEEKLY_REPORT",            // 週次報告として投稿する
+  "SUPPORT_STORY_DRAFT",      // 支援ストーリーとして投稿する
+  "SUPPORTER_MESSAGE_DRAFT",  // 支援者へのメッセージとして送る
+  "DISTRIBUTION_PLAN_DRAFT",  // 精算に反映される金融操作
+]);
+
+/**
+ * Returns true for tasks where approval is meaningful.
+ * Informational tasks (advice, analysis, proposals) complete automatically
+ * and are displayed to the user without requiring approval.
+ */
+export function requiresApprovalByDefault(taskType: TaskType): boolean {
+  return APPROVAL_REQUIRED_TASK_TYPES.has(taskType);
+}
 import {
   CREATOR_AI_AGENT_ROLE_DEFINITIONS,
   type CreatorAiAgentRole,

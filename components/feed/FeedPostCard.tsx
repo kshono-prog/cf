@@ -254,8 +254,16 @@ export function FeedPostCard(props: Props) {
               )
             ) : null}
             {post.aiGenerated ? (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                AI生成
+              <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-3 w-3 shrink-0"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M8 1.5a.75.75 0 0 1 .75.75v1.25h1.25a.75.75 0 0 1 0 1.5H8.75v1.25a.75.75 0 0 1-1.5 0V5H6a.75.75 0 0 1 0-1.5h1.25V2.25A.75.75 0 0 1 8 1.5ZM3 8.5a.75.75 0 0 1 .75-.75h.5V7a.75.75 0 0 1 1.5 0v.75h.5a.75.75 0 0 1 0 1.5h-.5V10a.75.75 0 0 1-1.5 0v-.75h-.5A.75.75 0 0 1 3 8.5Zm8.25 2a.75.75 0 0 1 .75.75v.5h.5a.75.75 0 0 1 0 1.5h-.5v.5a.75.75 0 0 1-1.5 0v-.5h-.5a.75.75 0 0 1 0-1.5h.5v-.5a.75.75 0 0 1 .75-.75Z" />
+                </svg>
+                AI投稿
               </span>
             ) : null}
             {selectedForTip ? (

@@ -21,6 +21,7 @@ import {
   validateTaskInput,
 } from "@/lib/agentTasks";
 import { toCreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
+import { requiresApprovalByDefault } from "@/components/mypage/aiOfficeTaskConfig";
 import {
   requireOwnerSessionFromBody,
   requireOwnerSessionFromSearchParams,
@@ -55,10 +56,15 @@ type PostBody = {
   taskType?: unknown;
   input?: unknown;
   requiresApproval?: unknown;
+  autoPost?: unknown;
   roleId?: unknown;
 };
 
 function toRequiresApproval(v: unknown): boolean {
+  return v === true;
+}
+
+function toAutoPost(v: unknown): boolean {
   return v === true;
 }
 
@@ -161,14 +167,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const validatedInput = validateTaskInput(taskType, body.input);
     if (!validatedInput.ok) return err(req, validatedInput.error, 400);
 
-    const inputJson = validatedInput.value;
-    const requiresApproval = toRequiresApproval(body.requiresApproval);
+    // Informational tasks (advice, analysis) complete automatically — no approval needed
+    // regardless of what the client sends.
+    const requiresApproval = requiresApprovalByDefault(taskType)
+      ? toRequiresApproval(body.requiresApproval)
+      : false;
+    const autoPost = toAutoPost(body.autoPost);
+
+    // Store autoPost flag alongside the task-specific input so approval can read it
+    const inputJson = isRecord(validatedInput.value)
+      ? { ...validatedInput.value, autoPost }
+      : validatedInput.value;
+
     const row = await createAgentTask({
       creatorProfileId: creator.id,
       projectId,
       taskType,
-      inputJson,
+      inputJson: inputJson as Parameters<typeof createAgentTask>[0]["inputJson"],
       requiresApproval,
+      autoPost,
       requestedBy: ownerSession.address,
       roleId,
     });

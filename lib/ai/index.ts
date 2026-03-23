@@ -16,10 +16,16 @@ import { GeminiProvider } from "./geminiProvider";
 import { OpenAiProvider } from "./openaiProvider";
 import { AnthropicProvider } from "./anthropicProvider";
 import type { AiProvider, GenerateOptions } from "./types";
-import { ModelUnavailableError } from "./types";
+import {
+  ModelUnavailableError,
+  extractApiErrorInfo,
+  formatApiErrorSummary,
+  isBillingError,
+  isRateLimitError,
+} from "./types";
 
 export type { AiProvider, GenerateOptions };
-export { ModelUnavailableError };
+export { ModelUnavailableError, extractApiErrorInfo, formatApiErrorSummary, isBillingError, isRateLimitError };
 
 const PROVIDERS: AiProvider[] = [
   new GeminiProvider(),
@@ -63,7 +69,21 @@ export async function generateText(
             `Falling back to next provider.`
         );
       } else {
-        console.error(`[ai] ${provider.name} failed:`, err);
+        const info = extractApiErrorInfo(err);
+        const summary = formatApiErrorSummary(info);
+        if (isBillingError(info)) {
+          console.error(
+            `[ai] 🚨 BILLING/QUOTA ERROR — ${provider.name} | ${summary}`
+          );
+        } else if (isRateLimitError(info)) {
+          console.warn(
+            `[ai] ⏱ Rate limit — ${provider.name} | ${summary}`
+          );
+        } else {
+          console.error(
+            `[ai] ${provider.name} failed | ${summary}`
+          );
+        }
       }
       // Try the next provider in the chain
       continue;

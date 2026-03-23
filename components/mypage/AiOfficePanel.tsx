@@ -80,6 +80,7 @@ export function AiOfficePanel(props: {
   const [selectedInboxRoleId, setSelectedInboxRoleId] =
     useState<CreatorAiAgentRole | null>(null);
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
+  const [autoPost, setAutoPost] = useState<boolean>(false);
   const [translationInput, setTranslationInput] = useState<string>("");
   const [translationLang, setTranslationLang] = useState<TranslationLang>("en");
   const [reportingWindowDays, setReportingWindowDays] = useState<number>(7);
@@ -360,6 +361,7 @@ export function AiOfficePanel(props: {
             roleId: selectedRoleId,
             input: taskInput,
             requiresApproval,
+            autoPost,
           }),
         },
       });
@@ -713,6 +715,7 @@ export function AiOfficePanel(props: {
               loading={loading}
               taskType={taskType}
               requiresApproval={requiresApproval}
+              autoPost={autoPost}
               translationInput={translationInput}
               translationLang={translationLang}
               reportingWindowDays={reportingWindowDays}
@@ -724,6 +727,7 @@ export function AiOfficePanel(props: {
               translationResult={translationResult}
               onTaskTypeChange={handleTaskTypeChange}
               onRequiresApprovalChange={setRequiresApproval}
+              onAutoPostChange={setAutoPost}
               onTranslationInputChange={setTranslationInput}
               onTranslationLangChange={setTranslationLang}
               onReportingWindowDaysChange={setReportingWindowDays}

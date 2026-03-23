@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { isRecord } from "@/lib/api/guards";
 import {
   buildCreateAuditMeta,
   buildDecisionAuditMeta,
@@ -1763,7 +1764,116 @@ type WaitingTask = {
   projectId: bigint | null;
   taskType: string;
   inputJson: Prisma.JsonValue;
+  outputJson?: Prisma.JsonValue;
 };
+
+// ─── Auto-post helpers ────────────────────────────────────────────────────────
+
+/** Task types whose output can be turned into a public Post body. */
+const AUTO_POSTABLE_TASK_TYPES = new Set([
+  "ANNOUNCEMENT_DRAFT",
+  "TRANSLATE",
+  "SUPPORT_STORY_DRAFT",
+  "PROPOSE",
+  "WEEKLY_REPORT",
+  "SUPPORTER_MESSAGE_DRAFT",
+]);
+
+/**
+ * Extract a publishable text body from a completed task's output JSON.
+ * Returns null when the task type is not auto-postable or the output is malformed.
+ */
+function extractPostBodyFromTaskOutput(
+  taskType: string,
+  output: unknown
+): string | null {
+  if (!isRecord(output)) return null;
+
+  switch (taskType) {
+    case "ANNOUNCEMENT_DRAFT": {
+      const headline =
+        typeof output.headline === "string" ? output.headline : null;
+      const body = typeof output.body === "string" ? output.body : null;
+      if (!body) return null;
+      return headline ? `${headline}\n\n${body}` : body;
+    }
+    case "TRANSLATE": {
+      const translations = Array.isArray(output.translations)
+        ? output.translations
+        : [];
+      const first = translations[0];
+      if (!isRecord(first) || typeof first.text !== "string") return null;
+      return first.text;
+    }
+    case "SUPPORT_STORY_DRAFT": {
+      const storyText =
+        typeof output.storyText === "string" ? output.storyText : null;
+      return storyText;
+    }
+    case "PROPOSE": {
+      const proposals = Array.isArray(output.proposals)
+        ? output.proposals
+        : [];
+      const first = proposals[0];
+      return typeof first === "string" ? first : null;
+    }
+    case "WEEKLY_REPORT": {
+      const summary =
+        typeof output.summary === "string" ? output.summary : null;
+      return summary;
+    }
+    case "SUPPORTER_MESSAGE_DRAFT": {
+      const subject =
+        typeof output.subject === "string" ? output.subject : null;
+      const body = typeof output.body === "string" ? output.body : null;
+      if (!body) return null;
+      return subject ? `${subject}\n\n${body}` : body;
+    }
+    default:
+      return null;
+  }
+}
+
+/** Returns true when the task input JSON has autoPost: true. */
+function shouldAutoPost(inputJson: unknown): boolean {
+  return isRecord(inputJson) && inputJson.autoPost === true;
+}
+
+/**
+ * Create a published AI-generated Post from a completed agent task.
+ * Silently skips when the task type is not postable or the output is malformed.
+ */
+async function createAutoPost(
+  tx: Prisma.TransactionClient,
+  params: {
+    creatorProfileId: bigint;
+    projectId: bigint | null;
+    taskType: string;
+    outputJson: unknown;
+    now: Date;
+  }
+): Promise<void> {
+  if (!AUTO_POSTABLE_TASK_TYPES.has(params.taskType)) return;
+  const body = extractPostBodyFromTaskOutput(params.taskType, params.outputJson);
+  if (!body || body.trim().length === 0) return;
+
+  await tx.post.create({
+    data: {
+      creatorProfileId: params.creatorProfileId,
+      projectId: params.projectId,
+      authorType: "AI_AGENT",
+      body: body.trim().slice(0, 2000),
+      visibility: "PUBLIC",
+      status: "PUBLISHED",
+      aiGenerated: true,
+      createdAt: params.now,
+      updatedAt: params.now,
+    },
+    select: { id: true },
+  });
+}
+
+// ─── Task creation / approval ─────────────────────────────────────────────────
 
 export async function createAgentTask(params: {
   creatorProfileId: bigint;
@@ -1771,6 +1881,7 @@ export async function createAgentTask(params: {
   taskType: TaskType;
   inputJson: Prisma.InputJsonValue;
   requiresApproval: boolean;
+  autoPost: boolean;
   requestedBy: string;
   roleId: CreatorAiAgentRole | null;
 }) {
@@ -1827,6 +1938,17 @@ export async function createAgentTask(params: {
         createdAt: now,
       },
     });
+
+    // Auto-post when no approval is needed and the creator opted in
+    if (!params.requiresApproval && params.autoPost) {
+      await createAutoPost(tx, {
+        creatorProfileId: params.creatorProfileId,
+        projectId: params.projectId,
+        taskType: params.taskType,
+        outputJson,
+        now,
+      });
+    }
 
     return created;
   });
@@ -1970,6 +2092,17 @@ export async function approveWaitingTasks(params: {
           createdAt: now,
         },
       });
+
+      // Auto-post when the task was created with autoPost: true
+      if (shouldAutoPost(task.inputJson)) {
+        await createAutoPost(tx, {
+          creatorProfileId: params.creatorProfileId,
+          projectId: task.projectId,
+          taskType: task.taskType,
+          outputJson: updated.outputJson,
+          now,
+        });
+      }
 
       results.push(updated);
     }

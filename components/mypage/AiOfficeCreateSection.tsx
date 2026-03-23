@@ -1,6 +1,6 @@
 "use client";
 
-import { AI_OFFICE_TASK_CHOICES } from "@/components/mypage/aiOfficeTaskConfig";
+import { AI_OFFICE_TASK_CHOICES, requiresApprovalByDefault } from "@/components/mypage/aiOfficeTaskConfig";
 import { AiOfficeTaskInputFields } from "@/components/mypage/AiOfficeTaskInputFields";
 import type {
   AnnouncementChannel,
@@ -15,6 +15,7 @@ type Props = {
   loading: boolean;
   taskType: TaskType;
   requiresApproval: boolean;
+  autoPost: boolean;
   translationInput: string;
   translationLang: TranslationLang;
   reportingWindowDays: number;
@@ -26,6 +27,7 @@ type Props = {
   translationResult: string;
   onTaskTypeChange: (value: TaskType) => void;
   onRequiresApprovalChange: (value: boolean) => void;
+  onAutoPostChange: (value: boolean) => void;
   onTranslationInputChange: (value: string) => void;
   onTranslationLangChange: (value: TranslationLang) => void;
   onReportingWindowDaysChange: (value: number) => void;
@@ -45,10 +47,21 @@ const TASK_CHOICES_WITH_INPUT = [
   "SUPPORTER_MESSAGE_DRAFT",
 ] as const;
 
+const AUTO_POSTABLE_TASK_TYPES = new Set([
+  "ANNOUNCEMENT_DRAFT",
+  "TRANSLATE",
+  "SUPPORT_STORY_DRAFT",
+  "PROPOSE",
+  "WEEKLY_REPORT",
+  "SUPPORTER_MESSAGE_DRAFT",
+]);
+
 export function AiOfficeCreateSection(props: Props) {
   const hasInputFields = (TASK_CHOICES_WITH_INPUT as readonly string[]).includes(
     props.taskType
   );
+  const canAutoPost = AUTO_POSTABLE_TASK_TYPES.has(props.taskType);
+  const needsApproval = requiresApprovalByDefault(props.taskType);
 
   return (
     <div className="space-y-4">
@@ -130,30 +143,64 @@ export function AiOfficeCreateSection(props: Props) {
       ) : null}
 
       {/* ── Create CTA ── */}
-      <div className="card p-4">
+      <div className="card p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 caption-text select-none">
-            <input
-              type="checkbox"
-              checked={props.requiresApproval}
-              onChange={(e) => props.onRequiresApprovalChange(e.target.checked)}
-              disabled={props.loading}
-              className="accent-slate-700"
-            />
-            公開前に承認する
-          </label>
+          {needsApproval ? (
+            <div className="flex flex-col gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 caption-text select-none">
+                <input
+                  type="checkbox"
+                  checked={props.requiresApproval}
+                  onChange={(e) => props.onRequiresApprovalChange(e.target.checked)}
+                  disabled={props.loading}
+                  className="accent-slate-700"
+                />
+                公開前に承認する
+              </label>
+              {canAutoPost && (
+                <label className="inline-flex cursor-pointer items-center gap-2 caption-text select-none">
+                  <input
+                    type="checkbox"
+                    checked={props.autoPost}
+                    onChange={(e) => props.onAutoPostChange(e.target.checked)}
+                    disabled={props.loading}
+                    className="accent-slate-700"
+                  />
+                  AIが直接投稿する
+                </label>
+              )}
+            </div>
+          ) : (
+            <p className="caption-text text-[var(--text-subtle)]">
+              分析・提案は承認不要です。作成後すぐに受信トレイに届きます。
+            </p>
+          )}
           <button
             type="button"
             className="btn"
             onClick={props.onCreateTask}
             disabled={props.loading}
           >
-            {props.loading ? "AIが作成中..." : "下書きを作る →"}
+            {props.loading
+              ? "AIが分析中..."
+              : !needsApproval
+              ? "AIに依頼する →"
+              : props.autoPost && !props.requiresApproval
+              ? "AIが直接投稿する →"
+              : props.autoPost
+              ? "作成・承認後に自動投稿 →"
+              : "下書きを作る →"}
           </button>
         </div>
-        <p className="mt-2 caption-text">
-          AIが下書きを作成します。「公開前に承認する」をオンにすると、承認してから投稿に反映されます。
-        </p>
+        {needsApproval && (
+          <p className="caption-text">
+            {props.autoPost && !props.requiresApproval
+              ? "AIが下書きを作り、そのまま投稿します。投稿にはAIマークが付きます。"
+              : props.autoPost
+              ? "AIが下書きを作り、あなたが承認すると自動で投稿されます。投稿にはAIマークが付きます。"
+              : "AIが下書きを作ります。受信トレイで確認してから投稿できます。"}
+          </p>
+        )}
       </div>
     </div>
   );

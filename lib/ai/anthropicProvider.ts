@@ -4,7 +4,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { AiProvider, GenerateOptions } from "./types";
-import { ModelUnavailableError } from "./types";
+import { ModelUnavailableError, extractApiErrorInfo, formatApiErrorSummary } from "./types";
 
 const MODEL_ID = "claude-haiku-4-5-20251001";
 
@@ -36,6 +36,9 @@ export class AnthropicProvider implements AiProvider {
       if (isModelUnavailable(err)) {
         throw new ModelUnavailableError(this.name, MODEL_ID, err);
       }
+      const info = extractApiErrorInfo(err);
+      const summary = formatApiErrorSummary(info);
+      console.error(`[anthropic] API error | ${summary}`);
       throw err;
     }
   }
