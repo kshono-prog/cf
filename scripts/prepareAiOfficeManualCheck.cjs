@@ -101,24 +101,35 @@ function buildNotesTemplate({ date, username, artifactDir }) {
 
 ## Minimum Checklist
 
-- [ ] \`/<username>/mypage#ai-office-phase1\` で settings の \`AI事務所（Phase1）\` 入口が見える
-- [ ] panel 見出しは \`AI事務所（Role-Based Phase1）\` になっている
-- [ ] \`下書きを作る\` で \`Manager Agent\` が選べる
+### ワークスペース導線
+- [ ] \`/<username>/mypage\` で \`ホーム\` が初期表示される
+- [ ] \`/<username>/mypage/daily-work\` で同じ \`ホーム\` を開ける
+- [ ] \`/<username>/mypage/settings\` で \`設定\` を開ける
+- [ ] ヘッダーの \`ホーム / 設定\` でビューを切り替えられる
+
+### AIアシスタント
+- [ ] \`ホーム\` の上部付近に \`AIアシスタント\` パネルが見える
+- [ ] \`作成\` で \`Manager Agent\` が選べる
 - [ ] \`Manager Agent の次アクションを整理する\` を作成できる
-- [ ] \`承認待ち\` または \`最近作った内容\` で detail を開ける
-- [ ] role chip で絞り込める
-- [ ] role を選んだ \`Create / Inbox\` の URL をリロードしても文脈が維持される
+- [ ] \`ホーム\` の最近の作成履歴または \`受信トレイ\` で detail を開ける
+- [ ] \`受信トレイ\` の role chip で絞り込める
+- [ ] role を選んだ \`作成 / 受信トレイ\` の URL をリロードしても文脈が維持される
 - [ ] \`最近使った role 導線\` と \`最近コピーした role link\` が必要に応じて見える
+
+### 後方互換
+- [ ] \`/<username>/mypage/supporters\` で \`ホーム\` に入れる
+- [ ] \`/<username>/mypage/advanced\` で \`設定\` に入れる
 
 ## Machine-Checked Preflight
 
 - [ ] \`npm run manual-check:ai-office:smoke -- --base-url http://127.0.0.1:3000 --username ${username}\`
-- [ ] \`/<username>/mypage\`
-- [ ] \`/<username>/mypage/supporters\`
-- [ ] \`/<username>/mypage/support-page\`
-- [ ] \`/<username>/mypage/advanced\`
+- [ ] \`/<username>/mypage\` (home initial view)
+- [ ] \`/<username>/mypage/daily-work\`
+- [ ] \`/<username>/mypage/settings\`
+- [ ] \`/<username>/mypage/supporters\` (compat redirect)
+- [ ] \`/<username>/mypage/advanced\` (compat redirect)
 - [ ] local dev の route readiness が通る
-- [ ] hydrated UI の tab / task detail / screenshot は未確認
+- [ ] hydrated UI の task detail / screenshot は未確認
 
 ## Memo
 
@@ -128,14 +139,17 @@ function buildNotesTemplate({ date, username, artifactDir }) {
 }
 
 function buildLinksDocument({ baseUrl, username, date, artifactDir }) {
-  const settingsUrl = `${baseUrl}/${username}/mypage#ai-office-phase1`;
-  const managerCreateUrl = `${baseUrl}/${username}/mypage?aiOfficeView=CREATE#ai-office-phase1`;
-  const promotionCreateUrl = `${baseUrl}/${username}/mypage?aiOfficeView=CREATE&aiOfficeRole=PROMOTION#ai-office-phase1`;
-  const financeCreateUrl = `${baseUrl}/${username}/mypage?aiOfficeView=CREATE&aiOfficeRole=FINANCE#ai-office-phase1`;
-  const financeInboxUrl = `${baseUrl}/${username}/mypage?aiOfficeView=INBOX&aiOfficeRole=FINANCE&aiOfficeInboxRole=FINANCE#ai-office-phase1`;
-  const fanRelationInboxUrl = `${baseUrl}/${username}/mypage?aiOfficeView=INBOX&aiOfficeRole=FAN_RELATION&aiOfficeInboxRole=FAN_RELATION#ai-office-phase1`;
-  const supportPageUrl = `${baseUrl}/${username}/mypage/support-page#posting-compose`;
-  const advancedUrl = `${baseUrl}/${username}/mypage/advanced`;
+  const homeAiAssistantUrl = `${baseUrl}/${username}/mypage?manualCheck=1#ai-office`;
+  const managerCreateUrl = `${baseUrl}/${username}/mypage?manualCheck=1&aiOfficeView=CREATE&aiOfficeRole=MANAGER#ai-office`;
+  const managerDetailUrl = `${baseUrl}/${username}/mypage?manualCheck=1&aiOfficeView=INBOX&aiOfficeRole=MANAGER&aiOfficeInboxRole=MANAGER&aiOfficeOpenLatestTaskType=MANAGER_NEXT_ACTIONS#ai-office`;
+  const promotionCreateUrl = `${baseUrl}/${username}/mypage?manualCheck=1&aiOfficeView=CREATE&aiOfficeRole=PROMOTION#ai-office`;
+  const financeCreateUrl = `${baseUrl}/${username}/mypage?manualCheck=1&aiOfficeView=CREATE&aiOfficeRole=FINANCE#ai-office`;
+  const financeInboxUrl = `${baseUrl}/${username}/mypage?manualCheck=1&aiOfficeView=INBOX&aiOfficeRole=FINANCE&aiOfficeInboxRole=FINANCE#ai-office`;
+  const fanRelationInboxUrl = `${baseUrl}/${username}/mypage?manualCheck=1&aiOfficeView=INBOX&aiOfficeRole=FAN_RELATION&aiOfficeInboxRole=FAN_RELATION#ai-office`;
+  const supportPageUrl = `${baseUrl}/${username}/mypage/support-page?manualCheck=1#posting-compose`;
+  const advancedUrl = `${baseUrl}/${username}/mypage/advanced?manualCheck=1`;
+  const settingsUrl = `${baseUrl}/${username}/mypage/settings?manualCheck=1`;
+  const dailyWorkUrl = `${baseUrl}/${username}/mypage/daily-work?manualCheck=1#ai-office`;
 
   return `# AI Office Manual Check Links
 
@@ -147,14 +161,20 @@ function buildLinksDocument({ baseUrl, username, date, artifactDir }) {
 
 ## Minimum Deep Links
 
-- Settings / AI Office:
+- Home / AIアシスタント:
+  - ${homeAiAssistantUrl}
+- Daily-work route:
+  - ${dailyWorkUrl}
+- Settings route:
   - ${settingsUrl}
 - Manager Agent Create:
   - ${managerCreateUrl}
+- Manager Agent Detail:
+  - ${managerDetailUrl}
 - Promotion Agent Create:
   - ${promotionCreateUrl}
 - Fan Relation Agent Create:
-  - ${baseUrl}/${username}/mypage?aiOfficeView=CREATE&aiOfficeRole=FAN_RELATION#ai-office-phase1
+  - ${baseUrl}/${username}/mypage?manualCheck=1&aiOfficeView=CREATE&aiOfficeRole=FAN_RELATION#ai-office
 - Finance Agent Create:
   - ${financeCreateUrl}
 - Finance Agent Inbox:
@@ -172,15 +192,15 @@ function buildLinksDocument({ baseUrl, username, date, artifactDir }) {
 ## Suggested Screenshot Order
 
 1. \`01-settings-ai-office-entry.png\`
-   - open: Settings / AI Office
+   - open: Home / AIアシスタント
 2. \`02-create-manager-task.png\`
    - open: Manager Agent Create
 3. \`03-manager-task-created.png\`
-   - after create: same route or Inbox
+   - after create: ホームの最近の作成履歴 or 受信トレイ
 4. \`04-manager-task-detail.png\`
-   - after open detail from \`承認待ち\` or \`最近作った内容\`
+   - open: Manager Agent Detail
 5. \`05-approval-queue.png\`
-   - open: Inbox with approval queue visible
+   - open: 受信トレイ
 6. \`06-approval-result.png\`
    - after approve or reject
 7. \`07-inbox-role-filter.png\`

@@ -35,6 +35,7 @@ type Props = {
   waitingApprovalCount: number;
   selectedTaskIds: string[];
   approvalNote: string;
+  openLatestTaskType: TaskType | null;
   onOpenCreateForRole: (roleId: CreatorAiAgentRole) => void;
   onRoleFilterChange: (roleId: CreatorAiAgentRole | null) => void;
   onTaskFilterChange: (value: TaskFilter) => void;
@@ -95,12 +96,14 @@ function AgentTaskCard(props: {
   loading: boolean;
   selected: boolean;
   selectable: boolean;
+  initiallyOpen?: boolean;
   onToggleTaskSelection: (taskId: string) => void;
   onApproveOne: (taskId: string) => void;
   onRejectOne: (taskId: string, note?: string) => void;
 }) {
   const { task } = props;
-  const [open, setOpen] = React.useState(false);
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  const [open, setOpen] = React.useState(Boolean(props.initiallyOpen));
   const [rejectMode, setRejectMode] = React.useState(false);
   const [localRejectNote, setLocalRejectNote] = React.useState("");
   const statusCopy = getAgentTaskStatusCopy(task.status);
@@ -115,8 +118,24 @@ function AgentTaskCard(props: {
     setLocalRejectNote("");
   }
 
+  React.useEffect(() => {
+    if (!props.initiallyOpen) {
+      return;
+    }
+
+    setOpen(true);
+    cardRef.current?.scrollIntoView({
+      block: "start",
+      behavior: "smooth",
+    });
+  }, [props.initiallyOpen]);
+
   return (
-    <div className="card overflow-hidden">
+    <div
+      ref={cardRef}
+      className="card overflow-hidden"
+      data-ai-office-task-id={task.id}
+    >
       {/* ── Header ── */}
       <div className="p-4">
         {/* Row 1: role chips + time */}
@@ -302,6 +321,17 @@ export function AiOfficeInboxSection(props: Props) {
   );
   const filteredHistoryTasks = historyTasks.filter(matchesSelectedRole);
   const historyVisible = props.taskFilter === "ALL";
+  const autoOpenedTaskId = React.useMemo(
+    () =>
+      props.openLatestTaskType
+        ? props.tasks.find(
+            (task) =>
+              task.taskType === props.openLatestTaskType &&
+              matchesSelectedRole(task)
+          )?.id ?? null
+        : null,
+    [matchesSelectedRole, props.openLatestTaskType, props.tasks]
+  );
   const hasSelectedTasks = props.selectedTaskIds.length > 0;
   const selectedRoleBreakdown =
     props.selectedRoleId === null
@@ -477,6 +507,7 @@ export function AiOfficeInboxSection(props: Props) {
                 loading={props.loading}
                 selected={props.selectedTaskIds.includes(task.id)}
                 selectable
+                initiallyOpen={task.id === autoOpenedTaskId}
                 onToggleTaskSelection={props.onToggleTaskSelection}
                 onApproveOne={props.onApproveOne}
                 onRejectOne={props.onRejectOne}
@@ -639,6 +670,7 @@ export function AiOfficeInboxSection(props: Props) {
                 loading={props.loading}
                 selected={false}
                 selectable={false}
+                initiallyOpen={task.id === autoOpenedTaskId}
                 onToggleTaskSelection={props.onToggleTaskSelection}
                 onApproveOne={props.onApproveOne}
                 onRejectOne={props.onRejectOne}

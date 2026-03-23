@@ -9,11 +9,13 @@ AI Office: minimum manual check を実画面で完了する
 ## Scope
 
 - [`docs/runbooks/ai-office-manual-check.md`](/Users/shounokazuaki/cf/docs/runbooks/ai-office-manual-check.md) の `最短確認` を実施する
-- [`docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/links.md`](/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/links.md) を使って deep link を開く
+- `docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/links.md` を使って deep link を開く
+- local dev では生成された deep link の `?manualCheck=1` をそのまま使う
+- task detail が見つけにくい場合は `aiOfficeOpenLatestTaskType=MANAGER_NEXT_ACTIONS` 付き deep link で最新 Manager task を直接開いてよい
 - `01` から `04` の minimum screenshot を保存する
-- [`docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/notes.md`](/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/notes.md) の checklist とメモを更新する
-- 必要なら [`docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/status.md`](/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/status.md) を更新して進捗を確認する
-- 現在の UI ラベル `概要 / 下書きを作る / 承認待ち` に沿って screenshot と notes を残す
+- `docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/notes.md` の checklist とメモを更新する
+- 必要なら `docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/status.md` を更新して進捗を確認する
+- 現在の UI ラベル `ホーム / 作成 / 受信トレイ` と panel 見出し `AIアシスタント` に沿って screenshot と notes を残す
 
 ## Non-Goals
 
@@ -23,12 +25,12 @@ AI Office: minimum manual check を実画面で完了する
 
 ## Files Likely Affected
 
-- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/notes.md`
-- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/status.md`
-- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/01-settings-ai-office-entry.png`
-- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/02-create-manager-task.png`
-- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/03-manager-task-created.png`
-- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/2026-03-18/04-manager-task-detail.png`
+- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/notes.md`
+- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/status.md`
+- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/01-settings-ai-office-entry.png`
+- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/02-create-manager-task.png`
+- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/03-manager-task-created.png`
+- `/Users/shounokazuaki/cf/docs/runbooks/artifacts/ai-office-manual-check/<YYYY-MM-DD>/04-manager-task-detail.png`
 
 ## Acceptance Criteria
 
@@ -47,4 +49,4 @@ AI Office: minimum manual check を実画面で完了する
 
 - `npm run manual-check:ai-office:minimum -- --base-url http://127.0.0.1:3001 --username <username>`
 - `npm run manual-check:ai-office:status -- --date <YYYY-MM-DD>`
-- 実画面で `Manager Agent` を作成し、detail が開くこと
+- 実画面で `ホーム -> 作成 -> Manager Agent` を辿り、必要なら `Manager Agent Detail` deep link も使って detail が開くこと

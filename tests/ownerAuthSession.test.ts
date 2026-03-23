@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { NextRequest } from "next/server";
 
+import { DEV_OWNER_AUTH_OVERRIDE_HEADER } from "@/lib/manualCheckDev";
 import {
   OWNER_SESSION_COOKIE_NAME,
   buildOwnerAuthMessage,
@@ -191,5 +192,20 @@ test("requireOwnerSession clears the session when the cookie token is stale", as
   assert.deepEqual(await result.response.json(), {
     ok: false,
     error: "OWNER_AUTH_REQUIRED",
+  });
+});
+
+test("requireOwnerSession accepts a local dev override header", async () => {
+  const request = new NextRequest("http://127.0.0.1:3001/api/me", {
+    headers: {
+      [DEV_OWNER_AUTH_OVERRIDE_HEADER]: OWNER_ADDRESS,
+    },
+  });
+
+  const result = await requireOwnerSession(request, OWNER_ADDRESS);
+
+  assert.deepEqual(result, {
+    ok: true,
+    address: OWNER_ADDRESS,
   });
 });

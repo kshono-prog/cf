@@ -1,6 +1,10 @@
 "use client";
 
 import { isRecord } from "@/lib/api/guards";
+import {
+  DEV_OWNER_AUTH_OVERRIDE_HEADER,
+  resolveDevManualCheckAddress,
+} from "@/lib/manualCheckDev";
 import { normalizeOwnerAddressOrNull } from "@/lib/ownerAuthAddress";
 import { clearPublicViewerIdentityCache } from "@/lib/publicViewerIdentityClient";
 
@@ -32,6 +36,7 @@ let registeredSignerAddress: string | null = null;
 let registeredSigner: OwnerAuthSignMessage | null = null;
 let currentOwnerSession: OwnerSessionState | null = null;
 let pendingOwnerSessionPromise: Promise<void> | null = null;
+let currentDevOwnerOverrideAddress: string | null = null;
 
 function parseNonceResponse(value: unknown): OwnerNonceResponse | null {
   if (!isRecord(value) || value.ok !== true) return null;
@@ -72,6 +77,10 @@ export function registerOwnerAuthSigner(
   registeredSigner = signer;
 }
 
+export function registerOwnerAuthDevOverride(address: string | null): void {
+  currentDevOwnerOverrideAddress = resolveDevManualCheckAddress(address);
+}
+
 export function clearOwnerAuthSessionCache(): void {
   const address = currentOwnerSession?.address ?? registeredSignerAddress;
   currentOwnerSession = null;
@@ -88,6 +97,10 @@ export async function ensureOwnerSession(args: {
     throw new Error("ADDRESS_REQUIRED");
   }
   const apiBase = args.apiBase ?? "";
+
+  if (currentDevOwnerOverrideAddress === address) {
+    return;
+  }
 
   if (
     currentOwnerSession &&
@@ -166,12 +179,24 @@ export async function ownerAuthFetch(args: {
   apiBase?: string;
   init?: RequestInit;
 }): Promise<Response> {
-  await ensureOwnerSession({ address: args.address, apiBase: args.apiBase });
-
   const requestInit: RequestInit = {
     ...(args.init ?? {}),
     credentials: "include",
   };
+
+  const address = normalizeOwnerAddressOrNull(args.address);
+  if (!address) {
+    throw new Error("ADDRESS_REQUIRED");
+  }
+
+  if (currentDevOwnerOverrideAddress === address) {
+    const headers = new Headers(requestInit.headers);
+    headers.set(DEV_OWNER_AUTH_OVERRIDE_HEADER, address);
+    requestInit.headers = headers;
+    return fetch(args.url, requestInit);
+  }
+
+  await ensureOwnerSession({ address, apiBase: args.apiBase });
 
   let response = await fetch(args.url, requestInit);
   if (response.status !== 401) {
@@ -179,7 +204,7 @@ export async function ownerAuthFetch(args: {
   }
 
   clearOwnerAuthSessionCache();
-  await ensureOwnerSession({ address: args.address, apiBase: args.apiBase });
+  await ensureOwnerSession({ address, apiBase: args.apiBase });
   response = await fetch(args.url, requestInit);
   return response;
 }

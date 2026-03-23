@@ -5,6 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import {
+  DEV_OWNER_AUTH_OVERRIDE_HEADER,
+  isDevRuntime,
+  isLocalDevHost,
+  resolveDevManualCheckAddress,
+} from "@/lib/manualCheckDev";
+import {
   normalizeOwnerAddressOrNull,
   parseOwnerAddressFromBody,
   parseOwnerAddressFromSearchParams,
@@ -298,6 +304,25 @@ async function resolveOwnerSessionAddress(
   expectedAddressRaw?: unknown,
   deps?: ResolveOwnerSessionDeps
 ): Promise<string | null> {
+  if (isDevRuntime()) {
+    const requestUrl = new URL(req.url);
+    const devOverrideAddress = resolveDevManualCheckAddress(
+      req.headers.get(DEV_OWNER_AUTH_OVERRIDE_HEADER)
+    );
+    const expectedAddress =
+      typeof expectedAddressRaw === "undefined"
+        ? null
+        : normalizeOwnerAddress(expectedAddressRaw);
+
+    if (
+      devOverrideAddress &&
+      isLocalDevHost(requestUrl.host) &&
+      (expectedAddressRaw === undefined || expectedAddress === devOverrideAddress)
+    ) {
+      return devOverrideAddress;
+    }
+  }
+
   const cookieValue = req.cookies.get(OWNER_SESSION_COOKIE_NAME)?.value ?? "";
   const separator = cookieValue.indexOf(":");
   if (separator <= 0) {

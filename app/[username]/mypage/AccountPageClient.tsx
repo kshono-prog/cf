@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useLayoutEffect, useMemo } from "react";
 import { useAccount } from "wagmi";
 
 import { generateRandomId } from "@/lib/mypage/helpers";
@@ -15,6 +15,8 @@ import { useMyPageShellState } from "@/components/mypage/useMyPageShellState";
 import { useMyPageMeStatus } from "@/components/mypage/useMyPageMeStatus";
 import { useAccountPageActions } from "@/components/mypage/useAccountPageActions";
 import { CreatorReadyWorkspaceProvider } from "@/components/mypage/CreatorReadyWorkspaceContext";
+import { toAddressOrNull } from "@/lib/api/guards";
+import { registerOwnerAuthDevOverride } from "@/lib/ownerAuthClient";
 import { getPublicEnv } from "@/lib/publicEnv";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
@@ -23,6 +25,7 @@ type Props = {
   initialWorkspaceView: WorkspaceView;
   initialProjectId?: string | null;
   initialProjectIdsByCurrency?: { JPYC: string | null; USDC: string | null };
+  manualCheckAddress?: string | null;
 };
 
 export default function AccountPageClient({
@@ -30,9 +33,16 @@ export default function AccountPageClient({
   initialWorkspaceView,
   initialProjectId = null,
   initialProjectIdsByCurrency = { JPYC: null, USDC: null },
+  manualCheckAddress = null,
 }: Props) {
   const publicEnv = getPublicEnv();
   const { address, isConnected } = useAccount();
+  const manualCheckOwnerAddress = useMemo(
+    () => toAddressOrNull(manualCheckAddress),
+    [manualCheckAddress]
+  );
+  const effectiveAddress = manualCheckOwnerAddress ?? address;
+  const effectiveIsConnected = manualCheckOwnerAddress ? true : isConnected;
 
   const generatedUsername = useMemo(
     () => `user_${generateRandomId()}`,
@@ -81,8 +91,8 @@ export default function AccountPageClient({
     refreshMeStatus,
     syncActiveProjectId,
   } = useMyPageMeStatus({
-    address,
-    isConnected,
+    address: effectiveAddress,
+    isConnected: effectiveIsConnected,
     username,
     initialProjectId,
     initialProjectIdsByCurrency,
@@ -90,6 +100,13 @@ export default function AccountPageClient({
     applyUserOnly,
     applyCreatorProfile,
   });
+
+  useLayoutEffect(() => {
+    registerOwnerAuthDevOverride(manualCheckOwnerAddress);
+    return () => {
+      registerOwnerAuthDevOverride(null);
+    };
+  }, [manualCheckOwnerAddress]);
 
   // ── P1-1: API handlers in useAccountPageActions ───────────────────────────
   const { saving, error, handleSaveUser, handleApplyCreator, handleSaveCreatorProfile } =
@@ -175,8 +192,8 @@ export default function AccountPageClient({
     meCreatorUsername: creatorUsername,
     eventBaseUrl,
     localProjectId,
-    address,
-    isConnected,
+    address: effectiveAddress,
+    isConnected: effectiveIsConnected,
     editingProfile,
     onStartEditProfile: startEditingProfile,
     onCancelEditProfile: cancelEditingProfile,

@@ -1,4 +1,6 @@
 import type { AiOfficeView } from "@/components/mypage/aiOfficeTypes";
+import type { TaskType } from "@/lib/agentTaskParsers";
+import { toTaskType } from "@/lib/agentTaskParsers";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { toCreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 
@@ -6,6 +8,7 @@ export const AI_OFFICE_URL_PARAMS = {
   view: "aiOfficeView",
   role: "aiOfficeRole",
   inboxRole: "aiOfficeInboxRole",
+  openLatestTaskType: "aiOfficeOpenLatestTaskType",
 } as const;
 
 const DEFAULT_AI_OFFICE_URL_ROLE: CreatorAiAgentRole = "MANAGER";
@@ -14,6 +17,7 @@ export type AiOfficePanelUrlState = {
   activeView: AiOfficeView;
   selectedRoleId: CreatorAiAgentRole;
   selectedInboxRoleId: CreatorAiAgentRole | null;
+  openLatestTaskType: TaskType | null;
 };
 
 export function isAiOfficeView(value: unknown): value is AiOfficeView {
@@ -26,6 +30,9 @@ export function parseAiOfficePanelUrlState(
   const activeViewParam = searchParams.get(AI_OFFICE_URL_PARAMS.view);
   const selectedRoleParam = searchParams.get(AI_OFFICE_URL_PARAMS.role);
   const selectedInboxRoleParam = searchParams.get(AI_OFFICE_URL_PARAMS.inboxRole);
+  const openLatestTaskTypeParam = searchParams.get(
+    AI_OFFICE_URL_PARAMS.openLatestTaskType
+  );
 
   return {
     activeView: isAiOfficeView(activeViewParam)
@@ -36,6 +43,10 @@ export function parseAiOfficePanelUrlState(
       selectedInboxRoleParam === null
         ? null
         : toCreatorAiAgentRole(selectedInboxRoleParam),
+    openLatestTaskType:
+      openLatestTaskTypeParam === null
+        ? null
+        : toTaskType(openLatestTaskTypeParam),
   };
 }
 
@@ -64,6 +75,15 @@ export function buildAiOfficePanelSearchParams(
     );
   } else {
     nextSearchParams.delete(AI_OFFICE_URL_PARAMS.inboxRole);
+  }
+
+  if (state.openLatestTaskType) {
+    nextSearchParams.set(
+      AI_OFFICE_URL_PARAMS.openLatestTaskType,
+      state.openLatestTaskType
+    );
+  } else {
+    nextSearchParams.delete(AI_OFFICE_URL_PARAMS.openLatestTaskType);
   }
 
   return nextSearchParams;

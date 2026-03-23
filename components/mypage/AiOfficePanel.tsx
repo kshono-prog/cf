@@ -87,6 +87,8 @@ export function AiOfficePanel(props: {
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("ALL");
   const [selectedInboxRoleId, setSelectedInboxRoleId] =
     useState<CreatorAiAgentRole | null>(null);
+  const [openLatestTaskType, setOpenLatestTaskType] =
+    useState<TaskType | null>(null);
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [autoPost, setAutoPost] = useState<boolean>(false);
   const [translationInput, setTranslationInput] = useState<string>("");
@@ -325,6 +327,7 @@ export function AiOfficePanel(props: {
     }
 
     setSelectedInboxRoleId(parsedState.selectedInboxRoleId ?? null);
+    setOpenLatestTaskType(parsedState.openLatestTaskType ?? null);
     setHasHydratedUrlState(true);
   }, [getPreferredTaskTypeForRole, hasHydratedUrlState]);
 
@@ -339,6 +342,7 @@ export function AiOfficePanel(props: {
         activeView,
         selectedRoleId,
         selectedInboxRoleId,
+        openLatestTaskType,
       }
     );
     const nextSearch = nextSearchParams.toString();
@@ -350,7 +354,13 @@ export function AiOfficePanel(props: {
     if (nextUrl !== currentUrl) {
       window.history.replaceState(window.history.state, "", nextUrl);
     }
-  }, [activeView, hasHydratedUrlState, selectedInboxRoleId, selectedRoleId]);
+  }, [
+    activeView,
+    hasHydratedUrlState,
+    openLatestTaskType,
+    selectedInboxRoleId,
+    selectedRoleId,
+  ]);
 
   async function collectMetrics(): Promise<void> {
     if (!walletAddress) return;
@@ -430,6 +440,8 @@ export function AiOfficePanel(props: {
       }
 
       await refresh();
+      setSelectedInboxRoleId(selectedRoleId);
+      setOpenLatestTaskType(taskType);
       setActiveView("INBOX");
       if (autoPost && !requiresApproval) {
         setMessage(
@@ -823,6 +835,7 @@ export function AiOfficePanel(props: {
               waitingApprovalCount={waitingApprovalCount}
               selectedTaskIds={selectedTaskIds}
               approvalNote={approvalNote}
+              openLatestTaskType={openLatestTaskType}
               onOpenCreateForRole={(roleId) => {
                 openRoleShortcut(roleId, "CREATE");
               }}

@@ -102,19 +102,20 @@ function updateNotesPreflight({ artifactDir, baseUrl, username }) {
   const memoHeading = "## Memo\n";
   const preflightSection = `${preflightHeading}
 - [x] \`${executedCommand}\`
-- [x] \`/<username>/mypage\`
-- [x] \`/<username>/mypage/supporters\`
-- [x] \`/<username>/mypage/support-page\`
-- [x] \`/<username>/mypage/advanced\`
+- [x] \`/<username>/mypage\` (home initial view)
+- [x] \`/<username>/mypage/daily-work\`
+- [x] \`/<username>/mypage/settings\`
+- [x] \`/<username>/mypage/supporters\` (compat redirect)
+- [x] \`/<username>/mypage/advanced\` (compat redirect)
 - [x] local dev の route readiness が通る
-- [ ] hydrated UI の tab / task detail / screenshot は未確認
+- [ ] hydrated UI の task detail / screenshot は未確認
 
 `;
 
   let content = fs.readFileSync(notesPath, "utf8");
   content = content.replace(
     /- 事前スモーク確認:\n(?:  - .*\n)+/,
-    `- 事前スモーク確認:\n  - 実行済み: \`${executedCommand}\`\n  - 結果: \`mypage / supporters / support-page / advanced\` の 4 route が 200 で応答し、SSR loading shell と route marker を確認\n`
+    `- 事前スモーク確認:\n  - 実行済み: \`${executedCommand}\`\n  - 結果: \`mypage / daily-work / settings / supporters / advanced\` の 5 route が 200 で応答し、SSR loading shell と route marker を確認\n`
   );
   content = replaceSection(content, preflightHeading, memoHeading, preflightSection);
   fs.writeFileSync(notesPath, content, "utf8");
@@ -163,14 +164,26 @@ function main() {
     baseUrl: args.baseUrl,
     username: args.username,
   });
-  const settingsUrl = `${args.baseUrl}/${args.username}/mypage#ai-office-phase1`;
-  const managerCreateUrl = `${args.baseUrl}/${args.username}/mypage?aiOfficeView=CREATE#ai-office-phase1`;
+  const statusResult = runNodeScript("reportAiOfficeManualCheckStatus.cjs", [
+    "--date",
+    args.date,
+  ]);
+  if (typeof statusResult.status === "number" && statusResult.status !== 0) {
+    process.exitCode = statusResult.status;
+    return;
+  }
+
+  const homeAiAssistantUrl = `${args.baseUrl}/${args.username}/mypage?manualCheck=1#ai-office`;
+  const managerCreateUrl = `${args.baseUrl}/${args.username}/mypage?manualCheck=1&aiOfficeView=CREATE&aiOfficeRole=MANAGER#ai-office`;
+  const managerDetailUrl = `${args.baseUrl}/${args.username}/mypage?manualCheck=1&aiOfficeView=INBOX&aiOfficeRole=MANAGER&aiOfficeInboxRole=MANAGER&aiOfficeOpenLatestTaskType=MANAGER_NEXT_ACTIONS#ai-office`;
 
   process.stdout.write("\nAI Office minimum manual check is prepared.\n");
   process.stdout.write(`- artifact: ${artifactDir}\n`);
-  process.stdout.write(`- start here: ${settingsUrl}\n`);
+  process.stdout.write(`- start here: ${homeAiAssistantUrl}\n`);
   process.stdout.write(`- manager create: ${managerCreateUrl}\n`);
+  process.stdout.write(`- manager detail: ${managerDetailUrl}\n`);
   process.stdout.write(`- update notes: ${artifactDir}/notes.md\n`);
+  process.stdout.write(`- status: ${artifactDir}/status.md\n`);
   process.stdout.write(`- open links: ${artifactDir}/links.md\n`);
 }
 

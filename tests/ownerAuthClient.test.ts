@@ -5,8 +5,10 @@ import {
   clearOwnerAuthSessionCache,
   ensureOwnerSession,
   ownerAuthFetch,
+  registerOwnerAuthDevOverride,
   registerOwnerAuthSigner,
 } from "@/lib/ownerAuthClient";
+import { DEV_OWNER_AUTH_OVERRIDE_HEADER } from "@/lib/manualCheckDev";
 import {
   fetchMeResponseCached,
   resetPublicViewerIdentityClientForTests,
@@ -37,6 +39,7 @@ function installFetchStub(
 
 function resetOwnerAuthClientState(): void {
   registerOwnerAuthSigner(null, null);
+  registerOwnerAuthDevOverride(null);
   clearOwnerAuthSessionCache();
   resetPublicViewerIdentityClientForTests();
 }
@@ -188,6 +191,37 @@ test("ownerAuthFetch invalidates cached viewer identity after a 401 retry", asyn
     assert.equal(protectedFetchCount, 2);
     assert.equal(nonceFetchCount, 3);
     assert.equal(sessionFetchCount, 3);
+  } finally {
+    restoreFetch();
+    resetOwnerAuthClientState();
+  }
+});
+
+test("ownerAuthFetch uses the local dev override header without requiring a signer", async () => {
+  resetOwnerAuthClientState();
+  registerOwnerAuthDevOverride(OWNER_ADDRESS);
+
+  let protectedFetchCount = 0;
+
+  const restoreFetch = installFetchStub(async (input, init) => {
+    const url = String(input);
+    if (url.endsWith("/api/protected")) {
+      protectedFetchCount += 1;
+      const headers = new Headers(init?.headers);
+      assert.equal(headers.get(DEV_OWNER_AUTH_OVERRIDE_HEADER), OWNER_ADDRESS);
+      return okJson({ ok: true }, 200);
+    }
+    throw new Error(`unexpected fetch: ${url}`);
+  });
+
+  try {
+    const response = await ownerAuthFetch({
+      address: OWNER_ADDRESS,
+      url: "/api/protected",
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(protectedFetchCount, 1);
   } finally {
     restoreFetch();
     resetOwnerAuthClientState();
