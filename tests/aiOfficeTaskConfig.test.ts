@@ -131,18 +131,19 @@ test("AI Office role guidance points creators to pending or effective roles", ()
       roleId: "PROMOTION",
       label: "Promotion Agent",
       actionableCount: 3,
-      trackedReadyCount: 0,
-      usedCount: 0,
+      trackedReadyCount: 2,
+      usedCount: 1,
       waitingApprovalCount: 0,
       approvedCount: 2,
       rejectedCount: 0,
       ignoredCount: 0,
       followThroughRate: 0.6667,
-      usedRate: 0,
+      usedRate: 0.5,
     },
   ]);
   assert.equal(recommended.tone, "recommended");
   assert.equal(recommended.roleId, "PROMOTION");
+  assert.match(recommended.title, /活用/);
 });
 
 test("AI Office task usefulness and sorting prefer previously approved task types", () => {
@@ -169,6 +170,13 @@ test("AI Office task usefulness and sorting prefer previously approved task type
           action: "TASK_APPROVED",
           actorAddress: "0xabc",
           createdAt: "2026-03-18T01:00:00.000Z",
+          note: null,
+        },
+        {
+          id: "log-3",
+          action: "TASK_POSTING_COMPOSE_OPENED",
+          actorAddress: "0xabc",
+          createdAt: "2026-03-18T02:00:00.000Z",
           note: null,
         },
       ],
@@ -198,10 +206,13 @@ test("AI Office task usefulness and sorting prefer previously approved task type
     taskType: "ANNOUNCEMENT_DRAFT",
     actionableCount: 1,
     autoCompletedCount: 0,
+    trackedReadyCount: 1,
+    usedCount: 1,
     waitingApprovalCount: 0,
     approvedCount: 1,
     rejectedCount: 0,
     followThroughRate: 1,
+    usedRate: 1,
   });
 
   const sorted = sortAiOfficeTaskChoicesByUsefulness(
@@ -233,6 +244,13 @@ test("AI Office task usefulness and sorting prefer previously approved task type
             action: "TASK_APPROVED",
             actorAddress: "0xabc",
             createdAt: "2026-03-18T01:00:00.000Z",
+            note: null,
+          },
+          {
+            id: "log-3",
+            action: "TASK_POSTING_COMPOSE_OPENED",
+            actorAddress: "0xabc",
+            createdAt: "2026-03-18T02:00:00.000Z",
             note: null,
           },
         ],

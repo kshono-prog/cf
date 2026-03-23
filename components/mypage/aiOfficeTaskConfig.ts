@@ -8,6 +8,10 @@ import type {
 } from "@/components/mypage/aiOfficeTypes";
 import type { TaskType } from "@/lib/agentTaskParsers";
 import {
+  AGENT_TASK_AUDIT_ACTION,
+  getTaskFollowThroughAuditAction,
+} from "@/lib/agentTaskAudit";
+import {
   CREATOR_AI_AGENT_ROLE_DEFINITIONS,
   type CreatorAiAgentRole,
   type CreatorAiExecutionBoundary,
@@ -46,10 +50,13 @@ export type AiOfficeTaskUsefulness = {
   taskType: TaskType;
   actionableCount: number;
   autoCompletedCount: number;
+  trackedReadyCount: number;
+  usedCount: number;
   waitingApprovalCount: number;
   approvedCount: number;
   rejectedCount: number;
   followThroughRate: number;
+  usedRate: number;
 };
 
 export type AiOfficeTaskDraft = {
@@ -173,13 +180,6 @@ const AI_OFFICE_ROLE_HELPERS: Record<CreatorAiAgentRole, string> = {
     "支援者向けのお礼や再案内を整え、継続的なコミュニケーションを助けます。",
 };
 
-const AI_OFFICE_TASK_AUDIT_ACTION = {
-  CREATED_DONE: "TASK_CREATED_DONE",
-  CREATED_WAITING_APPROVAL: "TASK_CREATED_WAITING_APPROVAL",
-  APPROVED: "TASK_APPROVED",
-  REJECTED: "TASK_REJECTED",
-} as const;
-
 function rolePhaseToTier(phase: "MVP" | "PHASE_2" | "FUTURE"): ProductTier {
   return phase === "MVP" ? "MVP" : "BETA";
 }
@@ -290,6 +290,30 @@ export function getAiOfficeRoleGuidance(
   }
 
   const effectiveRole = [...roleBreakdown]
+    .filter((role) => role.trackedReadyCount > 0)
+    .sort((a, b) => {
+      if (b.usedCount !== a.usedCount) {
+        return b.usedCount - a.usedCount;
+      }
+      if (b.usedRate !== a.usedRate) {
+        return b.usedRate - a.usedRate;
+      }
+      if (b.trackedReadyCount !== a.trackedReadyCount) {
+        return b.trackedReadyCount - a.trackedReadyCount;
+      }
+      return a.roleId.localeCompare(b.roleId);
+    })[0];
+
+  if (effectiveRole) {
+    return {
+      roleId: effectiveRole.roleId,
+      tone: "recommended",
+      title: "いま活用が進んでいる role があります",
+      description: `${effectiveRole.label} は ${effectiveRole.usedCount} 件が実際に使われ、活用率は ${(effectiveRole.usedRate * 100).toFixed(0)}% です。次の 1 件を作る role として相性が見えています。`,
+    };
+  }
+
+  const responsiveRole = [...roleBreakdown]
     .filter((role) => role.actionableCount > 0)
     .sort((a, b) => {
       if (b.followThroughRate !== a.followThroughRate) {
@@ -304,12 +328,12 @@ export function getAiOfficeRoleGuidance(
       return a.roleId.localeCompare(b.roleId);
     })[0];
 
-  if (effectiveRole) {
+  if (responsiveRole) {
     return {
-      roleId: effectiveRole.roleId,
+      roleId: responsiveRole.roleId,
       tone: "recommended",
       title: "いま試しやすい role があります",
-      description: `${effectiveRole.label} の対応率は ${(effectiveRole.followThroughRate * 100).toFixed(0)}% です。次の 1 件を作る role として相性が見えています。`,
+      description: `${responsiveRole.label} の対応率は ${(responsiveRole.followThroughRate * 100).toFixed(0)}% です。まだ利用データが少ない段階でも、試しやすい role として見えています。`,
     };
   }
 
@@ -328,6 +352,8 @@ export function getAiOfficeTaskUsefulness(
 ): AiOfficeTaskUsefulness {
   let actionableCount = 0;
   let autoCompletedCount = 0;
+  let trackedReadyCount = 0;
+  let usedCount = 0;
   let waitingApprovalCount = 0;
   let approvedCount = 0;
   let rejectedCount = 0;
@@ -336,20 +362,30 @@ export function getAiOfficeTaskUsefulness(
     if (task.taskType !== taskType) continue;
 
     const createdWaitingApproval = task.auditLogs.some(
-      (log) => log.action === AI_OFFICE_TASK_AUDIT_ACTION.CREATED_WAITING_APPROVAL
+      (log) => log.action === AGENT_TASK_AUDIT_ACTION.CREATED_WAITING_APPROVAL
     );
     const createdDone = task.auditLogs.some(
-      (log) => log.action === AI_OFFICE_TASK_AUDIT_ACTION.CREATED_DONE
+      (log) => log.action === AGENT_TASK_AUDIT_ACTION.CREATED_DONE
     );
     const approved = task.auditLogs.some(
-      (log) => log.action === AI_OFFICE_TASK_AUDIT_ACTION.APPROVED
+      (log) => log.action === AGENT_TASK_AUDIT_ACTION.APPROVED
     );
     const rejected = task.auditLogs.some(
-      (log) => log.action === AI_OFFICE_TASK_AUDIT_ACTION.REJECTED
+      (log) => log.action === AGENT_TASK_AUDIT_ACTION.REJECTED
     );
+    const followThroughAuditAction = getTaskFollowThroughAuditAction(taskType);
 
     if (createdDone) {
       autoCompletedCount += 1;
+    }
+
+    if (followThroughAuditAction && (createdDone || approved)) {
+      trackedReadyCount += 1;
+      if (
+        task.auditLogs.some((log) => log.action === followThroughAuditAction)
+      ) {
+        usedCount += 1;
+      }
     }
 
     if (!createdWaitingApproval) {
@@ -379,11 +415,14 @@ export function getAiOfficeTaskUsefulness(
     taskType,
     actionableCount,
     autoCompletedCount,
+    trackedReadyCount,
+    usedCount,
     waitingApprovalCount,
     approvedCount,
     rejectedCount,
     followThroughRate:
       actionableCount > 0 ? followThroughCount / actionableCount : 0,
+    usedRate: trackedReadyCount > 0 ? usedCount / trackedReadyCount : 0,
   };
 }
 
@@ -398,6 +437,12 @@ export function sortAiOfficeTaskChoicesByUsefulness(
       usefulness: getAiOfficeTaskUsefulness(choice.taskType, tasks),
     }))
     .sort((a, b) => {
+      if (b.usefulness.usedCount !== a.usefulness.usedCount) {
+        return b.usefulness.usedCount - a.usefulness.usedCount;
+      }
+      if (b.usefulness.usedRate !== a.usefulness.usedRate) {
+        return b.usefulness.usedRate - a.usefulness.usedRate;
+      }
       if (b.usefulness.approvedCount !== a.usefulness.approvedCount) {
         return b.usefulness.approvedCount - a.usefulness.approvedCount;
       }
@@ -411,6 +456,9 @@ export function sortAiOfficeTaskChoicesByUsefulness(
       }
       if (b.usefulness.actionableCount !== a.usefulness.actionableCount) {
         return b.usefulness.actionableCount - a.usefulness.actionableCount;
+      }
+      if (b.usefulness.trackedReadyCount !== a.usefulness.trackedReadyCount) {
+        return b.usefulness.trackedReadyCount - a.usefulness.trackedReadyCount;
       }
       if (b.usefulness.autoCompletedCount !== a.usefulness.autoCompletedCount) {
         return b.usefulness.autoCompletedCount - a.usefulness.autoCompletedCount;

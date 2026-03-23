@@ -74,8 +74,8 @@ Phase 1 では、この指標を `AI Office Overview` に出して「どの agen
 既存の `対応率 / 承認 / 却下 / 保留が長い` は review flow の健全性を見続けるために残し、`使われた結果 / 活用率` を downstream 利用の補助指標として追加する。
 ユーザー向けの tab ラベルは `概要 / 下書きを作る / 承認待ち` とし、承認待ち件数の主な確認場所は `概要` の notice と `承認待ち` タブに寄せる。
 role を選んで作った task は、`Manager / Promotion / Finance / Fan Relation` ごとの対応率としても確認する。
-また `Create` 画面では、この role usefulness を使って「先に確認したい role」または「いま試しやすい role」を案内する。
-role を選んだあとの task card も、最近の承認率や承認待ち件数を手がかりに並び替えて表示する。
+また `Create` 画面では、この role usefulness を使って「先に確認したい role」または「いま活用が進んでいる role」を案内する。
+role を選んだあとの task card も、最近の `活用率 / 利用件数 / 承認待ち件数` を手がかりに並び替えて表示する。
 Overview の role breakdown からは、保留がある role なら `Inbox`、保留がない role ならそのまま `Create` に進める。
 `Inbox` では role chip で承認待ちと履歴を role 単位に絞り込み、優先 role の notice からそのまま切り替えられる。
 role で絞った `Inbox` に承認待ちがなければ、そのまま同じ role の `Create` に戻って次の下書きへ進める。

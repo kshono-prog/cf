@@ -19,9 +19,13 @@ import {
   buildAiOfficeTaskInput,
   doesAiOfficeTaskMatchRole,
   getAiOfficeRoleChoice,
+  getAiOfficeRoleChoices,
+  getAiOfficeRoleGuidance,
+  getAiOfficeRoleUsefulness,
   getDefaultAiOfficeRole,
   getAiOfficeTaskRoleChoices,
   normalizeAiOfficeTaskDraft,
+  sortAiOfficeTaskChoicesByUsefulness,
   validateAiOfficeTaskDraft,
   type AiOfficeTaskDraft,
 } from "@/components/mypage/aiOfficeTaskConfig";
@@ -109,6 +113,29 @@ export function AiOfficePanel(props: {
     () => getAiOfficeMessageState(message),
     [message]
   );
+  const roleChoices = useMemo(() => getAiOfficeRoleChoices(), []);
+  const createRoleGuidance = useMemo(
+    () => getAiOfficeRoleGuidance(roleChoices, usefulness.roleBreakdown),
+    [roleChoices, usefulness.roleBreakdown]
+  );
+  const selectedRoleUsefulness = useMemo(
+    () => getAiOfficeRoleUsefulness(selectedRoleId, usefulness.roleBreakdown) ?? null,
+    [selectedRoleId, usefulness.roleBreakdown]
+  );
+  const selectedCreateRoleChoice = useMemo(
+    () => getAiOfficeRoleChoice(selectedRoleId),
+    [selectedRoleId]
+  );
+  const createTaskChoices = useMemo(() => {
+    if (!selectedCreateRoleChoice) {
+      return [];
+    }
+
+    return sortAiOfficeTaskChoicesByUsefulness(
+      selectedCreateRoleChoice.taskChoices,
+      tasks
+    );
+  }, [selectedCreateRoleChoice, tasks]);
   const waitingApprovalCount = useMemo(
     () => tasks.filter((task) => task.status === "WAITING_APPROVAL").length,
     [tasks]
@@ -158,6 +185,33 @@ export function AiOfficePanel(props: {
   );
 
   const headers = useMemo(() => ({ "Content-Type": "application/json" }), []);
+
+  const getPreferredTaskTypeForRole = useCallback(
+    (roleId: CreatorAiAgentRole, currentTaskType?: TaskType): TaskType | null => {
+      const roleChoice = getAiOfficeRoleChoice(roleId);
+      if (!roleChoice) {
+        return null;
+      }
+
+      if (
+        currentTaskType &&
+        roleChoice.taskChoices.some((choice) => choice.taskType === currentTaskType)
+      ) {
+        return currentTaskType;
+      }
+
+      const sortedTaskChoices = sortAiOfficeTaskChoicesByUsefulness(
+        roleChoice.taskChoices,
+        tasks
+      );
+      return (
+        sortedTaskChoices[0]?.taskType ??
+        roleChoice.featuredTaskType ??
+        null
+      );
+    },
+    [tasks]
+  );
 
   const refresh = useCallback(async () => {
     if (!walletAddress) {
@@ -247,7 +301,7 @@ export function AiOfficePanel(props: {
   ]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (hasHydratedUrlState || typeof window === "undefined") return;
 
     const parsedState = parseAiOfficePanelUrlState(
       new URLSearchParams(window.location.search)
@@ -260,12 +314,10 @@ export function AiOfficePanel(props: {
     if (parsedState.selectedRoleId) {
       setSelectedRoleId(parsedState.selectedRoleId);
 
-      const roleChoice = getAiOfficeRoleChoice(parsedState.selectedRoleId);
-      const nextTaskType = roleChoice?.taskChoices.some(
-        (choice) => choice.taskType === DEFAULT_AI_OFFICE_TASK_TYPE
-      )
-        ? DEFAULT_AI_OFFICE_TASK_TYPE
-        : roleChoice?.featuredTaskType;
+      const nextTaskType = getPreferredTaskTypeForRole(
+        parsedState.selectedRoleId,
+        DEFAULT_AI_OFFICE_TASK_TYPE
+      );
 
       if (nextTaskType) {
         setTaskType(nextTaskType);
@@ -274,7 +326,7 @@ export function AiOfficePanel(props: {
 
     setSelectedInboxRoleId(parsedState.selectedInboxRoleId ?? null);
     setHasHydratedUrlState(true);
-  }, []);
+  }, [getPreferredTaskTypeForRole, hasHydratedUrlState]);
 
   useEffect(() => {
     if (!hasHydratedUrlState || typeof window === "undefined") {
@@ -577,22 +629,13 @@ export function AiOfficePanel(props: {
     (nextRoleId: CreatorAiAgentRole) => {
       setSelectedRoleId(nextRoleId);
 
-      const roleChoice = getAiOfficeRoleChoice(nextRoleId);
-      if (!roleChoice) {
-        return;
-      }
-
-      const nextTaskType = roleChoice.taskChoices.some(
-        (choice) => choice.taskType === taskType
-      )
-        ? taskType
-        : roleChoice.featuredTaskType;
+      const nextTaskType = getPreferredTaskTypeForRole(nextRoleId, taskType);
 
       if (nextTaskType) {
         setTaskType(nextTaskType);
       }
     },
-    [taskType]
+    [getPreferredTaskTypeForRole, taskType]
   );
 
   const openRoleShortcut = useCallback(
@@ -732,6 +775,11 @@ export function AiOfficePanel(props: {
           {activeView === "CREATE" ? (
             <AiOfficeCreateSection
               loading={loading}
+              roleChoices={roleChoices}
+              taskChoices={createTaskChoices}
+              selectedRoleId={selectedRoleId}
+              selectedRoleUsefulness={selectedRoleUsefulness}
+              roleGuidance={createRoleGuidance}
               taskType={taskType}
               requiresApproval={requiresApproval}
               autoPost={autoPost}
@@ -744,6 +792,7 @@ export function AiOfficePanel(props: {
               includeSupportSummary={includeSupportSummary}
               supporterMessagePurpose={supporterMessagePurpose}
               translationResult={translationResult}
+              onRoleChange={handleRoleChange}
               onTaskTypeChange={handleTaskTypeChange}
               onRequiresApprovalChange={setRequiresApproval}
               onAutoPostChange={setAutoPost}
@@ -756,6 +805,9 @@ export function AiOfficePanel(props: {
               onIncludeSupportSummaryChange={setIncludeSupportSummary}
               onSupporterMessagePurposeChange={setSupporterMessagePurpose}
               onCreateTask={() => void createTask()}
+              onOpenInboxForRole={(roleId) => {
+                openRoleShortcut(roleId, "INBOX");
+              }}
               onTranslateText={() => void translateText()}
             />
           ) : null}

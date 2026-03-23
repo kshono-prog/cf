@@ -1,8 +1,14 @@
 "use client";
 
-import { AI_OFFICE_TASK_CHOICES } from "@/components/mypage/aiOfficeTaskConfig";
+import { AiOfficeStatusNotice } from "@/components/mypage/AiOfficeFeedback";
 import { AiOfficeTaskInputFields } from "@/components/mypage/AiOfficeTaskInputFields";
 import type {
+  AiOfficeRoleChoice,
+  AiOfficeRoleGuidance,
+  AiOfficeTaskChoice,
+} from "@/components/mypage/aiOfficeTaskConfig";
+import type {
+  AiOfficeRoleUsefulnessView,
   AnnouncementChannel,
   DraftTone,
   SupporterMessagePurpose,
@@ -13,10 +19,16 @@ import {
   canSkipApproval,
   isInformationalTask,
 } from "@/lib/agentTaskPolicy";
+import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
 
 type Props = {
   loading: boolean;
+  roleChoices: AiOfficeRoleChoice[];
+  taskChoices: AiOfficeTaskChoice[];
+  selectedRoleId: CreatorAiAgentRole;
+  selectedRoleUsefulness: AiOfficeRoleUsefulnessView | null;
+  roleGuidance: AiOfficeRoleGuidance;
   taskType: TaskType;
   requiresApproval: boolean;
   autoPost: boolean;
@@ -32,6 +44,7 @@ type Props = {
   onTaskTypeChange: (value: TaskType) => void;
   onRequiresApprovalChange: (value: boolean) => void;
   onAutoPostChange: (value: boolean) => void;
+  onRoleChange: (value: CreatorAiAgentRole) => void;
   onTranslationInputChange: (value: string) => void;
   onTranslationLangChange: (value: TranslationLang) => void;
   onReportingWindowDaysChange: (value: number) => void;
@@ -41,6 +54,7 @@ type Props = {
   onIncludeSupportSummaryChange: (value: boolean) => void;
   onSupporterMessagePurposeChange: (value: SupporterMessagePurpose) => void;
   onCreateTask: () => void;
+  onOpenInboxForRole: (roleId: CreatorAiAgentRole) => void;
   onTranslateText: () => void;
 };
 
@@ -78,6 +92,70 @@ export function AiOfficeCreateSection(props: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="card p-4 space-y-3">
+        <div>
+          <div className="section-label">どの担当に依頼しますか？</div>
+          <p className="caption-text mt-1">
+            担当を切り替えると、その役割で使いやすい task を優先して表示します。
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {props.roleChoices.map((role) => (
+            <button
+              key={role.roleId}
+              type="button"
+              className={
+                props.selectedRoleId === role.roleId
+                  ? "action-pill-active"
+                  : "action-pill"
+              }
+              onClick={() => props.onRoleChange(role.roleId)}
+              disabled={props.loading}
+            >
+              {role.label}
+            </button>
+          ))}
+        </div>
+        {props.selectedRoleUsefulness ? (
+          <div className="caption-text">
+            {props.selectedRoleUsefulness.waitingApprovalCount > 0
+              ? `承認待ち ${props.selectedRoleUsefulness.waitingApprovalCount} 件があります。`
+              : "いま承認待ちはありません。"}
+            {props.selectedRoleUsefulness.trackedReadyCount > 0
+              ? ` 活用率 ${(props.selectedRoleUsefulness.usedRate * 100).toFixed(0)}% / 利用 ${props.selectedRoleUsefulness.usedCount} 件です。`
+              : ""}
+          </div>
+        ) : null}
+      </div>
+
+      {props.roleGuidance.roleId && props.roleGuidance.tone !== "neutral" ? (
+        <AiOfficeStatusNotice
+          tone={props.roleGuidance.tone === "attention" ? "attention" : "info"}
+          title={props.roleGuidance.title}
+          description={props.roleGuidance.description}
+        >
+          {props.roleGuidance.roleId !== props.selectedRoleId ? (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => props.onRoleChange(props.roleGuidance.roleId!)}
+              disabled={props.loading}
+            >
+              この担当に切り替える
+            </button>
+          ) : props.selectedRoleUsefulness?.waitingApprovalCount ? (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => props.onOpenInboxForRole(props.selectedRoleId)}
+              disabled={props.loading}
+            >
+              この担当の Inbox を開く
+            </button>
+          ) : null}
+        </AiOfficeStatusNotice>
+      ) : null}
+
       {/* ── Task type grid ── */}
       <div className="card p-4">
         <div className="section-label">何を作りますか？</div>
@@ -85,7 +163,7 @@ export function AiOfficeCreateSection(props: Props) {
           タスクを選ぶとAIがプロジェクトの状況をもとに下書きを作ります。
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {AI_OFFICE_TASK_CHOICES.map((choice) => {
+          {props.taskChoices.map((choice) => {
             const isActive = props.taskType === choice.taskType;
             const copy = getAgentTaskTypeCopy(choice.taskType);
             return (
