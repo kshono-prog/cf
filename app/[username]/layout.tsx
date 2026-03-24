@@ -1,5 +1,5 @@
 //app/[username]/layout.tsx
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import AppKitProvider from "@/context/AppKitProvider";
 import BottomNav from "@/components/BottomNav";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -13,7 +13,7 @@ type Props = {
 
 export default async function UsernameLayout({ children, params }: Props) {
   const { username } = await params;
-  const requestCookies = (await cookies()).toString();
+  const requestCookies = (await headers()).get("cookie");
   const creator = await getCreatorProfileByUsername(username);
   const themeColor = creator?.creator.themeColor ?? null;
 
