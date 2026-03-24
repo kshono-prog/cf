@@ -23,6 +23,7 @@ export function CreatorWorkspaceAiOfficePanel() {
       walletAddress={workspace.address ?? null}
       projectId={workspace.localProjectId}
       isConnected={workspace.isConnected}
+      initialUrlState={workspace.initialAiOfficeUrlState}
     />
   );
 }

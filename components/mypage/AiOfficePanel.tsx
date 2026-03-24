@@ -61,8 +61,26 @@ export function AiOfficePanel(props: {
   walletAddress: string | null;
   projectId: string | null;
   isConnected: boolean;
+  initialUrlState?: Partial<ReturnType<typeof parseAiOfficePanelUrlState>>;
 }) {
-  const { walletAddress, projectId, isConnected } = props;
+  const {
+    walletAddress,
+    projectId,
+    isConnected,
+    initialUrlState = undefined,
+  } = props;
+  const initialSelectedRoleId =
+    initialUrlState?.selectedRoleId ?? getDefaultAiOfficeRole(DEFAULT_AI_OFFICE_TASK_TYPE);
+  const initialTaskType =
+    getAiOfficeRoleChoice(initialSelectedRoleId)?.featuredTaskType ??
+    DEFAULT_AI_OFFICE_TASK_TYPE;
+  const hasInitialUrlState = Boolean(
+    initialUrlState &&
+      (initialUrlState.activeView !== undefined ||
+        initialUrlState.selectedRoleId !== undefined ||
+        initialUrlState.selectedInboxRoleId !== null ||
+        initialUrlState.openLatestTaskType !== null)
+  );
 
   const [tasks, setTasks] = useState<AgentTaskView[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -80,15 +98,16 @@ export function AiOfficePanel(props: {
     () => getEmptyAiOfficeUsefulnessSummary()
   );
 
-  const [taskType, setTaskType] = useState<TaskType>(DEFAULT_AI_OFFICE_TASK_TYPE);
-  const [selectedRoleId, setSelectedRoleId] = useState<CreatorAiAgentRole>(
-    () => getDefaultAiOfficeRole(DEFAULT_AI_OFFICE_TASK_TYPE)
-  );
+  const [taskType, setTaskType] = useState<TaskType>(initialTaskType);
+  const [selectedRoleId, setSelectedRoleId] =
+    useState<CreatorAiAgentRole>(initialSelectedRoleId);
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("ALL");
   const [selectedInboxRoleId, setSelectedInboxRoleId] =
-    useState<CreatorAiAgentRole | null>(null);
+    useState<CreatorAiAgentRole | null>(
+      initialUrlState?.selectedInboxRoleId ?? null
+    );
   const [openLatestTaskType, setOpenLatestTaskType] =
-    useState<TaskType | null>(null);
+    useState<TaskType | null>(initialUrlState?.openLatestTaskType ?? null);
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [autoPost, setAutoPost] = useState<boolean>(false);
   const [translationInput, setTranslationInput] = useState<string>("");
@@ -106,8 +125,11 @@ export function AiOfficePanel(props: {
   const [translationResult, setTranslationResult] = useState<string>("");
   const [approvalNote, setApprovalNote] = useState<string>("");
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
-  const [activeView, setActiveView] = useState<AiOfficeView>(DEFAULT_AI_OFFICE_VIEW);
-  const [hasHydratedUrlState, setHasHydratedUrlState] = useState<boolean>(false);
+  const [activeView, setActiveView] = useState<AiOfficeView>(
+    initialUrlState?.activeView ?? DEFAULT_AI_OFFICE_VIEW
+  );
+  const [hasHydratedUrlState, setHasHydratedUrlState] =
+    useState<boolean>(hasInitialUrlState);
   const BULK_CONFIRM_THRESHOLD = 5;
 
   const canUse = isConnected && !!walletAddress;

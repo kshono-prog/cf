@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useLayoutEffect, useMemo } from "react";
+import React, { useEffect, useLayoutEffect, useMemo } from "react";
 import { useAccount } from "wagmi";
 
 import { generateRandomId } from "@/lib/mypage/helpers";
 
 import { CreatorReadyAccountView } from "@/components/mypage/CreatorReadyAccountView";
+import type { AiOfficePanelUrlState } from "@/components/mypage/aiOfficePanelUrlState";
 import { LoadingMyPageView } from "@/components/mypage/LoadingMyPageView";
 import { NoUserMyPageView } from "@/components/mypage/NoUserMyPageView";
 import { UnconnectedMyPageView } from "@/components/mypage/UnconnectedMyPageView";
@@ -17,6 +18,7 @@ import { useAccountPageActions } from "@/components/mypage/useAccountPageActions
 import { CreatorReadyWorkspaceProvider } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import { toAddressOrNull } from "@/lib/api/guards";
 import { registerOwnerAuthDevOverride } from "@/lib/ownerAuthClient";
+import type { MeStatus } from "@/lib/mypage/types";
 import { getPublicEnv } from "@/lib/publicEnv";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
@@ -26,6 +28,8 @@ type Props = {
   initialProjectId?: string | null;
   initialProjectIdsByCurrency?: { JPYC: string | null; USDC: string | null };
   manualCheckAddress?: string | null;
+  initialMeStatus?: MeStatus | null;
+  initialAiOfficeUrlState?: Partial<AiOfficePanelUrlState>;
 };
 
 export default function AccountPageClient({
@@ -34,15 +38,20 @@ export default function AccountPageClient({
   initialProjectId = null,
   initialProjectIdsByCurrency = { JPYC: null, USDC: null },
   manualCheckAddress = null,
+  initialMeStatus = null,
+  initialAiOfficeUrlState = undefined,
 }: Props) {
   const publicEnv = getPublicEnv();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status: connectionStatus } = useAccount();
   const manualCheckOwnerAddress = useMemo(
     () => toAddressOrNull(manualCheckAddress),
     [manualCheckAddress]
   );
   const effectiveAddress = manualCheckOwnerAddress ?? address;
   const effectiveIsConnected = manualCheckOwnerAddress ? true : isConnected;
+  const effectiveConnectionStatus = manualCheckOwnerAddress
+    ? "connected"
+    : connectionStatus;
 
   const generatedUsername = useMemo(
     () => `user_${generateRandomId()}`,
@@ -93,9 +102,11 @@ export default function AccountPageClient({
   } = useMyPageMeStatus({
     address: effectiveAddress,
     isConnected: effectiveIsConnected,
+    connectionStatus: effectiveConnectionStatus,
     username,
     initialProjectId,
     initialProjectIdsByCurrency,
+    initialMeStatus,
     resetProfileState,
     applyUserOnly,
     applyCreatorProfile,
@@ -105,6 +116,52 @@ export default function AccountPageClient({
     registerOwnerAuthDevOverride(manualCheckOwnerAddress);
     return () => {
       registerOwnerAuthDevOverride(null);
+    };
+  }, [manualCheckOwnerAddress]);
+
+  useEffect(() => {
+    if (!manualCheckOwnerAddress || typeof window === "undefined") {
+      return;
+    }
+
+    const hashTargetId = window.location.hash.replace(/^#/, "").trim();
+    if (!hashTargetId) {
+      return;
+    }
+
+    let timeoutId: number | null = null;
+    let cancelled = false;
+
+    const scrollToHashTarget = (attempt: number) => {
+      if (cancelled) {
+        return;
+      }
+
+      const target = document.getElementById(hashTargetId);
+      if (target) {
+        target.scrollIntoView({
+          block: "start",
+          behavior: attempt === 0 ? "auto" : "smooth",
+        });
+        return;
+      }
+
+      if (attempt >= 10) {
+        return;
+      }
+
+      timeoutId = window.setTimeout(() => {
+        scrollToHashTarget(attempt + 1);
+      }, 200);
+    };
+
+    scrollToHashTarget(0);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
     };
   }, [manualCheckOwnerAddress]);
 
@@ -222,6 +279,7 @@ export default function AccountPageClient({
     onActiveProjectIdChange: syncActiveProjectId,
     openSections,
     onToggleSection: toggleSection,
+    initialAiOfficeUrlState,
   };
 
   return (

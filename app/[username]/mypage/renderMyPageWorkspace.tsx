@@ -2,7 +2,12 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 
 import AccountPageClient from "./AccountPageClient";
+import {
+  parseAiOfficePanelUrlState,
+  type AiOfficePanelUrlState,
+} from "@/components/mypage/aiOfficePanelUrlState";
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
+import { getMeStatusByAddress } from "@/lib/mypageMe";
 import {
   DEV_MANUAL_CHECK_SEARCH_PARAM,
   isDevManualCheckEnabled,
@@ -10,8 +15,43 @@ import {
   isLocalDevHost,
   resolveDevManualCheckAddress,
 } from "@/lib/manualCheckDev";
+import { normalizeMyPageMePayload } from "@/lib/mypageApiResponses";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 import { resolveCreatorProjectSelection } from "@/lib/serializers/creator";
+
+function buildSearchParams(
+  value: Record<string, string | string[] | undefined> | undefined
+): URLSearchParams {
+  const searchParams = new URLSearchParams();
+
+  for (const [key, entry] of Object.entries(value ?? {})) {
+    if (Array.isArray(entry)) {
+      for (const item of entry) {
+        if (typeof item === "string") {
+          searchParams.append(key, item);
+        }
+      }
+      continue;
+    }
+
+    if (typeof entry === "string") {
+      searchParams.set(key, entry);
+    }
+  }
+
+  return searchParams;
+}
+
+function hasAiOfficeInitialUrlState(
+  value: Partial<AiOfficePanelUrlState>
+): boolean {
+  return (
+    value.activeView !== undefined ||
+    value.selectedRoleId !== undefined ||
+    value.selectedInboxRoleId !== null ||
+    value.openLatestTaskType !== null
+  );
+}
 
 export async function renderMyPageWorkspace(params: {
   username: string;
@@ -34,6 +74,17 @@ export async function renderMyPageWorkspace(params: {
     )
       ? resolveDevManualCheckAddress(creator.profile.walletAddress)
       : null;
+  const initialManualCheckMe = manualCheckAddress
+    ? normalizeMyPageMePayload(await getMeStatusByAddress(manualCheckAddress))
+    : null;
+  const parsedAiOfficeUrlState = parseAiOfficePanelUrlState(
+    buildSearchParams(params.searchParams)
+  );
+  const initialAiOfficeUrlState = hasAiOfficeInitialUrlState(
+    parsedAiOfficeUrlState
+  )
+    ? parsedAiOfficeUrlState
+    : undefined;
 
   return (
     <AccountPageClient
@@ -42,6 +93,8 @@ export async function renderMyPageWorkspace(params: {
       initialProjectId={initialProjects.projectId}
       initialProjectIdsByCurrency={initialProjects.projectIdsByCurrency}
       manualCheckAddress={manualCheckAddress}
+      initialMeStatus={initialManualCheckMe}
+      initialAiOfficeUrlState={initialAiOfficeUrlState}
     />
   );
 }

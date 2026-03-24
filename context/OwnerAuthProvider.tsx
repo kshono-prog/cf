@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useLayoutEffect, useRef } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 
 import type { OwnerAuthSignMessage } from "@/lib/ownerAuthClient";
@@ -14,7 +14,7 @@ export function OwnerAuthProvider(props: { children: ReactNode }) {
   const { signMessageAsync } = useSignMessage();
   const lastAddressRef = useRef<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const normalizedAddress = address ? address.toLowerCase() : null;
     registerOwnerAuthSigner(
       normalizedAddress,

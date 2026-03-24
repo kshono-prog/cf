@@ -9,13 +9,20 @@ import type { MeStatus, Status } from "@/lib/mypage/types";
 import type { CreatorProfile } from "@/types/creator";
 
 type UserLike = MeStatus["user"];
+type ConnectionStatus =
+  | "connected"
+  | "connecting"
+  | "reconnecting"
+  | "disconnected";
 
 type Args = {
   address: Address | undefined;
   isConnected: boolean;
+  connectionStatus: ConnectionStatus;
   username: string;
   initialProjectId?: string | null;
   initialProjectIdsByCurrency?: ProjectIdsByCurrency;
+  initialMeStatus?: MeStatus | null;
   resetProfileState: (nextUsername?: string) => void;
   applyUserOnly: (user: UserLike, nextUsername?: string) => void;
   applyCreatorProfile: (
@@ -43,20 +50,27 @@ function pickDefaultProjectId(meData: MeStatus): string | null {
 export function useMyPageMeStatus({
   address,
   isConnected,
+  connectionStatus,
   username,
   initialProjectId = null,
   initialProjectIdsByCurrency = { JPYC: null, USDC: null },
+  initialMeStatus = null,
   resetProfileState,
   applyUserOnly,
   applyCreatorProfile,
 }: Args) {
-  const [status, setStatus] = useState<Status>("loading");
-  const [me, setMe] = useState<MeStatus | null>(null);
+  const [status, setStatus] = useState<Status>(() =>
+    initialMeStatus ? resolveStatus(initialMeStatus) : "loading"
+  );
+  const [me, setMe] = useState<MeStatus | null>(initialMeStatus);
   const [localProjectId, setLocalProjectId] = useState<string | null>(
-    initialProjectId
+    initialProjectId ??
+      (initialMeStatus ? pickDefaultProjectId(initialMeStatus) : null)
   );
   const [projectIdsByCurrency, setProjectIdsByCurrency] =
-    useState<ProjectIdsByCurrency>(initialProjectIdsByCurrency);
+    useState<ProjectIdsByCurrency>(
+      initialMeStatus?.projectIdsByCurrency ?? initialProjectIdsByCurrency
+    );
 
   const hydratedRef = useRef(false);
 
@@ -106,6 +120,16 @@ export function useMyPageMeStatus({
   );
 
   useEffect(() => {
+    if (
+      connectionStatus === "connecting" ||
+      connectionStatus === "reconnecting"
+    ) {
+      if (!hydratedRef.current && !initialMeStatus) {
+        setStatus("loading");
+      }
+      return;
+    }
+
     if (!isConnected || !address) {
       setStatus("unconnected");
       setMe(null);
@@ -120,10 +144,23 @@ export function useMyPageMeStatus({
     let cancelled = false;
 
     async function run(): Promise<void> {
-      setStatus("loading");
-      const meData = await refreshMeStatus(connectedAddress);
-      if (cancelled || !meData) {
+      if (initialMeStatus && !hydratedRef.current) {
+        hydrateFormFromSummary(initialMeStatus);
+        hydratedRef.current = true;
+      } else {
         setStatus("loading");
+      }
+
+      let meData: MeStatus | null = null;
+      try {
+        meData = await refreshMeStatus(connectedAddress);
+      } catch {
+        meData = null;
+      }
+      if (cancelled || !meData) {
+        if (!initialMeStatus && !hydratedRef.current) {
+          setStatus("loading");
+        }
         return;
       }
 
@@ -139,7 +176,9 @@ export function useMyPageMeStatus({
     };
   }, [
     address,
+    connectionStatus,
     hydrateFormFromSummary,
+    initialMeStatus,
     isConnected,
     refreshMeStatus,
     resetProfileState,

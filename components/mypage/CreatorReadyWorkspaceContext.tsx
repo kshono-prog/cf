@@ -3,6 +3,7 @@
 import React from "react";
 import type { Address } from "viem";
 
+import type { AiOfficePanelUrlState } from "@/components/mypage/aiOfficePanelUrlState";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
 import type {
   CurrencyCode,
@@ -50,6 +51,7 @@ export type CreatorReadyWorkspaceState = {
   onActiveProjectIdChange: (pid: string | null, changedCur: CurrencyCode) => void;
   openSections: OpenSections;
   onToggleSection: (key: SectionKey) => void;
+  initialAiOfficeUrlState?: Partial<AiOfficePanelUrlState>;
 };
 
 export type CreatorReadyWorkspaceShellProps = {
