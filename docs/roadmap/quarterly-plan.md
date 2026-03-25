@@ -2,61 +2,63 @@
 
 ## 2026 Q1
 
-テーマ: 開発基盤と AI task 基盤の整理
+テーマ: Vision 固定と AI Office / workspace 基盤整理
 
-- docs / task / decision 運用を開始
-- `AgentTask` の責務を明文化
-- `AccountPageClient` を分割開始
+- Vision / Constitution / Roadmap を文書化
+- Creator / Manager / AI Office の責任境界を固定
+- `AccountPageClient` / workspace split / AI Office surface を整理
 - lint / type / build の最低限安定化
+- public profile / Creator workspace / settlement の責務境界を整理
 
 完了条件:
 
-- AIが迷わず着手できる task 単位がある
-- `ANALYZE`, `PROPOSE`, `TRANSLATE` の仕様が文書化されている
-- 開発の承認境界が明文化されている
+- 上位方針と責任境界が docs で共有されている
+- `今日の仕事 / 設定・準備` の基盤がある
+- AI Office が承認付き task surface として安定している
 
 ## 2026 Q2
 
-テーマ: AI秘書として使える価値を出す
+テーマ: 人間中心の運営OSの土台を作る
 
-- 週次レポート生成
-- 投稿案 / 告知案 / 翻訳案の安定化
-- metrics の表示整理
-- 承認待ちタスク一覧の強化
-- `Manager Agent` recommendation task の追加
-- distribution plan draft の追加
-- role-based AI Office surface の整理
+- Creator Home first slice を実装する
+- Manager core models（`ManagerAssignment / ManagerNote / ExternalContact / ActionLog`）を設計・実装する
+- Manager Desk の `Dashboard / Creator Detail` を整える
+- Meeting / Planner / follow-up の最小導線を追加する
+- Creator / Manager / AI Office の shared timeline に必要な read model を整える
 
 完了条件:
 
-- クリエイターが週次運営に使える
-- AI出力履歴が比較できる
-- recommendation と draft が AI Office 内で review できる
+- Creator が `状態 → 判断 → 行動` を home で進められる
+- Manager が複数 Creator を一覧で追える
+- 現場知 / contact / action history が構造化され始めている
 
 ## 2026 Q3
 
-テーマ: 条件付きタスク起票
+テーマ: 構造化データの上に AI補助を載せる
 
-- 条件ベースの自動 task 作成
-- 運営ポリシー保存
-- ブランドトーンや禁止事項の保存
-- task テンプレート化
+- AI Daily Briefing
+- Manager Note summarization
+- task extraction / follow-up suggestion
+- contact / meeting / action history を使った missing-items detection
+- Creator Home / Manager Desk で AI 提案理由を見せる
 
 完了条件:
 
-- 状況変化に応じて AI が自動で仕事候補を作る
-- 実行は承認付きに保たれている
+- AI が structured context を読み、実務に使える補助を返せる
+- 提案は reviewable で、誰が動くかが曖昧にならない
+- Creator / Manager の現実フローに AI が自然に乗る
 
 ## 2026 Q4
 
-テーマ: 低リスク領域の限定自動化
+テーマ: Trust / Stage と軽量 CRM / Business Layer を接続する
 
-- 週次レポート自動生成
-- 内部メモ更新
-- 下書き保存
-- 定例 task 自動起票
+- Trust / Stage / Skill の骨子導入
+- Supporter CRM / Opportunity CRM の最小版
+- finance / expense / split groundwork
+- Creator / Manager / external relationship をまたぐ進行管理の整理
 
 完了条件:
 
-- AI が定常業務を継続的に支える
-- お金まわりと対外公開は人の最終承認のまま
+- 人気順ではなく stage / maturity / trust で見られる土台がある
+- Supporter / Opportunity / Contact が別々ではなく流れで扱える
+- Business Layer へ進む最低限の土台ができる

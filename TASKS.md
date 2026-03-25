@@ -2,21 +2,49 @@
 
 ## Current Focus
 
-- **Phase 7 進行中**: 「AI の出力を行動に変える」— compose ハンドオフ拡張 / 支援者 Activity Feed / クリエイター発見ページ
-- **Sprint 7-A 着手中**: 全ドラフト → Posting Compose ハンドオフ拡張（SUPPORT_STORY_DRAFT / PROPOSE）
+- **Direction Sync 完了**: Vision / Constitution / Roadmap / responsibility boundaries / Creator Home / Manager Desk / data models の文書化が揃った
+- **Next Build Phase**: 人間中心の運営OSの土台を実装へ移す — Creator Home first slice / manager core models / Manager Desk dashboard
+- **Planning Baseline**: 短期・中期・長期の実行計画は [Execution Plan](/Users/shounokazuaki/cf/docs/roadmap/execution-plan.md) を基準にする
+
+## Recommended Next Execution Order
+
+1. Creator Home first slice の issue 分解
+2. `ManagerAssignment / ManagerNote / ExternalContact / ActionLog` の Prisma schema proposal
+3. Manager Desk dashboard / creator detail の read model 設計
+4. `Meeting / Planner / follow-up` 最小導線
+5. AI Daily Briefing / note summarization / task extraction の structured-data 接続
 
 ## Active Tracks
 
-Sprint 7-A — 全ドラフト → Posting Compose ハンドオフ拡張（即着手可）
-Sprint 7-B — 支援者向け Activity Feed 強化（即着手可）
-Sprint 7-C — クリエイター発見ページ /creators（即着手可）
-Sprint 7-D — 通知 UI 基盤: **完了**（schema 変更なし — 既存の Reply/PostLike/Contribution から通知を導出）
-- `components/mypage/NotificationBell.tsx` 新規作成（ベルアイコン + ドロップダウン）
-- 未読バッジ（localStorage の lastSeenAt と通知 createdAt を比較）
-- 通知種別ごとのカラーバッジ（返信/いいね/応援/お知らせ）
-- `CreatorReadyWorkspaceHeader` にベルを追加
+Track 8-A — Creator Home first slice
+- `Hero / Daily Briefing`
+- `Project Progress` card 化
+- `AI Manager` cards
+- `Today / This Week`
+- `Settings / Edit` collapse
 
-Sprint 7-E — AI 週次サマリー自動配信（要承認: 外部 API または Supabase scheduled function）
+Track 8-B — Manager core models and contracts
+- `ManagerAssignment`
+- `ManagerNote`
+- `ExternalContact`
+- `ActionLog`
+- approval-needed Prisma change proposal
+
+Track 8-C — Manager Desk first slice
+- Dashboard
+- Creator Detail
+- shared read model for manager-side overview
+
+Track 8-D — Meeting / Planner / follow-up minimum
+- meeting contract
+- next action handling
+- shared timeline inputs
+
+Track 8-E — AI operational assistance on structured context
+- Daily Briefing
+- Manager Note summarization
+- follow-up extraction
+- missing-items detection
 
 ## Phase 2 UX（完了済み）
 
@@ -179,7 +207,7 @@ Sprint 6-F — 技術負債 / docs 整備: **完了**
 - `docs/ai-providers.md` 新規作成（モデル変更方法・ModelUnavailableError 対応手順）
 - TASKS.md / PROJECT_STATE.md を Phase 6 完了に更新
 
-## Phase 7（進行中）
+## Phase 7（主要項目完了）
 
 Sprint 7-A — 全ドラフト → Posting Compose ハンドオフ拡張: **完了**
 - `postingComposeHandoff.ts` の sourceTaskType に `SUPPORT_STORY_DRAFT` / `PROPOSE` を追加
@@ -205,4 +233,6 @@ Sprint 7-C — クリエイター発見ページ: **完了**
 
 ## Ready Queue
 
-なし
+- Creator Home first slice issue breakdown
+- manager core schema draft
+- Manager Desk dashboard read model

@@ -1,5 +1,9 @@
 # Creator Workspace Information Architecture
 
+関連仕様:
+
+- [`docs/specs/ux/creator-home-redesign.md`](/Users/shounokazuaki/cf/docs/specs/ux/creator-home-redesign.md)
+
 ## Purpose
 
 ユーザー属性（ファン / クリエイター）で体験を完全に分岐させ、クリエイター向けワークスペースを `今日の仕事 / 設定・準備` の2モードに再構築する。
@@ -175,6 +179,10 @@
 2. AIに依頼するカード（4ロール）
 3. 今週のサマリー
 4. 最近の履歴
+
+`今日の仕事` モードの詳細なホーム再設計は次を参照する。
+
+- [`docs/specs/ux/creator-home-redesign.md`](/Users/shounokazuaki/cf/docs/specs/ux/creator-home-redesign.md)
 
 ### 今日の仕事 モードから外すもの
 

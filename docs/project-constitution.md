@@ -1,60 +1,186 @@
 # Project Constitution
 
-## Purpose
+## 2-1. この憲章の役割
 
-Creator Founding is a creator operations platform that combines public support, project funding, and reviewable AI assistance in one product.
+この憲章は、Creator Founding の今後すべての実装、UI / UX 設計、AI設計、データ設計、制度設計の判断基準である。
 
-## Product Principles
+短期的に便利そうでも、この憲章に反する機能は採用しない。
+逆に、短期的な派手さがなくても、この憲章に合うものは優先する。
 
-- Keep the main value focused on creator operations, not generic AI novelty.
-- Make support status and next actions understandable from the same workflow.
-- Prefer reviewable assistance over invisible automation.
-- Separate daily work from high-risk funding and settlement controls.
-- Preserve creator trust with clear state, clear ownership, and visible audit trails.
+Creator・Manager・AI Office の実務レベルの責任境界は、次の文書で詳細化する。
 
-## Safety Rules
+- [`docs/creator-manager-ai-office-responsibility-boundaries.md`](/Users/shounokazuaki/cf/docs/creator-manager-ai-office-responsibility-boundaries.md)
 
-- Never auto-execute bridge, settlement, or fund movement without explicit human approval.
-- Treat project status, goal achievement, bridge state, and distribution state as reviewable records.
-- Do not hide owner-only controls or bypass owner checks.
-- Keep high-risk or externally meaningful actions reviewable before the next step advances.
-- Avoid expanding risk scope through convenience UI alone.
+## 2-2. 非交渉原則
 
-## Source of Truth
+### 第1条
 
-- Product intent: `docs/roadmap/vision.md`
-- Runtime boundaries: `docs/architecture.md`
-- Domain terms: `docs/domain-model.md`
-- Task output contracts: `docs/specs/creator-ai-office/task-output-contracts.md`
-- Current implementation status: `PROJECT_STATE.md`
-- Current work queue: `TASKS.md`
+**入口はすべての人に開く。**
 
-## AI Operating Principles
+初心者、趣味層、本気層、プロ志向、ファン、協力者、Manager など、多様な主体が参加できる状態を維持する。
 
-- Start with deterministic suggestions before introducing LLM-dependent behavior.
-- Prefer local context already available in dashboard or summary payloads.
-- Explain why a suggestion exists, not only what to do next.
-- Return a short, prioritized list rather than many weak suggestions.
-- Keep high-risk actions approval-gated even when the recommendation is obvious.
+### 第2条
 
-## Engineering Principles
+**深い支援と大きな機会は、信頼で開く。**
 
-- Prefer minimal diffs and preserve the current architecture.
-- Keep logic pure where possible and isolate UI from decision rules.
-- Use runtime guards for `unknown` data instead of unsafe casts.
-- Keep docs and fixtures close to implementation decisions.
-- Validate with `lint`, `typecheck`, and `build` before closing work.
+誰でも入れるが、責任の重い役割や高価値な機会は、継続・誠実さ・約束遵守・実行力・信頼を前提として解放する。
 
-## Current Golden Flow
+### 第3条
 
-1. Creator creates or selects a `Project`.
-2. Creator saves a `Goal`.
-3. Creator checks `Summary` and contribution progress.
-4. Creator confirms goal achievement when the target is reached.
-5. Creator saves a distribution `Plan`.
-6. Creator prepares or confirms `Bridge` state.
-7. Creator saves the `Distribution result`.
+**Creator・Manager・AI Office の三者構造を基本とする。**
 
-## Near-Term AI Goal
+本プロダクトは、Creator 単独でも、AI 単独でも成立する前提を置かない。
+人間マネージャーを正式な構成要素として扱う。
 
-The near-term AI goal is to add a thin recommendation layer that reads current project summary data and proposes the next operator action without executing anything automatically.
+### 第4条
+
+**AIは置き換えではなく増幅である。**
+
+AI Office の役割は、人間を不要にすることではない。
+少人数でも多くを支えられるようにするための増幅装置である。
+
+### 第5条
+
+**人でなければならない部分を尊重する。**
+
+現場確認、営業、温度感判断、交渉、対外関係、緊急判断、信頼関係構築など、人間が担うべき領域を軽視しない。
+
+### 第6条
+
+**AIは提案を先に行い、重要な実行は人が判断する。**
+
+AI は、要約、提案、下書き、整理、比較、会議準備を担う。
+不可逆な外部行為は、人間の判断と承認を前提とする。
+
+### 第7条
+
+**活動履歴は資産である。**
+
+Project の進行、会議、応募、支援、協業、納品、営業、イベント準備、ファン参加、Manager Note など、すべての行動をできる限り履歴として残し、将来の文脈として使う。
+
+### 第8条
+
+**信頼は、排除ではなく適切な解放のために使う。**
+
+信頼スコアや信頼プロファイルは、「切り捨て」のためではなく、
+
+- どの支援をどこまで深く行えるか
+- どの機会を提示できるか
+- どの責任を任せられるか
+
+を決めるために使う。
+
+### 第9条
+
+**趣味層を軽視しない。**
+
+趣味で続ける人も、この世界の大切な一員である。
+早すぎる段階で、プロ基準や収益基準を押しつけない。
+
+### 第10条
+
+**プロ向けの道は甘くしない。**
+
+本気の案件、本気のオーディション、本気の役割、本気の舞台には、相応の継続性、信頼性、準備度、現場対応力を求める。
+
+### 第11条
+
+**ファンを単なる支払い手段にしない。**
+
+ファンは、支え、広げ、参加し、コミュニティを育てる存在である。
+その貢献を価値として扱う。
+
+### 第12条
+
+**協力者や支援者を周辺扱いしない。**
+
+関連クリエイター、エンジニア、デザイナー、制作支援者、運営支援者などは、創作を成立させる重要な構成員である。
+
+### 第13条
+
+**UIは管理画面ではなく、事務所空間として進化させる。**
+
+設定項目の集合体ではなく、
+
+- 話す
+- 会議する
+- 予定を立てる
+- 進める
+- 振り返る
+
+という流れを中心にした仕事場にする。
+
+### 第14条
+
+**数字は意味とセットで見せる。**
+
+進捗、信頼、ステージ、支援額、活動量などは、数字だけではなく、
+
+- 何を意味するか
+- 次に何をすべきか
+- 何が不足しているか
+
+とセットで示す。
+
+### 第15条
+
+**最小構成で最大効果を狙う。**
+
+初期段階ではロールや制度を増やしすぎず、最も効果の高い構造から実装する。
+
+## 2-3. 信頼に関する原則
+
+信頼は単一の点数ではなく、複数軸で持つ。
+
+想定軸:
+
+- 継続性
+- 約束遵守
+- 協業信頼
+- プロ準備度
+- コミュニティ信頼
+- 現在の勢い
+- 運営成熟度
+- 現場対応力
+- 財務衛生
+- 持続可能性
+
+また、信頼は次の3層で扱う。
+
+- 自己評価
+- 他者評価
+- 実績評価
+
+この三つを混ぜて単純化しすぎない。
+
+## 2-4. AIに関する原則
+
+AI Office は、単なる雑談チャットではなく、事務所機能群として設計する。
+
+担う役割の例:
+
+- Daily Briefing
+- Meeting Agenda
+- Note Summarization
+- Task Suggestion
+- Draft Generation
+- Opportunity Comparison
+- Weekly Reflection
+- Missing Items Detection
+
+ただし、AI は圧力装置になってはならない。
+能動性は、支配や催促ではなく、適切なタイミングでの支援として実装する。
+
+## 2-5. 成長に関する原則
+
+Creator Founding は、人を人気順に並べるだけの場ではない。
+「今どの段階にいて、次の段階へ行くには何が足りないか」を示す場である。
+
+そのために、
+
+- Stage Map
+- Skill Map
+- Trust Map
+- Missing Items Tracker
+
+を持つ。

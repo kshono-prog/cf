@@ -8,6 +8,10 @@ The primary operator of the system. A creator owns projects, receives support, c
 
 A person who contributes to a creator's project or interacts with creator-facing updates and messages.
 
+## ManagerAssignment
+
+A support assignment that defines which manager is responsible for which creator, including ownership and assignment status.
+
 ## Project
 
 The main funding unit. A project can have a goal, contributions, purposes, settlement state, and AI tasks.
@@ -79,3 +83,15 @@ A linked external account used as the source for metrics collection or later cre
 ## ContentMetricSnapshot
 
 A point-in-time metrics record used by `ANALYZE`, `PROPOSE`, `WEEKLY_REPORT`, and message or announcement drafts as context.
+
+## ManagerNote
+
+A manager-authored note that stores field context, negotiation points, creator condition observations, risks, and follow-up details that should not be flattened into generic task data.
+
+## ExternalContact
+
+A stateful record for venues, organizers, media, brands, companies, collaborators, or other external counterparties connected to a creator or project.
+
+## ActionLog
+
+An append-oriented event record that captures creator, manager, AI Office, or system actions for auditability, timeline reconstruction, and future trust context.

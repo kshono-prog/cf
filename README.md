@@ -1,246 +1,126 @@
 # Creator Founding
 
-Creator Founding は、クリエイターの活動・支援・運営タスクをまとめて扱う  
-**クリエイター向け AI事務所の土台**です。
+Creator Founding は、**Creator・Manager・AI Office** を核として、
+創る人、支える人、運営する人が信頼を積み上げながら、ともに成長できる
+**創作活動の事務所基盤**です。
 
-現時点では、JPYC / USDC を使った支援体験と、Project / Goal / Settlement、  
-AI task による運営補助を MVP として扱います。
+現時点のプロダクトは、公開プロフィール、Project / Goal / Contribution、Settlement / Distribution、AI Office を持つ運営基盤として動いています。
+ここから、Creator Home と Manager Desk を中心にした人間中心の運営OSへ進化させます。
 
-送金はすべてユーザー自身のウォレットで実行され、本サービスは  
-資金の保管・仲介・代理送金を一切行いません。
+送金はすべてユーザー自身のウォレットで実行され、本サービスは資金の保管・仲介・代理送金を行いません。
 
----
+## モットー
 
-## コンセプト
+**すべての人に開く。信頼を積み上げる。ともに成長する。**
 
-- 応援は「支払い」ではなく「継続を支える行為」
-- 1 円・即時・国境を越える
-- クリエイターの活動を **Project 単位**で可視化する
-- 将来的には **承認付き半自動運営の AI事務所** に育てる
+## これは何か
 
----
+Creator Founding は、単なる投げ銭アプリでも、単なるAIチャットでも、単なるプロフィール作成ツールでもありません。
 
-## 現在の提供範囲
+目指しているのは、次の三者構造です。
 
-### MVP
+- Creator: 創作と最終意思決定の主体
+- Manager: 現場・対外・実行・調整の主体
+- AI Office: 整理・提案・記録・補助の主体
 
-- クリエイタープロフィール公開
-- Project / Goal / Contribution 管理
-- Settlement / Distribution の基盤
-- AI task（`ANALYZE`, `PROPOSE`, `TRANSLATE`）
-- AI task 基盤（validator / output schema / executor registry）
+この三者が役割分担することで、創作活動を「個人の孤独な努力」から、「支援・運営・協業・機会・継続が循環する構造」へ変えていきます。
 
-### Beta
+## 現在の到達点
 
-- AI Office の拡張
-- metrics 収集と分析
-- Gas support
-- Event 機能
-- 高度な bridge / CCTP 運用
+- 公開プロフィールは、支援・進捗・活動を見せる public surface として成立している
+- `mypage` は、Project / Goal / Summary / Settlement を統合する Creator 運営ハブの原型になっている
+- AI Office は、承認付きの下書き・整理・提案フローとして動いている
+- Settlement は、高リスク領域として明示的な review 境界を維持している
 
----
+## 次に進む方向
 
-## 主なMVP機能
+次に進むべき優先順位は次です。
 
-### 1. クリエイタープロフィール
+1. Creator Home を「設定中心」から「状態 / 提案 / 行動中心」のホームへ再設計する
+2. `ManagerAssignment / ManagerNote / ExternalContact / ActionLog` の schema と API 契約を固める
+3. Manager Desk の Dashboard / Creator Detail を実装できる read model を整える
+4. Meeting / Planner / follow-up の最小運営フローを追加する
+5. AI Daily Briefing や note summarization を structured data 上に載せる
 
-- 表示名 / プロフィール文
-- アバター画像
-- テーマカラー（ページ全体に反映）
-- SNS / Web / YouTube リンク
-- 投げ銭受取ウォレットアドレス
+## Core Docs
 
-#### 編集（mypage）
+まずは次を読むと、現在の方向性と優先順位が揃います。
 
-- View / Edit を明確に分離
-- 保存中状態の制御
-- アバター preview URL の revoke 管理
+- [Documentation Guide](/Users/shounokazuaki/cf/docs/README.md)
+- [Vision](/Users/shounokazuaki/cf/docs/roadmap/vision.md)
+- [Project Constitution](/Users/shounokazuaki/cf/docs/project-constitution.md)
+- [Roadmap](/Users/shounokazuaki/cf/docs/roadmap/roadmap.md)
+- [Execution Plan](/Users/shounokazuaki/cf/docs/roadmap/execution-plan.md)
+- [Project State](/Users/shounokazuaki/cf/PROJECT_STATE.md)
+- [Tasks](/Users/shounokazuaki/cf/TASKS.md)
 
----
+## 主要仕様
 
-### 2. Project（支援単位）
+- [Architecture](/Users/shounokazuaki/cf/docs/architecture.md)
+- [Domain Model](/Users/shounokazuaki/cf/docs/domain-model.md)
+- [Creator・Manager・AI Office の責任境界](/Users/shounokazuaki/cf/docs/creator-manager-ai-office-responsibility-boundaries.md)
+- [Creator Home 再設計案](/Users/shounokazuaki/cf/docs/specs/ux/creator-home-redesign.md)
+- [Manager Desk 要件定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/requirements.md)
+- [Manager Desk データモデル定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/data-models.md)
+- [AI Office task output contracts](/Users/shounokazuaki/cf/docs/specs/creator-ai-office/task-output-contracts.md)
 
-Creator は Project を作成することで、以下を有効化できます。
+## 現在の主要サーフェス
 
-- プロジェクトタイトル / 説明
-- purposeMode（OPTIONAL / REQUIRED）
-- 投げ銭（Contribution）の集計
-- 目標金額（Goal）の管理
+| パス | 役割 |
+| --- | --- |
+| `/[username]` | 公開プロフィール / 支援導線 / 活動表示 |
+| `/[username]/mypage` | Creator Home の原型 / Project / Goal / AI Office / Settlement |
+| `/creators` | クリエイター発見ページ |
+| `/api/*` | Creator / Project / Contribution / AgentTask / metrics などの API |
 
-Project は「目標・内訳・進捗」を束ねる最小単位です。
+## 現在の中核データ
 
----
+- `CreatorProfile`
+- `Project`
+- `Goal`
+- `Contribution`
+- `AgentTask`
+- `Settlement`
+- `DistributionRun`
+- `BridgeRun`
 
-### 3. 投げ銭（Contribution）
+次の中核データとして、`ManagerAssignment / ManagerNote / ExternalContact / ActionLog` を追加する方向です。
 
-- 対応通貨：JPYC / USDC
-- 対応チェーン：
-  - Polygon（Mainnet / Amoy）
-  - Avalanche（Mainnet / Fuji）
-- ウォレット接続：AppKit / wagmi
+## 安全境界
 
-#### フロー
-
-1. ユーザーがウォレットから ERC20 transfer
-2. txHash を localStorage に保存
-3. `/api/contributions` に POST（PENDING）
-4. receipt 検証（reverify）
-5. CONFIRMED → DB 集計に反映
-
----
-
-### 4. 進捗・目標管理
-
-#### DB ベース進捗（Phase1）
-
-- CONFIRMED のみを集計
-- 総額 / 目標額 / 達成率を表示
-- 目標到達時は自動で達成確定を試行
-- 失敗時は手動 Achieve ボタンで確定可能
-
-#### オンチェーン残高（補助）
-
-- creator.address の JPYC 残高を直接参照
-- DB 進捗とは独立した参考情報
-
----
-
-### 5. Settlement / Distribution 基盤
-
-- Goal 達成後の settlement 状態管理
-- 配分 plan / 実行結果の保存
-- bridge / distribution の監査用状態保持
-
----
-
-### 6. AI task（運営補助）
-
-- `ANALYZE`: metrics を元に活動分析
-- `PROPOSE`: 次の企画や投稿方針を提案
-- `TRANSLATE`: 翻訳案を生成
-- `AgentTask` による承認前提の task 運用
-
----
-
-### 7. Reverify（復帰・自動検証）
-
-- iOS / アプリ内ブラウザでの遷移対策
-- PENDING tx の自動再検証
-- Cooldown / 最大件数制御
-- StrictMode 二重実行ガード対応
-
----
-
-## 画面構成
-
-| パス                 | 内容                                 |
-| -------------------- | ------------------------------------ |
-| `/[username]`        | クリエイター公開ページ               |
-| `/[username]/mypage` | プロフィール / Project / AI task 管理 |
-| `/api/*`             | Creator / Project / Contribution / AgentTask API |
-
----
+- 完全自動運営は行わない
+- 高リスクなお金まわり・配分・ブリッジは常に人間承認前提
+- 対外公開・応募・契約・支払い・分配は AI 単独で確定しない
+- Manager 専用の現場知や対外温度感は、責任境界を守って扱う
 
 ## 技術スタック
 
 ### Frontend
 
-- Next.js（App Router）
-- TypeScript（any 不使用）
+- Next.js 15 App Router
+- TypeScript
 - Tailwind CSS
-- wagmi / viem / ethers v6
-- AppKit（Wallet UI）
+- wagmi / viem
 
 ### Backend
 
 - Next.js Route Handlers
 - Prisma
-- PostgreSQL（Supabase）
+- Supabase Postgres
 
 ### Blockchain
 
 - Polygon
 - Avalanche
 
----
+## 検証の基本
 
-## データモデル（要約）
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
 
-### CreatorProfile
-
-- username（unique）
-- displayName
-- walletAddress
-- themeColor
-- activeProjectIdJpyc / activeProjectIdUsdc
-
-### Project
-
-- ownerAddress
-- title / description
-- purposeMode
-- status
-- creatorProfileId
-- Goal（Project 側が正本）
-
-### Contribution
-
-- projectId
-- txHash
-- chainId / currency
-- amount
-- status（PENDING / CONFIRMED）
-
----
-
-## 制限事項・注意点
-
-- 本サービスは **個人学習目的の UI ツール**
-- 送金・資金管理・返金処理は行いません
-- JPYC / USDC の発行主体とは無関係です
-- 投げ銭は **無償の応援**であり、金銭的・物品的な対価は発生しません
-- 完全自動運営ではなく、当面は **承認付き半自動** を前提にします
-
----
-
-## 開発・運用メモ
-
-- 表示は原則 `cache: "no-store"`（保存後の即時反映を優先）
-- Project が存在しない場合、進捗 UI は表示されません
-- PENDING が残る場合は reverify / refresh で回収します
-
-### Seed メモ
-
-- `npm run db:seed` は `CreatorProfile + Project + 通貨別 activeProjectId + optional Goal` を作れます
-- `SEED_PROJECT_CURRENCY=JPYC|USDC` で seed project の通貨を指定できます
-- `SEED_GOAL_TARGET_AMOUNT` を指定すると `Project.goal` が作成されます
-- `SEED_GOAL_DEADLINE` は ISO 文字列で指定できます
-- `docs/runbooks/project-goal-smoke-check.md` に public / mypage / AI snapshot の smoke check 手順があります
-
-### Legacy goal cleanup
-
-- `node scripts/backfillLegacyGoalsToProjects.cjs` で外部 `users.json` の `goalTargetJpyc` を `Project.goal` へ backfill できます
-- `LEGACY_USERS_JSON=/abs/path/users.json` を付けると別ファイルを指定できます
-- `goalTitle` は現行 schema に保存先がないため、script は `target amount` と `deadline` だけを移します
-
-### Active project cleanup
-
-- 新規 project 作成と seed は通貨別 `activeProjectIdJpyc / activeProjectIdUsdc` を正本として更新します
-- generic `activeProjectId` は schema から削除済みです
-- migration 適用前に通貨別 active project が埋まっていることを確認してから deploy してください
-
----
-
-## 直近の開発方針
-
-- MVP と beta 機能境界を明確にする
-- `AccountPageClient` の責務を分割する
-- lint / type / build を安定化する
-- 新しい AI task を1つ追加して、AgentTask 拡張フローを検証する
-
----
+Prisma schema を変更する場合は、migration impact と rollback concern を必ず説明します。
 
 ## ライセンス
 
-Private / Experimental  
-商用利用・再配布は想定していません。
+Private / Experimental
