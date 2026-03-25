@@ -13,6 +13,7 @@ import type {
 type ProjectHealthCardProps = {
   currency: CurrencyCode;
   dashboard: MyPageProjectDashboard | null;
+  onOpenSettings?: () => void;
 };
 
 function ProjectHealthCard(props: ProjectHealthCardProps) {
@@ -21,7 +22,17 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
       <WorkspaceEmptyState
         title={`${props.currency} の支援設定はまだありません`}
         description="この通貨で支援を受ける場合は、詳細設定からプロジェクトと目標金額を設定してください。"
-      />
+      >
+        {props.onOpenSettings ? (
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={props.onOpenSettings}
+          >
+            設定・準備を開く
+          </button>
+        ) : null}
+      </WorkspaceEmptyState>
     );
   }
 
@@ -48,6 +59,26 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
           ? "ブリッジ進行中"
           : "精算はこれから"
     : "精算はこれから";
+  const progressPct = Math.min(100, Math.max(0, Math.round(progress.progressPct)));
+  const nextStep = !goal
+    ? "Goal を設定すると、支援理由と次の行動が支援者に伝わりやすくなります。"
+    : goal.achievedAt
+      ? props.dashboard.settlement?.settlement.status === "DISTRIBUTED"
+        ? "配分は完了しています。結果共有や次のプロジェクト準備へ進めます。"
+        : props.dashboard.settlement?.settlement.status === "READY_FOR_DISTRIBUTION"
+          ? "配分内容を確認して、実行に進める状態です。"
+          : props.dashboard.settlement?.settlement.status === "BRIDGING"
+            ? "ブリッジ完了後の配分確認に備えましょう。"
+            : "達成後の精算確認を進めましょう。"
+      : progressPct === 0
+        ? "最初の告知と使い道の説明を整えて、支援の入口を作りましょう。"
+        : progressPct < 50
+          ? "進捗共有を増やして、支援理由をもう一歩具体化しましょう。"
+          : progressPct < 100
+            ? "達成まであと少しです。近況共有と告知の密度を上げましょう。"
+            : "達成後の整理と次のアクション確認へ進めます。";
+  const remainingAmount =
+    goal && total !== null ? Math.max(goal.targetAmount - total, 0) : null;
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -65,6 +96,13 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
         </span>
       </div>
 
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-slate-900 transition-[width]"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+
       <dl className="mt-4 space-y-2 text-xs text-gray-600">
         <div className="flex items-center justify-between gap-4">
           <dt>現在の支援額</dt>
@@ -80,21 +118,38 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
           <dt>精算状況</dt>
           <dd className="font-medium text-gray-900">{settlementState}</dd>
         </div>
+        {remainingAmount !== null && remainingAmount > 0 ? (
+          <div className="flex items-center justify-between gap-4">
+            <dt>達成まで</dt>
+            <dd className="font-medium text-gray-900">
+              {formatAmountByCurrency(remainingAmount, totalCurrency)}{" "}
+              {totalCurrency}
+            </dd>
+          </div>
+        ) : null}
       </dl>
+
+      <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-3 text-xs leading-5 text-slate-600">
+        <div className="font-semibold text-slate-900">次に必要なこと</div>
+        <div className="mt-1">{nextStep}</div>
+      </div>
     </div>
   );
 }
 
 type Props = {
   projectDashboardsByCurrency: ProjectDashboardsByCurrency;
+  onOpenSettings?: () => void;
 };
 
 export function CreatorReadyProjectHealthSection(props: Props) {
   return (
     <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
-      <div className="text-sm font-semibold text-slate-950">支援の進み具合</div>
+      <div className="text-sm font-semibold text-slate-950">
+        プロジェクトの進行状況
+      </div>
       <p className="mt-1 text-xs leading-5 text-slate-600">
-        各通貨の支援額・目標・達成状況を確認できます。
+        Project / Goal / 精算の現在地をまとめて確認できます。
       </p>
       <div className="mt-4 grid gap-3">
         {(["JPYC", "USDC"] as const).map((currency) => (
@@ -102,6 +157,7 @@ export function CreatorReadyProjectHealthSection(props: Props) {
             key={currency}
             currency={currency}
             dashboard={props.projectDashboardsByCurrency[currency]}
+            onOpenSettings={props.onOpenSettings}
           />
         ))}
       </div>

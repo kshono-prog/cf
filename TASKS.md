@@ -3,48 +3,64 @@
 ## Current Focus
 
 - **Direction Sync 完了**: Vision / Constitution / Roadmap / responsibility boundaries / Creator Home / Manager Desk / data models の文書化が揃った
-- **Next Build Phase**: 人間中心の運営OSの土台を実装へ移す — Creator Home first slice / manager core models / Manager Desk dashboard
+- **Next Build Phase**: 人間中心の運営OSの土台を実装へ移す — `Meeting / Planner / follow-up minimum` は実装済み。次は structured context を使う AI operational assistance
 - **Planning Baseline**: 短期・中期・長期の実行計画は [Execution Plan](/Users/shounokazuaki/cf/docs/roadmap/execution-plan.md) を基準にする
 
 ## Recommended Next Execution Order
 
-1. Creator Home first slice の issue 分解
-2. `ManagerAssignment / ManagerNote / ExternalContact / ActionLog` の Prisma schema proposal
-3. Manager Desk dashboard / creator detail の read model 設計
-4. `Meeting / Planner / follow-up` 最小導線
-5. AI Daily Briefing / note summarization / task extraction の structured-data 接続
+1. [AI operational assistance on structured context](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-ai-operational-assistance-structured-context.md)
+2. [Manager Desk follow-up slices](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-manager-desk-follow-up-slices.md)
+3. [Creator Home deferred sections](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-creator-home-deferred-sections.md)
+4. Meeting 決定事項を structured task に落とす minimum flow
+5. Trust / Stage / CRM groundwork
 
 ## Active Tracks
 
 Track 8-A — Creator Home first slice
-- `Hero / Daily Briefing`
-- `Project Progress` card 化
-- `AI Manager` cards
-- `Today / This Week`
-- `Settings / Edit` collapse
+- `CH-1` 完了: `Hero / Daily Briefing`
+- `CH-1` 完了: `Project Progress` card 化
+- `CH-2` 完了: `AI Manager` cards
+- `CH-2` 完了: `Today / This Week`
+- `CH-2` 完了: settings-first ではない Home 導線
 
 Track 8-B — Manager core models and contracts
-- `ManagerAssignment`
-- `ManagerNote`
-- `ExternalContact`
-- `ActionLog`
-- approval-needed Prisma change proposal
+- 完了: `ManagerAssignment`
+- 完了: `ManagerNote`
+- 完了: `ExternalContact`
+- 完了: `ActionLog`
+- 完了: additive Prisma schema + migration + minimal APIs
 
 Track 8-C — Manager Desk first slice
-- Dashboard
-- Creator Detail
-- shared read model for manager-side overview
+- 完了: issue 分解
+- 完了: Dashboard / Creator Detail read model
+- 完了: Dashboard MVP
+- 完了: Creator Detail MVP
 
 Track 8-D — Meeting / Planner / follow-up minimum
-- meeting contract
-- next action handling
-- shared timeline inputs
+- 完了: meeting contract
+- 完了: shared timeline input shape
+- 完了: schema/read model proposal docs
+- 完了: additive `Meeting` schema + migration
+- 完了: `Meeting` create / list / read / update APIs
+- 完了: Creator Home `Upcoming / Planner` MVP
+- 完了: Manager Desk `Upcoming / Planner` MVP
 
 Track 8-E — AI operational assistance on structured context
-- Daily Briefing
-- Manager Note summarization
-- follow-up extraction
-- missing-items detection
+- ready: issue doc created
+- next: `AO-1` Daily Briefing read contract
+- after: `AO-2` note summarization / follow-up extraction
+- later: missing-items detection
+
+Track 8-F — Manager Desk follow-up slices
+- ready: issue doc created
+- next: `MF-1` Contact Pipeline MVP
+- after: `MF-2` Notes surface
+- after: `MF-3` Activity Timeline
+
+Track 8-G — Creator Home deferred sections
+- ready: issue doc created
+- next: `CHD-1` Manager Feed MVP
+- after: `CHD-2` Growth / Reflection MVP
 
 ## Phase 2 UX（完了済み）
 
@@ -233,6 +249,10 @@ Sprint 7-C — クリエイター発見ページ: **完了**
 
 ## Ready Queue
 
-- Creator Home first slice issue breakdown
-- manager core schema draft
-- Manager Desk dashboard read model
+- [Manager Core Schema Proposal v0.1](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
+- [Creator Home first slice の完了メモ](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-creator-home-first-slice.md)
+- [Manager Desk first slice の issue 分解](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-manager-desk-first-slice.md)
+- [AI operational assistance on structured context](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-ai-operational-assistance-structured-context.md)
+- [Manager Desk follow-up slices](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-manager-desk-follow-up-slices.md)
+- [Creator Home deferred sections](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-creator-home-deferred-sections.md)
+- [Meeting / Planner / follow-up minimum contract](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-meeting-planner-minimum.md)

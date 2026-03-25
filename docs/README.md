@@ -23,6 +23,21 @@ Creator Founding の方向性・責任境界・実装優先順位をそろえる
 - [Creator Workspace Information Architecture](/Users/shounokazuaki/cf/docs/specs/ux/creator-workspace-information-architecture.md)
 - [Manager Desk 要件定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/requirements.md)
 - [Manager Desk データモデル定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/data-models.md)
+- [Manager Core Schema Proposal](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
+- [Meeting / Planner / Follow-up Minimum Contract](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+
+## Current Implementation Starting Points
+
+- [Creator Home first slice issue breakdown](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-creator-home-first-slice.md)
+- [manager core schema proposal task](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-manager-core-schema-proposal.md)
+- [Manager Core Schema Proposal v0.1](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
+- [Meeting / Planner / follow-up minimum contract task](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-meeting-planner-minimum.md)
+- [Meeting / Planner / Follow-up Minimum Contract](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+- [meeting schema proposal and shared timeline read model](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-meeting-schema-proposal.md)
+- [Meeting Schema Proposal v0.1](/Users/shounokazuaki/cf/docs/specs/operations/meeting-schema-proposal.md)
+- [AI operational assistance on structured context](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-ai-operational-assistance-structured-context.md)
+- [Manager Desk follow-up slices](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-manager-desk-follow-up-slices.md)
+- [Creator Home deferred sections](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-creator-home-deferred-sections.md)
 
 ## Runtime And AI Specs
 

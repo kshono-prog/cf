@@ -341,6 +341,27 @@ Should remain as append-oriented event history rather than mutable state.
 Detailed schema draft:
 
 - [`docs/specs/manager-desk/data-models.md`](/Users/shounokazuaki/cf/docs/specs/manager-desk/data-models.md)
+- [`docs/specs/manager-desk/schema-proposal.md`](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
+- [`docs/specs/operations/meeting-planner-follow-up-minimum.md`](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+
+### 5.5 Meeting / Planner / Follow-up
+
+`Meeting` は future calendar integration の前に、
+まず Creator と Manager の意思決定単位として扱う。
+
+`Planner` は phase 1 では write-heavy scheduler ではなく、
+`Meeting / ManagerNote follow-up / ExternalContact next action / Project deadline`
+を合成する shared timeline read model として始める。
+
+Current implementation status:
+
+- additive `Meeting` schema and migration are in code
+- `Meeting` minimal APIs are available for create / list / read / update
+- Creator Home and Manager Desk Creator Detail now render `Upcoming / Planner` from the shared timeline helper
+
+詳細 contract:
+
+- [`docs/specs/operations/meeting-planner-follow-up-minimum.md`](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
 
 ## 6. Planned Information Architecture Changes
 

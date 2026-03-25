@@ -2,16 +2,29 @@
 
 import dynamic from "next/dynamic";
 
+import { CreatorReadyAiManagerSection } from "@/components/mypage/CreatorReadyAiManagerSection";
+import { CreatorReadyDailyBriefingHero } from "@/components/mypage/CreatorReadyDailyBriefingHero";
+import { CreatorReadyUpcomingPlannerSection } from "@/components/mypage/CreatorReadyUpcomingPlannerSection";
 import { CreatorReadyProjectHealthSection } from "@/components/mypage/CreatorReadyProjectHealthSection";
+import { CreatorReadyTodayThisWeekSection } from "@/components/mypage/CreatorReadyTodayThisWeekSection";
 import { CreatorReadyWeeklySummarySection } from "@/components/mypage/CreatorReadyWeeklySummarySection";
+import {
+  buildCreatorReadyAiManagerCards,
+  buildCreatorReadyTaskLists,
+} from "@/components/mypage/creatorReadyHomeAiHelpers";
 import { WorkspaceLoadingCard, WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import { hasCreatorReadySettlementAttention } from "@/components/mypage/creatorReadyWorkspaceOverviewHelpers";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
+import { useCreatorReadyHomeAiOfficeSummary } from "@/components/mypage/useCreatorReadyHomeAiOfficeSummary";
+import { useCreatorReadyPlannerTimeline } from "@/components/mypage/useCreatorReadyPlannerTimeline";
 import { useCreatorReadyHomeStats } from "@/components/mypage/useCreatorReadyHomeStats";
 import { useCreatorReadyWorkspaceProjectDashboards } from "@/components/mypage/useCreatorReadyWorkspaceProjectDashboards";
 import { useDailyActionPlanAutoTrigger } from "@/components/mypage/useDailyActionPlanAutoTrigger";
 import { hasProjectSummary } from "@/lib/mypage/dashboardTypes";
-import { AI_OFFICE_URL_PARAMS } from "@/components/mypage/aiOfficePanelUrlState";
+import {
+  buildAiOfficePanelHref,
+  type AiOfficePanelUrlState,
+} from "@/components/mypage/aiOfficePanelUrlState";
 
 const CreatorWorkspaceAiOfficePanel = dynamic(
   () =>
@@ -51,6 +64,10 @@ export function CreatorReadyHomeRoute(props: Props) {
   const needsSetup = profileMissing || goalMissing;
 
   const localProjectId = workspace.localProjectId;
+  const primaryDashboard =
+    activeDashboards.find((dashboard) => dashboard.projectId === localProjectId) ??
+    activeDashboards[0] ??
+    null;
 
   useDailyActionPlanAutoTrigger({
     address: workspace.address,
@@ -62,70 +79,135 @@ export function CreatorReadyHomeRoute(props: Props) {
     !homeStats.loadingPosting &&
     (homeStats.postCount ?? 1) === 0 &&
     goalMissing;
+  const aiOfficeSummary = useCreatorReadyHomeAiOfficeSummary({
+    address: workspace.address,
+    projectId: localProjectId,
+    isConnected: workspace.isConnected,
+  });
+  const planner = useCreatorReadyPlannerTimeline({
+    address: workspace.address,
+    isConnected: workspace.isConnected,
+    limit: 6,
+  });
 
-  const aiOfficeCreateHref =
-    typeof window !== "undefined"
-      ? (() => {
-          const params = new URLSearchParams(window.location.search);
-          params.set(AI_OFFICE_URL_PARAMS.view, "CREATE");
-          params.set(AI_OFFICE_URL_PARAMS.role, "MANAGER");
-          return `${window.location.pathname}?${params.toString()}#ai-office`;
-        })()
-      : "#ai-office";
+  function buildAiOfficeHref(state: AiOfficePanelUrlState): string {
+    if (typeof window === "undefined") {
+      return "#ai-office";
+    }
+    return buildAiOfficePanelHref({
+      pathname: window.location.pathname,
+      hash: "#ai-office",
+      currentSearchParams: new URLSearchParams(window.location.search),
+      state,
+    });
+  }
 
-  const setupDescription = profileMissing
-    ? "まずプロフィール（名前・紹介文）を設定すると、支援者に伝わる公開ページの土台ができます。"
-    : "支援を受け取るための目標金額がまだ設定されていません。「設定」から整えましょう。";
+  const aiOfficeCreateManagerHref = buildAiOfficeHref({
+    activeView: "CREATE",
+    selectedRoleId: "MANAGER",
+    selectedInboxRoleId: null,
+    openLatestTaskType: null,
+  });
+  const aiOfficeCreatePromotionHref = buildAiOfficeHref({
+    activeView: "CREATE",
+    selectedRoleId: "PROMOTION",
+    selectedInboxRoleId: null,
+    openLatestTaskType: null,
+  });
+  const aiOfficeInboxHref = buildAiOfficeHref({
+    activeView: "INBOX",
+    selectedRoleId: "MANAGER",
+    selectedInboxRoleId: null,
+    openLatestTaskType: null,
+  });
+  const aiOfficeOverviewHref = buildAiOfficeHref({
+    activeView: "OVERVIEW",
+    selectedRoleId: "MANAGER",
+    selectedInboxRoleId: null,
+    openLatestTaskType: null,
+  });
+  const aiOfficeHref = isNewCreator ? aiOfficeCreateManagerHref : aiOfficeOverviewHref;
+  const publicPageHref = `/${workspace.meCreatorUsername}`;
+
+  const aiManagerCards = buildCreatorReadyAiManagerCards({
+    tasks: aiOfficeSummary.tasks,
+    usefulness: aiOfficeSummary.usefulness,
+    contentSummary: aiOfficeSummary.contentSummary,
+    profileMissing,
+    goalMissing,
+    settlementAttentionNeeded,
+    avgProgressPct: homeStats.avgProgressPct,
+    hrefs: {
+      aiOfficeOverview: aiOfficeOverviewHref,
+      aiOfficeInbox: aiOfficeInboxHref,
+      aiOfficeInboxRole: (roleId) =>
+        buildAiOfficeHref({
+          activeView: "INBOX",
+          selectedRoleId: "MANAGER",
+          selectedInboxRoleId: roleId,
+          openLatestTaskType: null,
+        }),
+      aiOfficeCreateManager: aiOfficeCreateManagerHref,
+      aiOfficeCreatePromotion: aiOfficeCreatePromotionHref,
+    },
+  });
+
+  const taskLists = buildCreatorReadyTaskLists({
+    tasks: aiOfficeSummary.tasks,
+    usefulness: aiOfficeSummary.usefulness,
+    contentSummary: aiOfficeSummary.contentSummary,
+    profileMissing,
+    goalMissing,
+    settlementAttentionNeeded,
+    avgProgressPct: homeStats.avgProgressPct,
+    hrefs: {
+      aiOfficeOverview: aiOfficeOverviewHref,
+      aiOfficeInbox: aiOfficeInboxHref,
+      aiOfficeCreateManager: aiOfficeCreateManagerHref,
+      aiOfficeCreatePromotion: aiOfficeCreatePromotionHref,
+    },
+  });
 
   return (
     <div className="space-y-4">
       {dashboardError ? (
         <WorkspaceStatusNotice tone="error" title={dashboardError} />
       ) : null}
-      {needsSetup && !settlementAttentionNeeded ? (
-        <WorkspaceStatusNotice
-          tone="attention"
-          title="設定・準備を整えると、支援者に伝わるページになります"
-          description={setupDescription}
-        >
-          <button
-            type="button"
-            onClick={props.onOpenSettings}
-            className="btn"
-          >
-            設定を開く
-          </button>
-        </WorkspaceStatusNotice>
-      ) : null}
-      {settlementAttentionNeeded ? (
-        <WorkspaceStatusNotice
-          tone="attention"
-          title="精算が必要な状態のプロジェクトがあります"
-          description="目標達成または精算対象のプロジェクトがあります。「設定」タブから確認してください。"
-        >
-          <button
-            type="button"
-            onClick={props.onOpenSettings}
-            className="btn"
-          >
-            設定を開く
-          </button>
-        </WorkspaceStatusNotice>
-      ) : null}
-      {isNewCreator ? (
-        <WorkspaceStatusNotice
-          tone="attention"
-          title="まずここから始めましょう"
-          description="AIアシスタントがあなたの最初の一歩をサポートします。プロフィールの改善案を作ってもらうところから始めてみましょう。"
-        >
-          <a
-            href={aiOfficeCreateHref}
-            className="btn"
-          >
-            AIアシスタントに相談する →
-          </a>
-        </WorkspaceStatusNotice>
-      ) : null}
+      <CreatorReadyDailyBriefingHero
+        creatorName={workspace.displayName || workspace.meCreatorUsername}
+        publicPageHref={publicPageHref}
+        aiOfficeHref={aiOfficeHref}
+        primaryDashboard={primaryDashboard}
+        avgProgressPct={homeStats.avgProgressPct}
+        postCount={homeStats.postCount}
+        publishedCount={homeStats.publishedCount}
+        needsSetup={needsSetup}
+        profileMissing={profileMissing}
+        goalMissing={goalMissing}
+        settlementAttentionNeeded={settlementAttentionNeeded}
+        isNewCreator={isNewCreator}
+        onOpenSettings={props.onOpenSettings}
+      />
+      <CreatorReadyProjectHealthSection
+        projectDashboardsByCurrency={projectDashboardsByCurrency}
+        onOpenSettings={props.onOpenSettings}
+      />
+      <CreatorReadyAiManagerSection
+        loading={aiOfficeSummary.loading}
+        cards={aiManagerCards}
+        onOpenSettings={props.onOpenSettings}
+      />
+      <CreatorReadyTodayThisWeekSection
+        loading={aiOfficeSummary.loading}
+        today={taskLists.today}
+        week={taskLists.week}
+        onOpenSettings={props.onOpenSettings}
+      />
+      <CreatorReadyUpcomingPlannerSection
+        loading={planner.loading}
+        error={planner.error}
+        data={planner.data}
+      />
       <CreatorWorkspaceAiOfficePanel />
       <CreatorReadyWeeklySummarySection
         jpycTotal={homeStats.jpycTotal}
@@ -134,9 +216,6 @@ export function CreatorReadyHomeRoute(props: Props) {
         postCount={homeStats.postCount}
         publishedCount={homeStats.publishedCount}
         loadingPosting={homeStats.loadingPosting}
-      />
-      <CreatorReadyProjectHealthSection
-        projectDashboardsByCurrency={projectDashboardsByCurrency}
       />
     </div>
   );

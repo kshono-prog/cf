@@ -1,6 +1,6 @@
 # Project State
 
-最終更新: 2026-03-25
+最終更新: 2026-03-26
 
 ## Project Name
 
@@ -39,6 +39,9 @@ It is now defined as:
 - [Creator Home 再設計案](/Users/shounokazuaki/cf/docs/specs/ux/creator-home-redesign.md)
 - [Manager Desk 要件定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/requirements.md)
 - [Manager Desk データモデル定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/data-models.md)
+- [Manager Core Schema Proposal](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
+- [Meeting / Planner / Follow-up Minimum Contract](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+- [Meeting Schema Proposal](/Users/shounokazuaki/cf/docs/specs/operations/meeting-schema-proposal.md)
 
 ## Current Reality
 
@@ -73,6 +76,19 @@ The current implementation already includes several building blocks that support
 - aggregated mypage dashboard reads for `me / summary / settlement`
 - `AI Office` separated into `概要 / 下書きを作る / 承認待ち`
 - creator home routing that prioritizes daily work over advanced surfaces
+- `Creator Home` first slice now starts with a `Daily Briefing Hero` and `Project Progress` view ahead of settings-heavy editing
+- `Creator Home` also shows `AI Manager` cards and `Today / This Week` derived tasks from existing AI Office and progress signals
+- additive phase 1 manager core schema for `ManagerAssignment / ManagerNote / ExternalContact / ActionLog`
+- minimal manager-side APIs for assignments, notes, contacts, and action log reads
+- manager desk read model and API entrypoints for `dashboard / creator detail`
+- manager desk dashboard route now exists at [app/manager-desk/page.tsx](/Users/shounokazuaki/cf/app/manager-desk/page.tsx) with a top-level layout and creator workspace entry link
+- creator detail route now exists at [app/manager-desk/creators/[creatorProfileId]/page.tsx](/Users/shounokazuaki/cf/app/manager-desk/creators/[creatorProfileId]/page.tsx) and already shows `project / next actions / notes / contacts / action log`
+- additive `Meeting` schema, migration, and minimal Meeting APIs now exist
+- `Meeting` migration is now applied in the database environment
+- shared planner timeline helper now composes `Meeting / ManagerNote follow-up / ExternalContact next action / Project deadline`
+- Creator Home now includes `Upcoming / Planner`
+- Manager Desk Creator Detail now includes `Upcoming / Planner`
+- next planned slice is structured AI assistance over this new context: `Daily Briefing / note summarization / follow-up extraction`
 - public profile progress cards, support hero, and wallet contribution flow
 - guided settlement flow with explicit review boundaries
 - posting compose, supporter reporting, creator discovery, and notification groundwork from recent Phase 7 delivery
@@ -83,7 +99,7 @@ The current product still has several structural limitations:
 
 - `AccountPageClient` remains too central to creator-side orchestration
 - creator operations and settings/editing are not yet cleanly separated
-- manager workflows and relationship memory are not yet first-class surfaces
+- manager workflows and relationship memory now have dashboard UI ground, but `Contact Pipeline / Notes / Activity Timeline` are still incomplete
 - trust / stage / skill concepts are not yet modeled in the product
 - MVP and beta boundaries still need stronger product-level articulation
 
@@ -317,29 +333,27 @@ This means the current high-leverage priorities are not “full autonomy,” but
 - [Execution Plan](/Users/shounokazuaki/cf/docs/roadmap/execution-plan.md)
 
 1. turn Creator Home / Manager Desk / core model docs into implementation-sized issue slices
-2. propose Prisma schema changes for `ManagerAssignment / ManagerNote / ExternalContact / ActionLog` with migration impact clearly described
-3. implement the first Creator Home slice on top of the existing `AccountPageClient`
-4. implement Manager Desk dashboard + creator detail read models
-5. add minimum `Meeting / Planner / follow-up` flows
-6. layer AI Daily Briefing and note summarization on structured context
+2. approve and implement `Meeting` schema and shared timeline helper
+3. implement `Upcoming / Planner` in Creator Home and Manager Desk
+4. layer AI Daily Briefing and note summarization on structured context
+5. extend lightweight CRM behavior and Manager Desk follow-up slices
 
 ## Near-term Priorities
 
 ### Priority A
 
-- short-term execution plan を issue / PR 単位へ落とす
-- convert Creator Home / Manager Desk / responsibility-boundary docs into issue-ready implementation slices
-- define Prisma schema proposal for `ManagerAssignment / ManagerNote / ExternalContact / ActionLog`
-- define the read models needed for Creator Home and Manager Desk
+- prepare the inputs needed for AI Daily Briefing / note summarization over new structured context
+- start `AI operational assistance on structured context`
 - preserve approval boundaries for schema and high-risk flow changes
 
 ### Priority B
 
-- implement the first Creator Home slice (`Hero / Project Progress / AI Manager / Today-This Week / Settings collapse`)
-- implement the first Manager Desk slice (`Dashboard / Creator Detail`)
-- add Meeting / Planner minimum flows
+- extend Creator Home with `Manager Feed / Growth-Reflection`
 - add shared action timeline / follow-up handling
 - add AI Daily Briefing and note summarization over structured data
+- add lightweight CRM behavior over `ExternalContact`
+- expand Manager Desk with `Contact Pipeline / Notes / Activity Timeline`
+- convert meeting decisions into structured follow-up tasks
 
 ### Priority C
 

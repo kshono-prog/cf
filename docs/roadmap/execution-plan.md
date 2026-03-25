@@ -38,7 +38,7 @@ Vision を実装へ移すための最初の足場を作る。
    Creator Home、Manager Desk、責任境界、core data models を `1 Issue = 1 PR` に落とす。
 
 2. `Core schema proposal`
-   `ManagerAssignment / ManagerNote / ExternalContact / ActionLog` の Prisma schema proposal、API 契約、migration impact、rollback concern を整理する。
+   `ManagerAssignment / ManagerNote / ExternalContact / ActionLog` の Prisma schema proposal、API 契約、migration impact、rollback concern を整理し、phase 1 の additive schema と minimal APIs を実装する。
 
 3. `Creator Home first slice`
    `Hero / Daily Briefing`、`Project Progress` card、`AI Manager` cards、`Today / This Week`、`Settings / Edit` collapse を既存 `AccountPageClient` 上で実装する。
@@ -52,7 +52,7 @@ Vision を実装へ移すための最初の足場を作る。
 ### Exit Criteria
 
 - Creator Home の first slice がコードとして存在する
-- manager core models の schema proposal がレビュー可能な形で揃っている
+- manager core models の additive schema / migration / API がコードとして存在する
 - Manager Desk MVP に必要な read model が見えている
 - 次に実装する順番が issue 単位で明文化されている
 
@@ -126,9 +126,8 @@ Creator Founding を、信頼・成長・関係性・事業性まで扱える創
 
 ## Current Recommended Order
 
-1. Creator Home first slice issue breakdown
-2. manager core schema proposal
-3. Creator Home first slice implementation
-4. Manager Desk dashboard / creator detail read model and MVP
-5. Meeting / Planner / follow-up minimum
-6. AI Daily Briefing and note summarization on structured context
+1. [AI operational assistance on structured context](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-ai-operational-assistance-structured-context.md)
+2. [Manager Desk follow-up slices](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-manager-desk-follow-up-slices.md)
+3. [Creator Home deferred sections](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-creator-home-deferred-sections.md)
+4. structured meeting decisions -> follow-up task minimum flow
+5. Trust / Stage / CRM groundwork

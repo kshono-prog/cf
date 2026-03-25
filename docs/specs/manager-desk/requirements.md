@@ -3,6 +3,7 @@
 関連仕様:
 
 - [`docs/specs/manager-desk/data-models.md`](/Users/shounokazuaki/cf/docs/specs/manager-desk/data-models.md)
+- [`docs/specs/operations/meeting-planner-follow-up-minimum.md`](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
 
 ## 目的
 
@@ -402,6 +403,13 @@ Manager が Creator との会議を準備・記録・次回アクション化で
 - 次回会議の候補を持てる
 - AI Office が要約補助できる
 
+#### phase 1 方針
+
+最初は [`Meeting / Planner / Follow-up Minimum Contract`](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+の minimal contract に合わせ、
+`agenda / decisions / nextActionsSummary` を中心に扱う。
+full calendar 化や recurring はまだ scope 外とする。
+
 ### 5-8. タスク / フォローアップ管理
 
 #### 要件
@@ -433,6 +441,14 @@ Manager が Creator ごとの次アクションを明確に持てること。
 
 ToDoアプリではなく、
 **事務所のフォローアップ機構**として実装する。
+
+#### phase 1 方針
+
+phase 1 では generic task model を急がず、
+`ManagerNote.followUp*`、`ExternalContact.nextAction*`、future `Meeting.nextActionsSummary`
+を source of truth として扱う。
+詳細は [`Meeting / Planner / Follow-up Minimum Contract`](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+を参照する。
 
 ### 5-9. AI Office 補助表示
 

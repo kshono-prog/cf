@@ -40,6 +40,11 @@ model CreatorProfile {
   aiPromotionJobs     AiPromotionJob[]
   agentTasks          AgentTask[]
   agentTaskAuditLogs  AgentTaskAuditLog[]
+  managerAssignments  ManagerAssignment[]
+  meetings            Meeting[]
+  managerNotes        ManagerNote[]
+  externalContacts    ExternalContact[]
+  actionLogs          ActionLog[]
   followingRelations  CreatorFollow[]         @relation("CreatorFollowing")
   followerRelations   CreatorFollow[]         @relation("CreatorFollowers")
 }
@@ -276,6 +281,10 @@ model Project {
   metricSnapshots           ContentMetricSnapshot[]
   agentTasks                AgentTask[]
   agentTaskAuditLogs        AgentTaskAuditLog[]
+  managerNotes              ManagerNote[]
+  meetings                  Meeting[]
+  externalContacts          ExternalContact[]
+  actionLogs                ActionLog[]
 
   @@index([creatorProfileId])
   @@index([creatorProfileId, currency])
@@ -546,6 +555,164 @@ model AgentTaskAuditLog {
   @@index([projectId, createdAt], map: "AgentTaskAuditLog_project_created_idx")
 }
 
+model ManagerAssignment {
+  id                   String                  @id @default(cuid())
+  creatorProfileId     BigInt
+  managerWalletAddress String
+  roleType             ManagerAssignmentRole   @default(PRIMARY)
+  status               ManagerAssignmentStatus @default(ACTIVE)
+  assignedAt           DateTime                @default(now()) @db.Timestamptz(6)
+  endedAt              DateTime?               @db.Timestamptz(6)
+  createdAt            DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime                @updatedAt @db.Timestamptz(6)
+  creatorProfile       CreatorProfile          @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  meetings             Meeting[]
+  managerNotes         ManagerNote[]
+  externalContacts     ExternalContact[]
+  actionLogs           ActionLog[]
+
+  @@index([creatorProfileId, status])
+  @@index([managerWalletAddress, status])
+  @@index([creatorProfileId, roleType, status])
+}
+
+model Meeting {
+  id                      String             @id @default(cuid())
+  creatorProfileId        BigInt
+  managerAssignmentId     String?
+  projectId               BigInt?
+  createdByWalletAddress  String
+  meetingType             MeetingType        @default(OTHER)
+  status                  MeetingStatus      @default(SCHEDULED)
+  visibility              MeetingVisibility  @default(CREATOR_VISIBLE)
+  title                   String
+  scheduledAt             DateTime           @db.Timestamptz(6)
+  durationMinutes         Int?
+  locationText            String?
+  agenda                  String?            @db.Text
+  notes                   String?            @db.Text
+  decisions               String?            @db.Text
+  nextActionsSummary      String?            @db.Text
+  aiSummary               String?            @db.Text
+  nextMeetingSuggestionAt DateTime?          @db.Timestamptz(6)
+  createdAt               DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime           @updatedAt @db.Timestamptz(6)
+  creatorProfile          CreatorProfile     @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  managerAssignment       ManagerAssignment? @relation(fields: [managerAssignmentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  project                 Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([creatorProfileId, scheduledAt])
+  @@index([managerAssignmentId, scheduledAt])
+  @@index([projectId, scheduledAt])
+  @@index([status, scheduledAt])
+  @@index([visibility, scheduledAt])
+}
+
+model ManagerNote {
+  id                             String             @id @default(cuid())
+  creatorProfileId               BigInt
+  authoredByManagerWalletAddress String
+  managerAssignmentId            String?
+  projectId                      BigInt?
+  externalContactId              String?
+  relatedMeetingId               String?
+  noteType                       ManagerNoteType
+  visibility                     NoteVisibility
+  title                          String
+  body                           String             @db.Text
+  urgencyScore                   Int?
+  followUpNeeded                 Boolean            @default(false)
+  followUpDueAt                  DateTime?          @db.Timestamptz(6)
+  aiSummary                      String?            @db.Text
+  aiTags                         String[]           @default([])
+  isArchived                     Boolean            @default(false)
+  archivedAt                     DateTime?          @db.Timestamptz(6)
+  createdAt                      DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt                      DateTime           @updatedAt @db.Timestamptz(6)
+  creatorProfile                 CreatorProfile     @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  managerAssignment              ManagerAssignment? @relation(fields: [managerAssignmentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  project                        Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  externalContact                ExternalContact?   @relation(fields: [externalContactId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([creatorProfileId, createdAt])
+  @@index([managerAssignmentId, createdAt])
+  @@index([externalContactId])
+  @@index([projectId])
+  @@index([followUpDueAt])
+  @@index([noteType, visibility, createdAt])
+}
+
+model ExternalContact {
+  id                        String                    @id @default(cuid())
+  creatorProfileId          BigInt?
+  ownerManagerWalletAddress String?
+  ownerManagerAssignmentId  String?
+  projectId                 BigInt?
+  contactType               ExternalContactType
+  organizationName          String
+  personName                String?
+  roleTitle                 String?
+  email                     String?
+  phone                     String?
+  websiteUrl                String?
+  socialUrl                 String?
+  locationText              String?
+  status                    ExternalContactStatus    @default(NEW)
+  temperature               ContactTemperature       @default(UNKNOWN)
+  lastContactAt             DateTime?                @db.Timestamptz(6)
+  nextAction                String?
+  nextActionDueAt           DateTime?                @db.Timestamptz(6)
+  notes                     String?                  @db.Text
+  tags                      String[]                 @default([])
+  sourceType                ExternalContactSourceType @default(MANUAL)
+  sourceRef                 String?
+  relationshipStrengthScore Int?
+  lastOutcome               String?                  @db.Text
+  isArchived                Boolean                  @default(false)
+  createdAt                 DateTime                 @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime                 @updatedAt @db.Timestamptz(6)
+  creatorProfile            CreatorProfile?          @relation(fields: [creatorProfileId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  ownerManagerAssignment    ManagerAssignment?       @relation(fields: [ownerManagerAssignmentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  project                   Project?                 @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  managerNotes              ManagerNote[]
+
+  @@index([creatorProfileId, status])
+  @@index([ownerManagerWalletAddress, status])
+  @@index([ownerManagerAssignmentId, status])
+  @@index([projectId])
+  @@index([contactType, status])
+  @@index([nextActionDueAt])
+  @@index([organizationName])
+}
+
+model ActionLog {
+  id                  String               @id @default(cuid())
+  creatorProfileId    BigInt?
+  projectId           BigInt?
+  managerAssignmentId String?
+  actorType           ActionActorType
+  actorWalletAddress  String?
+  actionType          ActionLogType
+  title               String
+  targetEntityType    ActionTargetEntityType?
+  targetEntityId      String?
+  summary             String?              @db.Text
+  metadataJson        Json?
+  visibility          ActionLogVisibility  @default(INTERNAL)
+  occurredAt          DateTime             @db.Timestamptz(6)
+  createdAt           DateTime             @default(now()) @db.Timestamptz(6)
+  creatorProfile      CreatorProfile?      @relation(fields: [creatorProfileId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  project             Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  managerAssignment   ManagerAssignment?   @relation(fields: [managerAssignmentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([creatorProfileId, occurredAt])
+  @@index([projectId, occurredAt])
+  @@index([managerAssignmentId, occurredAt])
+  @@index([actorType, occurredAt])
+  @@index([actionType, occurredAt])
+  @@index([targetEntityType, targetEntityId])
+}
+
 model DistributionRun {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   projectId BigInt
@@ -747,6 +914,146 @@ enum ProjectSettlementStatus {
   BRIDGING
   READY_FOR_DISTRIBUTION
   DISTRIBUTED
+}
+
+enum ManagerAssignmentRole {
+  PRIMARY
+  SUPPORTING
+}
+
+enum ManagerAssignmentStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum ManagerNoteType {
+  GENERAL
+  VENUE_SCOUT
+  SALES_MEETING
+  NEGOTIATION
+  CREATOR_STATUS
+  EVENT_OPERATION
+  RISK
+  FOLLOW_UP
+}
+
+enum NoteVisibility {
+  MANAGER_ONLY
+  INTERNAL_TEAM
+  SHAREABLE_WITH_CREATOR
+}
+
+enum ExternalContactType {
+  VENUE
+  ORGANIZER
+  MEDIA
+  BRAND
+  COMPANY
+  COLLABORATOR
+  AGENCY
+  SPONSOR
+  OTHER
+}
+
+enum ExternalContactStatus {
+  NEW
+  CONTACTED
+  REPLIED
+  MEETING_SCHEDULED
+  IN_DISCUSSION
+  NEGOTIATING
+  ON_HOLD
+  WON
+  LOST
+  ONGOING
+}
+
+enum ContactTemperature {
+  UNKNOWN
+  COLD
+  NEUTRAL
+  WARM
+  HOT
+}
+
+enum ExternalContactSourceType {
+  MANUAL
+  IMPORTED
+  AI_SUGGESTED
+}
+
+enum MeetingType {
+  WEEKLY_REVIEW
+  RELEASE_CHECK
+  OUTREACH_PROGRESS
+  EVENT_PREP
+  RETROSPECTIVE
+  URGENT_RESPONSE
+  OTHER
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
+enum MeetingVisibility {
+  INTERNAL
+  CREATOR_VISIBLE
+}
+
+enum ActionActorType {
+  CREATOR
+  MANAGER
+  AI_OFFICE
+  SYSTEM
+}
+
+enum ActionLogType {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  GOAL_UPDATED
+  GOAL_ACHIEVED
+  MEETING_CREATED
+  MEETING_COMPLETED
+  MANAGER_ASSIGNMENT_CREATED
+  MANAGER_ASSIGNMENT_UPDATED
+  MANAGER_NOTE_CREATED
+  MANAGER_NOTE_UPDATED
+  CONTACT_CREATED
+  CONTACT_UPDATED
+  CONTACT_ACTIVITY_RECORDED
+  TASK_CREATED
+  TASK_COMPLETED
+  AI_SUGGESTION_CREATED
+  AI_SUGGESTION_ACCEPTED
+  AI_SUGGESTION_REJECTED
+  DRAFT_CREATED
+  DRAFT_UPDATED
+  OPPORTUNITY_LINKED
+  STATUS_CHANGED
+  OTHER
+}
+
+enum ActionLogVisibility {
+  INTERNAL
+  CREATOR_VISIBLE
+  SYSTEM_ONLY
+}
+
+enum ActionTargetEntityType {
+  PROJECT
+  GOAL
+  MEETING
+  MANAGER_ASSIGNMENT
+  MANAGER_NOTE
+  EXTERNAL_CONTACT
+  TASK
+  DRAFT
+  OPPORTUNITY
+  OTHER
 }
 
 enum BridgeSourceChain {

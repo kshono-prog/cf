@@ -4,6 +4,10 @@
 現状の `AccountPageClient` は、Profile / Project / Goal / Summary を一か所に集約しており、運営ハブの土台として非常に良い状態です。
 一方で、現在は「編集フォーム」と「運営」が同じ重さで並んでおり、体験としてはまだ**設定画面寄り**です。`CreatorProfileSection` と `CreatorProfileEditForm` は `extraSections` による差し込みが可能なので、構造自体は再設計に耐えます。
 
+関連仕様:
+
+- [Meeting / Planner / Follow-up Minimum Contract](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+
 ## 1. 再設計の目的
 
 Creator Home の目的は、Creator がログインして最初に見たときに、**「今どこにいて、今日なにを進めるべきか」がすぐ分かること**です。
@@ -244,6 +248,8 @@ AI Office の主たる価値を、チャットではなく**運営カード**と
 - ExternalContact.nextAction
 
 などから生成可能です。将来は専用タスクモデルへ。
+責務境界は [Meeting / Planner / Follow-up Minimum Contract](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+に合わせる。
 
 ### 4-5. Manager Feed セクション
 
@@ -290,7 +296,10 @@ Creator が Manager の動きを把握できるようにする
 
 #### 実装方針
 
-最初は Meeting / Task / ExternalContact.nextActionDueAt の混合タイムラインでよいです。
+最初は `Meeting / ManagerNote follow-up / ExternalContact.nextAction / Project deadline`
+の混合タイムラインでよいです。
+shared shape は [Meeting / Planner / Follow-up Minimum Contract](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
+の `PlannerTimelineItem` を基準にする。
 
 ### 4-7. Quick Actions セクション
 

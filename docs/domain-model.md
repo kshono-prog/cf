@@ -1,5 +1,9 @@
 # Domain Model
 
+Phase 1 の manager-side Prisma-ready details は
+[`Manager Core Schema Proposal`](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
+を参照する。
+
 ## Creator
 
 The primary operator of the system. A creator owns projects, receives support, connects social accounts, and reviews AI-generated tasks.
@@ -95,3 +99,15 @@ A stateful record for venues, organizers, media, brands, companies, collaborator
 ## ActionLog
 
 An append-oriented event record that captures creator, manager, AI Office, or system actions for auditability, timeline reconstruction, and future trust context.
+
+## Meeting
+
+A creator-manager operating event that captures agenda, decisions, notes, and next action summaries. It should be treated as a first-class collaboration record, not only as a calendar slot.
+
+## ActivityTask
+
+A future generic task model for assignment and completion tracking. Phase 1 intentionally defers this and keeps follow-up data on source records such as `ManagerNote`, `ExternalContact`, and future `Meeting`.
+
+## PlannerTimelineItem
+
+A shared read-model item composed from `Meeting`, note follow-up, external contact next actions, or project deadlines so that Creator Home and Manager Desk can render the same timeline language with different visibility.

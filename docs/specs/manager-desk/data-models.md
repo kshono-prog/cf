@@ -8,6 +8,11 @@
 - でも将来、Venue / Media / Organizer / Brand / Collaborator に拡張できる形にする
 - `any` 的な曖昧さを避け、状態遷移と責任主体を明確にする
 
+実装前提の Prisma-ready proposal は
+[`Manager Core Schema Proposal`](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
+を参照してください。
+現行 repo には generic `User` model がないため、phase 1 では actor identity を wallet address ベースへ寄せています。
+
 ## 1. 設計方針
 
 ### 1-1. 今回の3モデルの役割

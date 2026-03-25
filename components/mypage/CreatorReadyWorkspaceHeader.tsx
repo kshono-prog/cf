@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import {
   CREATOR_READY_WORKSPACE_VIEWS,
 } from "@/components/mypage/creatorReadyWorkspaceConfig";
@@ -25,6 +27,12 @@ export function CreatorReadyWorkspaceHeader(props: Props) {
         </h1>
         <div className="flex flex-wrap items-center gap-1.5">
           <NotificationBell />
+          <Link
+            href="/manager-desk"
+            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+          >
+            Manager Desk
+          </Link>
           <a
             href={publicPageHref}
             target="_blank"

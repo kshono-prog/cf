@@ -2,17 +2,18 @@
 
 ## Now
 
-- `Creator Home`: first slice を issue 化して実装順を固定する
-- `Manager core models`: `ManagerAssignment / ManagerNote / ExternalContact / ActionLog` の schema proposal を作る
-- `Manager Desk`: Dashboard / Creator Detail の read model を固める
-- `Meeting / Planner`: 最小 contract と shared timeline の入口を作る
+- `Creator Home`: first slice 実装済み。deferred 項目の再投入タイミングを後段で判断する
+- `Manager core models`: phase 1 schema / migration / APIs 実装済み
+- `Manager Desk`: first slice (`Dashboard / Creator Detail`) 実装済み
+- `Meeting / Planner`: additive schema / migration / APIs / shared timeline / Creator Home / Manager Desk MVP まで実装済み
+- `Meeting / Planner` DB migration: 実適用済み
 - `AI Daily Briefing`: 既存 summary と新しい structured context を接続する準備を始める
 
 ## Next
 
-- `Creator Home`: Manager Feed / Planner / Growth-Reflection を追加する
-- `Manager Desk`: Contact Pipeline / Notes / Activity Timeline を追加する
 - `AI Office`: note summarization / follow-up extraction / missing-items detection を加える
+- `Manager Desk`: Contact Pipeline / Notes / Activity Timeline を追加する
+- `Creator Home`: Manager Feed / Growth-Reflection を追加する
 - `External Contact`: 軽量 CRM としての status / next action / temperature を磨く
 - `Action Log`: 信頼 / 継続 / stage 評価の入力として使えるよう整理する
 
