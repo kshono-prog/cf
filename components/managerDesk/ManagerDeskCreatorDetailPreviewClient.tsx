@@ -13,6 +13,8 @@ import {
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
 import { useManagerDeskCreatorDetail } from "@/components/managerDesk/useManagerDeskCreatorDetail";
+import { useManagerDeskSupporterCrm } from "@/components/managerDesk/useManagerDeskSupporterCrm";
+import { ManagerDeskSupporterCrmSection } from "@/components/managerDesk/ManagerDeskSupporterCrmSection";
 import type { ManagerDeskCreatorDetailData } from "@/lib/managerDesk/readModelTypes";
 import {
   buildManagerDeskCreatorDetailAiSuggestions,
@@ -281,6 +283,12 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
     creatorProfileId: props.creatorProfileId,
     address,
     isConnected,
+  });
+
+  const supporterCrm = useManagerDeskSupporterCrm({
+    address,
+    isConnected,
+    creatorProfileId: props.creatorProfileId,
   });
 
   const nextActions = data ? buildNextActions(data) : [];
@@ -851,14 +859,16 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 )}
               </section>
 
-              <section className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface-muted)] p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-                  Coming Next
+              <section>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h2 className="text-base font-semibold text-[var(--text)]">支援者 CRM</h2>
                 </div>
-                <div className="mt-2 text-sm leading-6 text-[var(--text-subtle)]">
-                  次の slice では、Meeting の決定事項を structured task に落とし込み、
-                  Creator Home と Manager Desk の両方で shared timeline を更新できるようにします。
-                </div>
+                <ManagerDeskSupporterCrmSection
+                  loading={supporterCrm.loading}
+                  error={supporterCrm.error}
+                  data={supporterCrm.data}
+                  onReload={() => { void supporterCrm.reload(); }}
+                />
               </section>
             </div>
           ) : null}

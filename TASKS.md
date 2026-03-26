@@ -337,24 +337,97 @@ Sprint 9-C — Supporter CRM surface: **完了**
 Sprint 9-D — AI Office 採択ヒント: **完了**
 - `AiOfficeOverviewSection.tsx` の担当一覧ロー: 活用率 < 30% かつ trackedReadyCount >= 2 の担当に採択ヒントを表示
 
-## Phase 9 候補（次フェーズ）
+## Phase 10（完了）
 
-Phase 8 で土台が揃った。次は以下を検討する。
+Sprint 10-A — Creator Home Stage maturity 詳細表示: **完了**
+- `CreatorReadyWeeklySummarySection.tsx` の Stage セクションを拡張
+- stageDescription（現ステージの説明）を追加表示
+- maturity 4軸バー（output/audience/business/continuity）をクリエイター向けに日本語ラベルで追加
+- nextMilestone を強調スタイル（→ テキスト）で表示
 
-### CRM 深化
-- **Supporter CRM**: 支援者アドレスごとの支援履歴・累計額・最終支援日を Creator Home または Manager Desk に表示
-- **Wave 2 rename**: `SnsAiOfficeSection` → `PostingAiOfficeSection` 正規化、`lib/mypage/snsApi.ts` → `postingManagedApi.ts` alias
+Sprint 10-B — `STAGE_GROWTH_PLAN` AgentTask: **完了**
+- `lib/creator-ai/stageGrowthPlanTask.ts` executor 実装（活動実績 → stage/maturity 導出 → 最弱軸検出 → 成長ステップ生成）
+- MANAGER Agent candidateTaskTypes に追加
+- Create UI カード・output renderer（4軸バー + 成長ステップリスト）・uxCopy 追加
+- `lib/agentTaskParsers.ts` / `agentTaskExecutors.ts` / `agentRoleRegistry.ts` に登録
+
+Sprint 10-C — Supporter CRM フィルター/ソート: **完了**
+- `CreatorReadySupporterCrmSection.tsx` に sort トグル追加（直近の支援順 / 支援回数が多い順）
+- 3回以上支援した支援者に VIP バッジを表示
+- vipCount をサマリーテキストに追加
+
+## Phase 11（完了）
+
+Sprint 11-A — `STAGE_GROWTH_PLAN` 月次 auto-trigger: **完了**
+- `components/mypage/useStageGrowthPlanAutoTrigger.ts` 新規作成
+- localStorage キー `cf:stage-growth-plan-triggered:{address}:{YYYY-MM}` で月1回のみ起票
+- 当月の STAGE_GROWTH_PLAN が未存在の場合のみ POST
+- `CreatorReadyHomeRoute.tsx` に接続
+
+Sprint 11-B — Manager Desk Supporter CRM view: **完了**
+- `app/api/manager-desk/creators/[creatorProfileId]/supporter-crm/route.ts` — GET endpoint 追加（`requireCreatorAccess` で manager/owner 双方を許可）
+- `components/managerDesk/useManagerDeskSupporterCrm.ts` — client hook 追加
+- `components/managerDesk/ManagerDeskSupporterCrmSection.tsx` — UI（VIP バッジ・全件表示トグル）
+- Manager Desk Creator Detail に「支援者 CRM」セクションを追加
+
+Sprint 11-C — Opportunity に最新ノート snippet 追加: **完了**
+- `lib/managerDesk/readModelTypes.ts` に `ManagerDeskContactLatestNote` 型追加、`ManagerDeskContactPipelineItem` に `latestNote` フィールド追加
+- `readModel.ts` に `fetchLatestNotesByContactId` helper 追加（Prisma `distinct` で contact ごとの最新ノートを一括取得）
+- `getManagerDeskContactPipeline` / `getManagerDeskOpportunityPipeline` の両方に latestNote を付与
+- `ManagerDeskOpportunityCrmClient.tsx` の `OpportunityCard` に最新ノートスニペット（タイトル + 100文字）を表示
+
+## Phase 12（完了）
+
+Sprint 12-A — Contact Pipeline に latestNote 表示: **完了**
+- `ManagerDeskContactPipelineClient.tsx` の各 contact カードに最新ノートスニペット（タイトル + bodySnippet + 日時）を追加
+- Opportunity CRM と同一パターン（データは Phase 11-C 時点で既に付与済み）
+
+Sprint 12-B — Notes Surface から Contact へのリンク: **完了**
+- `ManagerDeskNotesSurfaceClient.tsx` の note カードに `externalContactId` が存在する場合のみ「Contact Pipeline」リンクを追加
+- `creatorProfileId` フィルタ付きで Contact Pipeline へジャンプ
+
+Sprint 12-C — Creator Home に当月 STAGE_GROWTH_PLAN 結果を inline 表示: **完了**
+- `CreatorReadyStageGrowthPlanSection.tsx` 新規作成（`AgentTaskOutput` で出力をレンダリング）
+- `CreatorReadyHomeRoute.tsx` で `aiOfficeSummary.tasks` から当月 STAGE_GROWTH_PLAN を抽出し表示
+- `CreatorReadySupporterCrmSection` の直後に配置
+
+Sprint 12-D — 公開プロフィールに Creator Stage バッジ表示: **確認済み（実装済み）**
+- `CreatorStageCard` が `app/[username]/page.tsx` で既にサーバーサイドレンダリングされていることを確認
+
+## Phase 13（完了）
+
+Sprint 13-A — 公開プロフィール Impact Numbers: **完了**
+- `components/profile/PublicProfileImpactNumbers.tsx` 新規作成（投稿本数・支援者数・活動継続月数を3列表示）
+- `CreatorActivityCredibility` を再利用（追加 fetch なし）
+
+Sprint 13-B — 公開プロフィール Creator Voice Card: **完了**
+- `components/profile/PublicProfileCreatorVoiceCard.tsx` 新規作成
+- アクティブプロジェクトの `description` を引用スタイルで表示 + 進捗バー（OPEN ゴールのみ）
+- 追加 fetch なし
+
+Sprint 13-C — 公開プロフィール Recent Supporters（Living Funding Pulse）: **完了**
+- `lib/publicProfileEnhancement.ts` 新規作成（`getRecentPublicContributors` — 最近の distinct 支援者アドレスを `unstable_cache` 付きで取得）
+- `components/profile/PublicProfileRecentSupporters.tsx` 新規作成（最近 4 件のアドレス chip + 合計人数）
+- `app/[username]/page.tsx` に 3 コンポーネントを ProfileClientSection 直後に配置
+
+## Phase 12 候補（次フェーズ）
 
 ### Business Layer
 - **費用・収支 groundwork**: `Expense` / `Revenue` の最小モデル設計（スキーマ変更要承認）
 - **Contract / Billing stub**: ExternalContact の WON/ONGOING に contract 情報を紐づける最小フィールド
 
 ### AI 強化
-- **MEETING_AGENDA_DRAFT meetingId pre-fill**: Planner の会議ボタンから meetingId を URL param 経由で Create フォームに渡す（`openCreateTaskType` URL param 追加）
-- **AI Office 使い捨て防止**: 採択率が低い task type を Overview で強調し、なぜ却下されているかのパターン検出
+- **AI Office 使い捨て防止**: 採択率が低い task type を Overview で強調し、なぜ却下されているかのパターン検出を強化
 
-### Trust / Stage 深化
-- **SkillMap 最小実装**: 4 軸 maturity を CreatorProfile に紐づく separate 読み取り専用スコアとして保持
+### Public Profile 強化（即時候補）
+- **Activity Heatmap**: 投稿頻度を週×月グリッドで表示（GitHub スタイル）
+- **Supporter Wall**: 支援者アバターをグリッド状に並べる（匿名フラグ要設計）
+- **Next Goal Reveal**: ゴール達成後の「約束」と達成時期推定を表示
+- **Micro-testimonials**: 支援時メッセージをカード表示（Contribution.message フィールド追加要承認）
+
+### Manager Desk 強化
+- **Opportunity CRM にノート作成導線**: WON/ONGOING 案件から直接 Manager Note を記録するインライン UI
+- **Contact Pipeline 一括ステータス更新**: 複数 contact の status を一括変更する操作面
 
 ## Ready Queue
 

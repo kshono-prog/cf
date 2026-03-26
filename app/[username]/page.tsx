@@ -13,6 +13,19 @@ import { CreatorStageCard } from "@/components/profile/CreatorStageCard";
 import { getAllGoalAchievementImpacts } from "@/lib/goalAchievementImpact";
 import { GoalAchievementImpactSection } from "@/components/profile/GoalAchievementImpactCard";
 import { getLatestSupporterResultReportSummary } from "@/lib/supporterResultReportSummary";
+import {
+  getPublicActivityHeatmap,
+  getPublicNextGoalReveal,
+  getPublicSupporterWall,
+  getRecentPublicContributors,
+} from "@/lib/publicProfileEnhancement";
+import { PublicProfileImpactNumbers } from "@/components/profile/PublicProfileImpactNumbers";
+import { PublicProfileCreatorVoiceCard } from "@/components/profile/PublicProfileCreatorVoiceCard";
+import { PublicProfileRecentSupporters } from "@/components/profile/PublicProfileRecentSupporters";
+import { PublicProfileSupporterWall } from "@/components/profile/PublicProfileSupporterWall";
+import { PublicProfileActivityHeatmap } from "@/components/profile/PublicProfileActivityHeatmap";
+import { PublicProfileNextGoalReveal } from "@/components/profile/PublicProfileNextGoalReveal";
+import { getActiveSupportProject } from "@/lib/supportProfileView";
 
 type Params = { username: string };
 
@@ -83,6 +96,11 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   const credibility = await getCreatorActivityCredibility(BigInt(profile.id));
   const impacts = await getAllGoalAchievementImpacts(BigInt(profile.id));
   const reportSummary = await getLatestSupporterResultReportSummary(BigInt(profile.id));
+  const activeSupportProject = getActiveSupportProject(supportProfileView);
+  const recentSupporters = await getRecentPublicContributors(BigInt(profile.id));
+  const supporterWall = await getPublicSupporterWall(BigInt(profile.id));
+  const activityHeatmap = await getPublicActivityHeatmap(BigInt(profile.id));
+  const nextGoalReveal = await getPublicNextGoalReveal(activeSupportProject);
 
   return (
     <div className="space-y-4">
@@ -95,10 +113,19 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         recruitingProjects={recruitingProjects}
         initialFeed={initialFeed}
       />
+      <PublicProfileCreatorVoiceCard
+        displayName={creator.displayName || username}
+        supportProfileView={supportProfileView}
+      />
+      <PublicProfileImpactNumbers credibility={credibility} />
+      <PublicProfileRecentSupporters data={recentSupporters} />
+      {nextGoalReveal ? <PublicProfileNextGoalReveal data={nextGoalReveal} /> : null}
+      <PublicProfileSupporterWall data={supporterWall} />
       {credibility.activeMonths > 0 || credibility.totalPostCount > 0 ? (
         <CreatorActivityCredibilityBadge credibility={credibility} />
       ) : null}
       <CreatorStageCard credibility={credibility} />
+      {activityHeatmap ? <PublicProfileActivityHeatmap data={activityHeatmap} /> : null}
       {reportSummary ? (
         <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4">
           <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">

@@ -326,6 +326,23 @@ function toContactPipelineDueState(
   return "NONE";
 }
 
+async function fetchLatestNotesByContactId(
+  contactIds: string[]
+): Promise<Map<string, { id: string; title: string; body: string; createdAt: Date }>> {
+  if (contactIds.length === 0) return new Map();
+  const rows = await prisma.managerNote.findMany({
+    where: { externalContactId: { in: contactIds } },
+    orderBy: { createdAt: "desc" },
+    distinct: ["externalContactId"],
+    select: { id: true, externalContactId: true, title: true, body: true, createdAt: true },
+  });
+  return new Map(
+    rows
+      .filter((r) => r.externalContactId != null)
+      .map((r) => [r.externalContactId!, { id: r.id, title: r.title, body: r.body, createdAt: r.createdAt }])
+  );
+}
+
 function compareContactPipelineItems(
   left: ManagerDeskContactPipelineItem,
   right: ManagerDeskContactPipelineItem
@@ -782,6 +799,9 @@ export async function getManagerDeskContactPipeline(args: {
     take: Math.max(1, Math.min(limit, 200)),
   });
 
+  const contactIds = contacts.map((c) => c.id);
+  const latestNoteByContactId = await fetchLatestNotesByContactId(contactIds);
+
   const items = contacts
     .map((contact) => {
       if (contact.creatorProfileId == null) return null;
@@ -791,6 +811,7 @@ export async function getManagerDeskContactPipeline(args: {
 
       const assignment = assignmentByCreatorId.get(creatorId) ?? null;
       const latestSignalAt = maxDate(contact.lastContactAt, contact.updatedAt);
+      const noteRow = latestNoteByContactId.get(contact.id) ?? null;
 
       return {
         assignment: assignment ? serializeManagerAssignment(assignment) : null,
@@ -798,6 +819,14 @@ export async function getManagerDeskContactPipeline(args: {
         contact: serializeExternalContact(contact),
         dueState: toContactPipelineDueState(contact.nextActionDueAt, now),
         staleDays: toStaleDays(latestSignalAt, now),
+        latestNote: noteRow
+          ? {
+              id: noteRow.id,
+              title: noteRow.title,
+              bodySnippet: noteRow.body.slice(0, 100),
+              createdAt: noteRow.createdAt.toISOString(),
+            }
+          : null,
       } satisfies ManagerDeskContactPipelineItem;
     })
     .filter((value): value is ManagerDeskContactPipelineItem => value !== null)
@@ -915,6 +944,9 @@ export async function getManagerDeskOpportunityPipeline(args: {
     take: 200,
   });
 
+  const contactIds = contacts.map((c) => c.id);
+  const latestNoteByContactId = await fetchLatestNotesByContactId(contactIds);
+
   const allItems: ManagerDeskContactPipelineItem[] = contacts
     .map((contact) => {
       if (contact.creatorProfileId == null) return null;
@@ -923,12 +955,21 @@ export async function getManagerDeskOpportunityPipeline(args: {
       if (!creator) return null;
       const assignment = assignmentByCreatorId.get(creatorId) ?? null;
       const latestSignalAt = maxDate(contact.lastContactAt, contact.updatedAt);
+      const noteRow = latestNoteByContactId.get(contact.id) ?? null;
       return {
         assignment: assignment ? serializeManagerAssignment(assignment) : null,
         creator,
         contact: serializeExternalContact(contact),
         dueState: toContactPipelineDueState(contact.nextActionDueAt, now),
         staleDays: toStaleDays(latestSignalAt, now),
+        latestNote: noteRow
+          ? {
+              id: noteRow.id,
+              title: noteRow.title,
+              bodySnippet: noteRow.body.slice(0, 100),
+              createdAt: noteRow.createdAt.toISOString(),
+            }
+          : null,
       } satisfies ManagerDeskContactPipelineItem;
     })
     .filter((v): v is ManagerDeskContactPipelineItem => v !== null);

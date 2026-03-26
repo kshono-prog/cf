@@ -411,6 +411,27 @@ export function ManagerDeskContactPipelineClient() {
                         </div>
                       </div>
 
+                      {item.latestNote ? (
+                        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                              最新ノート
+                            </span>
+                            <span className="text-[10px] text-[var(--text-subtle)]">
+                              {formatDateTime(item.latestNote.createdAt)}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 text-xs font-medium text-[var(--text)]">
+                            {item.latestNote.title}
+                          </div>
+                          {item.latestNote.bodySnippet ? (
+                            <div className="mt-0.5 line-clamp-2 text-xs leading-5 text-[var(--text-subtle)]">
+                              {item.latestNote.bodySnippet}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+
                       <div className="flex flex-wrap gap-2">
                         <Link
                           href={`/manager-desk/creators/${item.creator.id}`}

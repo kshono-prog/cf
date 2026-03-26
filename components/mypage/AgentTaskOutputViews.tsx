@@ -2316,6 +2316,149 @@ function CareerPlanDraftOutputCard(props: {
   );
 }
 
+// ── STAGE_GROWTH_PLAN ──────────────────────────────────────────────────────
+
+type StageGrowthPlanStep = {
+  step: number;
+  axis: string;
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+};
+
+type StageGrowthPlanOutputView = {
+  summary: string;
+  stageLabel: string;
+  maturity: {
+    output: number;
+    audience: number;
+    business: number;
+    continuity: number;
+  };
+  weakestAxis: string;
+  nextMilestone: string | null;
+  growthSteps: StageGrowthPlanStep[];
+};
+
+function parseStageGrowthPlanOutput(v: unknown): StageGrowthPlanOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  const stageLabel = asStringOrNull(v.stageLabel);
+  if (!summary || !stageLabel) return null;
+
+  if (!isRecord(v.maturity)) return null;
+  const m = v.maturity;
+  const maturity = {
+    output: typeof m.output === "number" ? m.output : 0,
+    audience: typeof m.audience === "number" ? m.audience : 0,
+    business: typeof m.business === "number" ? m.business : 0,
+    continuity: typeof m.continuity === "number" ? m.continuity : 0,
+  };
+
+  const weakestAxis = asStringOrNull(v.weakestAxis) ?? "output";
+  const nextMilestone = asStringOrNull(v.nextMilestone);
+
+  const growthSteps: StageGrowthPlanStep[] = asArray(v.growthSteps)
+    .filter(isRecord)
+    .map((step) => ({
+      step: typeof step.step === "number" ? step.step : 0,
+      axis: asStringOrNull(step.axis) ?? "",
+      title: asStringOrNull(step.title) ?? "",
+      description: asStringOrNull(step.description) ?? "",
+      priority:
+        step.priority === "high"
+          ? "high"
+          : step.priority === "low"
+            ? "low"
+            : "medium",
+    }));
+
+  return { summary, stageLabel, maturity, weakestAxis, nextMilestone, growthSteps };
+}
+
+const AXIS_JP: Record<string, string> = {
+  output: "発信力",
+  audience: "支援者",
+  business: "実績",
+  continuity: "継続性",
+};
+
+function StageGrowthPlanOutputCard(props: { output: StageGrowthPlanOutputView }) {
+  const { output } = props;
+  const axes = ["output", "audience", "business", "continuity"] as const;
+  return (
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-3">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      <div className="flex flex-wrap gap-1">
+        <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] text-violet-700">
+          {output.stageLabel}
+        </span>
+        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">
+          最弱軸: {AXIS_JP[output.weakestAxis] ?? output.weakestAxis}
+        </span>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {axes.map((axis) => (
+          <div key={axis} className="space-y-1">
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-[var(--text-subtle)]">{AXIS_JP[axis]}</span>
+              <span
+                className={
+                  output.weakestAxis === axis
+                    ? "font-semibold text-amber-600"
+                    : "font-medium text-[var(--text)]"
+                }
+              >
+                {output.maturity[axis]}
+              </span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+              <div
+                className={`h-full rounded-full ${
+                  output.weakestAxis === axis
+                    ? "bg-amber-400"
+                    : "bg-[var(--text-subtle)]"
+                }`}
+                style={{ width: `${output.maturity[axis]}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      {output.nextMilestone ? (
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-1.5 text-[10px] text-[var(--text)]">
+          → {output.nextMilestone}
+        </div>
+      ) : null}
+      {output.growthSteps.length > 0 ? (
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">成長ステップ</div>
+          {output.growthSteps.map((step) => (
+            <div
+              key={step.step}
+              className="flex items-start gap-1.5 rounded border bg-white px-2 py-1.5"
+            >
+              <span
+                className={`shrink-0 text-[10px] font-semibold ${
+                  step.priority === "high"
+                    ? "text-amber-500"
+                    : "text-[var(--text-subtle)]"
+                }`}
+              >
+                {step.step}
+              </span>
+              <div>
+                <div className="font-medium text-gray-800">{step.title}</div>
+                <div className="mt-0.5 text-gray-600">{step.description}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 type OutputRenderer = {
   render: (output: unknown, context: OutputActionContext) => React.ReactNode | null;
 };
@@ -2462,6 +2605,12 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     render: (output) => {
       const parsed = parseContactOutreachDraftOutput(output);
       return parsed ? <ContactOutreachDraftOutputCard output={parsed} /> : null;
+    },
+  },
+  STAGE_GROWTH_PLAN: {
+    render: (output) => {
+      const parsed = parseStageGrowthPlanOutput(output);
+      return parsed ? <StageGrowthPlanOutputCard output={parsed} /> : null;
     },
   },
 };

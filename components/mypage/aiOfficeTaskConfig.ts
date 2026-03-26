@@ -174,6 +174,12 @@ export const AI_OFFICE_TASK_CHOICES: readonly AiOfficeTaskChoice[] = [
     whenToUse: "会場・スポンサー・メディアなど外部への初回連絡や営業メッセージを下書きしたいとき",
     tier: "MVP",
   },
+  {
+    taskType: "STAGE_GROWTH_PLAN",
+    eyebrow: "ステージ成長プラン",
+    whenToUse: "現在のステージと成熟度から、次のレベルに向けた具体的な成長ステップを確認したいとき",
+    tier: "MVP",
+  },
 ] as const;
 
 export const AI_OFFICE_TASK_TIER_HELPER: Record<ProductTier, string> = {

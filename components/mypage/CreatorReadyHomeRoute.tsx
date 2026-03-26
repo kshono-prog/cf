@@ -26,10 +26,12 @@ import { useCreatorReadySupporterOverview } from "@/components/mypage/useCreator
 import { CreatorReadySupporterOverviewSection } from "@/components/mypage/CreatorReadySupporterOverviewSection";
 import { useCreatorReadySupporterCrm } from "@/components/mypage/useCreatorReadySupporterCrm";
 import { CreatorReadySupporterCrmSection } from "@/components/mypage/CreatorReadySupporterCrmSection";
+import { CreatorReadyStageGrowthPlanSection } from "@/components/mypage/CreatorReadyStageGrowthPlanSection";
 import { useCreatorReadyPlannerTimeline } from "@/components/mypage/useCreatorReadyPlannerTimeline";
 import { useCreatorReadyHomeStats } from "@/components/mypage/useCreatorReadyHomeStats";
 import { useCreatorReadyWorkspaceProjectDashboards } from "@/components/mypage/useCreatorReadyWorkspaceProjectDashboards";
 import { useDailyActionPlanAutoTrigger } from "@/components/mypage/useDailyActionPlanAutoTrigger";
+import { useStageGrowthPlanAutoTrigger } from "@/components/mypage/useStageGrowthPlanAutoTrigger";
 import { hasProjectSummary } from "@/lib/mypage/dashboardTypes";
 import {
   buildAiOfficePanelHref,
@@ -80,6 +82,12 @@ export function CreatorReadyHomeRoute(props: Props) {
     null;
 
   useDailyActionPlanAutoTrigger({
+    address: workspace.address,
+    projectId: localProjectId,
+    isConnected: workspace.isConnected,
+  });
+
+  useStageGrowthPlanAutoTrigger({
     address: workspace.address,
     projectId: localProjectId,
     isConnected: workspace.isConnected,
@@ -175,6 +183,15 @@ export function CreatorReadyHomeRoute(props: Props) {
     openCreateTaskType: "MEETING_AGENDA_DRAFT",
   });
   const aiOfficeHref = isNewCreator ? aiOfficeCreateManagerHref : aiOfficeOverviewHref;
+
+  const currentYearMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  const stageGrowthTask =
+    aiOfficeSummary.tasks.find(
+      (t) =>
+        t.taskType === "STAGE_GROWTH_PLAN" &&
+        (t.status === "WAITING_APPROVAL" || t.status === "APPROVED") &&
+        t.createdAt.startsWith(currentYearMonth)
+    ) ?? null;
   const publicPageHref = `/${workspace.meCreatorUsername}`;
 
   const aiManagerCards = buildCreatorReadyAiManagerCards({
@@ -276,6 +293,10 @@ export function CreatorReadyHomeRoute(props: Props) {
         aiOfficeCreateFanRelationHref={aiOfficeCreateFanRelationHref}
       />
       <CreatorReadySupporterCrmSection data={supporterCrm.data} />
+      <CreatorReadyStageGrowthPlanSection
+        task={stageGrowthTask}
+        address={workspace.address}
+      />
       <CreatorWorkspaceAiOfficePanel />
       <CreatorReadyWeeklySummarySection
         jpycTotal={homeStats.jpycTotal}

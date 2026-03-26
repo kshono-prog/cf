@@ -27,6 +27,7 @@ import { buildCareerPlanDraftOutput } from "@/lib/creator-ai/careerPlanDraftTask
 import { buildGrowthOpportunityAlertOutput } from "@/lib/creator-ai/growthOpportunityAlertTask";
 import { buildMeetingAgendaDraftOutput } from "@/lib/creator-ai/meetingAgendaDraftTask";
 import { buildContactOutreachDraftOutput } from "@/lib/creator-ai/contactOutreachDraftTask";
+import { buildStageGrowthPlanOutput } from "@/lib/creator-ai/stageGrowthPlanTask";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { getProjectSettlementView } from "@/lib/projectSettlementView";
@@ -1827,6 +1828,65 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
     execute: async (params) =>
       buildContactOutreachDraftOutput({
         creatorProfileId: params.creatorProfileId,
+        input: params.input,
+      }),
+  },
+  STAGE_GROWTH_PLAN: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "STAGE_GROWTH_PLAN",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "現状ステージと成長方針の一文",
+        },
+        stage: {
+          type: "string",
+          required: true,
+          description: "現在の CreatorStage",
+        },
+        stageLabel: {
+          type: "string",
+          required: true,
+          description: "ステージの表示ラベル",
+        },
+        maturity: {
+          type: "object",
+          required: true,
+          description: "4軸成熟度スコア（output/audience/business/continuity）",
+        },
+        weakestAxis: {
+          type: "string",
+          required: true,
+          description: "最も低い成熟度軸の名前",
+        },
+        growthSteps: {
+          type: "array",
+          required: true,
+          description: "具体的な成長ステップリスト",
+        },
+        nextMilestone: {
+          type: "string",
+          required: false,
+          description: "次のステージへのマイルストーン",
+        },
+        context: {
+          type: "object",
+          required: true,
+          description: "生成に使用したコンテキスト情報",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) =>
+      buildStageGrowthPlanOutput({
+        creatorProfileId: params.creatorProfileId,
+        projectId: params.projectId,
         input: params.input,
       }),
   },

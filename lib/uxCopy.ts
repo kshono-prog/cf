@@ -95,6 +95,11 @@ const TASK_TYPE_COPY: Record<TaskType, Copy> = {
     helper:
       "会場・スポンサー・メディア・企業などへの初回連絡・営業文面を、連絡目的・接点履歴をもとに下書きします。",
   },
+  STAGE_GROWTH_PLAN: {
+    label: "ステージ成長プランを確認する",
+    helper:
+      "現在のCreatorステージと4軸成熟度スコアをもとに、次のレベルへ向けた具体的な成長ステップを提案します。",
+  },
 };
 
 const TASK_STATUS_COPY: Record<TaskStatus, Copy> = {

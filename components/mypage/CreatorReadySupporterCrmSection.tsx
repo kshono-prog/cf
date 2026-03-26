@@ -1,7 +1,11 @@
 "use client";
 
+import React from "react";
+
 import type { SupporterCrmItem } from "@/lib/operations/supporterCrmTypes";
 import type { SupporterCrmData } from "@/lib/operations/supporterCrmTypes";
+
+type SortKey = "recent" | "count";
 
 function abbrevAddress(address: string): string {
   if (address.length <= 12) return address;
@@ -17,6 +21,7 @@ function formatDate(value: string | null): string {
 
 function SupporterRow(props: { item: SupporterCrmItem; rank: number }) {
   const { item, rank } = props;
+  const isVip = item.totalCount >= 3;
   const currencyLabel = item.currencies
     .map((c) => `${Number(c.amount).toLocaleString("ja-JP", { maximumFractionDigits: 0 })} ${c.currency}`)
     .join(" / ");
@@ -27,8 +32,15 @@ function SupporterRow(props: { item: SupporterCrmItem; rank: number }) {
         {rank}
       </div>
       <div className="space-y-0.5 overflow-hidden">
-        <div className="truncate font-mono text-sm text-[var(--text)]">
-          {abbrevAddress(item.fromAddress)}
+        <div className="flex items-center gap-1.5">
+          <span className="truncate font-mono text-sm text-[var(--text)]">
+            {abbrevAddress(item.fromAddress)}
+          </span>
+          {isVip ? (
+            <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+              VIP
+            </span>
+          ) : null}
         </div>
         <div className="text-xs text-[var(--text-subtle)]">
           {currencyLabel}
@@ -51,7 +63,21 @@ type Props = {
 
 export function CreatorReadySupporterCrmSection(props: Props) {
   const { data } = props;
+  const [sortKey, setSortKey] = React.useState<SortKey>("recent");
+
   if (!data || data.items.length === 0) return null;
+
+  const sorted = [...data.items].sort((a, b) => {
+    if (sortKey === "count") {
+      return b.totalCount - a.totalCount;
+    }
+    // recent: default order (already sorted by lastSupportAt desc from server)
+    const aTime = a.lastSupportAt ? new Date(a.lastSupportAt).getTime() : 0;
+    const bTime = b.lastSupportAt ? new Date(b.lastSupportAt).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  const vipCount = data.items.filter((it) => it.totalCount >= 3).length;
 
   return (
     <section className="surface-card space-y-4 p-5 sm:p-6">
@@ -64,7 +90,8 @@ export function CreatorReadySupporterCrmSection(props: Props) {
             支援者リスト
           </h2>
           <p className="mt-1 text-xs text-[var(--text-subtle)]">
-            直近の支援順・最大20件。累計支援回数と通貨別金額を表示しています。
+            累計支援回数と通貨別金額を表示しています。
+            {vipCount > 0 ? ` VIP（3回以上）: ${vipCount.toString()}名。` : ""}
           </p>
         </div>
         <div className="shrink-0 text-right">
@@ -75,8 +102,33 @@ export function CreatorReadySupporterCrmSection(props: Props) {
         </div>
       </div>
 
+      <div className="flex gap-1">
+        <button
+          type="button"
+          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            sortKey === "recent"
+              ? "bg-[var(--text)] text-[var(--surface)]"
+              : "bg-[var(--surface-subtle)] text-[var(--text-subtle)]"
+          }`}
+          onClick={() => setSortKey("recent")}
+        >
+          直近の支援順
+        </button>
+        <button
+          type="button"
+          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            sortKey === "count"
+              ? "bg-[var(--text)] text-[var(--surface)]"
+              : "bg-[var(--surface-subtle)] text-[var(--text-subtle)]"
+          }`}
+          onClick={() => setSortKey("count")}
+        >
+          支援回数が多い順
+        </button>
+      </div>
+
       <div>
-        {data.items.map((item, index) => (
+        {sorted.map((item, index) => (
           <SupporterRow key={item.fromAddress} item={item} rank={index + 1} />
         ))}
       </div>

@@ -72,12 +72,20 @@ export type ManagerDeskContactPipelineDueState =
   | "DUE_SOON"
   | "NONE";
 
+export type ManagerDeskContactLatestNote = {
+  id: string;
+  title: string;
+  bodySnippet: string;
+  createdAt: string;
+};
+
 export type ManagerDeskContactPipelineItem = {
   assignment: SerializedManagerAssignment | null;
   creator: ManagerDeskCreatorIdentity;
   contact: SerializedExternalContact;
   dueState: ManagerDeskContactPipelineDueState;
   staleDays: number | null;
+  latestNote: ManagerDeskContactLatestNote | null;
 };
 
 export type ManagerDeskContactPipelineData = {

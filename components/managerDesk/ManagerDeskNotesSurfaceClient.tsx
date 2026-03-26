@@ -403,6 +403,14 @@ export function ManagerDeskNotesSurfaceClient() {
                           >
                             Creator Detail
                           </Link>
+                          {item.note.externalContactId ? (
+                            <Link
+                              href={`/manager-desk/contacts?creatorProfileId=${item.creator.id}`}
+                              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                            >
+                              Contact Pipeline
+                            </Link>
+                          ) : null}
                           <Link
                             href={`/${item.creator.username}`}
                             className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
