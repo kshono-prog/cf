@@ -25,6 +25,8 @@ import { buildSupportStoryDraftOutput } from "@/lib/creator-ai/supportStoryDraft
 import { buildSupporterResultReportOutput } from "@/lib/creator-ai/supporterResultReportTask";
 import { buildCareerPlanDraftOutput } from "@/lib/creator-ai/careerPlanDraftTask";
 import { buildGrowthOpportunityAlertOutput } from "@/lib/creator-ai/growthOpportunityAlertTask";
+import { buildMeetingAgendaDraftOutput } from "@/lib/creator-ai/meetingAgendaDraftTask";
+import { buildContactOutreachDraftOutput } from "@/lib/creator-ai/contactOutreachDraftTask";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { getProjectSettlementView } from "@/lib/projectSettlementView";
@@ -1736,6 +1738,97 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
       },
     },
     execute: async (params) => buildGrowthOpportunityAlertOutput(params),
+  },
+  MEETING_AGENDA_DRAFT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "MEETING_AGENDA_DRAFT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "会議の目的・ゴールの一文要約",
+        },
+        agenda: {
+          type: "array",
+          required: true,
+          description: "アジェンダ項目（id / title / durationMinutes / notes）",
+        },
+        preReadItems: {
+          type: "array",
+          required: true,
+          description: "事前に確認すべき項目リスト",
+        },
+        decisionsNeeded: {
+          type: "array",
+          required: true,
+          description: "この会議で決めるべき事項リスト",
+        },
+        context: {
+          type: "object",
+          required: true,
+          description: "生成に使用したコンテキスト情報",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) =>
+      buildMeetingAgendaDraftOutput({
+        creatorProfileId: params.creatorProfileId,
+        input: params.input,
+      }),
+  },
+  CONTACT_OUTREACH_DRAFT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "CONTACT_OUTREACH_DRAFT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "連絡目的の一文要約",
+        },
+        draftMessage: {
+          type: "string",
+          required: true,
+          description: "実際の送信メッセージ下書き",
+        },
+        tone: {
+          type: "string",
+          required: true,
+          description: "文体（formal / professional / friendly）",
+        },
+        keyPoints: {
+          type: "array",
+          required: true,
+          description: "メッセージで押さえるべき要点リスト",
+        },
+        followUpSuggestion: {
+          type: "string",
+          required: true,
+          description: "返信がない場合のフォローアップ提案",
+        },
+        context: {
+          type: "object",
+          required: true,
+          description: "生成に使用したコンテキスト情報",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) =>
+      buildContactOutreachDraftOutput({
+        creatorProfileId: params.creatorProfileId,
+        input: params.input,
+      }),
   },
 };
 

@@ -18,6 +18,7 @@ import {
   resolveCreatorProfileIdByAddress,
   serializeManagerNote,
 } from "@/lib/managerDesk/server";
+import { enrichManagerNote } from "@/lib/managerDesk/managerNoteEnrichment";
 import {
   requireOwnerSessionFromBody,
   requireOwnerSessionFromSearchParams,
@@ -219,56 +220,109 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const managerAssignmentIdRaw =
       toNonEmptyString(body.managerAssignmentId) ?? access.managerAssignmentId;
 
-    const urgencyScore = toOptionalUrgencyScore(body.urgencyScore);
-    if (body.urgencyScore !== undefined && urgencyScore === undefined) {
+    const urgencyScoreInput = toOptionalUrgencyScore(body.urgencyScore);
+    if (body.urgencyScore !== undefined && urgencyScoreInput === undefined) {
       return errJson("URGENCY_SCORE_INVALID", 400);
     }
 
-    const followUpNeeded = toOptionalBoolean(body.followUpNeeded) ?? false;
-    if (body.followUpNeeded !== undefined && toOptionalBoolean(body.followUpNeeded) === undefined) {
+    const followUpNeededInput = toOptionalBoolean(body.followUpNeeded);
+    if (
+      body.followUpNeeded !== undefined &&
+      followUpNeededInput === undefined
+    ) {
       return errJson("FOLLOW_UP_NEEDED_INVALID", 400);
     }
 
-    const followUpDueAt = toOptionalDate(body.followUpDueAt);
-    if (body.followUpDueAt !== undefined && followUpDueAt === undefined) {
+    const followUpDueAtInput = toOptionalDate(body.followUpDueAt);
+    if (body.followUpDueAt !== undefined && followUpDueAtInput === undefined) {
       return errJson("FOLLOW_UP_DUE_AT_INVALID", 400);
     }
 
+    const managerAssignmentId: string | null = managerAssignmentIdRaw;
+    if (managerAssignmentId) {
+      const assignment = await prisma.managerAssignment.findUnique({
+        where: { id: managerAssignmentId },
+      });
+      if (
+        !assignment ||
+        assignment.creatorProfileId !== targetCreatorProfileId ||
+        assignment.managerWalletAddress !== normalizeAddress(ownerSession.address)
+      ) {
+        return errJson("MANAGER_ASSIGNMENT_INVALID", 400);
+      }
+    }
+
+    const project =
+      projectId === null
+        ? null
+        : await prisma.project.findFirst({
+            where: {
+              id: projectId,
+              creatorProfileId: targetCreatorProfileId,
+            },
+            select: { id: true, title: true },
+          });
+    if (projectId && !project) {
+      return errJson("PROJECT_NOT_FOUND_OR_FORBIDDEN", 404);
+    }
+
+    const contact =
+      externalContactId === null
+        ? null
+        : await prisma.externalContact.findUnique({
+            where: { id: externalContactId },
+            select: {
+              id: true,
+              creatorProfileId: true,
+              organizationName: true,
+              nextAction: true,
+            },
+          });
+    if (
+      externalContactId &&
+      (!contact || contact.creatorProfileId !== targetCreatorProfileId)
+    ) {
+      return errJson("EXTERNAL_CONTACT_NOT_FOUND_OR_FORBIDDEN", 404);
+    }
+
+    const relatedMeeting =
+      relatedMeetingId === null
+        ? null
+        : await prisma.meeting.findUnique({
+            where: { id: relatedMeetingId },
+            select: {
+              id: true,
+              creatorProfileId: true,
+              title: true,
+              nextActionsSummary: true,
+            },
+          });
+    if (
+      relatedMeetingId &&
+      (!relatedMeeting || relatedMeeting.creatorProfileId !== targetCreatorProfileId)
+    ) {
+      return errJson("RELATED_MEETING_NOT_FOUND_OR_FORBIDDEN", 404);
+    }
+
+    const enrichment = await enrichManagerNote({
+      title,
+      body: noteBody,
+      noteType,
+      projectTitle: project?.title ?? null,
+      externalContactName: contact?.organizationName ?? null,
+      externalContactNextAction: contact?.nextAction ?? null,
+      meetingTitle: relatedMeeting?.title ?? null,
+      meetingNextActionsSummary: relatedMeeting?.nextActionsSummary ?? null,
+    });
+    const effectiveUrgencyScore = urgencyScoreInput ?? enrichment.urgencyScore;
+    const effectiveFollowUpNeeded =
+      followUpNeededInput ?? enrichment.followUpNeeded;
+    const effectiveFollowUpDueAt =
+      followUpDueAtInput !== undefined
+        ? followUpDueAtInput
+        : enrichment.followUpDueAt;
+
     const created = await prisma.$transaction(async (tx) => {
-      const managerAssignmentId: string | null = managerAssignmentIdRaw;
-      if (managerAssignmentId) {
-        const assignment = await tx.managerAssignment.findUnique({
-          where: { id: managerAssignmentId },
-        });
-        if (
-          !assignment ||
-          assignment.creatorProfileId !== targetCreatorProfileId ||
-          assignment.managerWalletAddress !== normalizeAddress(ownerSession.address)
-        ) {
-          throw new Error("MANAGER_ASSIGNMENT_INVALID");
-        }
-      }
-
-      if (projectId) {
-        const project = await tx.project.findFirst({
-          where: {
-            id: projectId,
-            creatorProfileId: targetCreatorProfileId,
-          },
-          select: { id: true },
-        });
-        if (!project) throw new Error("PROJECT_NOT_FOUND_OR_FORBIDDEN");
-      }
-
-      if (externalContactId) {
-        const contact = await tx.externalContact.findUnique({
-          where: { id: externalContactId },
-          select: { id: true, creatorProfileId: true },
-        });
-        if (!contact || contact.creatorProfileId !== targetCreatorProfileId) {
-          throw new Error("EXTERNAL_CONTACT_NOT_FOUND_OR_FORBIDDEN");
-        }
-      }
 
       const note = await tx.managerNote.create({
         data: {
@@ -282,9 +336,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           visibility,
           title,
           body: noteBody,
-          urgencyScore: urgencyScore ?? null,
-          followUpNeeded,
-          followUpDueAt: followUpDueAt ?? null,
+          urgencyScore: effectiveUrgencyScore ?? null,
+          followUpNeeded: effectiveFollowUpNeeded,
+          followUpDueAt: effectiveFollowUpDueAt ?? null,
+          aiSummary: enrichment.aiSummary,
+          aiTags: enrichment.aiTags,
         },
       });
 
@@ -302,7 +358,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         metadataJson: {
           noteType,
           visibility,
-          followUpNeeded,
+          followUpNeeded: effectiveFollowUpNeeded,
+          aiSummaryGenerated: true,
         },
         visibility:
           visibility === "SHAREABLE_WITH_CREATOR"
@@ -336,6 +393,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
     if (message === "EXTERNAL_CONTACT_NOT_FOUND_OR_FORBIDDEN") {
       return errJson("EXTERNAL_CONTACT_NOT_FOUND_OR_FORBIDDEN", 404);
+    }
+    if (message === "RELATED_MEETING_NOT_FOUND_OR_FORBIDDEN") {
+      return errJson("RELATED_MEETING_NOT_FOUND_OR_FORBIDDEN", 404);
     }
     console.error("MANAGER_NOTES_POST_FAILED", error);
     return errJson("MANAGER_NOTES_POST_FAILED", 500);

@@ -87,7 +87,7 @@ export function PostingAiOfficeSection(props: Props) {
       <WorkspaceStatusNotice
         tone="info"
         title="投稿・反応・支援・AIによる運用をひとつの画面でまとめて管理できます。"
-        description={`外部SNS連携なしで、公開プロフィールの投稿やチップを維持したまま、投稿管理と${AI_OFFICE_LABEL}をここで一元化できます。`}
+        description={`Creator Founding 内の投稿・チップ・ファン反応を一元管理できます。投稿管理と${AI_OFFICE_LABEL}をこの画面でまとめて進められます。`}
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">

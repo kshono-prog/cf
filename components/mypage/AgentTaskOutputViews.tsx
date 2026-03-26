@@ -1970,6 +1970,253 @@ function GrowthOpportunityAlertOutputCard({
   );
 }
 
+// ── MEETING_AGENDA_DRAFT ────────────────────────────────────────────────────
+
+type MeetingAgendaItem = {
+  id: string;
+  title: string;
+  durationMinutes: number | null;
+  notes: string | null;
+};
+
+type MeetingAgendaDraftOutputView = {
+  summary: string;
+  agenda: MeetingAgendaItem[];
+  preReadItems: string[];
+  decisionsNeeded: string[];
+  context: {
+    meetingTitle: string | null;
+    scheduledAt: string | null;
+  } | null;
+};
+
+function parseMeetingAgendaDraftOutput(
+  v: unknown
+): MeetingAgendaDraftOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+  const agenda = asArray(v.agenda)
+    .filter(isRecord)
+    .map((item) => ({
+      id: typeof item.id === "string" ? item.id : String(Math.random()),
+      title: asStringOrNull(item.title) ?? "アジェンダ項目",
+      durationMinutes:
+        typeof item.durationMinutes === "number" ? item.durationMinutes : null,
+      notes: asStringOrNull(item.notes),
+    }));
+  const preReadItems = asArray(v.preReadItems).filter(
+    (x): x is string => typeof x === "string"
+  );
+  const decisionsNeeded = asArray(v.decisionsNeeded).filter(
+    (x): x is string => typeof x === "string"
+  );
+  const ctx = isRecord(v.context) ? v.context : null;
+  return {
+    summary,
+    agenda,
+    preReadItems,
+    decisionsNeeded,
+    context: ctx
+      ? {
+          meetingTitle: asStringOrNull(ctx.meetingTitle),
+          scheduledAt: asStringOrNull(ctx.scheduledAt),
+        }
+      : null,
+  };
+}
+
+function MeetingAgendaDraftOutputCard(props: {
+  output: MeetingAgendaDraftOutputView;
+}) {
+  const { output } = props;
+  const totalMinutes = output.agenda.reduce(
+    (acc, item) => acc + (item.durationMinutes ?? 0),
+    0
+  );
+  return (
+    <div className="space-y-4">
+      <p className="text-sm leading-6 text-[var(--text-subtle)]">{output.summary}</p>
+
+      {output.context?.meetingTitle ? (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-subtle)]">
+          <span className="font-medium">{output.context.meetingTitle}</span>
+          {output.context.scheduledAt ? (
+            <span>
+              {new Date(output.context.scheduledAt).toLocaleString("ja-JP", {
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          ) : null}
+          {totalMinutes > 0 ? <span>合計 {totalMinutes.toString()} 分</span> : null}
+        </div>
+      ) : null}
+
+      <div>
+        <div className="mb-2 text-xs font-semibold text-[var(--text-subtle)]">
+          アジェンダ
+        </div>
+        <div className="space-y-2">
+          {output.agenda.map((item, i) => (
+            <div
+              key={item.id}
+              className="flex gap-3 rounded-xl bg-[var(--surface-subtle)] px-4 py-3"
+            >
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--text)] text-[10px] font-bold text-[var(--surface)]">
+                {(i + 1).toString()}
+              </span>
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-[var(--text)]">
+                    {item.title}
+                  </span>
+                  {item.durationMinutes ? (
+                    <span className="text-[11px] text-[var(--text-subtle)]">
+                      {item.durationMinutes.toString()} 分
+                    </span>
+                  ) : null}
+                </div>
+                {item.notes ? (
+                  <p className="text-[11px] leading-4 text-[var(--text-subtle)]">
+                    {item.notes}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {output.preReadItems.length > 0 ? (
+        <div>
+          <div className="mb-2 text-xs font-semibold text-[var(--text-subtle)]">
+            事前確認
+          </div>
+          <ul className="space-y-1">
+            {output.preReadItems.map((item, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2 text-sm text-[var(--text-subtle)]"
+              >
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--text-subtle)]" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {output.decisionsNeeded.length > 0 ? (
+        <div>
+          <div className="mb-2 text-xs font-semibold text-[var(--text-subtle)]">
+            この会議で決めること
+          </div>
+          <ul className="space-y-1">
+            {output.decisionsNeeded.map((item, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2 text-sm font-medium text-[var(--text)]"
+              >
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--text)]" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ── CONTACT_OUTREACH_DRAFT ──────────────────────────────────────────────────
+
+type ContactOutreachDraftOutputView = {
+  summary: string;
+  draftMessage: string;
+  tone: string;
+  keyPoints: string[];
+  followUpSuggestion: string;
+};
+
+function parseContactOutreachDraftOutput(
+  v: unknown
+): ContactOutreachDraftOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+  const draftMessage = asStringOrNull(v.draftMessage);
+  if (!draftMessage) return null;
+  const tone = asStringOrNull(v.tone) ?? "professional";
+  const keyPoints = asArray(v.keyPoints).filter(
+    (x): x is string => typeof x === "string"
+  );
+  const followUpSuggestion =
+    asStringOrNull(v.followUpSuggestion) ?? "";
+  return { summary, draftMessage, tone, keyPoints, followUpSuggestion };
+}
+
+const TONE_LABELS: Record<string, string> = {
+  formal: "格式体",
+  professional: "プロフェッショナル",
+  friendly: "フレンドリー",
+};
+
+function ContactOutreachDraftOutputCard(props: {
+  output: ContactOutreachDraftOutputView;
+}) {
+  const { output } = props;
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm leading-6 text-[var(--text-subtle)]">{output.summary}</p>
+        <span className="shrink-0 rounded-full border border-[var(--line)] px-2 py-0.5 text-[11px] text-[var(--text-subtle)]">
+          {TONE_LABELS[output.tone] ?? output.tone}
+        </span>
+      </div>
+
+      <div>
+        <div className="mb-2 text-xs font-semibold text-[var(--text-subtle)]">
+          メッセージ下書き
+        </div>
+        <div className="whitespace-pre-wrap rounded-xl bg-[var(--surface-subtle)] px-4 py-3 text-sm leading-7 text-[var(--text)]">
+          {output.draftMessage}
+        </div>
+      </div>
+
+      {output.keyPoints.length > 0 ? (
+        <div>
+          <div className="mb-2 text-xs font-semibold text-[var(--text-subtle)]">
+            押さえるポイント
+          </div>
+          <ul className="space-y-1">
+            {output.keyPoints.map((point, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2 text-sm text-[var(--text-subtle)]"
+              >
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--text-subtle)]" />
+                {point}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {output.followUpSuggestion ? (
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+          <div className="text-[11px] font-semibold text-[var(--text-subtle)]">
+            返信なし時のフォローアップ
+          </div>
+          <p className="mt-1 text-sm text-[var(--text)]">{output.followUpSuggestion}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // ── CAREER_PLAN_DRAFT ──────────────────────────────────────────────────────
 
 type CareerPlanDraftOutputView = {
@@ -2203,6 +2450,18 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     render: (output) => {
       const parsed = parseGrowthOpportunityAlertOutput(output);
       return parsed ? <GrowthOpportunityAlertOutputCard output={parsed} /> : null;
+    },
+  },
+  MEETING_AGENDA_DRAFT: {
+    render: (output) => {
+      const parsed = parseMeetingAgendaDraftOutput(output);
+      return parsed ? <MeetingAgendaDraftOutputCard output={parsed} /> : null;
+    },
+  },
+  CONTACT_OUTREACH_DRAFT: {
+    render: (output) => {
+      const parsed = parseContactOutreachDraftOutput(output);
+      return parsed ? <ContactOutreachDraftOutputCard output={parsed} /> : null;
     },
   },
 };

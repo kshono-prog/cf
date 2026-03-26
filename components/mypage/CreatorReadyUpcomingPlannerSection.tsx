@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import {
   WorkspaceEmptyState,
   WorkspaceLoadingCard,
@@ -14,6 +16,8 @@ type Props = {
   loading: boolean;
   error: string | null;
   data: PlannerTimelineData | null;
+  /** href to AI Office Create (MEETING_AGENDA_DRAFT). Shown on MEETING items when provided. */
+  agendaCreateHref?: string;
 };
 
 function formatDateTime(value: string | null): string {
@@ -71,6 +75,7 @@ function SummaryChip(props: { label: string; value: string }) {
 }
 
 export function CreatorReadyUpcomingPlannerSection(props: Props) {
+  const { agendaCreateHref } = props;
   return (
     <section className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -145,6 +150,16 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
                 <div className="mt-3 text-xs text-slate-500">
                   期限 {formatDateTime(item.dueAt)}
                 </div>
+                {item.sourceType === "MEETING" && agendaCreateHref ? (
+                  <div className="mt-3">
+                    <Link
+                      href={agendaCreateHref}
+                      className="text-xs font-medium text-slate-700 underline underline-offset-2 hover:text-slate-950"
+                    >
+                      アジェンダを作る →
+                    </Link>
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>

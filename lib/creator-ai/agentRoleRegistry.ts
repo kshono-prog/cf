@@ -56,6 +56,8 @@ export const CREATOR_AI_AGENT_ROLE_DEFINITIONS: readonly CreatorAiAgentRoleDefin
         "ACTIVITY_RESTART_PROPOSAL",
         "PROFILE_UPDATE_PROPOSAL",
         "CAREER_PLAN_DRAFT",
+        "MEETING_AGENDA_DRAFT",
+        "CONTACT_OUTREACH_DRAFT",
         "PROPOSE",
         "ANALYZE",
         "WEEKLY_REPORT",

@@ -9,6 +9,7 @@ export const AI_OFFICE_URL_PARAMS = {
   role: "aiOfficeRole",
   inboxRole: "aiOfficeInboxRole",
   openLatestTaskType: "aiOfficeOpenLatestTaskType",
+  openCreateTaskType: "aiOfficeOpenCreateTaskType",
 } as const;
 
 const DEFAULT_AI_OFFICE_URL_ROLE: CreatorAiAgentRole = "MANAGER";
@@ -18,6 +19,8 @@ export type AiOfficePanelUrlState = {
   selectedRoleId: CreatorAiAgentRole;
   selectedInboxRoleId: CreatorAiAgentRole | null;
   openLatestTaskType: TaskType | null;
+  /** Pre-select a task type in the Create view. When set, the panel opens directly to that task type. */
+  openCreateTaskType?: TaskType | null;
 };
 
 export function isAiOfficeView(value: unknown): value is AiOfficeView {
@@ -33,6 +36,9 @@ export function parseAiOfficePanelUrlState(
   const openLatestTaskTypeParam = searchParams.get(
     AI_OFFICE_URL_PARAMS.openLatestTaskType
   );
+  const openCreateTaskTypeParam = searchParams.get(
+    AI_OFFICE_URL_PARAMS.openCreateTaskType
+  );
 
   return {
     activeView: isAiOfficeView(activeViewParam)
@@ -47,6 +53,10 @@ export function parseAiOfficePanelUrlState(
       openLatestTaskTypeParam === null
         ? null
         : toTaskType(openLatestTaskTypeParam),
+    openCreateTaskType:
+      openCreateTaskTypeParam === null
+        ? null
+        : toTaskType(openCreateTaskTypeParam),
   };
 }
 
@@ -84,6 +94,15 @@ export function buildAiOfficePanelSearchParams(
     );
   } else {
     nextSearchParams.delete(AI_OFFICE_URL_PARAMS.openLatestTaskType);
+  }
+
+  if (state.openCreateTaskType) {
+    nextSearchParams.set(
+      AI_OFFICE_URL_PARAMS.openCreateTaskType,
+      state.openCreateTaskType
+    );
+  } else {
+    nextSearchParams.delete(AI_OFFICE_URL_PARAMS.openCreateTaskType);
   }
 
   return nextSearchParams;

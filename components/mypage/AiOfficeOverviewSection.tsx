@@ -113,6 +113,42 @@ export function AiOfficeOverviewSection(props: Props) {
             <div className="caption-text">計測対象に限った downstream 利用率</div>
           </div>
         </div>
+        {props.usefulness.actionableCount > 0 ? (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text-subtle)]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">
+              今月の承認実績
+            </span>
+            <span>
+              承認{" "}
+              <span className="font-semibold text-emerald-700">
+                {props.usefulness.approvedCount}
+              </span>
+              件
+            </span>
+            <span>
+              却下{" "}
+              <span className="font-semibold text-rose-700">
+                {props.usefulness.rejectedCount}
+              </span>
+              件
+            </span>
+            <span>
+              承認率{" "}
+              <span className="font-semibold text-[var(--text)]">
+                {(props.usefulness.approvalRate * 100).toFixed(0)}%
+              </span>
+            </span>
+            {props.usefulness.medianDecisionHours !== null ? (
+              <span>
+                中央値{" "}
+                <span className="font-semibold text-[var(--text)]">
+                  {props.usefulness.medianDecisionHours.toFixed(1)}h
+                </span>
+                で判断
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {/* ── Area 2: 最近の作成履歴 ── */}
@@ -226,6 +262,14 @@ export function AiOfficeOverviewSection(props: Props) {
                       ? ` / 活用率 ${(roleUsefulness.usedRate * 100).toFixed(0)}%`
                       : ""}
                   </div>
+                  {roleUsefulness &&
+                  roleUsefulness.trackedReadyCount >= 2 &&
+                  roleUsefulness.usedRate < 0.3 ? (
+                    <div className="mt-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                      採択率が低め（{(roleUsefulness.usedRate * 100).toFixed(0)}%）。
+                      承認後に投稿・メモ・コピーへ反映させると活用率がカウントされます。
+                    </div>
+                  ) : null}
                 </div>
                 <button
                   type="button"

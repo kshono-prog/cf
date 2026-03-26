@@ -8,11 +8,11 @@
 
 ## Recommended Next Execution Order
 
-1. [AI operational assistance on structured context](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-ai-operational-assistance-structured-context.md)
-2. [Manager Desk follow-up slices](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-manager-desk-follow-up-slices.md)
-3. [Creator Home deferred sections](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-creator-home-deferred-sections.md)
-4. Meeting 決定事項を structured task に落とす minimum flow
-5. Trust / Stage / CRM groundwork
+1. ~~`CHD-2` Growth / Reflection MVP~~ 完了
+2. ~~missing-items detection over planner / note / contact signals~~ 完了
+3. ~~Meeting 決定事項を structured task に落とす minimum flow~~ 完了
+4. ~~Trust / Stage / CRM groundwork~~ 完了
+5. ~~lightweight CRM polish over status / next action / temperature~~ 完了
 
 ## Active Tracks
 
@@ -47,20 +47,25 @@ Track 8-D — Meeting / Planner / follow-up minimum
 
 Track 8-E — AI operational assistance on structured context
 - ready: issue doc created
-- next: `AO-1` Daily Briefing read contract
-- after: `AO-2` note summarization / follow-up extraction
+- 完了: `AO-1` Daily Briefing read contract
+- 完了: `AO-2` note summarization / follow-up extraction
+- 完了: `AO-3` manager-side UI connection
 - later: missing-items detection
 
 Track 8-F — Manager Desk follow-up slices
 - ready: issue doc created
-- next: `MF-1` Contact Pipeline MVP
-- after: `MF-2` Notes surface
-- after: `MF-3` Activity Timeline
+- 完了: `MF-1` Contact Pipeline MVP
+- 完了: `MF-2` Notes surface MVP
+- 完了: `MF-3` Activity Timeline MVP
 
 Track 8-G — Creator Home deferred sections
 - ready: issue doc created
-- next: `CHD-1` Manager Feed MVP
-- after: `CHD-2` Growth / Reflection MVP
+- 完了: `CHD-1` Manager Feed MVP
+- 完了: `CHD-2` Growth / Reflection MVP
+
+Track 8-H — Missing Items Detection / Meeting Follow-up Flow
+- 完了: missing-items detection (Manager Desk) — Note/Contact/Meeting gaps を横断検出
+- 完了: Meeting 決定事項 → ManagerNote 変換 minimum flow
 
 ## Phase 2 UX（完了済み）
 
@@ -246,6 +251,110 @@ Sprint 7-C — クリエイター発見ページ: **完了**
 - creatorType フィルターチップ（Link ベース、SSR フレンドリー）
 - 各クリエイターカード：avatar / displayName / creatorType / 目標達成バッジ / 投稿数 / profile 抜粋
 - 最大 60 名、`revalidate: 120`
+
+## Sprint 8-O — Docs & State 同期（Phase 8 クローズ）（完了）
+
+- 完了: `docs/specs/creator-ai-office/task-output-contracts.md` に MEETING_AGENDA_DRAFT / CONTACT_OUTREACH_DRAFT の契約を追記
+- 完了: `PROJECT_STATE.md` を Phase 8 の成果（Opportunity CRM / Fan Relations / Creator Stage / 新 AgentTask 群 / 承認実績サマリー）を反映して更新
+- 完了: `TASKS.md` に Phase 8 完了を記録し Phase 9 の候補をリストアップ
+
+## Sprint 8-N — AI Office 承認実績サマリー（完了）
+
+- 完了: `AiOfficeOverviewSection.tsx` の Status エリア下部に「今月の承認実績」バーを追加
+  - 承認数 / 却下数 / 承認率 / 判断中央値を既存 `usefulness` prop から表示（新 API 不要）
+  - `actionableCount > 0` の場合のみ表示
+
+## Sprint 8-M — Meeting → MEETING_AGENDA_DRAFT ショートカット（完了）
+
+- 完了: `CreatorReadyUpcomingPlannerSection.tsx` に `agendaCreateHref` prop を追加
+  - MEETING ソースのアイテムに「アジェンダを作る →」リンクを表示
+- 完了: `CreatorReadyHomeRoute.tsx` で `aiOfficeCreateAgendaHref` を生成して渡す
+- 完了: `ManagerDeskCreatorDetailPreviewClient.tsx` の planner セクションの MEETING アイテムに「アジェンダを作る →」リンクを追加
+
+## Sprint 8-L — Opportunity CRM + Wave 1 rename（完了）
+
+- 完了: Manager Desk Opportunity CRM 追加
+  - `lib/managerDesk/readModelTypes.ts` に `ManagerDeskOpportunityCrmData` / `ManagerDeskOpportunityStage` / `ManagerDeskOpportunityStatus` 型追加
+  - `lib/managerDesk/readModel.ts` に `getManagerDeskOpportunityPipeline` 追加（IN_DISCUSSION / NEGOTIATING / WON / ONGOING をステージ別にグループ）
+  - `app/api/manager-desk/opportunities/route.ts` — GET endpoint 追加
+  - `components/managerDesk/useManagerDeskOpportunityCrm.ts` — client hook 追加
+  - `components/managerDesk/ManagerDeskOpportunityCrmClient.tsx` — ステージ別案件リスト + 連絡文 CTA + Creator filter
+  - `app/manager-desk/opportunities/page.tsx` — ページ追加
+  - Dashboard に "Opportunity CRM" ナビリンク追加
+- 完了: Wave 1 rename — `PostingAiOfficeSection.tsx` の "外部SNS連携なし" コピーを CF 内投稿向けの文言に修正
+
+## Sprint 8-K — Manager Desk Creator Stage + CONTACT_OUTREACH_DRAFT（完了）
+
+- 完了: Manager Desk Creator Detail に Creator Stage セクション追加
+  - `lib/managerDesk/readModelTypes.ts` に `stage: CreatorStageResult | null` 追加
+  - `lib/managerDesk/readModel.ts` で `getCreatorActivityCredibility` + `deriveCreatorStage` を並列実行
+  - `ManagerDeskCreatorDetailPreviewClient.tsx` に stage ピル進行バー + maturity 4軸バー + nextMilestone を追加
+- 完了: `CONTACT_OUTREACH_DRAFT` AgentTask 追加
+  - `lib/creator-ai/contactOutreachDraftTask.ts` executor 実装（contactId/purpose/tone を受け取り、接点履歴・ノート・クリエイター情報から営業文面を生成）
+  - MANAGER Agent candidateTaskTypes に追加
+  - Create UI カード・output renderer（下書き本文 + 押さえるポイント + フォローアップ提案）・uxCopy 追加
+
+## Sprint 8-J — Creator Fan Relations Overview（完了）
+
+- 完了: `lib/operations/supporterOverviewTypes.ts` — `SupporterOverviewData` / `SupporterTopItem` 型定義
+- 完了: `lib/operations/supporterOverview.ts` — `getSupporterOverview` サービス（累計 / 今月 / 直近30日 / top5 by 支援回数）
+- 完了: `app/api/mypage/supporter-overview/route.ts` — GET endpoint
+- 完了: `components/mypage/useCreatorReadySupporterOverview.ts` — client hook
+- 完了: `components/mypage/CreatorReadySupporterOverviewSection.tsx` — UI（累計/今月/直近の3グリッド + top supporters + FAN_RELATION CTA）
+- 完了: `CreatorReadyHomeRoute.tsx` に接続（GrowthReflection 後、AI Office パネル前）
+
+## Sprint 8-I — AI Meeting Support + Stage Integration（完了）
+
+- 完了: `MEETING_AGENDA_DRAFT` AgentTask 追加
+  - `lib/creator-ai/meetingAgendaDraftTask.ts` executor 実装（meetingId / 直近ノート / 会議履歴から agenda / 事前確認 / 決定事項を生成）
+  - MANAGER Agent candidateTaskTypes に追加
+  - Create UI カード・output renderer（numbered agenda list）・uxCopy 追加
+  - `AgentTaskOutputViews.tsx` に MeetingAgendaDraftOutputCard 追加
+- 完了: `DAILY_ACTION_PLAN` を Creator Stage 対応に強化
+  - `deriveCreatorStage` / `getCreatorActivityCredibility` をインポートして stage 情報を AI プロンプトに追加
+  - context に `stage` / `stageLabel` を出力
+
+## Phase 9（完了）
+
+Sprint 9-A — Wave 2 rename: **完了**
+- `postingManagedApi.ts` が `snsPostsApi.ts` + `snsAgentJobApi.ts` から直接インポートするよう変更（`snsApi.ts` 経由を廃止）
+- `snsApi.ts` は backward-compat barrel として存続
+
+Sprint 9-B — MEETING_AGENDA_DRAFT meetingId pre-fill: **完了**
+- `aiOfficePanelUrlState.ts` に `openCreateTaskType` URL param を追加
+- `AiOfficePanel.tsx` が `openCreateTaskType` で initial task type を初期化
+- Creator Home planner の「アジェンダを作る」が `aiOfficeOpenCreateTaskType=MEETING_AGENDA_DRAFT` を渡すよう更新
+- Manager Desk の meeting リンクも同様に更新
+
+Sprint 9-C — Supporter CRM surface: **完了**
+- `lib/operations/supporterCrmTypes.ts` — 型定義追加
+- `lib/operations/supporterCrm.ts` — `getSupporterCrm`（groupBy amountDecimal + min/max confirmedAt）
+- `app/api/mypage/supporter-crm/route.ts` — GET endpoint 追加
+- `components/mypage/useCreatorReadySupporterCrm.ts` — client hook
+- `components/mypage/CreatorReadySupporterCrmSection.tsx` — 支援者リスト（累計回数・通貨別金額・初回/最終日）
+- Creator Home に SupporterOverviewSection の後に追加
+
+Sprint 9-D — AI Office 採択ヒント: **完了**
+- `AiOfficeOverviewSection.tsx` の担当一覧ロー: 活用率 < 30% かつ trackedReadyCount >= 2 の担当に採択ヒントを表示
+
+## Phase 9 候補（次フェーズ）
+
+Phase 8 で土台が揃った。次は以下を検討する。
+
+### CRM 深化
+- **Supporter CRM**: 支援者アドレスごとの支援履歴・累計額・最終支援日を Creator Home または Manager Desk に表示
+- **Wave 2 rename**: `SnsAiOfficeSection` → `PostingAiOfficeSection` 正規化、`lib/mypage/snsApi.ts` → `postingManagedApi.ts` alias
+
+### Business Layer
+- **費用・収支 groundwork**: `Expense` / `Revenue` の最小モデル設計（スキーマ変更要承認）
+- **Contract / Billing stub**: ExternalContact の WON/ONGOING に contract 情報を紐づける最小フィールド
+
+### AI 強化
+- **MEETING_AGENDA_DRAFT meetingId pre-fill**: Planner の会議ボタンから meetingId を URL param 経由で Create フォームに渡す（`openCreateTaskType` URL param 追加）
+- **AI Office 使い捨て防止**: 採択率が低い task type を Overview で強調し、なぜ却下されているかのパターン検出
+
+### Trust / Stage 深化
+- **SkillMap 最小実装**: 4 軸 maturity を CreatorProfile に紐づく separate 読み取り専用スコアとして保持
 
 ## Ready Queue
 

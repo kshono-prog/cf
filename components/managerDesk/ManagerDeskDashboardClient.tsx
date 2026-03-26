@@ -4,6 +4,8 @@ import Link from "next/link";
 
 import { useAccount } from "wagmi";
 
+import { ManagerDeskAiSuggestionsSection } from "@/components/managerDesk/ManagerDeskAiSuggestionsSection";
+import { ManagerDeskMissingItemsSection } from "@/components/managerDesk/ManagerDeskMissingItemsSection";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
   WorkspaceEmptyState,
@@ -11,7 +13,12 @@ import {
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
 import { useManagerDeskDashboard } from "@/components/managerDesk/useManagerDeskDashboard";
+import { useManagerDeskMissingItems } from "@/components/managerDesk/useManagerDeskMissingItems";
 import type { ManagerDeskDashboardCard } from "@/lib/managerDesk/readModelTypes";
+import {
+  buildManagerDeskDashboardAiSuggestions,
+  buildManagerDeskDashboardAiSummary,
+} from "@/lib/operations/managerDeskAiAssistance";
 
 function formatRelativeDays(days: number | null): string {
   if (days == null) return "最新アクション不明";
@@ -252,6 +259,12 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
           Creator Detail
         </Link>
         <Link
+          href={`/manager-desk/activity?creatorProfileId=${card.creator.id}`}
+          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+        >
+          Activity Timeline
+        </Link>
+        <Link
           href={publicHref}
           className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
         >
@@ -268,6 +281,9 @@ export function ManagerDeskDashboardClient() {
     address,
     isConnected,
   });
+  const missingItems = useManagerDeskMissingItems({ address, isConnected });
+  const aiSummary = data ? buildManagerDeskDashboardAiSummary(data) : null;
+  const aiSuggestions = data ? buildManagerDeskDashboardAiSuggestions(data) : [];
 
   return (
     <MyPageShell headerColor="#0f172a">
@@ -284,6 +300,32 @@ export function ManagerDeskDashboardClient() {
               first slice では、担当 Creator の優先度、止まり、対外フォロー、
               Manager Note の最新状況を 1 画面で見渡せるようにしています。
             </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/manager-desk/contacts"
+              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+            >
+              Contact Pipeline
+            </Link>
+            <Link
+              href="/manager-desk/notes"
+              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+            >
+              Notes Surface
+            </Link>
+            <Link
+              href="/manager-desk/activity"
+              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+            >
+              Activity Timeline
+            </Link>
+            <Link
+              href="/manager-desk/opportunities"
+              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+            >
+              Opportunity CRM
+            </Link>
           </div>
 
           {!isConnected ? (
@@ -311,6 +353,12 @@ export function ManagerDeskDashboardClient() {
               }}
             />
           ) : null}
+
+          <ManagerDeskMissingItemsSection
+            loading={missingItems.loading}
+            error={missingItems.error}
+            data={missingItems.data}
+          />
 
           {data ? (
             <div className="space-y-4">
@@ -340,6 +388,15 @@ export function ManagerDeskDashboardClient() {
                 </div>
                 <div>更新時刻 {formatGeneratedAt(data.generatedAt)}</div>
               </div>
+
+              <ManagerDeskAiSuggestionsSection
+                eyebrow="AI Office"
+                title="今日の優先対応"
+                summary={aiSummary ?? "AI summary を準備中です。"}
+                suggestions={aiSuggestions}
+                emptyTitle="AI attention はまだありません"
+                emptyDescription="priority signal や follow-up が積み上がると、ここに短い実務カードで返します。"
+              />
 
               {data.cards.length > 0 ? (
                 <div className="space-y-4">

@@ -7,15 +7,28 @@ import {
   serializeExternalContact,
   serializeManagerAssignment,
   serializeManagerNote,
+  serializeMeeting,
 } from "@/lib/managerDesk/server";
+import type { SerializedActionLog } from "@/lib/managerDesk/server";
 import type {
+  ManagerDeskActivityTimelineData,
+  ManagerDeskActivityTimelineItem,
+  ManagerDeskActivityTimelineSourceType,
+  ManagerDeskContactPipelineData,
+  ManagerDeskContactPipelineDueState,
+  ManagerDeskContactPipelineItem,
   ManagerDeskCreatorDetailData,
   ManagerDeskCreatorIdentity,
   ManagerDeskDashboardCard,
   ManagerDeskDashboardData,
   ManagerDeskDashboardPriority,
+  ManagerDeskNotesSurfaceData,
+  ManagerDeskNotesSurfaceItem,
   ManagerDeskProjectSummary,
+  ManagerDeskOpportunityCrmData,
 } from "@/lib/managerDesk/readModelTypes";
+import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
+import { deriveCreatorStage } from "@/lib/creatorStage";
 import { getPlannerTimeline } from "@/lib/operations/plannerTimeline";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_CLOSED_PROJECT_STATUSES } from "@/lib/recruitingProjects";
@@ -66,6 +79,7 @@ type ProjectContributionTotals = {
 type PriorityLevel = "HIGH" | "MEDIUM" | "LOW";
 
 const ZERO_DECIMAL = new Prisma.Decimal(0);
+const DUE_SOON_MS = 1000 * 60 * 60 * 24 * 3;
 
 function isSupportedCurrency(value: string): value is SupportedCurrency {
   return value === "JPYC" || value === "USDC";
@@ -299,6 +313,115 @@ function sortDashboardCards(
       : 0;
     return leftAction - rightAction;
   });
+}
+
+function toContactPipelineDueState(
+  nextActionDueAt: Date | null,
+  now: Date
+): ManagerDeskContactPipelineDueState {
+  if (!nextActionDueAt) return "NONE";
+  const diffMs = nextActionDueAt.getTime() - now.getTime();
+  if (diffMs < 0) return "OVERDUE";
+  if (diffMs <= DUE_SOON_MS) return "DUE_SOON";
+  return "NONE";
+}
+
+function compareContactPipelineItems(
+  left: ManagerDeskContactPipelineItem,
+  right: ManagerDeskContactPipelineItem
+): number {
+  const dueStateRank: Record<ManagerDeskContactPipelineDueState, number> = {
+    OVERDUE: 0,
+    DUE_SOON: 1,
+    NONE: 2,
+  };
+
+  if (left.dueState !== right.dueState) {
+    return dueStateRank[left.dueState] - dueStateRank[right.dueState];
+  }
+
+  const leftDueAt = left.contact.nextActionDueAt
+    ? new Date(left.contact.nextActionDueAt).getTime()
+    : Number.POSITIVE_INFINITY;
+  const rightDueAt = right.contact.nextActionDueAt
+    ? new Date(right.contact.nextActionDueAt).getTime()
+    : Number.POSITIVE_INFINITY;
+
+  if (leftDueAt !== rightDueAt) {
+    return leftDueAt - rightDueAt;
+  }
+
+  const leftUpdatedAt = new Date(left.contact.updatedAt).getTime();
+  const rightUpdatedAt = new Date(right.contact.updatedAt).getTime();
+  return rightUpdatedAt - leftUpdatedAt;
+}
+
+function compareActivityTimelineItems(
+  left: ManagerDeskActivityTimelineItem,
+  right: ManagerDeskActivityTimelineItem
+): number {
+  const leftTime = new Date(left.happenedAt).getTime();
+  const rightTime = new Date(right.happenedAt).getTime();
+  if (leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+
+  return left.title.localeCompare(right.title, "ja");
+}
+
+function actorLabelFromWalletAddress(
+  walletAddress: string | null,
+  assignment: { managerWalletAddress: string } | null
+): string {
+  if (walletAddress && assignment) {
+    const normalizedActor = normalizeAddress(walletAddress);
+    const normalizedManager = normalizeAddress(assignment.managerWalletAddress);
+    if (normalizedActor === normalizedManager) {
+      return "Manager";
+    }
+  }
+
+  return walletAddress ? `Wallet ${walletAddress.slice(0, 6)}` : "Actor 未設定";
+}
+
+function actionLogActorLabel(args: {
+  actorType: SerializedActionLog["actorType"];
+  actorWalletAddress: string | null;
+  creatorWalletAddress: string | null;
+  assignment: { managerWalletAddress: string } | null;
+}): string {
+  if (args.actorType === "CREATOR") return "Creator";
+  if (args.actorType === "AI_OFFICE") return "AI Office";
+  if (args.actorType === "SYSTEM") return "System";
+
+  if (args.actorWalletAddress && args.creatorWalletAddress) {
+    const normalizedActor = normalizeAddress(args.actorWalletAddress);
+    const normalizedCreator = normalizeAddress(args.creatorWalletAddress);
+    if (normalizedActor === normalizedCreator) {
+      return "Creator";
+    }
+  }
+
+  return actorLabelFromWalletAddress(args.actorWalletAddress, args.assignment);
+}
+
+function meetingActorLabel(args: {
+  createdByWalletAddress: string;
+  creatorWalletAddress: string | null;
+  assignment: { managerWalletAddress: string } | null;
+}): string {
+  if (args.creatorWalletAddress) {
+    const normalizedCreator = normalizeAddress(args.creatorWalletAddress);
+    const normalizedActor = normalizeAddress(args.createdByWalletAddress);
+    if (normalizedCreator === normalizedActor) {
+      return "Creator";
+    }
+  }
+
+  return actorLabelFromWalletAddress(
+    args.createdByWalletAddress,
+    args.assignment
+  );
 }
 
 export async function getManagerDeskDashboard(args: {
@@ -553,6 +676,680 @@ export async function getManagerDeskDashboard(args: {
   };
 }
 
+export async function getManagerDeskContactPipeline(args: {
+  managerWalletAddress: string;
+  creatorProfileId?: bigint | null;
+  status?: ManagerDeskContactPipelineData["filters"]["status"];
+  overdueOnly?: boolean;
+  limit?: number;
+}): Promise<ManagerDeskContactPipelineData> {
+  const managerWalletAddress = normalizeAddress(args.managerWalletAddress);
+  const now = new Date();
+  const limit = args.limit ?? 100;
+
+  const assignments = await prisma.managerAssignment.findMany({
+    where: {
+      managerWalletAddress,
+      status: "ACTIVE",
+      OR: [{ endedAt: null }, { endedAt: { gt: now } }],
+    },
+    include: {
+      creatorProfile: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          profileText: true,
+          avatarUrl: true,
+          creatorType: true,
+          walletAddress: true,
+          activeProjectIdJpyc: true,
+          activeProjectIdUsdc: true,
+        },
+      },
+    },
+    orderBy: [{ roleType: "asc" }, { assignedAt: "desc" }],
+  });
+
+  const creatorIdentityById = new Map<string, ManagerDeskCreatorIdentity>();
+  const assignmentByCreatorId = new Map<string, (typeof assignments)[number]>();
+
+  for (const assignment of assignments) {
+    const creatorId = assignment.creatorProfileId.toString();
+    if (!creatorIdentityById.has(creatorId)) {
+      creatorIdentityById.set(
+        creatorId,
+        serializeCreator(assignment.creatorProfile)
+      );
+    }
+    if (!assignmentByCreatorId.has(creatorId)) {
+      assignmentByCreatorId.set(creatorId, assignment);
+    }
+  }
+
+  const availableCreators = Array.from(creatorIdentityById.values()).sort(
+    (left, right) =>
+      (left.displayName || left.username).localeCompare(
+        right.displayName || right.username,
+        "ja"
+      )
+  );
+
+  const emptyResult: ManagerDeskContactPipelineData = {
+    managerWalletAddress,
+    availableCreators,
+    items: [],
+    filters: {
+      creatorProfileId: args.creatorProfileId?.toString() ?? null,
+      status: args.status ?? null,
+      overdueOnly: args.overdueOnly === true,
+    },
+    summary: {
+      totalCount: 0,
+      overdueCount: 0,
+      dueSoonCount: 0,
+      withNextActionCount: 0,
+      warmContactCount: 0,
+      creatorCount: 0,
+    },
+    generatedAt: now.toISOString(),
+  };
+
+  if (availableCreators.length === 0) {
+    return emptyResult;
+  }
+
+  const assignedCreatorIds = new Set(availableCreators.map((creator) => creator.id));
+  const targetCreatorIds =
+    args.creatorProfileId == null
+      ? Array.from(assignedCreatorIds).map((value) => BigInt(value))
+      : assignedCreatorIds.has(args.creatorProfileId.toString())
+        ? [args.creatorProfileId]
+        : [];
+
+  if (targetCreatorIds.length === 0) {
+    return emptyResult;
+  }
+
+  const contacts = await prisma.externalContact.findMany({
+    where: {
+      creatorProfileId: { in: targetCreatorIds },
+      isArchived: false,
+      ...(args.status ? { status: args.status } : {}),
+      ...(args.overdueOnly ? { nextActionDueAt: { lte: now } } : {}),
+    },
+    orderBy: [{ updatedAt: "desc" }],
+    take: Math.max(1, Math.min(limit, 200)),
+  });
+
+  const items = contacts
+    .map((contact) => {
+      if (contact.creatorProfileId == null) return null;
+      const creatorId = contact.creatorProfileId.toString();
+      const creator = creatorIdentityById.get(creatorId);
+      if (!creator) return null;
+
+      const assignment = assignmentByCreatorId.get(creatorId) ?? null;
+      const latestSignalAt = maxDate(contact.lastContactAt, contact.updatedAt);
+
+      return {
+        assignment: assignment ? serializeManagerAssignment(assignment) : null,
+        creator,
+        contact: serializeExternalContact(contact),
+        dueState: toContactPipelineDueState(contact.nextActionDueAt, now),
+        staleDays: toStaleDays(latestSignalAt, now),
+      } satisfies ManagerDeskContactPipelineItem;
+    })
+    .filter((value): value is ManagerDeskContactPipelineItem => value !== null)
+    .sort(compareContactPipelineItems);
+
+  return {
+    ...emptyResult,
+    items,
+    summary: {
+      totalCount: items.length,
+      overdueCount: items.filter((item) => item.dueState === "OVERDUE").length,
+      dueSoonCount: items.filter((item) => item.dueState === "DUE_SOON").length,
+      withNextActionCount: items.filter(
+        (item) =>
+          item.contact.nextActionDueAt !== null || item.contact.nextAction !== null
+      ).length,
+      warmContactCount: items.filter(
+        (item) =>
+          item.contact.temperature === "WARM" || item.contact.temperature === "HOT"
+      ).length,
+      creatorCount: new Set(items.map((item) => item.creator.id)).size,
+    },
+  };
+}
+
+export async function getManagerDeskOpportunityPipeline(args: {
+  managerWalletAddress: string;
+  creatorProfileId?: bigint | null;
+}): Promise<ManagerDeskOpportunityCrmData> {
+  const managerWalletAddress = normalizeAddress(args.managerWalletAddress);
+  const now = new Date();
+
+  const assignments = await prisma.managerAssignment.findMany({
+    where: {
+      managerWalletAddress,
+      status: "ACTIVE",
+      OR: [{ endedAt: null }, { endedAt: { gt: now } }],
+    },
+    include: {
+      creatorProfile: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          profileText: true,
+          avatarUrl: true,
+          creatorType: true,
+          walletAddress: true,
+          activeProjectIdJpyc: true,
+          activeProjectIdUsdc: true,
+        },
+      },
+    },
+    orderBy: [{ roleType: "asc" }, { assignedAt: "desc" }],
+  });
+
+  const creatorIdentityById = new Map<string, ManagerDeskCreatorIdentity>();
+  const assignmentByCreatorId = new Map<string, (typeof assignments)[number]>();
+  for (const assignment of assignments) {
+    const creatorId = assignment.creatorProfileId.toString();
+    if (!creatorIdentityById.has(creatorId)) {
+      creatorIdentityById.set(creatorId, serializeCreator(assignment.creatorProfile));
+    }
+    if (!assignmentByCreatorId.has(creatorId)) {
+      assignmentByCreatorId.set(creatorId, assignment);
+    }
+  }
+
+  const availableCreators = Array.from(creatorIdentityById.values()).sort((a, b) =>
+    (a.displayName || a.username).localeCompare(b.displayName || b.username, "ja")
+  );
+
+  const opportunityStatuses = [
+    "IN_DISCUSSION",
+    "NEGOTIATING",
+    "WON",
+    "ONGOING",
+  ] as const;
+
+  const emptyResult: ManagerDeskOpportunityCrmData = {
+    managerWalletAddress,
+    availableCreators,
+    stages: opportunityStatuses.map((status) => ({ status, items: [] })),
+    creatorProfileId: args.creatorProfileId?.toString() ?? null,
+    summary: {
+      totalCount: 0,
+      inDiscussionCount: 0,
+      negotiatingCount: 0,
+      wonCount: 0,
+      ongoingCount: 0,
+      hotCount: 0,
+    },
+    generatedAt: now.toISOString(),
+  };
+
+  if (availableCreators.length === 0) return emptyResult;
+
+  const assignedCreatorIds = new Set(availableCreators.map((c) => c.id));
+  const targetCreatorIds =
+    args.creatorProfileId == null
+      ? Array.from(assignedCreatorIds).map((v) => BigInt(v))
+      : assignedCreatorIds.has(args.creatorProfileId.toString())
+        ? [args.creatorProfileId]
+        : [];
+
+  if (targetCreatorIds.length === 0) return emptyResult;
+
+  const contacts = await prisma.externalContact.findMany({
+    where: {
+      creatorProfileId: { in: targetCreatorIds },
+      isArchived: false,
+      status: { in: [...opportunityStatuses] },
+    },
+    orderBy: [{ updatedAt: "desc" }],
+    take: 200,
+  });
+
+  const allItems: ManagerDeskContactPipelineItem[] = contacts
+    .map((contact) => {
+      if (contact.creatorProfileId == null) return null;
+      const creatorId = contact.creatorProfileId.toString();
+      const creator = creatorIdentityById.get(creatorId);
+      if (!creator) return null;
+      const assignment = assignmentByCreatorId.get(creatorId) ?? null;
+      const latestSignalAt = maxDate(contact.lastContactAt, contact.updatedAt);
+      return {
+        assignment: assignment ? serializeManagerAssignment(assignment) : null,
+        creator,
+        contact: serializeExternalContact(contact),
+        dueState: toContactPipelineDueState(contact.nextActionDueAt, now),
+        staleDays: toStaleDays(latestSignalAt, now),
+      } satisfies ManagerDeskContactPipelineItem;
+    })
+    .filter((v): v is ManagerDeskContactPipelineItem => v !== null);
+
+  const stages = opportunityStatuses.map((status) => ({
+    status,
+    items: allItems
+      .filter((item) => item.contact.status === status)
+      .sort(compareContactPipelineItems),
+  }));
+
+  return {
+    managerWalletAddress,
+    availableCreators,
+    stages,
+    creatorProfileId: args.creatorProfileId?.toString() ?? null,
+    summary: {
+      totalCount: allItems.length,
+      inDiscussionCount: allItems.filter((i) => i.contact.status === "IN_DISCUSSION").length,
+      negotiatingCount: allItems.filter((i) => i.contact.status === "NEGOTIATING").length,
+      wonCount: allItems.filter((i) => i.contact.status === "WON").length,
+      ongoingCount: allItems.filter((i) => i.contact.status === "ONGOING").length,
+      hotCount: allItems.filter(
+        (i) => i.contact.temperature === "HOT" || i.contact.temperature === "WARM"
+      ).length,
+    },
+    generatedAt: now.toISOString(),
+  };
+}
+
+export async function getManagerDeskNotesSurface(args: {
+  managerWalletAddress: string;
+  creatorProfileId?: bigint | null;
+  noteType?: ManagerDeskNotesSurfaceData["filters"]["noteType"];
+  visibility?: ManagerDeskNotesSurfaceData["filters"]["visibility"];
+  followUpOnly?: boolean;
+  q?: string | null;
+  limit?: number;
+}): Promise<ManagerDeskNotesSurfaceData> {
+  const managerWalletAddress = normalizeAddress(args.managerWalletAddress);
+  const now = new Date();
+  const limit = args.limit ?? 100;
+
+  const assignments = await prisma.managerAssignment.findMany({
+    where: {
+      managerWalletAddress,
+      status: "ACTIVE",
+      OR: [{ endedAt: null }, { endedAt: { gt: now } }],
+    },
+    include: {
+      creatorProfile: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          profileText: true,
+          avatarUrl: true,
+          creatorType: true,
+          walletAddress: true,
+          activeProjectIdJpyc: true,
+          activeProjectIdUsdc: true,
+        },
+      },
+    },
+    orderBy: [{ roleType: "asc" }, { assignedAt: "desc" }],
+  });
+
+  const creatorIdentityById = new Map<string, ManagerDeskCreatorIdentity>();
+  const assignmentByCreatorId = new Map<string, (typeof assignments)[number]>();
+
+  for (const assignment of assignments) {
+    const creatorId = assignment.creatorProfileId.toString();
+    if (!creatorIdentityById.has(creatorId)) {
+      creatorIdentityById.set(
+        creatorId,
+        serializeCreator(assignment.creatorProfile)
+      );
+    }
+    if (!assignmentByCreatorId.has(creatorId)) {
+      assignmentByCreatorId.set(creatorId, assignment);
+    }
+  }
+
+  const availableCreators = Array.from(creatorIdentityById.values()).sort(
+    (left, right) =>
+      (left.displayName || left.username).localeCompare(
+        right.displayName || right.username,
+        "ja"
+      )
+  );
+
+  const normalizedQuery = args.q?.trim() ?? null;
+  const emptyResult: ManagerDeskNotesSurfaceData = {
+    managerWalletAddress,
+    availableCreators,
+    items: [],
+    filters: {
+      creatorProfileId: args.creatorProfileId?.toString() ?? null,
+      noteType: args.noteType ?? null,
+      visibility: args.visibility ?? null,
+      followUpOnly: args.followUpOnly === true,
+      q: normalizedQuery && normalizedQuery.length > 0 ? normalizedQuery : null,
+    },
+    summary: {
+      totalCount: 0,
+      followUpCount: 0,
+      overdueCount: 0,
+      riskCount: 0,
+      shareableCount: 0,
+      creatorCount: 0,
+    },
+    generatedAt: now.toISOString(),
+  };
+
+  if (availableCreators.length === 0) {
+    return emptyResult;
+  }
+
+  const assignedCreatorIds = new Set(availableCreators.map((creator) => creator.id));
+  const targetCreatorIds =
+    args.creatorProfileId == null
+      ? Array.from(assignedCreatorIds).map((value) => BigInt(value))
+      : assignedCreatorIds.has(args.creatorProfileId.toString())
+        ? [args.creatorProfileId]
+        : [];
+
+  if (targetCreatorIds.length === 0) {
+    return emptyResult;
+  }
+
+  const notes = await prisma.managerNote.findMany({
+    where: {
+      creatorProfileId: { in: targetCreatorIds },
+      isArchived: false,
+      ...(args.noteType ? { noteType: args.noteType } : {}),
+      ...(args.visibility ? { visibility: args.visibility } : {}),
+      ...(args.followUpOnly ? { followUpNeeded: true } : {}),
+      ...(normalizedQuery && normalizedQuery.length > 0
+        ? {
+            OR: [
+              { title: { contains: normalizedQuery, mode: "insensitive" } },
+              { body: { contains: normalizedQuery, mode: "insensitive" } },
+              { aiSummary: { contains: normalizedQuery, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ followUpDueAt: "asc" }, { updatedAt: "desc" }],
+    take: Math.max(1, Math.min(limit, 200)),
+  });
+
+  const items = notes
+    .map((note) => {
+      const creatorId = note.creatorProfileId.toString();
+      const creator = creatorIdentityById.get(creatorId);
+      if (!creator) return null;
+
+      const assignment = assignmentByCreatorId.get(creatorId) ?? null;
+
+      return {
+        assignment: assignment ? serializeManagerAssignment(assignment) : null,
+        creator,
+        note: serializeManagerNote(note),
+        staleDays: toStaleDays(note.updatedAt, now),
+      } satisfies ManagerDeskNotesSurfaceItem;
+    })
+    .filter((value): value is ManagerDeskNotesSurfaceItem => value !== null);
+
+  return {
+    ...emptyResult,
+    items,
+    summary: {
+      totalCount: items.length,
+      followUpCount: items.filter((item) => item.note.followUpNeeded).length,
+      overdueCount: items.filter((item) => {
+        if (item.note.followUpDueAt == null) return false;
+        return new Date(item.note.followUpDueAt).getTime() < now.getTime();
+      }).length,
+      riskCount: items.filter((item) => item.note.noteType === "RISK").length,
+      shareableCount: items.filter(
+        (item) => item.note.visibility === "SHAREABLE_WITH_CREATOR"
+      ).length,
+      creatorCount: new Set(items.map((item) => item.creator.id)).size,
+    },
+  };
+}
+
+export async function getManagerDeskActivityTimeline(args: {
+  managerWalletAddress: string;
+  creatorProfileId?: bigint | null;
+  sourceType?: ManagerDeskActivityTimelineSourceType | null;
+  limit?: number;
+}): Promise<ManagerDeskActivityTimelineData> {
+  const managerWalletAddress = normalizeAddress(args.managerWalletAddress);
+  const now = new Date();
+  const limit = args.limit ?? 100;
+
+  const assignments = await prisma.managerAssignment.findMany({
+    where: {
+      managerWalletAddress,
+      status: "ACTIVE",
+      OR: [{ endedAt: null }, { endedAt: { gt: now } }],
+    },
+    include: {
+      creatorProfile: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          profileText: true,
+          avatarUrl: true,
+          creatorType: true,
+          walletAddress: true,
+          activeProjectIdJpyc: true,
+          activeProjectIdUsdc: true,
+        },
+      },
+    },
+    orderBy: [{ roleType: "asc" }, { assignedAt: "desc" }],
+  });
+
+  const creatorIdentityById = new Map<string, ManagerDeskCreatorIdentity>();
+  const assignmentByCreatorId = new Map<string, (typeof assignments)[number]>();
+
+  for (const assignment of assignments) {
+    const creatorId = assignment.creatorProfileId.toString();
+    if (!creatorIdentityById.has(creatorId)) {
+      creatorIdentityById.set(
+        creatorId,
+        serializeCreator(assignment.creatorProfile)
+      );
+    }
+    if (!assignmentByCreatorId.has(creatorId)) {
+      assignmentByCreatorId.set(creatorId, assignment);
+    }
+  }
+
+  const availableCreators = Array.from(creatorIdentityById.values()).sort(
+    (left, right) =>
+      (left.displayName || left.username).localeCompare(
+        right.displayName || right.username,
+        "ja"
+      )
+  );
+
+  const emptyResult: ManagerDeskActivityTimelineData = {
+    managerWalletAddress,
+    availableCreators,
+    items: [],
+    filters: {
+      creatorProfileId: args.creatorProfileId?.toString() ?? null,
+      sourceType: args.sourceType ?? null,
+    },
+    summary: {
+      totalCount: 0,
+      actionLogCount: 0,
+      meetingCount: 0,
+      shareableNoteCount: 0,
+      creatorCount: 0,
+    },
+    generatedAt: now.toISOString(),
+  };
+
+  if (availableCreators.length === 0) {
+    return emptyResult;
+  }
+
+  const assignedCreatorIds = new Set(availableCreators.map((creator) => creator.id));
+  const targetCreatorIds =
+    args.creatorProfileId == null
+      ? Array.from(assignedCreatorIds).map((value) => BigInt(value))
+      : assignedCreatorIds.has(args.creatorProfileId.toString())
+        ? [args.creatorProfileId]
+        : [];
+
+  if (targetCreatorIds.length === 0) {
+    return emptyResult;
+  }
+
+  const perSourceTake = Math.max(30, Math.min(limit, 200));
+
+  const [actionLogs, meetings, shareableNotes] = await Promise.all([
+    prisma.actionLog.findMany({
+      where: {
+        creatorProfileId: { in: targetCreatorIds },
+      },
+      orderBy: [{ occurredAt: "desc" }],
+      take: perSourceTake,
+    }),
+    prisma.meeting.findMany({
+      where: {
+        creatorProfileId: { in: targetCreatorIds },
+        status: "COMPLETED",
+      },
+      orderBy: [{ scheduledAt: "desc" }],
+      take: perSourceTake,
+    }),
+    prisma.managerNote.findMany({
+      where: {
+        creatorProfileId: { in: targetCreatorIds },
+        visibility: "SHAREABLE_WITH_CREATOR",
+        isArchived: false,
+      },
+      orderBy: [{ updatedAt: "desc" }],
+      take: perSourceTake,
+    }),
+  ]);
+
+  const rawItems: Array<ManagerDeskActivityTimelineItem | null> = [
+    ...actionLogs.map((log) => {
+      if (log.creatorProfileId == null) return null;
+      const creatorId = log.creatorProfileId.toString();
+      const creator = creatorIdentityById.get(creatorId);
+      if (!creator) return null;
+
+      const assignment = assignmentByCreatorId.get(creatorId) ?? null;
+
+      return {
+        id: `action-log-${log.id}`,
+        sourceType: "ACTION_LOG",
+        assignment: assignment ? serializeManagerAssignment(assignment) : null,
+        creator,
+        actorLabel: actionLogActorLabel({
+          actorType: log.actorType,
+          actorWalletAddress: log.actorWalletAddress,
+          creatorWalletAddress: creator.walletAddress,
+          assignment,
+        }),
+        title: log.title,
+        summary: log.summary ?? null,
+        happenedAt: log.occurredAt.toISOString(),
+        href: `/manager-desk/creators/${creatorId}#recent-action-log`,
+        actionLog: serializeActionLog(log),
+        meeting: null,
+        note: null,
+      } satisfies ManagerDeskActivityTimelineItem;
+    }),
+    ...meetings.map((meeting) => {
+      const creatorId = meeting.creatorProfileId.toString();
+      const creator = creatorIdentityById.get(creatorId);
+      if (!creator) return null;
+
+      const assignment = assignmentByCreatorId.get(creatorId) ?? null;
+
+      return {
+        id: `meeting-${meeting.id}`,
+        sourceType: "MEETING",
+        assignment: assignment ? serializeManagerAssignment(assignment) : null,
+        creator,
+        actorLabel: meetingActorLabel({
+          createdByWalletAddress: meeting.createdByWalletAddress,
+          creatorWalletAddress: creator.walletAddress,
+          assignment,
+        }),
+        title: meeting.title,
+        summary:
+          meeting.aiSummary ??
+          meeting.decisions ??
+          meeting.nextActionsSummary ??
+          meeting.notes ??
+          meeting.agenda ??
+          null,
+        happenedAt: meeting.scheduledAt.toISOString(),
+        href: `/manager-desk/creators/${creatorId}#planner`,
+        actionLog: null,
+        meeting: serializeMeeting(meeting),
+        note: null,
+      } satisfies ManagerDeskActivityTimelineItem;
+    }),
+    ...shareableNotes.map((note) => {
+      const creatorId = note.creatorProfileId.toString();
+      const creator = creatorIdentityById.get(creatorId);
+      if (!creator) return null;
+
+      const assignment = assignmentByCreatorId.get(creatorId) ?? null;
+
+      return {
+        id: `shareable-note-${note.id}`,
+        sourceType: "SHAREABLE_NOTE",
+        assignment: assignment ? serializeManagerAssignment(assignment) : null,
+        creator,
+        actorLabel: actorLabelFromWalletAddress(
+          note.authoredByManagerWalletAddress,
+          assignment
+        ),
+        title: note.title,
+        summary: note.aiSummary ?? note.body,
+        happenedAt: note.updatedAt.toISOString(),
+        href: `/manager-desk/creators/${creatorId}#latest-notes`,
+        actionLog: null,
+        meeting: null,
+        note: serializeManagerNote(note),
+      } satisfies ManagerDeskActivityTimelineItem;
+    }),
+  ];
+
+  const items = rawItems
+    .filter((value): value is ManagerDeskActivityTimelineItem => value !== null)
+    .filter((item) => {
+      if (args.sourceType == null) return true;
+      return item.sourceType === args.sourceType;
+    })
+    .sort(compareActivityTimelineItems)
+    .slice(0, Math.max(1, Math.min(limit, 200)));
+
+  return {
+    ...emptyResult,
+    items,
+    summary: {
+      totalCount: items.length,
+      actionLogCount: items.filter((item) => item.sourceType === "ACTION_LOG")
+        .length,
+      meetingCount: items.filter((item) => item.sourceType === "MEETING").length,
+      shareableNoteCount: items.filter(
+        (item) => item.sourceType === "SHAREABLE_NOTE"
+      ).length,
+      creatorCount: new Set(items.map((item) => item.creator.id)).size,
+    },
+  };
+}
+
 export async function getManagerDeskCreatorDetail(args: {
   creatorProfileId: bigint;
   address: string;
@@ -571,7 +1368,9 @@ export async function getManagerDeskCreatorDetail(args: {
   });
   if (!access.ok) return null;
 
-  const [creator, assignment, projects, contributionRows, notes, contacts, logs, planner] =
+  const completedMeetingWindow = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const [creator, assignment, projects, contributionRows, notes, contacts, logs, planner, completedMeetings, credibility] =
     await Promise.all([
       prisma.creatorProfile.findUnique({
         where: { id: args.creatorProfileId },
@@ -657,9 +1456,25 @@ export async function getManagerDeskCreatorDetail(args: {
           access.role === "CREATOR_OWNER" ? "CREATOR_HOME" : "MANAGER_DESK",
         limit: 6,
       }),
+      prisma.meeting.findMany({
+        where: {
+          creatorProfileId: args.creatorProfileId,
+          status: "COMPLETED",
+          scheduledAt: { gte: completedMeetingWindow },
+          OR: [
+            { decisions: { not: null } },
+            { nextActionsSummary: { not: null } },
+          ],
+        },
+        orderBy: { scheduledAt: "desc" },
+        take: 5,
+      }),
+      getCreatorActivityCredibility(args.creatorProfileId),
     ]);
 
   if (!creator) return null;
+
+  const stage = deriveCreatorStage(credibility);
 
   const totalsByProject = toProjectTotalsMap(contributionRows as ContributionTotalRow[]);
   const activeProject = toProjectSummary(
@@ -683,8 +1498,10 @@ export async function getManagerDeskCreatorDetail(args: {
   return {
     creator: serializeCreator(creator),
     assignment: assignment ? serializeManagerAssignment(assignment) : null,
+    stage,
     activeProject,
     planner,
+    recentCompletedMeetings: completedMeetings.map(serializeMeeting),
     latestManagerNotes: notes.map(serializeManagerNote),
     keyContacts: contacts.map(serializeExternalContact),
     recentActionLogs: logs.map(serializeActionLog),

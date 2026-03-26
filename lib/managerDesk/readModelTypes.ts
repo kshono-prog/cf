@@ -3,8 +3,10 @@ import type {
   SerializedExternalContact,
   SerializedManagerAssignment,
   SerializedManagerNote,
+  SerializedMeeting,
 } from "@/lib/managerDesk/server";
 import type { PlannerTimelineData } from "@/lib/operations/plannerTypes";
+import type { CreatorStageResult } from "@/lib/creatorStage";
 
 export type ManagerDeskProjectSummary = {
   projectId: string;
@@ -65,11 +67,140 @@ export type ManagerDeskDashboardData = {
   generatedAt: string;
 };
 
+export type ManagerDeskContactPipelineDueState =
+  | "OVERDUE"
+  | "DUE_SOON"
+  | "NONE";
+
+export type ManagerDeskContactPipelineItem = {
+  assignment: SerializedManagerAssignment | null;
+  creator: ManagerDeskCreatorIdentity;
+  contact: SerializedExternalContact;
+  dueState: ManagerDeskContactPipelineDueState;
+  staleDays: number | null;
+};
+
+export type ManagerDeskContactPipelineData = {
+  managerWalletAddress: string;
+  availableCreators: ManagerDeskCreatorIdentity[];
+  items: ManagerDeskContactPipelineItem[];
+  filters: {
+    creatorProfileId: string | null;
+    status: SerializedExternalContact["status"] | null;
+    overdueOnly: boolean;
+  };
+  summary: {
+    totalCount: number;
+    overdueCount: number;
+    dueSoonCount: number;
+    withNextActionCount: number;
+    warmContactCount: number;
+    creatorCount: number;
+  };
+  generatedAt: string;
+};
+
+export type ManagerDeskNotesSurfaceItem = {
+  assignment: SerializedManagerAssignment | null;
+  creator: ManagerDeskCreatorIdentity;
+  note: SerializedManagerNote;
+  staleDays: number | null;
+};
+
+export type ManagerDeskNotesSurfaceData = {
+  managerWalletAddress: string;
+  availableCreators: ManagerDeskCreatorIdentity[];
+  items: ManagerDeskNotesSurfaceItem[];
+  filters: {
+    creatorProfileId: string | null;
+    noteType: SerializedManagerNote["noteType"] | null;
+    visibility: SerializedManagerNote["visibility"] | null;
+    followUpOnly: boolean;
+    q: string | null;
+  };
+  summary: {
+    totalCount: number;
+    followUpCount: number;
+    overdueCount: number;
+    riskCount: number;
+    shareableCount: number;
+    creatorCount: number;
+  };
+  generatedAt: string;
+};
+
+export type ManagerDeskActivityTimelineSourceType =
+  | "ACTION_LOG"
+  | "MEETING"
+  | "SHAREABLE_NOTE";
+
+export type ManagerDeskActivityTimelineItem = {
+  id: string;
+  sourceType: ManagerDeskActivityTimelineSourceType;
+  assignment: SerializedManagerAssignment | null;
+  creator: ManagerDeskCreatorIdentity;
+  actorLabel: string;
+  title: string;
+  summary: string | null;
+  happenedAt: string;
+  href: string;
+  actionLog: SerializedActionLog | null;
+  meeting: SerializedMeeting | null;
+  note: SerializedManagerNote | null;
+};
+
+export type ManagerDeskActivityTimelineData = {
+  managerWalletAddress: string;
+  availableCreators: ManagerDeskCreatorIdentity[];
+  items: ManagerDeskActivityTimelineItem[];
+  filters: {
+    creatorProfileId: string | null;
+    sourceType: ManagerDeskActivityTimelineSourceType | null;
+  };
+  summary: {
+    totalCount: number;
+    actionLogCount: number;
+    meetingCount: number;
+    shareableNoteCount: number;
+    creatorCount: number;
+  };
+  generatedAt: string;
+};
+
+export type ManagerDeskOpportunityStatus =
+  | "IN_DISCUSSION"
+  | "NEGOTIATING"
+  | "WON"
+  | "ONGOING";
+
+export type ManagerDeskOpportunityStage = {
+  status: ManagerDeskOpportunityStatus;
+  items: ManagerDeskContactPipelineItem[];
+};
+
+export type ManagerDeskOpportunityCrmData = {
+  managerWalletAddress: string;
+  availableCreators: ManagerDeskCreatorIdentity[];
+  stages: ManagerDeskOpportunityStage[];
+  creatorProfileId: string | null;
+  summary: {
+    totalCount: number;
+    inDiscussionCount: number;
+    negotiatingCount: number;
+    wonCount: number;
+    ongoingCount: number;
+    hotCount: number;
+  };
+  generatedAt: string;
+};
+
 export type ManagerDeskCreatorDetailData = {
   creator: ManagerDeskCreatorIdentity;
   assignment: SerializedManagerAssignment | null;
+  stage: CreatorStageResult | null;
   activeProject: ManagerDeskProjectSummary | null;
   planner: PlannerTimelineData;
+  recentCompletedMeetings: SerializedMeeting[];
   latestManagerNotes: SerializedManagerNote[];
   keyContacts: SerializedExternalContact[];
   recentActionLogs: SerializedActionLog[];

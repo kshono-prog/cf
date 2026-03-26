@@ -9,6 +9,7 @@ import type {
 } from "@/components/mypage/aiOfficeTypes";
 import { isRecord } from "@/lib/api/guards";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
+import type { CreatorDailyBriefingData } from "@/lib/operations/dailyBriefingTypes";
 import { getAgentTaskTypeCopy } from "@/lib/uxCopy";
 
 export type CreatorReadyHomeAction =
@@ -139,6 +140,7 @@ export function buildCreatorReadyAiManagerCards(args: {
   tasks: readonly AgentTaskView[];
   usefulness: AiOfficeUsefulnessSummaryView;
   contentSummary: AiOfficeContentSummaryView;
+  dailyBriefing: CreatorDailyBriefingData | null;
   profileMissing: boolean;
   goalMissing: boolean;
   settlementAttentionNeeded: boolean;
@@ -160,6 +162,30 @@ export function buildCreatorReadyAiManagerCards(args: {
     latestTaskOfType(args.tasks, "DAILY_ACTION_PLAN")?.output ?? null
   );
   const daysSincePublished = daysSince(args.contentSummary.lastPublishedAt);
+
+  if (!args.profileMissing && !args.goalMissing && args.dailyBriefing) {
+    const topBriefingItem = args.dailyBriefing.attentionItems[0] ?? null;
+    if (topBriefingItem) {
+      pushCardIfMissing(cards, {
+        id: `daily-briefing-${topBriefingItem.id}`,
+        tone: topBriefingItem.tone,
+        title: topBriefingItem.title,
+        body: topBriefingItem.body,
+        action:
+          topBriefingItem.actionKind === "PROJECT"
+            ? {
+                kind: "settings",
+                label: "設定・準備を開く",
+              }
+            : {
+                kind: "href",
+                label: "AI事務所で確認する",
+                href: args.hrefs.aiOfficeOverview,
+              },
+        badge: "Daily Briefing",
+      });
+    }
+  }
 
   if (args.usefulness.waitingApprovalCount > 0) {
     pushCardIfMissing(cards, {

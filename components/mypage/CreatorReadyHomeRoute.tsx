@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 
 import { CreatorReadyAiManagerSection } from "@/components/mypage/CreatorReadyAiManagerSection";
 import { CreatorReadyDailyBriefingHero } from "@/components/mypage/CreatorReadyDailyBriefingHero";
+import { CreatorReadyGrowthReflectionSection } from "@/components/mypage/CreatorReadyGrowthReflectionSection";
+import { CreatorReadyManagerFeedSection } from "@/components/mypage/CreatorReadyManagerFeedSection";
 import { CreatorReadyUpcomingPlannerSection } from "@/components/mypage/CreatorReadyUpcomingPlannerSection";
 import { CreatorReadyProjectHealthSection } from "@/components/mypage/CreatorReadyProjectHealthSection";
 import { CreatorReadyTodayThisWeekSection } from "@/components/mypage/CreatorReadyTodayThisWeekSection";
@@ -16,6 +18,14 @@ import { WorkspaceLoadingCard, WorkspaceStatusNotice } from "@/components/mypage
 import { hasCreatorReadySettlementAttention } from "@/components/mypage/creatorReadyWorkspaceOverviewHelpers";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import { useCreatorReadyHomeAiOfficeSummary } from "@/components/mypage/useCreatorReadyHomeAiOfficeSummary";
+import { useCreatorReadyDailyBriefing } from "@/components/mypage/useCreatorReadyDailyBriefing";
+import { useCreatorReadyGrowthReflection } from "@/components/mypage/useCreatorReadyGrowthReflection";
+import { useCreatorReadyManagerFeed } from "@/components/mypage/useCreatorReadyManagerFeed";
+import { useCreatorReadyStage } from "@/components/mypage/useCreatorReadyStage";
+import { useCreatorReadySupporterOverview } from "@/components/mypage/useCreatorReadySupporterOverview";
+import { CreatorReadySupporterOverviewSection } from "@/components/mypage/CreatorReadySupporterOverviewSection";
+import { useCreatorReadySupporterCrm } from "@/components/mypage/useCreatorReadySupporterCrm";
+import { CreatorReadySupporterCrmSection } from "@/components/mypage/CreatorReadySupporterCrmSection";
 import { useCreatorReadyPlannerTimeline } from "@/components/mypage/useCreatorReadyPlannerTimeline";
 import { useCreatorReadyHomeStats } from "@/components/mypage/useCreatorReadyHomeStats";
 import { useCreatorReadyWorkspaceProjectDashboards } from "@/components/mypage/useCreatorReadyWorkspaceProjectDashboards";
@@ -84,10 +94,35 @@ export function CreatorReadyHomeRoute(props: Props) {
     projectId: localProjectId,
     isConnected: workspace.isConnected,
   });
+  const dailyBriefing = useCreatorReadyDailyBriefing({
+    address: workspace.address,
+    isConnected: workspace.isConnected,
+  });
   const planner = useCreatorReadyPlannerTimeline({
     address: workspace.address,
     isConnected: workspace.isConnected,
     limit: 6,
+  });
+  const managerFeed = useCreatorReadyManagerFeed({
+    address: workspace.address,
+    isConnected: workspace.isConnected,
+    limit: 4,
+  });
+  const growthReflection = useCreatorReadyGrowthReflection({
+    address: workspace.address,
+    isConnected: workspace.isConnected,
+  });
+  const stageData = useCreatorReadyStage({
+    address: workspace.address,
+    isConnected: workspace.isConnected,
+  });
+  const supporterOverview = useCreatorReadySupporterOverview({
+    address: workspace.address,
+    isConnected: workspace.isConnected,
+  });
+  const supporterCrm = useCreatorReadySupporterCrm({
+    address: workspace.address,
+    isConnected: workspace.isConnected,
   });
 
   function buildAiOfficeHref(state: AiOfficePanelUrlState): string {
@@ -120,11 +155,24 @@ export function CreatorReadyHomeRoute(props: Props) {
     selectedInboxRoleId: null,
     openLatestTaskType: null,
   });
+  const aiOfficeCreateFanRelationHref = buildAiOfficeHref({
+    activeView: "CREATE",
+    selectedRoleId: "FAN_RELATION",
+    selectedInboxRoleId: null,
+    openLatestTaskType: null,
+  });
   const aiOfficeOverviewHref = buildAiOfficeHref({
     activeView: "OVERVIEW",
     selectedRoleId: "MANAGER",
     selectedInboxRoleId: null,
     openLatestTaskType: null,
+  });
+  const aiOfficeCreateAgendaHref = buildAiOfficeHref({
+    activeView: "CREATE",
+    selectedRoleId: "MANAGER",
+    selectedInboxRoleId: null,
+    openLatestTaskType: null,
+    openCreateTaskType: "MEETING_AGENDA_DRAFT",
   });
   const aiOfficeHref = isNewCreator ? aiOfficeCreateManagerHref : aiOfficeOverviewHref;
   const publicPageHref = `/${workspace.meCreatorUsername}`;
@@ -133,6 +181,7 @@ export function CreatorReadyHomeRoute(props: Props) {
     tasks: aiOfficeSummary.tasks,
     usefulness: aiOfficeSummary.usefulness,
     contentSummary: aiOfficeSummary.contentSummary,
+    dailyBriefing: dailyBriefing.data,
     profileMissing,
     goalMissing,
     settlementAttentionNeeded,
@@ -186,6 +235,7 @@ export function CreatorReadyHomeRoute(props: Props) {
         goalMissing={goalMissing}
         settlementAttentionNeeded={settlementAttentionNeeded}
         isNewCreator={isNewCreator}
+        dailyBriefing={dailyBriefing.data}
         onOpenSettings={props.onOpenSettings}
       />
       <CreatorReadyProjectHealthSection
@@ -203,11 +253,29 @@ export function CreatorReadyHomeRoute(props: Props) {
         week={taskLists.week}
         onOpenSettings={props.onOpenSettings}
       />
+      <CreatorReadyManagerFeedSection
+        loading={managerFeed.loading}
+        error={managerFeed.error}
+        data={managerFeed.data}
+      />
       <CreatorReadyUpcomingPlannerSection
         loading={planner.loading}
         error={planner.error}
         data={planner.data}
+        agendaCreateHref={aiOfficeCreateAgendaHref}
       />
+      <CreatorReadyGrowthReflectionSection
+        loading={growthReflection.loading}
+        error={growthReflection.error}
+        data={growthReflection.data}
+      />
+      <CreatorReadySupporterOverviewSection
+        loading={supporterOverview.loading}
+        error={supporterOverview.error}
+        data={supporterOverview.data}
+        aiOfficeCreateFanRelationHref={aiOfficeCreateFanRelationHref}
+      />
+      <CreatorReadySupporterCrmSection data={supporterCrm.data} />
       <CreatorWorkspaceAiOfficePanel />
       <CreatorReadyWeeklySummarySection
         jpycTotal={homeStats.jpycTotal}
@@ -216,6 +284,7 @@ export function CreatorReadyHomeRoute(props: Props) {
         postCount={homeStats.postCount}
         publishedCount={homeStats.publishedCount}
         loadingPosting={homeStats.loadingPosting}
+        stage={stageData.data}
       />
     </div>
   );

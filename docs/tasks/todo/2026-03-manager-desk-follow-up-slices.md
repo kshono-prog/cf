@@ -4,8 +4,11 @@ Manager Desk follow-up slices
 
 ## Status
 
-- ready
+- completed
 - follows `Manager Desk first slice` and `Meeting / Planner` implementation
+- `MF-1` completed
+- `MF-2` completed
+- `MF-3` completed
 
 ## Goal
 
@@ -32,7 +35,7 @@ Manager Desk を `Dashboard / Creator Detail` から一歩進めて、
 
 Contact Pipeline MVP
 
-やること:
+完了:
 
 - `ExternalContact.status / temperature / nextActionDueAt` を主軸に read model を作る
 - creator / status / overdue で絞れる軽量 UI を作る
@@ -41,7 +44,7 @@ Contact Pipeline MVP
 
 Notes surface MVP
 
-やること:
+完了:
 
 - `ManagerNote` 一覧を noteType / visibility / follow-up 有無で見られるようにする
 - creator detail から notes 面へ入れるようにする
@@ -50,7 +53,7 @@ Notes surface MVP
 
 Activity Timeline MVP
 
-やること:
+完了:
 
 - `ActionLog + Meeting + shareable note updates` を時系列面として並べる
 - 「誰が何を進めたか」が分かる timeline にする
@@ -81,4 +84,3 @@ Activity Timeline MVP
 - `npm run lint`
 - `npm run typecheck`
 - `npm run build`
-

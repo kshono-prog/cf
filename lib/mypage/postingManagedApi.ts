@@ -1,14 +1,13 @@
+import type { SnsAiAgent, SnsAiJob } from "@/lib/mypage/snsAgentJobApi";
 import {
   createManagedPostingApi,
   createSnsPost,
   type ManagedPostingApiBasePath,
-  type SnsAiAgent,
-  type SnsAiJob,
   type SnsAnalyticsSummary,
   type SnsManagedPost,
   type SnsManagedPostsResponse,
   type SnsProjectOption,
-} from "@/lib/mypage/snsApi";
+} from "@/lib/mypage/snsPostsApi";
 
 export { createManagedPostingApi, type ManagedPostingApiBasePath };
 

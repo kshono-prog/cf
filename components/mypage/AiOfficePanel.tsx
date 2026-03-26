@@ -72,6 +72,7 @@ export function AiOfficePanel(props: {
   const initialSelectedRoleId =
     initialUrlState?.selectedRoleId ?? getDefaultAiOfficeRole(DEFAULT_AI_OFFICE_TASK_TYPE);
   const initialTaskType =
+    initialUrlState?.openCreateTaskType ??
     getAiOfficeRoleChoice(initialSelectedRoleId)?.featuredTaskType ??
     DEFAULT_AI_OFFICE_TASK_TYPE;
   const hasInitialUrlState = Boolean(
@@ -79,7 +80,8 @@ export function AiOfficePanel(props: {
       (initialUrlState.activeView !== undefined ||
         initialUrlState.selectedRoleId !== undefined ||
         initialUrlState.selectedInboxRoleId !== null ||
-        initialUrlState.openLatestTaskType !== null)
+        initialUrlState.openLatestTaskType !== null ||
+        initialUrlState.openCreateTaskType != null)
   );
 
   const [tasks, setTasks] = useState<AgentTaskView[]>([]);

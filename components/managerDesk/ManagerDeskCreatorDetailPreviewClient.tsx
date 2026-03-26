@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { useAccount } from "wagmi";
 
+import { ManagerDeskAiSuggestionsSection } from "@/components/managerDesk/ManagerDeskAiSuggestionsSection";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
   WorkspaceEmptyState,
@@ -12,7 +14,13 @@ import {
 } from "@/components/mypage/WorkspaceFeedback";
 import { useManagerDeskCreatorDetail } from "@/components/managerDesk/useManagerDeskCreatorDetail";
 import type { ManagerDeskCreatorDetailData } from "@/lib/managerDesk/readModelTypes";
+import {
+  buildManagerDeskCreatorDetailAiSuggestions,
+  buildManagerDeskCreatorDetailAiSummary,
+} from "@/lib/operations/managerDeskAiAssistance";
 import type { PlannerTimelineItem } from "@/lib/operations/plannerTypes";
+import type { SerializedMeeting } from "@/lib/managerDesk/server";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "未設定";
@@ -182,6 +190,89 @@ function plannerSourceLabel(source: PlannerTimelineItem["sourceType"]): string {
   }
 }
 
+type FollowUpNoteState = "idle" | "loading" | "done" | "error";
+
+function CompletedMeetingCard(props: {
+  meeting: SerializedMeeting;
+  address: string | undefined;
+}) {
+  const [noteState, setNoteState] = useState<FollowUpNoteState>("idle");
+
+  async function createFollowUpNote() {
+    if (!props.address) return;
+    setNoteState("loading");
+    try {
+      const response = await ownerAuthFetch({
+        address: props.address,
+        url: `/api/meetings/${props.meeting.id}/follow-up-note`,
+        init: {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: props.address }),
+        },
+      });
+      if (!response.ok) throw new Error("FAILED");
+      setNoteState("done");
+    } catch {
+      setNoteState("error");
+    }
+  }
+
+  return (
+    <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="status-badge status-badge-neutral">完了</span>
+        <span className="status-badge status-badge-neutral">
+          {props.meeting.meetingType}
+        </span>
+      </div>
+      <div className="mt-2 text-sm font-semibold text-[var(--text)]">
+        {props.meeting.title}
+      </div>
+      <div className="mt-0.5 text-xs text-[var(--text-subtle)]">
+        {formatDateTime(props.meeting.scheduledAt)}
+      </div>
+      {props.meeting.decisions ? (
+        <div className="mt-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+            決定事項
+          </div>
+          <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--text)]">
+            {props.meeting.decisions}
+          </p>
+        </div>
+      ) : null}
+      {props.meeting.nextActionsSummary ? (
+        <div className="mt-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+            次のアクション
+          </div>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text)]">
+            {props.meeting.nextActionsSummary}
+          </p>
+        </div>
+      ) : null}
+      <div className="mt-3">
+        {noteState === "idle" ? (
+          <button
+            type="button"
+            onClick={() => void createFollowUpNote()}
+            className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+          >
+            フォローアップNote作成
+          </button>
+        ) : noteState === "loading" ? (
+          <span className="text-xs text-[var(--text-subtle)]">作成中...</span>
+        ) : noteState === "done" ? (
+          <span className="text-xs text-emerald-600">Noteを作成しました</span>
+        ) : (
+          <span className="text-xs text-rose-600">作成に失敗しました</span>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export function ManagerDeskCreatorDetailPreviewClient(props: {
   creatorProfileId: string;
 }) {
@@ -194,6 +285,10 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
   const nextActions = data ? buildNextActions(data) : [];
   const operatingSummary = data ? buildOperatingSummary(data) : [];
+  const aiSummary = data ? buildManagerDeskCreatorDetailAiSummary(data) : null;
+  const aiSuggestions = data
+    ? buildManagerDeskCreatorDetailAiSuggestions(data)
+    : [];
 
   return (
     <MyPageShell headerColor="#0f172a">
@@ -218,6 +313,12 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
               >
                 Dashboard に戻る
+              </Link>
+              <Link
+                href={`/manager-desk/activity?creatorProfileId=${props.creatorProfileId}`}
+                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+              >
+                Activity Timeline
               </Link>
               {data ? (
                 <Link
@@ -309,8 +410,70 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 </div>
               </div>
 
+              {data.stage ? (
+                <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                    Creator Stage
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(["SEED", "EARLY", "EMERGING", "PROFESSIONALIZING", "ESTABLISHED"] as const).map(
+                      (s, i) => {
+                        const stageOrder = ["SEED", "EARLY", "EMERGING", "PROFESSIONALIZING", "ESTABLISHED"];
+                        const currentIndex = stageOrder.indexOf(data.stage!.stage);
+                        const isActive = i === currentIndex;
+                        const isPast = i < currentIndex;
+                        return (
+                          <span
+                            key={s}
+                            className={[
+                              "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                              isActive
+                                ? "bg-[var(--text)] text-[var(--surface)]"
+                                : isPast
+                                  ? "bg-[var(--surface-muted)] text-[var(--text-subtle)] line-through"
+                                  : "border border-[var(--line)] text-[var(--text-subtle)] opacity-50",
+                            ].join(" ")}
+                          >
+                            {s === "PROFESSIONALIZING" ? "Professional." : s}
+                          </span>
+                        );
+                      }
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-[var(--text-subtle)]">
+                    {data.stage.stageDescription}
+                  </p>
+                  {data.stage.nextMilestone ? (
+                    <p className="mt-1 text-[11px] text-[var(--text-subtle)] opacity-70">
+                      次のステップ: {data.stage.nextMilestone}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                    {(["output", "audience", "business", "continuity"] as const).map((axis) => (
+                      <div key={axis} className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="capitalize text-[var(--text-subtle)]">{axis}</span>
+                          <span className="font-medium text-[var(--text)]">
+                            {data.stage!.maturity[axis]}
+                          </span>
+                        </div>
+                        <div className="h-1 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+                          <div
+                            className="h-full rounded-full bg-[var(--text-subtle)]"
+                            style={{ width: `${data.stage!.maturity[axis]}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
               <div className="grid gap-4 xl:grid-cols-[1.25fr,0.75fr]">
-                <section className="rounded-2xl border border-[var(--line)] bg-white p-4">
+                <section
+                  id="project-goal"
+                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                >
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Project / Goal
                   </div>
@@ -376,7 +539,22 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 </section>
               </div>
 
-              <section className="rounded-2xl border border-[var(--line)] bg-white p-4">
+              <ManagerDeskAiSuggestionsSection
+                eyebrow="AI Office"
+                title="この Creator の attention"
+                summary={
+                  aiSummary ??
+                  "planner / note / contact の signal をもとに、次の実務候補をまとめます。"
+                }
+                suggestions={aiSuggestions}
+                emptyTitle="attention card はまだありません"
+                emptyDescription="Meeting や follow-up が積み上がると、ここに短い提案カードで返します。"
+              />
+
+              <section
+                id="next-actions"
+                className="rounded-2xl border border-[var(--line)] bg-white p-4"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Next Actions
@@ -424,7 +602,10 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 )}
               </section>
 
-              <section className="rounded-2xl border border-[var(--line)] bg-white p-4">
+              <section
+                id="planner"
+                className="rounded-2xl border border-[var(--line)] bg-white p-4"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Upcoming / Planner
@@ -468,6 +649,16 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                         <div className="mt-2 text-xs text-[var(--text-subtle)]">
                           期限 {formatDateTime(item.dueAt)}
                         </div>
+                        {item.sourceType === "MEETING" ? (
+                          <div className="mt-2">
+                            <Link
+                              href={`/${data.creator.username}/mypage?aiOfficeView=CREATE&aiOfficeRole=MANAGER&aiOfficeOpenCreateTaskType=MEETING_AGENDA_DRAFT#ai-office`}
+                              className="text-xs font-medium text-[var(--text-subtle)] underline underline-offset-2 hover:text-[var(--text)]"
+                            >
+                              アジェンダを作る →
+                            </Link>
+                          </div>
+                        ) : null}
                       </article>
                     ))}
                   </div>
@@ -480,10 +671,41 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 )}
               </section>
 
+              {data.recentCompletedMeetings.length > 0 ? (
+                <section
+                  id="completed-meetings"
+                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                >
+                  <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                    直近の完了ミーティング（決定事項 → Note化）
+                  </div>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {data.recentCompletedMeetings.map((meeting) => (
+                      <CompletedMeetingCard
+                        key={meeting.id}
+                        meeting={meeting}
+                        address={address}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
               <div className="grid gap-4 lg:grid-cols-2">
-                <section className="rounded-2xl border border-[var(--line)] bg-white p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-                    Latest Notes
+                <section
+                  id="latest-notes"
+                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                      Latest Notes
+                    </div>
+                    <Link
+                      href={`/manager-desk/notes?creatorProfileId=${props.creatorProfileId}`}
+                      className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                    >
+                      Notes Surface で見る
+                    </Link>
                   </div>
                   {data.latestManagerNotes.length > 0 ? (
                     <div className="mt-3 space-y-3">
@@ -523,9 +745,20 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   )}
                 </section>
 
-                <section className="rounded-2xl border border-[var(--line)] bg-white p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-                    Key Contacts
+                <section
+                  id="key-contacts"
+                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                      Key Contacts
+                    </div>
+                    <Link
+                      href={`/manager-desk/contacts?creatorProfileId=${props.creatorProfileId}`}
+                      className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                    >
+                      Contact Pipeline で見る
+                    </Link>
                   </div>
                   {data.keyContacts.length > 0 ? (
                     <div className="mt-3 space-y-3">
@@ -565,9 +798,20 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 </section>
               </div>
 
-              <section className="rounded-2xl border border-[var(--line)] bg-white p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-                  Recent Action Log
+              <section
+                id="recent-action-log"
+                className="rounded-2xl border border-[var(--line)] bg-white p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                    Recent Action Log
+                  </div>
+                  <Link
+                    href={`/manager-desk/activity?creatorProfileId=${props.creatorProfileId}&sourceType=ACTION_LOG`}
+                    className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                  >
+                    Timeline で見る
+                  </Link>
                 </div>
                 {data.recentActionLogs.length > 0 ? (
                   <div className="mt-3 space-y-3">

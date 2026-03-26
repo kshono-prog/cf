@@ -4,8 +4,10 @@ Creator Home deferred sections
 
 ## Status
 
-- ready
+- in progress
 - follows AI operational assistance and manager-side follow-up slices
+- `CHD-1` completed
+- next: `CHD-2`
 
 ## Goal
 
@@ -30,7 +32,7 @@ Creator Home deferred sections
 
 Manager Feed MVP
 
-やること:
+完了:
 
 - `ManagerNote.visibility = SHAREABLE_WITH_CREATOR` を home に返す read model を作る
 - creator が「Manager が何を進めているか」を短く見られるようにする

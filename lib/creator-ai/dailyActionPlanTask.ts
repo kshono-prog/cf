@@ -2,6 +2,8 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { generateJson } from "@/lib/ai";
+import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
+import { deriveCreatorStage } from "@/lib/creatorStage";
 
 type DailyAction = {
   id: string;
@@ -19,7 +21,7 @@ export async function buildDailyActionPlanOutput(params: {
   const now = new Date();
   const since7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [lastPost, pendingTaskCount, recentContributions, activeGoal] =
+  const [lastPost, pendingTaskCount, recentContributions, activeGoal, credibility] =
     await Promise.all([
       prisma.post.findFirst({
         where: {
@@ -55,8 +57,10 @@ export async function buildDailyActionPlanOutput(params: {
             },
           })
         : Promise.resolve(null),
+      getCreatorActivityCredibility(params.creatorProfileId),
     ]);
 
+  const stageResult = deriveCreatorStage(credibility);
   const actions: DailyAction[] = [];
 
   // 1. 承認待ちが最優先
@@ -152,8 +156,10 @@ export async function buildDailyActionPlanOutput(params: {
 直近7日の新規支援者: ${recentCount.toString()}名
 目標期限まで: ${activeGoal?.deadline ? `${Math.floor((activeGoal.deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)).toString()}日` : "未設定"}
 目標達成済み: ${activeGoal?.achievedAt ? "はい" : "いいえ"}
+Creator Stage: ${stageResult.stage} (${stageResult.stageLabel})
+次のマイルストーン: ${stageResult.nextMilestone ?? "なし"}
 
-今日優先すべきアクションを3件以内で提案してください。category は "approval" / "posting" / "goal" / "engagement" / "next-step" のいずれかを使用。
+Creator Stage に応じた具体的なアクションを3件以内で提案してください。category は "approval" / "posting" / "goal" / "engagement" / "next-step" のいずれかを使用。
 以下のJSON形式のみで返してください:
 {"summary":"今日の状況を一言で","actions":[{"id":"action-1","title":"具体的なアクション","reason":"理由（1文）","priority":"high","category":"approval"}]}`,
     {
@@ -176,6 +182,8 @@ export async function buildDailyActionPlanOutput(params: {
       daysSinceLastPost: daysSincePost,
       pendingApprovals: pendingTaskCount,
       recentContributionCount: recentCount,
+      stage: stageResult.stage,
+      stageLabel: stageResult.stageLabel,
     },
     basedOn: params.input,
   };

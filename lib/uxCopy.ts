@@ -85,6 +85,16 @@ const TASK_TYPE_COPY: Record<TaskType, Copy> = {
     helper:
       "直近7日の指標データから、今すぐ動ける成長チャンスを優先度付きで提示します。",
   },
+  MEETING_AGENDA_DRAFT: {
+    label: "会議アジェンダを作る",
+    helper:
+      "直近のノート・会議履歴をもとに、次の会議の事前アジェンダ・確認事項・決定すべき事項を整理します。",
+  },
+  CONTACT_OUTREACH_DRAFT: {
+    label: "対外連絡文を作る",
+    helper:
+      "会場・スポンサー・メディア・企業などへの初回連絡・営業文面を、連絡目的・接点履歴をもとに下書きします。",
+  },
 };
 
 const TASK_STATUS_COPY: Record<TaskStatus, Copy> = {

@@ -5,6 +5,7 @@ import {
   hasProjectSummary,
   type MyPageProjectDashboard,
 } from "@/lib/mypage/dashboardTypes";
+import type { CreatorDailyBriefingData } from "@/lib/operations/dailyBriefingTypes";
 
 type Props = {
   creatorName: string;
@@ -19,6 +20,7 @@ type Props = {
   goalMissing: boolean;
   settlementAttentionNeeded: boolean;
   isNewCreator: boolean;
+  dailyBriefing: CreatorDailyBriefingData | null;
   onOpenSettings: () => void;
 };
 
@@ -169,6 +171,10 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
     avgProgressPct: props.avgProgressPct,
     hasPrimaryProject,
   });
+  const structuredFocusTheme =
+    !props.needsSetup && props.dailyBriefing?.focusTheme
+      ? props.dailyBriefing.focusTheme
+      : focusTheme;
 
   const priorityItems = buildPriorityItems({
     needsSetup: props.needsSetup,
@@ -180,6 +186,13 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
     postCount: props.postCount,
     avgProgressPct: props.avgProgressPct,
   });
+  const structuredPriorityItems =
+    !props.needsSetup && props.dailyBriefing
+      ? props.dailyBriefing.attentionItems.map((item) => ({
+          title: item.title,
+          body: item.body,
+        }))
+      : priorityItems;
 
   const statusLabel = props.settlementAttentionNeeded
     ? "精算確認が必要"
@@ -221,7 +234,14 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
               <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
                 {props.creatorName}さんの今日の仕事場
               </h2>
-              <p className="text-sm leading-6 text-slate-600">{focusTheme}</p>
+              <p className="text-sm leading-6 text-slate-600">
+                {structuredFocusTheme}
+              </p>
+              {!props.needsSetup && props.dailyBriefing?.summaryLine ? (
+                <p className="text-xs leading-5 text-slate-500">
+                  {props.dailyBriefing.summaryLine}
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm">
@@ -290,7 +310,7 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
               TODAY&apos;S PRIORITIES
             </div>
             <div className="mt-3 space-y-3">
-              {priorityItems.map((item, index) => (
+              {structuredPriorityItems.map((item, index) => (
                 <div
                   key={item.title}
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3"

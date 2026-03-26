@@ -162,6 +162,18 @@ export const AI_OFFICE_TASK_CHOICES: readonly AiOfficeTaskChoice[] = [
     whenToUse: "直近の指標から今すぐ動ける成長チャンスを確認したいとき",
     tier: "MVP",
   },
+  {
+    taskType: "MEETING_AGENDA_DRAFT",
+    eyebrow: "会議アジェンダを作る",
+    whenToUse: "次の会議の事前アジェンダ・確認事項・決定すべき事項を整理したいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "CONTACT_OUTREACH_DRAFT",
+    eyebrow: "対外連絡文を作る",
+    whenToUse: "会場・スポンサー・メディアなど外部への初回連絡や営業メッセージを下書きしたいとき",
+    tier: "MVP",
+  },
 ] as const;
 
 export const AI_OFFICE_TASK_TIER_HELPER: Record<ProductTier, string> = {

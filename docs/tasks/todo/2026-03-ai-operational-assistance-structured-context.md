@@ -4,8 +4,11 @@ AI operational assistance on structured context
 
 ## Status
 
-- ready
-- next recommended implementation slice after Meeting / Planner migration
+- in progress
+- `AO-1` completed
+- `AO-2` completed
+- `AO-3` completed
+- next: `MF-1`
 
 ## Goal
 
@@ -33,7 +36,7 @@ Creator Home と Manager Desk で **すぐ使える AI 補助** を成立させ�
 
 Daily Briefing read contract
 
-やること:
+完了:
 
 - planner summary、active project、risk note、contact next action を入力にした briefing contract を決める
 - Creator Home hero / AI Manager へ戻す summary shape を決める
@@ -42,21 +45,20 @@ Daily Briefing read contract
 
 Manager Note summarization and follow-up extraction
 
-やること:
+完了:
 
-- `ManagerNote.aiSummary` の生成 / 再生成ルールを決める
-- `followUpNeeded / followUpDueAt` が弱い note を補助的に抽出する
-- `ExternalContact.nextAction` と meeting decisions を補助入力に含める
+- `ManagerNote.aiSummary / aiTags` の生成と更新時の再生成ルールを追加
+- `followUpNeeded / followUpDueAt / urgencyScore` を補助的に補完する enrichment を追加
+- `ExternalContact.nextAction` と meeting context を補助入力に含める
 
 ### Issue AO-3
 
 UI connection
 
-やること:
+完了:
 
-- Creator Home に `AI Daily Briefing` を接続する
 - Manager Desk に短い AI summary / attention cards を接続する
-- 採用 / 保留 / 却下 の UI 方針を最小で決める
+- 採用 / 保留 / 見送り のローカル判断 UI を最小で決める
 
 ## Files Likely Affected
 
@@ -86,4 +88,3 @@ UI connection
 - `npm run lint`
 - `npm run typecheck`
 - `npm run build`
-

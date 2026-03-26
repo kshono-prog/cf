@@ -15,7 +15,9 @@ export type TaskType =
   | "SUPPORT_STORY_DRAFT"
   | "SUPPORTER_RESULT_REPORT"
   | "CAREER_PLAN_DRAFT"
-  | "GROWTH_OPPORTUNITY_ALERT";
+  | "GROWTH_OPPORTUNITY_ALERT"
+  | "MEETING_AGENDA_DRAFT"
+  | "CONTACT_OUTREACH_DRAFT";
 export type TaskStatus =
   | "QUEUED"
   | "RUNNING"
@@ -40,6 +42,8 @@ export const ALLOWED_TASK_TYPES: readonly TaskType[] = [
   "SUPPORTER_RESULT_REPORT",
   "CAREER_PLAN_DRAFT",
   "GROWTH_OPPORTUNITY_ALERT",
+  "MEETING_AGENDA_DRAFT",
+  "CONTACT_OUTREACH_DRAFT",
 ] as const;
 
 export const ALLOWED_TASK_STATUS: readonly TaskStatus[] = [

@@ -126,8 +126,8 @@ Creator Founding を、信頼・成長・関係性・事業性まで扱える創
 
 ## Current Recommended Order
 
-1. [AI operational assistance on structured context](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-ai-operational-assistance-structured-context.md)
-2. [Manager Desk follow-up slices](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-manager-desk-follow-up-slices.md)
-3. [Creator Home deferred sections](/Users/shounokazuaki/cf/docs/tasks/todo/2026-03-creator-home-deferred-sections.md)
-4. structured meeting decisions -> follow-up task minimum flow
-5. Trust / Stage / CRM groundwork
+1. `CHD-2` Growth / Reflection MVP
+2. missing-items detection over planner / note / contact signals
+3. structured meeting decisions -> follow-up task minimum flow
+4. Trust / Stage / CRM groundwork
+5. lightweight CRM polish over status / next action / temperature

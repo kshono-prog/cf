@@ -1,6 +1,6 @@
 # Project State
 
-最終更新: 2026-03-26
+最終更新: 2026-03-26（Phase 8 完了）
 
 ## Project Name
 
@@ -87,11 +87,24 @@ The current implementation already includes several building blocks that support
 - `Meeting` migration is now applied in the database environment
 - shared planner timeline helper now composes `Meeting / ManagerNote follow-up / ExternalContact next action / Project deadline`
 - Creator Home now includes `Upcoming / Planner`
+- Creator Home now includes `Manager Feed` from `SHAREABLE_WITH_CREATOR` manager notes
+- Creator Home hero and AI Manager now read a structured `Daily Briefing` contract from planner / project / note / contact signals
+- manager note create / update now auto-enriches `aiSummary / aiTags / followUpNeeded / followUpDueAt / urgencyScore` from note, contact, and meeting context
+- Manager Desk dashboard and creator detail now show `AI Office` attention cards with short summaries, reasons, and local adopt / defer / dismiss decisions
 - Manager Desk Creator Detail now includes `Upcoming / Planner`
-- next planned slice is structured AI assistance over this new context: `Daily Briefing / note summarization / follow-up extraction`
+- Manager Desk now includes `Contact Pipeline` with creator / status / overdue filters over assigned contacts
+- Manager Desk now includes `Notes Surface` with creator / noteType / visibility / follow-up / q filters over assigned notes
+- Manager Desk now includes `Activity Timeline` that merges `ActionLog / Meeting / shareable note updates`
 - public profile progress cards, support hero, and wallet contribution flow
 - guided settlement flow with explicit review boundaries
 - posting compose, supporter reporting, creator discovery, and notification groundwork from recent Phase 7 delivery
+- Phase 8: Creator Stage derivation + maturity axes in Manager Desk Creator Detail
+- Phase 8: MEETING_AGENDA_DRAFT / CONTACT_OUTREACH_DRAFT AgentTask 追加（MANAGER Agent）
+- Phase 8: Supporter Fan Relations Overview（累計/今月/直近30日 + top supporters + FAN_RELATION CTA）
+- Phase 8: Opportunity CRM（/manager-desk/opportunities — IN_DISCUSSION/NEGOTIATING/WON/ONGOING をステージ別表示 + 連絡文 CTA）
+- Phase 8: Meeting planner から AI Office MEETING_AGENDA_DRAFT へのショートカットリンク
+- Phase 8: AI Office 承認実績サマリー（承認数/却下数/承認率/判断中央値を Overview に追加）
+- Phase 8: Wave 1 rename（外部SNS連携 → CF 内投稿向けコピーに修正）
 
 ### Current constraints
 
@@ -99,7 +112,7 @@ The current product still has several structural limitations:
 
 - `AccountPageClient` remains too central to creator-side orchestration
 - creator operations and settings/editing are not yet cleanly separated
-- manager workflows and relationship memory now have dashboard UI ground, but `Contact Pipeline / Notes / Activity Timeline` are still incomplete
+- manager workflows and relationship memory now have dashboard, contact, notes, and activity surfaces, and creator-facing `Manager Feed` is live, but growth / reflection layers are still incomplete
 - trust / stage / skill concepts are not yet modeled in the product
 - MVP and beta boundaries still need stronger product-level articulation
 
@@ -335,24 +348,24 @@ This means the current high-leverage priorities are not “full autonomy,” but
 1. turn Creator Home / Manager Desk / core model docs into implementation-sized issue slices
 2. approve and implement `Meeting` schema and shared timeline helper
 3. implement `Upcoming / Planner` in Creator Home and Manager Desk
-4. layer AI Daily Briefing and note summarization on structured context
-5. extend lightweight CRM behavior and Manager Desk follow-up slices
+4. extend Manager Desk follow-up surfaces with `Activity Timeline`
+5. add creator-facing Manager Feed / Growth-Reflection over the new structured context
 
 ## Near-term Priorities
 
 ### Priority A
 
-- prepare the inputs needed for AI Daily Briefing / note summarization over new structured context
-- start `AI operational assistance on structured context`
+- extend `Manager Desk` with `Activity Timeline`
+- keep `AI Daily Briefing` and manager-side attention cards grounded in structured context
 - preserve approval boundaries for schema and high-risk flow changes
 
 ### Priority B
 
 - extend Creator Home with `Manager Feed / Growth-Reflection`
 - add shared action timeline / follow-up handling
-- add AI Daily Briefing and note summarization over structured data
+- add missing-items detection over planner / note / contact signals
 - add lightweight CRM behavior over `ExternalContact`
-- expand Manager Desk with `Contact Pipeline / Notes / Activity Timeline`
+- expand Manager Desk from `Contact Pipeline / Notes Surface` into `Activity Timeline`
 - convert meeting decisions into structured follow-up tasks
 
 ### Priority C

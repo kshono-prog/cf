@@ -9,6 +9,7 @@ import { getInitialPublicFeedListByCreatorId } from "@/lib/feedList";
 import { resolveBaseUrlFromHeaders, withBaseUrl } from "@/utils/baseUrl";
 import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
 import { CreatorActivityCredibilityBadge } from "@/components/profile/CreatorActivityCredibilityBadge";
+import { CreatorStageCard } from "@/components/profile/CreatorStageCard";
 import { getAllGoalAchievementImpacts } from "@/lib/goalAchievementImpact";
 import { GoalAchievementImpactSection } from "@/components/profile/GoalAchievementImpactCard";
 import { getLatestSupporterResultReportSummary } from "@/lib/supporterResultReportSummary";
@@ -97,6 +98,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
       {credibility.activeMonths > 0 || credibility.totalPostCount > 0 ? (
         <CreatorActivityCredibilityBadge credibility={credibility} />
       ) : null}
+      <CreatorStageCard credibility={credibility} />
       {reportSummary ? (
         <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4">
           <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">

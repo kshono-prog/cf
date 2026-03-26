@@ -16,6 +16,7 @@ import {
   requireCreatorAccess,
   serializeManagerNote,
 } from "@/lib/managerDesk/server";
+import { enrichManagerNote } from "@/lib/managerDesk/managerNoteEnrichment";
 import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
 import { prisma } from "@/lib/prisma";
 
@@ -175,41 +176,137 @@ export async function PATCH(
       return errJson("IS_ARCHIVED_INVALID", 400);
     }
 
+    const finalNoteType = noteType ?? current.noteType;
+    const finalTitle = title ?? current.title;
+    const finalBody = noteBody ?? current.body;
+    const finalProjectId =
+      projectId !== undefined ? projectId : current.projectId;
+    const finalExternalContactId =
+      externalContactId !== undefined
+        ? externalContactId
+        : current.externalContactId;
+    const finalRelatedMeetingId =
+      relatedMeetingId !== undefined
+        ? relatedMeetingId
+        : current.relatedMeetingId;
+    const finalManagerAssignmentId =
+      managerAssignmentId !== undefined
+        ? managerAssignmentId
+        : current.managerAssignmentId;
+
+    if (finalManagerAssignmentId !== null) {
+      const assignment = await prisma.managerAssignment.findUnique({
+        where: { id: finalManagerAssignmentId },
+      });
+      if (
+        !assignment ||
+        assignment.creatorProfileId !== current.creatorProfileId ||
+        (access.role === "MANAGER" &&
+          assignment.managerWalletAddress !== normalizeAddress(ownerSession.address))
+      ) {
+        return errJson("MANAGER_ASSIGNMENT_INVALID", 400);
+      }
+    }
+
+    const project =
+      finalProjectId === null
+        ? null
+        : await prisma.project.findFirst({
+            where: {
+              id: finalProjectId,
+              creatorProfileId: current.creatorProfileId,
+            },
+            select: { id: true, title: true },
+          });
+    if (finalProjectId !== null && !project) {
+      return errJson("PROJECT_NOT_FOUND_OR_FORBIDDEN", 404);
+    }
+
+    const contact =
+      finalExternalContactId === null
+        ? null
+        : await prisma.externalContact.findUnique({
+            where: { id: finalExternalContactId },
+            select: {
+              id: true,
+              creatorProfileId: true,
+              organizationName: true,
+              nextAction: true,
+            },
+          });
+    if (
+      finalExternalContactId !== null &&
+      (!contact || contact.creatorProfileId !== current.creatorProfileId)
+    ) {
+      return errJson("EXTERNAL_CONTACT_NOT_FOUND_OR_FORBIDDEN", 404);
+    }
+
+    const meeting =
+      finalRelatedMeetingId === null
+        ? null
+        : await prisma.meeting.findUnique({
+            where: { id: finalRelatedMeetingId },
+            select: {
+              id: true,
+              creatorProfileId: true,
+              title: true,
+              nextActionsSummary: true,
+            },
+          });
+    if (
+      finalRelatedMeetingId !== null &&
+      (!meeting || meeting.creatorProfileId !== current.creatorProfileId)
+    ) {
+      return errJson("RELATED_MEETING_NOT_FOUND_OR_FORBIDDEN", 404);
+    }
+
+    const shouldRefreshEnrichment =
+      noteType !== undefined ||
+      title !== undefined ||
+      noteBody !== undefined ||
+      projectId !== undefined ||
+      externalContactId !== undefined ||
+      relatedMeetingId !== undefined ||
+      current.aiSummary == null ||
+      current.aiSummary.trim().length === 0 ||
+      current.aiTags.length === 0 ||
+      (followUpNeeded === undefined && !current.followUpNeeded) ||
+      (followUpDueAt === undefined && current.followUpDueAt == null) ||
+      (urgencyScore === undefined && current.urgencyScore == null);
+
+    const enrichment = shouldRefreshEnrichment
+      ? await enrichManagerNote({
+          title: finalTitle,
+          body: finalBody,
+          noteType: finalNoteType,
+          projectTitle: project?.title ?? null,
+          externalContactName: contact?.organizationName ?? null,
+          externalContactNextAction: contact?.nextAction ?? null,
+          meetingTitle: meeting?.title ?? null,
+          meetingNextActionsSummary: meeting?.nextActionsSummary ?? null,
+        })
+      : null;
+
+    const effectiveUrgencyScore =
+      urgencyScore !== undefined
+        ? urgencyScore
+        : shouldRefreshEnrichment
+          ? enrichment?.urgencyScore ?? null
+          : current.urgencyScore;
+    const effectiveFollowUpNeeded =
+      followUpNeeded !== undefined
+        ? followUpNeeded
+        : shouldRefreshEnrichment
+          ? enrichment?.followUpNeeded ?? false
+          : current.followUpNeeded;
+    const effectiveFollowUpDueAt =
+      followUpDueAt !== undefined
+        ? followUpDueAt
+        : shouldRefreshEnrichment
+          ? enrichment?.followUpDueAt ?? null
+          : current.followUpDueAt;
+
     const updated = await prisma.$transaction(async (tx) => {
-      if (projectId !== undefined && projectId !== null) {
-        const project = await tx.project.findFirst({
-          where: {
-            id: projectId,
-            creatorProfileId: current.creatorProfileId,
-          },
-          select: { id: true },
-        });
-        if (!project) throw new Error("PROJECT_NOT_FOUND_OR_FORBIDDEN");
-      }
-
-      if (externalContactId !== undefined && externalContactId !== null) {
-        const contact = await tx.externalContact.findUnique({
-          where: { id: externalContactId },
-          select: { id: true, creatorProfileId: true },
-        });
-        if (!contact || contact.creatorProfileId !== current.creatorProfileId) {
-          throw new Error("EXTERNAL_CONTACT_NOT_FOUND_OR_FORBIDDEN");
-        }
-      }
-
-      if (managerAssignmentId !== undefined && managerAssignmentId !== null) {
-        const assignment = await tx.managerAssignment.findUnique({
-          where: { id: managerAssignmentId },
-        });
-        if (
-          !assignment ||
-          assignment.creatorProfileId !== current.creatorProfileId ||
-          (access.role === "MANAGER" &&
-            assignment.managerWalletAddress !== normalizeAddress(ownerSession.address))
-        ) {
-          throw new Error("MANAGER_ASSIGNMENT_INVALID");
-        }
-      }
 
       const note = await tx.managerNote.update({
         where: { id: noteId },
@@ -224,9 +321,15 @@ export async function PATCH(
           ...(projectId !== undefined ? { projectId } : {}),
           ...(externalContactId !== undefined ? { externalContactId } : {}),
           ...(relatedMeetingId !== undefined ? { relatedMeetingId } : {}),
-          ...(urgencyScore !== undefined ? { urgencyScore } : {}),
-          ...(followUpNeeded !== undefined ? { followUpNeeded } : {}),
-          ...(followUpDueAt !== undefined ? { followUpDueAt } : {}),
+          urgencyScore: effectiveUrgencyScore,
+          followUpNeeded: effectiveFollowUpNeeded,
+          followUpDueAt: effectiveFollowUpDueAt,
+          ...(enrichment
+            ? {
+                aiSummary: enrichment.aiSummary,
+                aiTags: enrichment.aiTags,
+              }
+            : {}),
           ...(isArchived !== undefined
             ? {
                 isArchived,
@@ -253,6 +356,8 @@ export async function PATCH(
           noteType: note.noteType,
           visibility: effectiveVisibility,
           isArchived: note.isArchived,
+          aiSummaryGenerated: enrichment !== null,
+          followUpNeeded: effectiveFollowUpNeeded,
         },
         visibility:
           effectiveVisibility === "SHAREABLE_WITH_CREATOR"
@@ -276,6 +381,9 @@ export async function PATCH(
     }
     if (message === "EXTERNAL_CONTACT_NOT_FOUND_OR_FORBIDDEN") {
       return errJson("EXTERNAL_CONTACT_NOT_FOUND_OR_FORBIDDEN", 404);
+    }
+    if (message === "RELATED_MEETING_NOT_FOUND_OR_FORBIDDEN") {
+      return errJson("RELATED_MEETING_NOT_FOUND_OR_FORBIDDEN", 404);
     }
     if (message === "MANAGER_ASSIGNMENT_INVALID") {
       return errJson("MANAGER_ASSIGNMENT_INVALID", 400);

@@ -473,6 +473,76 @@ UI rules:
 - priority badge 付きカードで opportunities を表示する
 - insight / action を視覚的に分離する
 
+### `MEETING_AGENDA_DRAFT`
+
+input:
+
+- `source`
+- `requestedAt`
+- `meetingId` (optional) — 特定会議の ID。省略時は直近ノート・会議履歴から生成する
+- `purpose` (optional) — 会議の目的メモ
+
+output:
+
+- `summary` — この会議アジェンダの概要一文
+- `agenda[]` — `{ id, title, durationMinutes, notes }` の配列
+- `preReadItems[]` — 事前確認推奨事項のリスト
+- `decisionsNeeded[]` — この会議で決めるべき事項のリスト
+- `context` — `{ meetingId, meetingTitle, recentNoteCount, recentMeetingCount }`
+- `basedOn`
+
+metrics 依存:
+
+- `ManagerNote` 直近 14 日 / 最大 5 件
+- 直近完了 `Meeting` 最大 3 件
+- 会議 `meetingId` が指定された場合はその会議の title / agenda / decisions を参照
+
+fallback:
+
+- meetingId なし・ノートなしでも汎用アジェンダを生成する
+
+UI rules:
+
+- 番号付きカードでアジェンダ項目を表示する（`{n}. title — Xmin`）
+- preReadItems / decisionsNeeded は独立リストで表示する
+
+### `CONTACT_OUTREACH_DRAFT`
+
+input:
+
+- `source`
+- `requestedAt`
+- `contactId` (optional) — 連絡先 ExternalContact の ID
+- `purpose` (optional) — 連絡目的を一文で
+- `tone` (optional) — `"formal"` | `"professional"` | `"friendly"`（default: `"professional"`）
+
+output:
+
+- `summary` — この連絡の目的を一文で
+- `draftMessage` — 実際のメッセージ本文（300 文字程度）
+- `tone` — 使用したトーン
+- `keyPoints[]` — 押さえるべきポイントのリスト
+- `followUpSuggestion` — 返信がない場合のフォローアップ提案
+- `context` — `{ contactId, contactLabel, purpose, recentNoteCount }`
+- `basedOn`
+
+metrics 依存:
+
+- `ExternalContact` の status / temperature / contactType / notes
+- `ManagerNote` 直近 30 日 / 最大 3 件（contactId が指定された場合はその接点に絞る）
+- `CreatorProfile` の displayName / creatorType / profileText
+
+fallback:
+
+- contactId なしでも汎用連絡文を生成する
+- AI 失敗時はルールベースの下書き + keyPoints を返す
+
+UI rules:
+
+- 下書き本文を `<pre>` 相当のブロックで表示する
+- keyPoints をリスト表示する
+- followUpSuggestion を補足カードで表示する
+
 ## Posting Compose Handoff の sourceTaskType
 
 `TRANSLATE` も `ANNOUNCEMENT_DRAFT` と同様に `sourceTaskType: "TRANSLATE"` で compose handoff できる。
