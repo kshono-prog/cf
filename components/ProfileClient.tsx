@@ -131,6 +131,7 @@ export default function ProfileClient({
     );
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
   const [stickyVisible, setStickyVisible] = useState(false);
+  const [supportSectionInView, setSupportSectionInView] = useState(true);
 
   useEffect(() => {
     if (!supportProfileView) return;
@@ -141,6 +142,27 @@ export default function ProfileClient({
     const onScroll = () => setStickyVisible(window.scrollY > 50);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const supportSection = document.getElementById("support-projects");
+    if (!supportSection) {
+      setSupportSectionInView(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setSupportSectionInView(entry.isIntersecting);
+      },
+      {
+        threshold: 0.35,
+      }
+    );
+
+    observer.observe(supportSection);
+
+    return () => observer.disconnect();
   }, []);
 
   const recruitingProjectMap = useMemo(
@@ -296,6 +318,7 @@ export default function ProfileClient({
 
   const showStickyBar =
     stickyVisible &&
+    !supportSectionInView &&
     !viewerState.isOwner &&
     (canOpenSupportSheet || viewerState.mode === "unconnected");
 
@@ -405,10 +428,10 @@ export default function ProfileClient({
 
   const stickyBar = showStickyBar ? (
     <div
-      className={`fixed inset-x-0 z-40 transition-transform duration-300 ${
+      className={`fixed inset-x-0 z-40 transition-transform duration-300 md:hidden ${
         stickyVisible ? "translate-y-0" : "translate-y-full"
       }`}
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 64px)" }}
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 78px)" }}
     >
       <div className="mx-auto max-w-[760px] px-4 pb-2">
         <button
