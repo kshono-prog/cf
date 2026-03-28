@@ -35,6 +35,10 @@ const NOTE_VISIBILITY_LABELS: Record<(typeof NOTE_VISIBILITIES)[number], string>
   SHAREABLE_WITH_CREATOR: "Creator 共有可",
 };
 
+const secondaryActionClassName = "btn-secondary justify-center text-sm";
+const fieldClassName =
+  "w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
+
 function formatDateTime(value: string | null): string {
   if (!value) return "未設定";
   const date = new Date(value);
@@ -49,7 +53,7 @@ function formatDateTime(value: string | null): string {
 
 function SummaryMetric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -142,7 +146,7 @@ export function ManagerDeskNotesSurfaceClient() {
   }
 
   return (
-    <MyPageShell headerColor="#0f172a">
+    <MyPageShell headerColor="#0f172a" showPromo={false}>
       <div className="container-narrow space-y-4">
         <section className="surface-card space-y-4 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -161,7 +165,7 @@ export function ManagerDeskNotesSurfaceClient() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/manager-desk"
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                className={secondaryActionClassName}
               >
                 Dashboard に戻る
               </Link>
@@ -196,7 +200,7 @@ export function ManagerDeskNotesSurfaceClient() {
 
           {data ? (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <SummaryMetric label="Notes" value={String(data.summary.totalCount)} />
                 <SummaryMetric
                   label="Follow-up"
@@ -231,7 +235,7 @@ export function ManagerDeskNotesSurfaceClient() {
                           event.target.value.length > 0 ? event.target.value : null,
                       });
                     }}
-                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                    className={fieldClassName}
                   >
                     <option value="">すべての Creator</option>
                     {data.availableCreators.map((creator) => (
@@ -254,7 +258,7 @@ export function ManagerDeskNotesSurfaceClient() {
                           event.target.value.length > 0 ? event.target.value : null,
                       });
                     }}
-                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                    className={fieldClassName}
                   >
                     <option value="">すべての noteType</option>
                     {MANAGER_NOTE_TYPES.map((noteTypeValue) => (
@@ -277,7 +281,7 @@ export function ManagerDeskNotesSurfaceClient() {
                           event.target.value.length > 0 ? event.target.value : null,
                       });
                     }}
-                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                    className={fieldClassName}
                   >
                     <option value="">すべての visibility</option>
                     {NOTE_VISIBILITIES.map((visibilityValue) => (
@@ -298,12 +302,12 @@ export function ManagerDeskNotesSurfaceClient() {
                       setQuery(event.target.value);
                     }}
                     placeholder="タイトル / 本文 / AI summary"
-                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                    className={fieldClassName}
                   />
                 </label>
 
                 <div className="flex flex-wrap items-end gap-2">
-                  <label className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)]">
+                  <label className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]">
                     <input
                       type="checkbox"
                       checked={followUpOnly}
@@ -315,7 +319,7 @@ export function ManagerDeskNotesSurfaceClient() {
                   </label>
                   <button
                     type="submit"
-                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                    className={secondaryActionClassName}
                   >
                     検索
                   </button>
@@ -396,7 +400,7 @@ export function ManagerDeskNotesSurfaceClient() {
                               ? "主担当"
                               : "副担当"}
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid gap-2 sm:flex sm:flex-wrap">
                           <Link
                             href={`/manager-desk/creators/${item.creator.id}#latest-notes`}
                             className="btn-raised btn-raised-sm"
@@ -406,14 +410,14 @@ export function ManagerDeskNotesSurfaceClient() {
                           {item.note.externalContactId ? (
                             <Link
                               href={`/manager-desk/contacts?creatorProfileId=${item.creator.id}`}
-                              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                              className={secondaryActionClassName}
                             >
                               Contact Pipeline
                             </Link>
                           ) : null}
                           <Link
                             href={`/${item.creator.username}`}
-                            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                            className={secondaryActionClassName}
                           >
                             公開ページを見る
                           </Link>

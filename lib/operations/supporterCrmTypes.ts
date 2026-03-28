@@ -10,6 +10,8 @@ export type SupporterCrmItem = {
   firstSupportAt: string | null;
   lastSupportAt: string | null;
   currencies: SupporterCrmCurrencyBreakdown[];
+  consecutiveSupportMonths: number;
+  trustScore: number;
 };
 
 export type SupporterCrmData = {

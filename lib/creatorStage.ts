@@ -8,10 +8,25 @@ export type CreatorStage =
   | "ESTABLISHED";
 
 export type CreatorMaturityAxes = {
-  output: number; // 0-100
-  audience: number; // 0-100
-  business: number; // 0-100
-  continuity: number; // 0-100
+  output: number;      // 0-100: 発信量（投稿数）
+  audience: number;    // 0-100: 支援者基盤（ユニーク支援者数）
+  business: number;    // 0-100: 事業実績（目標達成数）
+  continuity: number;  // 0-100: 継続性（活動期間）
+  craft: number;       // 0-100: 実績・エビデンス（ステージエビデンス数）
+  operations: number;  // 0-100: 運営体制（会議・外部接点・マネージャーノート）
+  trust: number;       // 0-100: 信頼・リピート（複数回支援者数）
+  team: number;        // 0-100: チーム形成（アクティブメンバー数）
+};
+
+export const MATURITY_AXIS_LABELS: Record<keyof CreatorMaturityAxes, string> = {
+  output: "発信量",
+  audience: "支援者",
+  business: "目標達成",
+  continuity: "継続性",
+  craft: "実績",
+  operations: "運営",
+  trust: "信頼",
+  team: "チーム",
 };
 
 export type CreatorStageResult = {
@@ -95,7 +110,7 @@ function deriveMaturity(
   // output: based on post count (100 = 200+ posts)
   const output = clampScore((credibility.totalPostCount / 200) * 100);
 
-  // audience: based on contributor count (100 = 100+ unique contributors)
+  // audience: based on unique contributor count (100 = 100+ contributors)
   const audience = clampScore((credibility.totalContributorCount / 100) * 100);
 
   // business: based on goal achieved (100 = 10+ achievements)
@@ -104,7 +119,22 @@ function deriveMaturity(
   // continuity: based on active months (100 = 36+ months)
   const continuity = clampScore((credibility.activeMonths / 36) * 100);
 
-  return { output, audience, business, continuity };
+  // craft: based on stage evidence records (100 = 10+ records)
+  const craft = clampScore((credibility.stageEvidenceCount / 10) * 100);
+
+  // operations: weighted mix of meetings (40%), contacts (40%), notes (20%)
+  const meetingScore = Math.min(40, (credibility.meetingCount / 10) * 40);
+  const contactScore = Math.min(40, (credibility.externalContactCount / 10) * 40);
+  const noteScore = Math.min(20, (credibility.managerNoteCount / 20) * 20);
+  const operations = clampScore(meetingScore + contactScore + noteScore);
+
+  // trust: based on repeat supporters (100 = 10+ supporters who gave multiple times)
+  const trust = clampScore((credibility.repeatSupporterCount / 10) * 100);
+
+  // team: based on active project members excluding owner (100 = 5+ members)
+  const team = clampScore((credibility.activeProjectMemberCount / 5) * 100);
+
+  return { output, audience, business, continuity, craft, operations, trust, team };
 }
 
 export function deriveCreatorStage(

@@ -21,6 +21,7 @@ type PostContributionArgs = {
   projectId?: string;
   purposeId?: string;
   postId?: string;
+  message?: string;
   chainId: number;
   currency: Currency;
   tokenAddress: string;
@@ -95,6 +96,7 @@ export function useContributionFlow({
             ? {}
             : { purposeId: args.purposeId === null ? null : String(args.purposeId) }),
           ...(args.postId ? { postId: args.postId } : {}),
+          ...(args.message ? { message: args.message } : {}),
           chainId: args.chainId,
           currency: args.currency,
           txHash: args.txHash,

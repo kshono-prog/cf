@@ -4,6 +4,7 @@ import type {
   SocialLinks,
   YoutubeVideo,
 } from "@/types/creator";
+import type { EcosystemRole } from "@/lib/creatorTaxonomy";
 import { parseCreatorProfile } from "@/lib/serializers/creator";
 import type { MeStatus } from "@/lib/mypage/types";
 import type { MyPageDashboardData } from "@/lib/mypage/dashboardTypes";
@@ -204,6 +205,7 @@ export async function updateMyPageCreatorProfile(args: {
   externalUrl: string;
   themeColor: string;
   creatorType: CreatorProfile["creatorType"];
+  ecosystemRole: EcosystemRole | null;
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
 }): Promise<
@@ -221,6 +223,7 @@ export async function updateMyPageCreatorProfile(args: {
       externalUrl: args.externalUrl.trim() || null,
       themeColor: args.themeColor.trim() || null,
       creatorType: args.creatorType ?? null,
+      ecosystemRole: args.ecosystemRole ?? null,
       socials: args.socials,
       youtubeVideos: args.youtubeVideos.map((video) => ({
         url: video.url.trim(),

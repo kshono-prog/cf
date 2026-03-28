@@ -52,7 +52,7 @@ export function ReplyList(props: Props) {
 
   if (replies.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-500">
+      <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--text-subtle)]">
         まだ返信はありません。最初のひとことを送れます。
       </div>
     );
@@ -63,7 +63,7 @@ export function ReplyList(props: Props) {
       {replies.map((reply) => (
         <div
           key={reply.id}
-          className="rounded-2xl border border-gray-200 bg-white px-3.5 py-3"
+          className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3"
         >
           <div className="flex items-start gap-2.5">
             <Avatar
@@ -76,17 +76,17 @@ export function ReplyList(props: Props) {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm font-semibold text-[var(--text)]">
                     {reply.creator.displayName}
                   </span>
-                  <span className="text-[11px] text-gray-500">
+                  <span className="text-[11px] text-[var(--text-subtle)]">
                     @{reply.creator.username}
                   </span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[11px] text-[var(--muted)]">
                     {formatDateTime(reply.createdAt)}
                   </span>
                   {reply.aiGenerated ? (
-                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                    <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-600">
                       AI
                     </span>
                   ) : null}

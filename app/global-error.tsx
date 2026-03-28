@@ -9,7 +9,7 @@ export default function GlobalError(props: {
   return (
     <html lang="ja">
       <body className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-        <div className="mx-auto w-full max-w-[760px] px-3 pb-[78px] pt-[96px] sm:px-6 sm:pb-[96px] sm:pt-[120px]">
+        <div className="mx-auto w-full max-w-[760px] px-3 pb-[78px] pt-[60px] sm:px-6 sm:pb-[96px]">
           <RouteErrorState
             error={props.error}
             title="アプリの表示を続けられませんでした"

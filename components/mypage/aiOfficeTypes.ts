@@ -84,6 +84,7 @@ export type AgentTaskView = {
   status: string;
   approvedBy: string | null;
   approvedAt: string | null;
+  rejectReason: string | null;
   createdAt: string;
   output: unknown;
   auditLogs: Array<{

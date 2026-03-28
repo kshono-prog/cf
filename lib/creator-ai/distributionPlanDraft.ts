@@ -19,6 +19,7 @@ export type DistributionPlanDraftPayload = {
   source:
     | "existing_distribution_entries"
     | "saved_distribution_plan"
+    | "member_share_template"
     | "bridged_total_template"
     | "blank_template";
   summary: {
@@ -29,6 +30,13 @@ export type DistributionPlanDraftPayload = {
   };
   rows: DistributionPlanDraftRow[];
   notes: string[];
+};
+
+export type DistributionPlanDraftMember = {
+  displayName: string | null;
+  walletAddress: string | null;
+  role: string;
+  sharePercent: number;
 };
 
 export type DistributionPlanDraftContext = {
@@ -57,6 +65,7 @@ export type DistributionPlanDraftContext = {
     status: string;
     token: CurrencyCode;
   }>;
+  projectMembers?: DistributionPlanDraftMember[];
   generatedAt?: string;
 };
 
@@ -209,6 +218,33 @@ function buildRowsFromEntries(
     .filter(hasMeaningfulRow);
 }
 
+function buildRowsFromMemberShares(
+  members: DistributionPlanDraftMember[],
+  bridgedTotalAtomic: string,
+  token: CurrencyCode
+): DistributionPlanDraftRow[] | null {
+  const eligibleMembers = members.filter(
+    (m) => m.walletAddress && m.sharePercent > 0 && m.sharePercent <= 100
+  );
+  if (eligibleMembers.length === 0) return null;
+
+  const total = BigInt(bridgedTotalAtomic);
+  if (total <= 0n) return null;
+
+  return eligibleMembers.map((member) => {
+    const amountAtomic = (total * BigInt(Math.round(member.sharePercent * 100)) / 10000n).toString();
+    const memo = member.displayName
+      ? `${member.displayName}（${member.role.toLowerCase()} ${member.sharePercent}%）`
+      : `${member.role.toLowerCase()} ${member.sharePercent}%`;
+    return {
+      recipientAddress: member.walletAddress ?? "",
+      amountAtomic,
+      memo,
+      token,
+    };
+  });
+}
+
 function buildFallbackRow(
   context: DistributionPlanDraftContext
 ): DistributionPlanDraftRow {
@@ -235,6 +271,8 @@ function buildNotes(args: {
     notes.push("保存済みの配分行をもとに、見直しや再保存しやすい draft を再構成しました。");
   } else if (args.source === "saved_distribution_plan") {
     notes.push("既存の distribution plan JSON をもとに、編集しやすい draft を再構成しました。");
+  } else if (args.source === "member_share_template") {
+    notes.push("プロジェクトメンバーの sharePercent をもとに、配分比率で按分した draft を生成しました。recipientAddress と amountAtomic を必ず確認してから保存してください。");
   } else if (args.source === "bridged_total_template") {
     notes.push("Bridge 済み total を 1 行の仮置きにしています。recipientAddress を確認してから保存してください。");
   } else {
@@ -272,21 +310,34 @@ export function buildDistributionPlanDraftPayload(
     context.project.currency
   );
 
+  const rowsFromMemberShares =
+    !rowsFromEntries.length && !rowsFromSavedPlan && isPositiveAtomic(context.settlement.bridgedTotalAtomic)
+      ? buildRowsFromMemberShares(
+          context.projectMembers ?? [],
+          context.settlement.bridgedTotalAtomic ?? "0",
+          context.project.currency
+        )
+      : null;
+
   const source: DistributionPlanDraftPayload["source"] =
     rowsFromEntries.length > 0
       ? "existing_distribution_entries"
       : rowsFromSavedPlan
         ? "saved_distribution_plan"
-        : isPositiveAtomic(context.settlement.bridgedTotalAtomic)
-          ? "bridged_total_template"
-          : "blank_template";
+        : rowsFromMemberShares
+          ? "member_share_template"
+          : isPositiveAtomic(context.settlement.bridgedTotalAtomic)
+            ? "bridged_total_template"
+            : "blank_template";
 
   const rows =
     rowsFromEntries.length > 0
       ? rowsFromEntries
       : rowsFromSavedPlan && rowsFromSavedPlan.length > 0
         ? rowsFromSavedPlan
-        : [buildFallbackRow(context)];
+        : rowsFromMemberShares && rowsFromMemberShares.length > 0
+          ? rowsFromMemberShares
+          : [buildFallbackRow(context)];
 
   return {
     version: 1,

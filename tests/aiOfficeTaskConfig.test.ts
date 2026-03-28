@@ -155,6 +155,7 @@ test("AI Office task usefulness and sorting prefer previously approved task type
       status: "DONE",
       approvedBy: "0xabc",
       approvedAt: "2026-03-18T00:00:00.000Z",
+      rejectReason: null,
       createdAt: "2026-03-18T00:00:00.000Z",
       output: {},
       auditLogs: [
@@ -188,6 +189,7 @@ test("AI Office task usefulness and sorting prefer previously approved task type
       status: "WAITING_APPROVAL",
       approvedBy: null,
       approvedAt: null,
+      rejectReason: null,
       createdAt: "2026-03-18T00:00:00.000Z",
       output: {},
       auditLogs: [
@@ -229,6 +231,7 @@ test("AI Office task usefulness and sorting prefer previously approved task type
         status: "DONE",
         approvedBy: "0xabc",
         approvedAt: "2026-03-18T00:00:00.000Z",
+        rejectReason: null,
         createdAt: "2026-03-18T00:00:00.000Z",
         output: {},
         auditLogs: [

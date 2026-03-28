@@ -7,10 +7,12 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build && node scripts/normalizeRoutesManifest.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node --require ts-node/register --require ./tests/register-alias.cjs --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "typecheck": "next typegen && tsc --noEmit",
     "verify": "npm run lint && npm run test && npm run build && npm run typecheck",
     "verify:prisma": "npm run prisma:validate && npm run verify",
@@ -37,6 +39,7 @@
     "@walletconnect/ethereum-provider": "^2.23.0",
     "@walletconnect/modal": "^2.7.0",
     "@walletconnect/utils": "^2.23.0",
+    "agent-browser": "^0.22.3",
     "ethers": "^6.15.0",
     "next": "^15.5.7",
     "openai": "^6.32.0",
@@ -46,8 +49,10 @@
     "wagmi": "^2.19.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@eslint/eslintrc": "^3",
     "@metamask/providers": "^22.1.0",
+    "@playwright/test": "^1.58.2",
     "@prisma/client": "^5.22.0",
     "@tailwindcss/cli": "^4.1.13",
     "@tailwindcss/postcss": "^4.1.17",

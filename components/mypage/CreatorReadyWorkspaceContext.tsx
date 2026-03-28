@@ -5,6 +5,7 @@ import type { Address } from "viem";
 
 import type { AiOfficePanelUrlState } from "@/components/mypage/aiOfficePanelUrlState";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
+import type { EcosystemRole } from "@/lib/creatorTaxonomy";
 import type {
   CurrencyCode,
   ProjectIdsByCurrency,
@@ -21,6 +22,7 @@ export type CreatorReadyWorkspaceState = {
   localProjectId: string | null;
   address: Address | undefined;
   isConnected: boolean;
+  isManualCheck: boolean;
   editingProfile: boolean;
   onStartEditProfile: () => void;
   onCancelEditProfile: () => void;
@@ -30,6 +32,7 @@ export type CreatorReadyWorkspaceState = {
   externalUrl: string;
   themeColorValue: string;
   creatorType: CreatorProfile["creatorType"];
+  ecosystemRole: EcosystemRole | null;
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   avatarFile: File | null;
@@ -41,6 +44,7 @@ export type CreatorReadyWorkspaceState = {
   setCreatorType: React.Dispatch<
     React.SetStateAction<CreatorProfile["creatorType"]>
   >;
+  setEcosystemRole: React.Dispatch<React.SetStateAction<EcosystemRole | null>>;
   setSocials: React.Dispatch<React.SetStateAction<SocialLinks>>;
   setYoutubeVideos: React.Dispatch<React.SetStateAction<YoutubeVideo[]>>;
   setAvatarFile: React.Dispatch<React.SetStateAction<File | null>>;

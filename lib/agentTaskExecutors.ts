@@ -28,9 +28,13 @@ import { buildGrowthOpportunityAlertOutput } from "@/lib/creator-ai/growthOpport
 import { buildMeetingAgendaDraftOutput } from "@/lib/creator-ai/meetingAgendaDraftTask";
 import { buildContactOutreachDraftOutput } from "@/lib/creator-ai/contactOutreachDraftTask";
 import { buildStageGrowthPlanOutput } from "@/lib/creator-ai/stageGrowthPlanTask";
+import { buildContactIntelligenceAlertOutput } from "@/lib/creator-ai/contactIntelligenceAlertTask";
+import { buildMonthlyCashflowReportOutput } from "@/lib/creator-ai/monthlyCashflowReportTask";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { getProjectSettlementView } from "@/lib/projectSettlementView";
+import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
+import { deriveCreatorStage } from "@/lib/creatorStage";
 import {
   buildTranslationsOutput,
   parseTranslationTaskInput,
@@ -1171,14 +1175,19 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
           source: "mypage",
           requestedAt: new Date().toISOString(),
         };
-      const summary = params.projectId
-        ? await getProjectSummaryView(params.projectId)
-        : null;
+      const [summary, credibility] = await Promise.all([
+        params.projectId
+          ? getProjectSummaryView(params.projectId)
+          : Promise.resolve(null),
+        getCreatorActivityCredibility(params.creatorProfileId),
+      ]);
+      const stageResult = deriveCreatorStage(credibility);
 
       return buildManagerAgentTaskOutput({
         summary,
         input: normalizedInput,
         isOwner: true,
+        stageResult,
       });
     },
   },
@@ -1222,10 +1231,26 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
         ? await getProjectSettlementView(params.projectId)
         : null;
 
+      const projectMembersRaw = params.projectId
+        ? await prisma.projectMember.findMany({
+            where: { projectId: params.projectId, status: "ACTIVE" },
+            select: { displayName: true, walletAddress: true, role: true, sharePercent: true },
+          })
+        : [];
+      const projectMembers = projectMembersRaw
+        .filter((m) => m.sharePercent != null && m.walletAddress)
+        .map((m) => ({
+          displayName: m.displayName,
+          walletAddress: m.walletAddress,
+          role: m.role,
+          sharePercent: Number(m.sharePercent),
+        }));
+
       return buildDistributionPlanDraftTaskOutput({
         summary,
         settlement,
         input: normalizedInput,
+        projectMembers,
       });
     },
   },
@@ -1890,6 +1915,98 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
         input: params.input,
       }),
   },
+  CONTACT_INTELLIGENCE_ALERT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "CONTACT_INTELLIGENCE_ALERT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "接点リスク分析の全体サマリー",
+        },
+        riskContacts: {
+          type: "array",
+          required: true,
+          description: "リスク接点リスト（contactId / organizationName / riskLevel / insight / recommendation）",
+        },
+        healthSummary: {
+          type: "object",
+          required: true,
+          description: "接点健全性サマリー（totalContacts / highRiskCount / mediumRiskCount 等）",
+        },
+        generatedAt: {
+          type: "string",
+          required: true,
+          description: "生成日時（ISO 8601）",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) =>
+      buildContactIntelligenceAlertOutput({
+        creatorProfileId: params.creatorProfileId,
+        input: params.input,
+      }),
+  },
+  MONTHLY_CASHFLOW_REPORT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "MONTHLY_CASHFLOW_REPORT",
+      fields: {
+        summary: {
+          type: "string",
+          required: true,
+          description: "月次収支サマリー",
+        },
+        advice: {
+          type: "string",
+          required: true,
+          description: "次のアクションへのアドバイス",
+        },
+        period: {
+          type: "string",
+          required: true,
+          description: "対象月（YYYY-MM）",
+        },
+        totalRevenue: {
+          type: "number",
+          required: true,
+          description: "月間収入合計",
+        },
+        totalExpense: {
+          type: "number",
+          required: true,
+          description: "月間支出合計",
+        },
+        netCashflow: {
+          type: "number",
+          required: true,
+          description: "月間収支（収入 - 支出）",
+        },
+        revenueBySource: {
+          type: "array",
+          required: true,
+          description: "収入源別内訳",
+        },
+        expenseByCategory: {
+          type: "array",
+          required: true,
+          description: "支出カテゴリ別内訳",
+        },
+        basedOn: {
+          type: "unknown",
+          required: true,
+          description: "正規化済み入力",
+        },
+      },
+    },
+    execute: async (params) => buildMonthlyCashflowReportOutput(params),
+  },
 };
 
 export function validateTaskInput(
@@ -2131,6 +2248,7 @@ export async function rejectWaitingTasks(params: {
           status: "FAILED",
           approvedBy: params.actorAddress,
           approvedAt: now,
+          rejectReason: params.note ?? null,
           outputJson: {
             summary: "Task rejected by owner",
           } as Prisma.InputJsonValue,

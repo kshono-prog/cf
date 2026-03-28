@@ -27,6 +27,11 @@ const ACTIVITY_TIMELINE_SOURCE_LABELS: Record<
   SHAREABLE_NOTE: "Shareable Note",
 };
 
+const secondaryActionClassName = "btn-secondary justify-center text-sm";
+const compactSecondaryActionClassName = "btn-secondary justify-center text-xs";
+const fieldClassName =
+  "w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
+
 function formatDateTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "時刻不明";
@@ -40,7 +45,7 @@ function formatDateTime(value: string): string {
 
 function SummaryMetric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -111,7 +116,7 @@ export function ManagerDeskActivityTimelineClient() {
   }
 
   return (
-    <MyPageShell headerColor="#0f172a">
+    <MyPageShell headerColor="#0f172a" showPromo={false}>
       <div className="container-narrow space-y-4">
         <section className="surface-card space-y-4 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -130,7 +135,7 @@ export function ManagerDeskActivityTimelineClient() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/manager-desk"
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                className={secondaryActionClassName}
               >
                 Dashboard に戻る
               </Link>
@@ -165,7 +170,7 @@ export function ManagerDeskActivityTimelineClient() {
 
           {data ? (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <SummaryMetric label="Items" value={String(data.summary.totalCount)} />
                 <SummaryMetric
                   label="Action Logs"
@@ -194,7 +199,7 @@ export function ManagerDeskActivityTimelineClient() {
                           event.target.value.length > 0 ? event.target.value : null,
                       });
                     }}
-                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                    className={fieldClassName}
                   >
                     <option value="">すべての Creator</option>
                     {data.availableCreators.map((creator) => (
@@ -222,7 +227,7 @@ export function ManagerDeskActivityTimelineClient() {
                             : null,
                       });
                     }}
-                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                    className={fieldClassName}
                   >
                     <option value="">すべての source</option>
                     {Object.entries(ACTIVITY_TIMELINE_SOURCE_LABELS).map(
@@ -267,16 +272,16 @@ export function ManagerDeskActivityTimelineClient() {
                         {item.summary ?? "詳細サマリーはまだありません。"}
                       </div>
 
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap">
                         <Link
                           href={item.href}
-                          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                          className={compactSecondaryActionClassName}
                         >
                           Creator Detail で確認
                         </Link>
                         <Link
                           href={`/${item.creator.username}`}
-                          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                          className={compactSecondaryActionClassName}
                         >
                           公開ページを見る
                         </Link>

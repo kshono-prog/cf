@@ -15,26 +15,67 @@ type Currency = CurrencyCode;
 export async function getProjectSummaryView(
   projectId: bigint
 ): Promise<SummaryViewData | null> {
-  const [project, sumByCurrency] = await Promise.all([
-    withPrismaRetry(() =>
-      prisma.project.findUnique({
-        where: { id: projectId },
-        include: {
-          goal: true,
-          purposes: true,
-          bridgeRuns: { orderBy: { createdAt: "desc" }, take: 5 },
-          distributionRuns: { orderBy: { createdAt: "desc" }, take: 5 },
+  const project = await withPrismaRetry(() =>
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        currency: true,
+        purposeMode: true,
+        ownerAddress: true,
+        creatorProfileId: true,
+        bridgedAt: true,
+        distributionPlan: true,
+        createdAt: true,
+        updatedAt: true,
+        goal: {
+          select: {
+            id: true,
+            targetAmount: true,
+            targetAmountJpyc: true,
+            achievedAt: true,
+            deadline: true,
+          },
         },
-      })
-    ),
-    withPrismaRetry(() =>
-      prisma.contribution.groupBy({
-        by: ["currency"],
-        where: { projectId, status: "CONFIRMED" },
-        _sum: { amountDecimal: true },
-      })
-    ),
-  ]);
+        bridgeRuns: {
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: {
+            id: true,
+            mode: true,
+            currency: true,
+            dryRun: true,
+            force: true,
+            createdAt: true,
+            dbConfirmedTotalAmountDecimal: true,
+          },
+        },
+        distributionRuns: {
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: {
+            id: true,
+            mode: true,
+            chainId: true,
+            currency: true,
+            dryRun: true,
+            createdAt: true,
+            txHashes: true,
+          },
+        },
+      },
+    })
+  );
+  const sumByCurrency = await withPrismaRetry(() =>
+    prisma.contribution.groupBy({
+      by: ["currency"],
+      where: { projectId, status: "CONFIRMED" },
+      _sum: { amountDecimal: true },
+    })
+  );
 
   if (!project) return null;
 

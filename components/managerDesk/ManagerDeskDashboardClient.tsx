@@ -48,6 +48,8 @@ function formatAmount(value: number, currency: "JPYC" | "USDC"): string {
   return `${value.toLocaleString("ja-JP")} ${currency}`;
 }
 
+const secondaryActionClassName = "btn-secondary justify-center text-sm";
+
 function progressLabel(card: ManagerDeskDashboardCard): string {
   if (!card.activeProject) return "進行中の Project はまだありません";
   if (card.activeProject.targetAmount == null) {
@@ -114,7 +116,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
           </div>
         </div>
 
-        <div className="text-right text-xs text-[var(--text-subtle)]">
+        <div className="text-left text-xs text-[var(--text-subtle)] sm:text-right">
           <div>{formatRelativeDays(card.staleDays)}</div>
           <div className="mt-1">
             {card.latestActionAt
@@ -127,7 +129,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
       <div className="grid gap-3 md:grid-cols-[1.3fr,1fr]">
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-            Active Project
+            進行中 Project
           </div>
           {card.activeProject ? (
             <div className="mt-2 space-y-2">
@@ -155,7 +157,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
 
         <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-            Signals
+            対応シグナル
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="status-badge status-badge-neutral">
@@ -179,7 +181,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-            Latest Manager Note
+            最新 Manager Note
           </div>
           {card.latestManagerNote ? (
             <div className="mt-2 space-y-2">
@@ -207,7 +209,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
 
         <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-            Next External Contact
+            次の外部連絡
           </div>
           {card.nextContact ? (
             <div className="mt-2 space-y-2">
@@ -239,7 +241,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
 
       <div className="space-y-2">
         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-          Priority Reasons
+          優先理由
         </div>
         {card.priority.reasons.length > 0 ? (
           <ul className="space-y-1 text-sm text-[var(--text-subtle)]">
@@ -254,19 +256,22 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link href={detailHref} className="btn-raised btn-raised-sm">
+      <div className="grid gap-2 sm:flex sm:flex-wrap">
+        <Link
+          href={detailHref}
+          className="btn-raised btn-raised-sm justify-center"
+        >
           Creator Detail
         </Link>
         <Link
           href={`/manager-desk/activity?creatorProfileId=${card.creator.id}`}
-          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+          className={secondaryActionClassName}
         >
           Activity Timeline
         </Link>
         <Link
           href={publicHref}
-          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+          className={secondaryActionClassName}
         >
           公開ページを見る
         </Link>
@@ -286,7 +291,7 @@ export function ManagerDeskDashboardClient() {
   const aiSuggestions = data ? buildManagerDeskDashboardAiSuggestions(data) : [];
 
   return (
-    <MyPageShell headerColor="#0f172a">
+    <MyPageShell headerColor="#0f172a" showPromo={false}>
       <div className="container-narrow space-y-4">
         <section className="surface-card space-y-4 p-5 sm:p-6">
           <div className="space-y-2">
@@ -301,28 +306,28 @@ export function ManagerDeskDashboardClient() {
               Manager Note の最新状況を 1 画面で見渡せるようにしています。
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <Link
               href="/manager-desk/contacts"
-              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+              className={secondaryActionClassName}
             >
               Contact Pipeline
             </Link>
             <Link
               href="/manager-desk/notes"
-              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+              className={secondaryActionClassName}
             >
               Notes Surface
             </Link>
             <Link
               href="/manager-desk/activity"
-              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+              className={secondaryActionClassName}
             >
               Activity Timeline
             </Link>
             <Link
               href="/manager-desk/opportunities"
-              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+              className={secondaryActionClassName}
             >
               Opportunity CRM
             </Link>
@@ -362,7 +367,7 @@ export function ManagerDeskDashboardClient() {
 
           {data ? (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <SummaryMetric
                   label="担当 Creator"
                   value={String(data.summary.creatorCount)}

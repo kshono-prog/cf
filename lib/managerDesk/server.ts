@@ -94,6 +94,8 @@ export type SerializedExternalContact = {
   sourceRef: string | null;
   relationshipStrengthScore: number | null;
   lastOutcome: string | null;
+  contractStatus: string | null;
+  contractStartAt: string | null;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -332,6 +334,8 @@ export function serializeExternalContact(
     sourceRef: row.sourceRef ?? null,
     relationshipStrengthScore: row.relationshipStrengthScore ?? null,
     lastOutcome: row.lastOutcome ?? null,
+    contractStatus: row.contractStatus ?? null,
+    contractStartAt: row.contractStartAt?.toISOString() ?? null,
     isArchived: row.isArchived,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

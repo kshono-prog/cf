@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { findCreatorByWalletAddress } from "@/lib/social";
 import { requireOwnerSessionFromSearchParams } from "@/lib/ownerAuthSession";
+import { isPrismaUnavailableError } from "@/lib/prismaRetry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -32,6 +33,41 @@ function toDecimalString(value: { toString(): string } | null): string {
   return value ? value.toString() : "0";
 }
 
+function buildEmptySnsSummary() {
+  return {
+    postCount: 0,
+    publishedCount: 0,
+    draftCount: 0,
+    archivedCount: 0,
+    aiGeneratedPostCount: 0,
+    totalLikes: 0,
+    totalReplies: 0,
+    totalTips: 0,
+    tipTotals: {
+      JPYC: "0",
+      USDC: "0",
+    },
+    analytics: {
+      trackedPostCount: 0,
+      impressionCount: 0,
+      profileClickCount: 0,
+      engagementScore: "0",
+    },
+    agents: {
+      total: 0,
+      active: 0,
+    },
+    jobs: {
+      queued: 0,
+      running: 0,
+      done: 0,
+      failed: 0,
+    },
+    lastPostAt: null,
+    lastPublishedAt: null,
+  };
+}
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
@@ -51,96 +87,81 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const creator = await findCreatorByWalletAddress(ownerSession.address);
     if (!creator) return err(req, "CREATOR_NOT_FOUND", 404);
 
-    const [
-      totalPostCount,
-      publishedCount,
-      draftCount,
-      archivedCount,
-      aiGeneratedCount,
-      postAggregates,
-      lastPost,
-      lastPublishedPost,
-      trackedPostCount,
-      analyticsAggregates,
-      totalAgentCount,
-      activeAgentCount,
-      queuedJobCount,
-      runningJobCount,
-      doneJobCount,
-      failedJobCount,
-    ] = await Promise.all([
-      prisma.post.count({ where: { creatorProfileId: creator.id } }),
-      prisma.post.count({
-        where: { creatorProfileId: creator.id, status: "PUBLISHED" },
-      }),
-      prisma.post.count({
-        where: { creatorProfileId: creator.id, status: "DRAFT" },
-      }),
-      prisma.post.count({
-        where: { creatorProfileId: creator.id, status: "ARCHIVED" },
-      }),
-      prisma.post.count({
-        where: { creatorProfileId: creator.id, aiGenerated: true },
-      }),
-      prisma.post.aggregate({
-        where: { creatorProfileId: creator.id },
-        _sum: {
-          likeCount: true,
-          replyCount: true,
-          tipCount: true,
-          tipAmountJpyc: true,
-          tipAmountUsdc: true,
-        },
-      }),
-      prisma.post.findFirst({
-        where: { creatorProfileId: creator.id },
-        orderBy: { createdAt: "desc" },
-        select: { createdAt: true },
-      }),
-      prisma.post.findFirst({
-        where: { creatorProfileId: creator.id, status: "PUBLISHED" },
-        orderBy: { createdAt: "desc" },
-        select: { createdAt: true },
-      }),
-      prisma.postAnalytics.count({
-        where: {
-          post: {
-            creatorProfileId: creator.id,
-          },
-        },
-      }),
-      prisma.postAnalytics.aggregate({
-        where: {
-          post: {
-            creatorProfileId: creator.id,
-          },
-        },
-        _sum: {
-          impressionCount: true,
-          profileClickCount: true,
-          engagementScore: true,
-        },
-      }),
-      prisma.aiAgent.count({ where: { creatorProfileId: creator.id } }),
-      prisma.aiAgent.count({
-        where: {
+    const totalPostCount = await prisma.post.count({
+      where: { creatorProfileId: creator.id },
+    });
+    const publishedCount = await prisma.post.count({
+      where: { creatorProfileId: creator.id, status: "PUBLISHED" },
+    });
+    const draftCount = await prisma.post.count({
+      where: { creatorProfileId: creator.id, status: "DRAFT" },
+    });
+    const archivedCount = await prisma.post.count({
+      where: { creatorProfileId: creator.id, status: "ARCHIVED" },
+    });
+    const aiGeneratedCount = await prisma.post.count({
+      where: { creatorProfileId: creator.id, aiGenerated: true },
+    });
+    const postAggregates = await prisma.post.aggregate({
+      where: { creatorProfileId: creator.id },
+      _sum: {
+        likeCount: true,
+        replyCount: true,
+        tipCount: true,
+        tipAmountJpyc: true,
+        tipAmountUsdc: true,
+      },
+    });
+    const lastPost = await prisma.post.findFirst({
+      where: { creatorProfileId: creator.id },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    const lastPublishedPost = await prisma.post.findFirst({
+      where: { creatorProfileId: creator.id, status: "PUBLISHED" },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    const trackedPostCount = await prisma.postAnalytics.count({
+      where: {
+        post: {
           creatorProfileId: creator.id,
-          status: "ACTIVE",
         },
-      }),
-      prisma.aiPromotionJob.count({
-        where: { creatorProfileId: creator.id, status: "QUEUED" },
-      }),
-      prisma.aiPromotionJob.count({
-        where: { creatorProfileId: creator.id, status: "RUNNING" },
-      }),
-      prisma.aiPromotionJob.count({
-        where: { creatorProfileId: creator.id, status: "DONE" },
-      }),
-      prisma.aiPromotionJob.count({
-        where: { creatorProfileId: creator.id, status: "FAILED" },
-      }),
-    ]);
+      },
+    });
+    const analyticsAggregates = await prisma.postAnalytics.aggregate({
+      where: {
+        post: {
+          creatorProfileId: creator.id,
+        },
+      },
+      _sum: {
+        impressionCount: true,
+        profileClickCount: true,
+        engagementScore: true,
+      },
+    });
+    const totalAgentCount = await prisma.aiAgent.count({
+      where: { creatorProfileId: creator.id },
+    });
+    const activeAgentCount = await prisma.aiAgent.count({
+      where: {
+        creatorProfileId: creator.id,
+        status: "ACTIVE",
+      },
+    });
+    const queuedJobCount = await prisma.aiPromotionJob.count({
+      where: { creatorProfileId: creator.id, status: "QUEUED" },
+    });
+    const runningJobCount = await prisma.aiPromotionJob.count({
+      where: { creatorProfileId: creator.id, status: "RUNNING" },
+    });
+    const doneJobCount = await prisma.aiPromotionJob.count({
+      where: { creatorProfileId: creator.id, status: "DONE" },
+    });
+    const failedJobCount = await prisma.aiPromotionJob.count({
+      where: { creatorProfileId: creator.id, status: "FAILED" },
+    });
 
     return ok(req, {
       summary: {
@@ -177,6 +198,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
+    if (isPrismaUnavailableError(error)) {
+      return ok(req, { summary: buildEmptySnsSummary() });
+    }
     console.error("MYPAGE_SNS_SUMMARY_GET_FAILED", error);
     return err(req, "MYPAGE_SNS_SUMMARY_GET_FAILED", 500);
   }

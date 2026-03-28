@@ -45,6 +45,7 @@ type SerializableTask = {
   requestedBy: string | null;
   approvedBy: string | null;
   approvedAt: Date | null;
+  rejectReason?: string | null;
   inputJson: unknown;
   outputJson: unknown;
   createdAt: Date;
@@ -61,6 +62,7 @@ export function serializeAgentTask(row: SerializableTask) {
     requestedBy: row.requestedBy,
     approvedBy: row.approvedBy,
     approvedAt: row.approvedAt?.toISOString() ?? null,
+    rejectReason: row.rejectReason ?? null,
     input: row.inputJson,
     output: row.outputJson,
     createdAt: row.createdAt.toISOString(),

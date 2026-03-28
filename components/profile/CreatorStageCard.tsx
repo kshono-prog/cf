@@ -81,10 +81,12 @@ export function CreatorStageCard({ credibility }: Props) {
       ) : null}
 
       <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2">
-        <MaturityBar label="Output" value={result.maturity.output} />
-        <MaturityBar label="Audience" value={result.maturity.audience} />
-        <MaturityBar label="Business" value={result.maturity.business} />
-        <MaturityBar label="Continuity" value={result.maturity.continuity} />
+        <MaturityBar label="発信量" value={result.maturity.output} />
+        <MaturityBar label="支援者" value={result.maturity.audience} />
+        <MaturityBar label="目標達成" value={result.maturity.business} />
+        <MaturityBar label="継続性" value={result.maturity.continuity} />
+        <MaturityBar label="実績" value={result.maturity.craft} />
+        <MaturityBar label="信頼" value={result.maturity.trust} />
       </div>
     </section>
   );

@@ -225,12 +225,12 @@ export function FeedPostCard(props: Props) {
                   className="flex min-w-0 flex-wrap items-center gap-2 hover:opacity-80"
                   aria-label={`${post.creator.displayName} のページを見る`}
                 >
-                  <div className="text-[12px] font-semibold text-gray-900 sm:text-[13px]">
+                  <div className="text-[12px] font-semibold text-[var(--text)] sm:text-[13px]">
                     {post.creator.displayName}
                   </div>
-                  <div className="text-[11px] text-gray-500">@{post.creator.username}</div>
+                  <div className="text-[11px] text-[var(--text-subtle)]">@{post.creator.username}</div>
                 </Link>
-                <div className="text-[11px] text-gray-400">
+                <div className="text-[11px] text-[var(--muted)]">
                   {formatDateTime(post.createdAt)}
                 </div>
               </div>
@@ -243,18 +243,18 @@ export function FeedPostCard(props: Props) {
               projectSupportHref ? (
                 <Link
                   href={projectSupportHref}
-                  className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+                  className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-600 transition hover:bg-sky-500/15"
                 >
                   {post.project.title} / {post.project.currency}
                 </Link>
               ) : (
-                <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-600">
                   {post.project.title} / {post.project.currency}
                 </span>
               )
             ) : null}
             {post.aiGenerated ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+              <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/30 bg-violet-500/15 px-2 py-0.5 text-[10px] font-semibold text-violet-500">
                 <svg
                   viewBox="0 0 16 16"
                   className="h-3 w-3 shrink-0"
@@ -267,7 +267,7 @@ export function FeedPostCard(props: Props) {
               </span>
             ) : null}
             {selectedForTip ? (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
                 応援先を選択中
               </span>
             ) : null}
@@ -275,7 +275,7 @@ export function FeedPostCard(props: Props) {
         </div>
       </div>
 
-      <div className="mt-2.5 whitespace-pre-wrap text-[13px] leading-6 text-gray-800">
+      <div className="mt-2.5 whitespace-pre-wrap text-[13px] leading-6 text-[var(--text)]">
         {post.body}
       </div>
 
@@ -283,7 +283,7 @@ export function FeedPostCard(props: Props) {
         post.mediaType === "LINK" ? (
           <LinkPreviewCard url={post.mediaUrl} />
         ) : (
-          <div className="mt-2.5 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+          <div className="mt-2.5 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)]">
             {post.mediaType === "IMAGE" ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -319,7 +319,7 @@ export function FeedPostCard(props: Props) {
                 href={post.mediaUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block px-4 py-3 text-sm text-sky-700 underline hover:text-sky-800"
+                className="block px-4 py-3 text-sm text-sky-600 underline hover:text-sky-500"
               >
                 動画リンクを開く
               </a>
@@ -366,7 +366,7 @@ export function FeedPostCard(props: Props) {
         ) : null}
       </div>
 
-      {children ? <div className="mt-2.5 border-t border-gray-200 pt-2.5">{children}</div> : null}
+      {children ? <div className="mt-2.5 border-t border-[var(--line)] pt-2.5">{children}</div> : null}
     </article>
   );
 }

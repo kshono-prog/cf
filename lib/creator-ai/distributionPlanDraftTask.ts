@@ -1,6 +1,7 @@
 import { isRecord, toNonEmptyString } from "@/lib/api/guards";
 import {
   buildDistributionPlanDraftPayload,
+  type DistributionPlanDraftMember,
   type DistributionPlanDraftPayload,
 } from "@/lib/creator-ai/distributionPlanDraft";
 import type { CurrencyCode, SummaryViewData } from "@/lib/mypage/accountPageTypes";
@@ -142,9 +143,11 @@ function buildOutputSummary(
       ? "既存の配分行"
       : payload.source === "saved_distribution_plan"
         ? "保存済み plan"
-        : payload.source === "bridged_total_template"
-          ? "Bridge 済み total"
-          : "空の template";
+        : payload.source === "member_share_template"
+          ? "メンバーのシェア比率"
+          : payload.source === "bridged_total_template"
+            ? "Bridge 済み total"
+            : "空の template";
 
   return `Finance Agent が ${sourceText} をもとに、配分 plan の下書きを ${payload.rows.length} 行で整理しました。Draft step で確認してから手動保存してください。`;
 }
@@ -153,9 +156,12 @@ export function buildDistributionPlanDraftTaskOutput(args: {
   summary: SummaryViewData | null;
   settlement: ProjectSettlementData | null;
   input: DistributionPlanDraftTaskInput;
+  projectMembers?: DistributionPlanDraftMember[];
 }): DistributionPlanDraftTaskOutput {
   const context = buildDraftContext(args);
-  const draftPayload = context ? buildDistributionPlanDraftPayload(context) : null;
+  const draftPayload = context
+    ? buildDistributionPlanDraftPayload({ ...context, projectMembers: args.projectMembers })
+    : null;
 
   return {
     summary: buildOutputSummary(draftPayload),

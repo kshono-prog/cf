@@ -5,13 +5,18 @@ export type X402ServiceSurfaceId =
   | "ANNOUNCEMENT_DRAFT_API"
   | "SUPPORTER_MESSAGE_API"
   | "WEEKLY_REPORT_API"
-  | "BUDGET_PLAN_DRAFT_API";
+  | "BUDGET_PLAN_DRAFT_API"
+  | "DAILY_BRIEFING_API"
+  | "CONTACT_INTELLIGENCE_API"
+  | "MANAGER_OPERATIONS_API"
+  | "GROWTH_ANALYTICS_API"
+  | "FAN_RELATIONS_API";
 
 export type X402PaymentModel = "per_call" | "future";
 
 export type X402RiskLevel = "low" | "medium";
 
-export type X402ReadinessPhase = "PHASE_2" | "FUTURE";
+export type X402ReadinessPhase = "PHASE_2" | "PHASE_3" | "FUTURE";
 
 export type X402ServiceSurface = {
   id: X402ServiceSurfaceId;
@@ -86,6 +91,66 @@ export const X402_SERVICE_SURFACES: readonly X402ServiceSurface[] = [
     taskTypes: ["PROPOSE", "ANALYZE"],
     excludesFundsMovement: true,
   },
+  {
+    id: "DAILY_BRIEFING_API",
+    label: "Daily briefing API",
+    description:
+      "Returns a structured daily action plan with cashflow signals, stage maturity, and prioritized creator tasks.",
+    paymentModel: "per_call",
+    readinessPhase: "PHASE_3",
+    riskLevel: "low",
+    requiresHumanApproval: false,
+    taskTypes: ["DAILY_ACTION_PLAN"],
+    excludesFundsMovement: true,
+  },
+  {
+    id: "CONTACT_INTELLIGENCE_API",
+    label: "Contact intelligence API",
+    description:
+      "Analyzes external contact health — staleness, overdue actions, temperature — and returns a ranked risk list.",
+    paymentModel: "per_call",
+    readinessPhase: "PHASE_3",
+    riskLevel: "low",
+    requiresHumanApproval: false,
+    taskTypes: ["CONTACT_INTELLIGENCE_ALERT"],
+    excludesFundsMovement: true,
+  },
+  {
+    id: "MANAGER_OPERATIONS_API",
+    label: "Manager operations API",
+    description:
+      "Generates meeting agendas, contact outreach drafts, and career plans for manager-directed creator operations.",
+    paymentModel: "per_call",
+    readinessPhase: "PHASE_3",
+    riskLevel: "low",
+    requiresHumanApproval: true,
+    taskTypes: ["MEETING_AGENDA_DRAFT", "CONTACT_OUTREACH_DRAFT", "CAREER_PLAN_DRAFT"],
+    excludesFundsMovement: true,
+  },
+  {
+    id: "GROWTH_ANALYTICS_API",
+    label: "Growth analytics API",
+    description:
+      "Returns creator stage growth plans and opportunity alerts derived from activity, maturity axes, and content metrics.",
+    paymentModel: "per_call",
+    readinessPhase: "PHASE_3",
+    riskLevel: "low",
+    requiresHumanApproval: true,
+    taskTypes: ["STAGE_GROWTH_PLAN", "GROWTH_OPPORTUNITY_ALERT"],
+    excludesFundsMovement: true,
+  },
+  {
+    id: "FAN_RELATIONS_API",
+    label: "Fan relations API",
+    description:
+      "Generates supporter result reports and supporter-facing message drafts for fan relationship management.",
+    paymentModel: "per_call",
+    readinessPhase: "PHASE_3",
+    riskLevel: "low",
+    requiresHumanApproval: true,
+    taskTypes: ["SUPPORTER_RESULT_REPORT", "SUPPORTER_MESSAGE_DRAFT"],
+    excludesFundsMovement: true,
+  },
 ] as const;
 
 export function getX402ServiceSurface(
@@ -99,5 +164,13 @@ export function getReadyX402ServiceSurfaces(
 ): X402ServiceSurface[] {
   return X402_SERVICE_SURFACES.filter(
     (surface) => surface.readinessPhase === phase
+  );
+}
+
+export function getX402SurfaceForTaskType(
+  taskType: TaskType
+): X402ServiceSurface | undefined {
+  return X402_SERVICE_SURFACES.find((surface) =>
+    (surface.taskTypes as readonly string[]).includes(taskType)
   );
 }

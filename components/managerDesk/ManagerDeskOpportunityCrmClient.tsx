@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { startTransition } from "react";
+import { startTransition, useState } from "react";
 
 import { useAccount } from "wagmi";
 
@@ -13,6 +13,7 @@ import {
   WorkspaceLoadingCard,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import type {
   ManagerDeskContactPipelineItem,
   ManagerDeskOpportunityStatus,
@@ -40,6 +41,10 @@ const TEMPERATURE_LABELS: Record<string, string> = {
   HOT: "非常に高",
 };
 
+const secondaryActionClassName = "btn-secondary justify-center text-sm";
+const fieldClassName =
+  "w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
+
 function formatDateTime(value: string | null): string {
   if (!value) return "未設定";
   const date = new Date(value);
@@ -66,7 +71,7 @@ function dueStateLabel(value: ManagerDeskContactPipelineItem["dueState"]): strin
 
 function SummaryMetric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -75,12 +80,64 @@ function SummaryMetric(props: { label: string; value: string }) {
   );
 }
 
-function OpportunityCard(props: { item: ManagerDeskContactPipelineItem }) {
-  const { item } = props;
+type InlineNoteFormState = {
+  title: string;
+  body: string;
+  submitting: boolean;
+  submitted: boolean;
+  error: string | null;
+};
+
+function OpportunityCard(props: {
+  item: ManagerDeskContactPipelineItem;
+  address: string | undefined;
+}) {
+  const { item, address } = props;
   const outreachHref =
     `/${item.creator.username}/mypage/ai-office/create` +
     `?role=MANAGER&taskType=CONTACT_OUTREACH_DRAFT` +
     `&contactId=${item.contact.id}`;
+
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteForm, setNoteForm] = useState<InlineNoteFormState>({
+    title: "",
+    body: "",
+    submitting: false,
+    submitted: false,
+    error: null,
+  });
+
+  async function submitNote() {
+    if (!address || !noteForm.title.trim() || !noteForm.body.trim()) return;
+    setNoteForm((prev) => ({ ...prev, submitting: true, error: null }));
+    try {
+      await ownerAuthFetch({
+        address,
+        url: "/api/manager-notes",
+        init: {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address,
+            creatorProfileId: String(item.creator.id),
+            externalContactId: item.contact.id,
+            noteType: "GENERAL",
+            visibility: "MANAGER_ONLY",
+            title: noteForm.title.trim(),
+            body: noteForm.body.trim(),
+          }),
+        },
+      });
+      setNoteForm({ title: "", body: "", submitting: false, submitted: true, error: null });
+      setNoteOpen(false);
+    } catch {
+      setNoteForm((prev) => ({
+        ...prev,
+        submitting: false,
+        error: "ノートの保存に失敗しました。もう一度お試しください。",
+      }));
+    }
+  }
 
   return (
     <article className="surface-card space-y-4 p-5 sm:p-6">
@@ -147,19 +204,75 @@ function OpportunityCard(props: { item: ManagerDeskContactPipelineItem }) {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
+      {noteOpen ? (
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 space-y-3">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+            ノートを記録
+          </div>
+          <input
+            type="text"
+            placeholder="タイトル"
+            value={noteForm.title}
+            disabled={noteForm.submitting}
+            onChange={(e) => setNoteForm((prev) => ({ ...prev, title: e.target.value }))}
+            className={`${fieldClassName} disabled:opacity-50`}
+          />
+          <textarea
+            placeholder="内容を入力してください"
+            value={noteForm.body}
+            disabled={noteForm.submitting}
+            rows={3}
+            onChange={(e) => setNoteForm((prev) => ({ ...prev, body: e.target.value }))}
+            className={`${fieldClassName} disabled:opacity-50 resize-none`}
+          />
+          {noteForm.error ? (
+            <div className="text-xs text-red-600">{noteForm.error}</div>
+          ) : null}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={noteForm.submitting || !noteForm.title.trim() || !noteForm.body.trim()}
+              onClick={() => { void submitNote(); }}
+              className="btn-raised btn-raised-sm disabled:opacity-50"
+            >
+              {noteForm.submitting ? "保存中…" : "保存"}
+            </button>
+            <button
+              type="button"
+              disabled={noteForm.submitting}
+              onClick={() => { setNoteOpen(false); }}
+              className={`${secondaryActionClassName} disabled:opacity-50`}
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {noteForm.submitted ? (
+        <div className="text-xs text-green-700">ノートを保存しました。</div>
+      ) : null}
+
+      <div className="grid gap-2 sm:flex sm:flex-wrap">
+        <button
+          type="button"
+          onClick={() => { setNoteOpen((prev) => !prev); setNoteForm((prev) => ({ ...prev, submitted: false, error: null })); }}
+          className={secondaryActionClassName}
+        >
+          {noteOpen ? "閉じる" : "ノートを記録"}
+        </button>
         <Link href={outreachHref} className="btn-raised btn-raised-sm">
           連絡文を作る
         </Link>
         <Link
           href={`/manager-desk/creators/${item.creator.id}`}
-          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+          className={secondaryActionClassName}
         >
           Creator Detail
         </Link>
         <Link
           href={`/manager-desk/contacts?creatorProfileId=${item.creator.id}`}
-          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+          className={secondaryActionClassName}
         >
           Contact Pipeline
         </Link>
@@ -196,7 +309,7 @@ export function ManagerDeskOpportunityCrmClient() {
   }
 
   return (
-    <MyPageShell headerColor="#0f172a">
+    <MyPageShell headerColor="#0f172a" showPromo={false}>
       <div className="container-narrow space-y-4">
         <section className="surface-card space-y-4 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -213,7 +326,7 @@ export function ManagerDeskOpportunityCrmClient() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/manager-desk"
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                className={secondaryActionClassName}
               >
                 Dashboard に戻る
               </Link>
@@ -248,7 +361,7 @@ export function ManagerDeskOpportunityCrmClient() {
 
           {data ? (
             <div className="space-y-6">
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                 <SummaryMetric label="進行中" value={String(data.summary.inDiscussionCount)} />
                 <SummaryMetric label="交渉中" value={String(data.summary.negotiatingCount)} />
                 <SummaryMetric
@@ -270,7 +383,7 @@ export function ManagerDeskOpportunityCrmClient() {
                           event.target.value.length > 0 ? event.target.value : null
                         );
                       }}
-                      className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                      className={fieldClassName}
                     >
                       <option value="">すべての Creator</option>
                       {data.availableCreators.map((creator) => (
@@ -307,7 +420,7 @@ export function ManagerDeskOpportunityCrmClient() {
                       </div>
                       <div className="space-y-3">
                         {stage.items.map((item) => (
-                          <OpportunityCard key={item.contact.id} item={item} />
+                          <OpportunityCard key={item.contact.id} item={item} address={address} />
                         ))}
                       </div>
                     </div>

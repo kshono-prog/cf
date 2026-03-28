@@ -5,7 +5,7 @@ import React from "react";
 import type { SupporterCrmItem } from "@/lib/operations/supporterCrmTypes";
 import type { SupporterCrmData } from "@/lib/operations/supporterCrmTypes";
 
-type SortKey = "recent" | "count";
+type SortKey = "recent" | "count" | "trust";
 
 function abbrevAddress(address: string): string {
   if (address.length <= 12) return address;
@@ -19,9 +19,27 @@ function formatDate(value: string | null): string {
   return d.toLocaleDateString("ja-JP", { year: "numeric", month: "numeric", day: "numeric" });
 }
 
+function TrustBadge(props: { consecutive: number; totalCount: number }) {
+  const { consecutive, totalCount } = props;
+  if (consecutive >= 3 || totalCount >= 5) {
+    return (
+      <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+        継続
+      </span>
+    );
+  }
+  if (consecutive >= 2 || totalCount >= 3) {
+    return (
+      <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+        VIP
+      </span>
+    );
+  }
+  return null;
+}
+
 function SupporterRow(props: { item: SupporterCrmItem; rank: number }) {
   const { item, rank } = props;
-  const isVip = item.totalCount >= 3;
   const currencyLabel = item.currencies
     .map((c) => `${Number(c.amount).toLocaleString("ja-JP", { maximumFractionDigits: 0 })} ${c.currency}`)
     .join(" / ");
@@ -36,17 +54,16 @@ function SupporterRow(props: { item: SupporterCrmItem; rank: number }) {
           <span className="truncate font-mono text-sm text-[var(--text)]">
             {abbrevAddress(item.fromAddress)}
           </span>
-          {isVip ? (
-            <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-              VIP
-            </span>
-          ) : null}
+          <TrustBadge consecutive={item.consecutiveSupportMonths} totalCount={item.totalCount} />
         </div>
         <div className="text-xs text-[var(--text-subtle)]">
           {currencyLabel}
         </div>
         <div className="text-xs text-[var(--text-subtle)]">
           初回 {formatDate(item.firstSupportAt)}　最終 {formatDate(item.lastSupportAt)}
+          {item.consecutiveSupportMonths >= 2 ? (
+            <span className="ml-1.5 text-emerald-600">{item.consecutiveSupportMonths}ヶ月連続</span>
+          ) : null}
         </div>
       </div>
       <div className="text-right">
@@ -71,13 +88,17 @@ export function CreatorReadySupporterCrmSection(props: Props) {
     if (sortKey === "count") {
       return b.totalCount - a.totalCount;
     }
+    if (sortKey === "trust") {
+      return b.trustScore - a.trustScore;
+    }
     // recent: default order (already sorted by lastSupportAt desc from server)
     const aTime = a.lastSupportAt ? new Date(a.lastSupportAt).getTime() : 0;
     const bTime = b.lastSupportAt ? new Date(b.lastSupportAt).getTime() : 0;
     return bTime - aTime;
   });
 
-  const vipCount = data.items.filter((it) => it.totalCount >= 3).length;
+  const loyalCount = data.items.filter((it) => it.consecutiveSupportMonths >= 3 || it.totalCount >= 5).length;
+  const vipCount = data.items.filter((it) => !( it.consecutiveSupportMonths >= 3 || it.totalCount >= 5) && (it.consecutiveSupportMonths >= 2 || it.totalCount >= 3)).length;
 
   return (
     <section className="surface-card space-y-4 p-5 sm:p-6">
@@ -91,7 +112,8 @@ export function CreatorReadySupporterCrmSection(props: Props) {
           </h2>
           <p className="mt-1 text-xs text-[var(--text-subtle)]">
             累計支援回数と通貨別金額を表示しています。
-            {vipCount > 0 ? ` VIP（3回以上）: ${vipCount.toString()}名。` : ""}
+            {loyalCount > 0 ? ` 継続（3ヶ月以上）: ${loyalCount.toString()}名。` : ""}
+            {vipCount > 0 ? ` VIP: ${vipCount.toString()}名。` : ""}
           </p>
         </div>
         <div className="shrink-0 text-right">
@@ -124,6 +146,17 @@ export function CreatorReadySupporterCrmSection(props: Props) {
           onClick={() => setSortKey("count")}
         >
           支援回数が多い順
+        </button>
+        <button
+          type="button"
+          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            sortKey === "trust"
+              ? "bg-[var(--text)] text-[var(--surface)]"
+              : "bg-[var(--surface-subtle)] text-[var(--text-subtle)]"
+          }`}
+          onClick={() => setSortKey("trust")}
+        >
+          信頼度順
         </button>
       </div>
 

@@ -39,6 +39,10 @@ const TEMPERATURE_LABELS: Record<string, string> = {
 
 const TEMPERATURE_VALUES = ["UNKNOWN", "COLD", "NEUTRAL", "WARM", "HOT"] as const;
 
+const secondaryActionClassName = "btn-secondary justify-center text-sm";
+const fieldClassName =
+  "w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
+
 function formatDateTime(value: string | null): string {
   if (!value) return "未設定";
   const date = new Date(value);
@@ -65,7 +69,7 @@ function dueStateLabel(value: "OVERDUE" | "DUE_SOON" | "NONE"): string {
 
 function SummaryMetric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -79,7 +83,17 @@ function SummaryMetric(props: { label: string; value: string }) {
 type ContactLocalOverride = {
   status?: (typeof EXTERNAL_CONTACT_STATUSES)[number];
   temperature?: (typeof TEMPERATURE_VALUES)[number];
+  contractStatus?: string | null;
 };
+
+function isContractRenewalNeeded(contractStartAt: string | null): boolean {
+  if (!contractStartAt) return false;
+  const start = new Date(contractStartAt);
+  if (Number.isNaN(start.getTime())) return false;
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+  return start < twelveMonthsAgo;
+}
 
 export function ManagerDeskContactPipelineClient() {
   const { address, isConnected } = useAccount();
@@ -89,6 +103,9 @@ export function ManagerDeskContactPipelineClient() {
 
   const [localOverrides, setLocalOverrides] = useState<Record<string, ContactLocalOverride>>({});
   const [updatingContact, setUpdatingContact] = useState<Record<string, boolean>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<(typeof EXTERNAL_CONTACT_STATUSES)[number]>("CONTACTED");
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const creatorProfileId = searchParams.get("creatorProfileId");
   const status = searchParams.get("status");
@@ -139,9 +156,57 @@ export function ManagerDeskContactPipelineClient() {
     });
   }
 
+  function toggleSelected(contactId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(contactId)) {
+        next.delete(contactId);
+      } else {
+        next.add(contactId);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll(ids: string[]) {
+    setSelectedIds((prev) => {
+      if (ids.every((id) => prev.has(id))) {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      }
+      return new Set([...prev, ...ids]);
+    });
+  }
+
+  async function applyBulkStatus(): Promise<void> {
+    if (!address || selectedIds.size === 0) return;
+    setBulkUpdating(true);
+    const ids = [...selectedIds];
+    const updates = ids.map((contactId) =>
+      ownerAuthFetch({
+        address,
+        url: `/api/external-contacts/${contactId}`,
+        init: {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, status: bulkStatus }),
+        },
+      }).then(() => {
+        setLocalOverrides((prev) => ({
+          ...prev,
+          [contactId]: { ...prev[contactId], status: bulkStatus },
+        }));
+      })
+    );
+    await Promise.allSettled(updates);
+    setSelectedIds(new Set());
+    setBulkUpdating(false);
+  }
+
   async function patchContact(
     contactId: string,
-    patch: { status?: (typeof EXTERNAL_CONTACT_STATUSES)[number]; temperature?: (typeof TEMPERATURE_VALUES)[number] }
+    patch: { status?: (typeof EXTERNAL_CONTACT_STATUSES)[number]; temperature?: (typeof TEMPERATURE_VALUES)[number]; contractStatus?: string | null }
   ): Promise<void> {
     if (!address) return;
     setLocalOverrides((prev) => ({ ...prev, [contactId]: { ...prev[contactId], ...patch } }));
@@ -169,7 +234,7 @@ export function ManagerDeskContactPipelineClient() {
   }
 
   return (
-    <MyPageShell headerColor="#0f172a">
+    <MyPageShell headerColor="#0f172a" showPromo={false}>
       <div className="container-narrow space-y-4">
         <section className="surface-card space-y-4 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -188,7 +253,7 @@ export function ManagerDeskContactPipelineClient() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/manager-desk"
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                className={secondaryActionClassName}
               >
                 Dashboard に戻る
               </Link>
@@ -223,7 +288,7 @@ export function ManagerDeskContactPipelineClient() {
 
           {data ? (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <SummaryMetric
                   label="Contacts"
                   value={String(data.summary.totalCount)}
@@ -255,7 +320,7 @@ export function ManagerDeskContactPipelineClient() {
                           event.target.value.length > 0 ? event.target.value : null,
                       });
                     }}
-                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                    className={fieldClassName}
                   >
                     <option value="">すべての Creator</option>
                     {data.availableCreators.map((creator) => (
@@ -278,7 +343,7 @@ export function ManagerDeskContactPipelineClient() {
                           event.target.value.length > 0 ? event.target.value : null,
                       });
                     }}
-                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                    className={fieldClassName}
                   >
                     <option value="">すべての status</option>
                     {EXTERNAL_CONTACT_STATUSES.map((statusValue) => (
@@ -289,7 +354,7 @@ export function ManagerDeskContactPipelineClient() {
                   </select>
                 </label>
 
-                <label className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)]">
+                <label className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]">
                   <input
                     type="checkbox"
                     checked={overdueOnly}
@@ -302,12 +367,51 @@ export function ManagerDeskContactPipelineClient() {
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-subtle)]">
-                <div>
-                  status と next action を主軸に並べています。creator detail へ戻って
-                  meeting や note 文脈も確認できます。
-                </div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={data.items.length > 0 && data.items.every((i) => selectedIds.has(i.contact.id))}
+                    onChange={() => toggleSelectAll(data.items.map((i) => i.contact.id))}
+                    className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
+                  />
+                  <span>全選択</span>
+                </label>
                 <div>更新時刻 {formatDateTime(data.generatedAt)}</div>
               </div>
+
+              {data.items.length > 0 && selectedIds.size > 0 ? (
+                <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+                  <span className="text-sm font-semibold text-[var(--text)]">
+                    {selectedIds.size} 件選択中
+                  </span>
+                  <select
+                    value={bulkStatus}
+                    disabled={bulkUpdating}
+                    onChange={(e) => setBulkStatus(e.target.value as (typeof EXTERNAL_CONTACT_STATUSES)[number])}
+                    className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text)] disabled:opacity-50"
+                  >
+                    {EXTERNAL_CONTACT_STATUSES.map((s) => (
+                      <option key={s} value={s}>{CONTACT_STATUS_LABELS[s]}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={bulkUpdating}
+                    onClick={() => { void applyBulkStatus(); }}
+                    className="btn-raised btn-raised-sm disabled:opacity-50"
+                  >
+                    {bulkUpdating ? "更新中…" : "一括更新"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkUpdating}
+                    onClick={() => setSelectedIds(new Set())}
+                    className={`${secondaryActionClassName} disabled:opacity-50`}
+                  >
+                    選択解除
+                  </button>
+                </div>
+              ) : null}
 
               {data.items.length > 0 ? (
                 <div className="space-y-3">
@@ -315,15 +419,25 @@ export function ManagerDeskContactPipelineClient() {
                     const overrides = localOverrides[item.contact.id] ?? {};
                     const currentStatus = overrides.status ?? item.contact.status;
                     const currentTemperature = overrides.temperature ?? item.contact.temperature;
+                    const currentContractStatus = "contractStatus" in overrides ? overrides.contractStatus : item.contact.contractStatus;
                     const isUpdating = updatingContact[item.contact.id] ?? false;
+                    const isSelected = selectedIds.has(item.contact.id);
+                    const contractRenewalNeeded = isContractRenewalNeeded(item.contact.contractStartAt);
                     return (
                     <article
                       key={item.contact.id}
-                      className="surface-card space-y-4 p-5 sm:p-6"
+                      className={`surface-card space-y-4 p-5 sm:p-6 ${isSelected ? "ring-2 ring-[var(--accent)]" : ""}`}
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelected(item.contact.id)}
+                              className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
+                              aria-label={`${item.contact.organizationName} を選択`}
+                            />
                             <span className={dueStateBadgeClass(item.dueState)}>
                               {dueStateLabel(item.dueState)}
                             </span>
@@ -389,7 +503,7 @@ export function ManagerDeskContactPipelineClient() {
                           ) : null}
                         </div>
 
-                        <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+                        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
                           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                             Contact Snapshot
                           </div>
@@ -406,6 +520,42 @@ export function ManagerDeskContactPipelineClient() {
                                 : item.assignment.roleType === "PRIMARY"
                                   ? "主担当"
                                   : "副担当"}
+                            </div>
+                            <div className="pt-1 space-y-1">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                                契約ステータス
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--text)] w-28 disabled:opacity-50"
+                                  value={currentContractStatus ?? ""}
+                                  placeholder="例: ACTIVE"
+                                  disabled={isUpdating}
+                                  onChange={(e) => {
+                                    setLocalOverrides((prev) => ({
+                                      ...prev,
+                                      [item.contact.id]: {
+                                        ...prev[item.contact.id],
+                                        contractStatus: e.target.value || null,
+                                      },
+                                    }));
+                                  }}
+                                  onBlur={(e) => {
+                                    const val = e.target.value.trim() || null;
+                                    void patchContact(item.contact.id, { contractStatus: val });
+                                  }}
+                                />
+                                {item.contact.contractStartAt ? (
+                                  <span className="text-[11px] text-[var(--text-subtle)]">
+                                    {new Date(item.contact.contractStartAt).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })} 〜
+                                  </span>
+                                ) : null}
+                              </div>
+                              {contractRenewalNeeded ? (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+                                  契約開始から12ヶ月以上経過 — 更新確認を推奨
+                                </div>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -432,7 +582,7 @@ export function ManagerDeskContactPipelineClient() {
                         </div>
                       ) : null}
 
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid gap-2 sm:flex sm:flex-wrap">
                         <Link
                           href={`/manager-desk/creators/${item.creator.id}`}
                           className="btn-raised btn-raised-sm"
@@ -441,13 +591,13 @@ export function ManagerDeskContactPipelineClient() {
                         </Link>
                         <Link
                           href={`/manager-desk/creators/${item.creator.id}#key-contacts`}
-                          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                          className={secondaryActionClassName}
                         >
                           Key Contacts に戻る
                         </Link>
                         <Link
                           href={`/${item.creator.username}`}
-                          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                          className={secondaryActionClassName}
                         >
                           公開ページを見る
                         </Link>

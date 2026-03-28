@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { isPrismaUnavailableError } from "@/lib/prismaRetry";
 import {
   encodeFeedCursor,
   FEED_DEFAULT_LIMIT,
@@ -30,6 +31,18 @@ export type FeedListView = {
   limit: number;
   filters: FeedListFilters;
 };
+
+const globalForFeedList = globalThis as unknown as {
+  initialPublicFeedByCreatorIdStale?: Map<string, FeedListView>;
+};
+
+function getInitialPublicFeedByCreatorIdStaleMap(): Map<string, FeedListView> {
+  if (!globalForFeedList.initialPublicFeedByCreatorIdStale) {
+    globalForFeedList.initialPublicFeedByCreatorIdStale = new Map();
+  }
+
+  return globalForFeedList.initialPublicFeedByCreatorIdStale;
+}
 
 type GetFeedListViewArgs = {
   limit?: number | null;
@@ -200,13 +213,30 @@ export async function getInitialPublicFeedList(
 }
 
 const getInitialPublicFeedListByCreatorIdCached = unstable_cache(
-  async (creatorId: string, limit: number) =>
-    getFeedListView({
-      creatorId: BigInt(creatorId),
-      limit,
-    }),
+  async (creatorId: string, limit: number) => {
+    const staleMap = getInitialPublicFeedByCreatorIdStaleMap();
+    const staleKey = `${creatorId}:${limit}`;
+
+    try {
+      const result = await getFeedListView({
+        creatorId: BigInt(creatorId),
+        limit,
+      });
+      staleMap.set(staleKey, result);
+      return result;
+    } catch (error) {
+      if (isPrismaUnavailableError(error)) {
+        const stale = staleMap.get(staleKey);
+        if (stale) {
+          return stale;
+        }
+      }
+
+      throw error;
+    }
+  },
   ["initial-public-feed-by-creator-id"],
-  { revalidate: 15 }
+  { revalidate: 60 }
 );
 
 export async function getInitialPublicFeedListByCreatorId(

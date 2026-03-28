@@ -61,6 +61,7 @@ type ContributionPostBody = {
   toAddress?: unknown;
   amount?: unknown; // human string
   postId?: unknown; // UUID string|null|undefined
+  message?: unknown; // optional supporter message
 };
 
 function toChainId(v: unknown): number | null {
@@ -134,6 +135,7 @@ function parseBody(raw: unknown):
       to: Address;
       amountHuman: string;
       postIdStr: string | null | undefined;
+      message: string | null;
     }
   | { ok: false; error: string } {
   if (!isRecord(raw)) return { ok: false, error: "INVALID_JSON" };
@@ -198,6 +200,12 @@ function parseBody(raw: unknown):
     return { ok: false, error: "POST_ID_INVALID" };
   }
 
+  let message: string | null = null;
+  if (typeof b.message === "string") {
+    const trimmed = b.message.trim();
+    message = trimmed.length > 0 ? trimmed.slice(0, 500) : null;
+  }
+
   return {
     ok: true,
     projectIdStr,
@@ -210,6 +218,7 @@ function parseBody(raw: unknown):
     to,
     amountHuman,
     postIdStr,
+    message,
   };
 }
 
@@ -510,6 +519,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               amountDecimal: amountDecimalStr,
               status,
               confirmedAt,
+              message: parsed.message,
               updatedAt: now,
             },
           })
@@ -528,6 +538,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               amountDecimal: amountDecimalStr,
               status,
               confirmedAt,
+              message: parsed.message,
               createdAt: now,
               updatedAt: now,
             },

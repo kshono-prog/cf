@@ -20,9 +20,21 @@ export async function buildDailyActionPlanOutput(params: {
 }): Promise<Prisma.InputJsonValue> {
   const now = new Date();
   const since7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-  const [lastPost, pendingTaskCount, recentContributions, activeGoal, credibility] =
-    await Promise.all([
+  const [
+    lastPost,
+    pendingTaskCount,
+    recentContributions,
+    activeGoal,
+    credibility,
+    monthRevenue,
+    monthExpense,
+    lastMonthRevenue,
+    creatorProfileSnapshot,
+  ] = await Promise.all([
       prisma.post.findFirst({
         where: {
           creatorProfileId: params.creatorProfileId,
@@ -58,9 +70,60 @@ export async function buildDailyActionPlanOutput(params: {
           })
         : Promise.resolve(null),
       getCreatorActivityCredibility(params.creatorProfileId),
+      prisma.revenueRecord.aggregate({
+        where: {
+          creatorProfileId: params.creatorProfileId,
+          occurredAt: { gte: startOfMonth },
+        },
+        _sum: { amountDecimal: true },
+      }),
+      prisma.expense.aggregate({
+        where: {
+          creatorProfileId: params.creatorProfileId,
+          occurredAt: { gte: startOfMonth },
+        },
+        _sum: { amountDecimal: true },
+      }),
+      prisma.revenueRecord.aggregate({
+        where: {
+          creatorProfileId: params.creatorProfileId,
+          occurredAt: { gte: startOfLastMonth, lte: endOfLastMonth },
+        },
+        _sum: { amountDecimal: true },
+      }),
+      prisma.creatorProfile.findUnique({
+        where: { id: params.creatorProfileId },
+        select: { profileText: true, ecosystemRole: true },
+      }),
     ]);
 
   const stageResult = deriveCreatorStage(credibility);
+
+  // Cashflow signals
+  const thisMonthRevenue = Number(monthRevenue._sum.amountDecimal ?? 0);
+  const thisMonthExpense = Number(monthExpense._sum.amountDecimal ?? 0);
+  const lastMonthRevenueAmount = Number(lastMonthRevenue._sum.amountDecimal ?? 0);
+  const hasCashflowData = thisMonthRevenue > 0 || thisMonthExpense > 0;
+  const netCashflow = thisMonthRevenue - thisMonthExpense;
+  const revenueTrendPct =
+    lastMonthRevenueAmount > 0
+      ? Math.round(((thisMonthRevenue - lastMonthRevenueAmount) / lastMonthRevenueAmount) * 100)
+      : null;
+
+  // Weakest maturity axis
+  const maturityEntries = Object.entries(stageResult.maturity) as [string, number][];
+  const weakestAxis = maturityEntries.sort((a, b) => a[1] - b[1])[0];
+  const weakestAxisLabel: Record<string, string> = {
+    output: "発信量",
+    audience: "支援者数",
+    business: "目標達成",
+    continuity: "継続性",
+    craft: "実績・エビデンス",
+    operations: "運営体制",
+    trust: "信頼・リピート",
+    team: "チーム",
+  };
+
   const actions: DailyAction[] = [];
 
   // 1. 承認待ちが最優先
@@ -130,7 +193,37 @@ export async function buildDailyActionPlanOutput(params: {
     });
   }
 
-  // 5. デフォルト提案
+  // 5. 収支が赤字で収入記録がある場合
+  if (hasCashflowData && netCashflow < 0 && thisMonthExpense > 0) {
+    actions.push({
+      id: "cashflow-alert",
+      title: `今月の収支がマイナス — 収入源を確認・記録する`,
+      reason: `今月の支出が収入を上回っています。収入記録を追加するか、次の収益機会を AI 事務所に相談しましょう。`,
+      priority: "medium",
+      category: "next-step",
+    });
+  }
+
+  // 6. プロフィール未完成チェック
+  const missingProfileFields: string[] = [];
+  if (!creatorProfileSnapshot?.profileText || creatorProfileSnapshot.profileText.trim().length < 20) {
+    missingProfileFields.push("紹介文");
+  }
+  if (!creatorProfileSnapshot?.ecosystemRole) {
+    missingProfileFields.push("エコシステムロール");
+  }
+  if (missingProfileFields.length > 0 && actions.length < 3) {
+    actions.push({
+      id: "profile-completeness",
+      title: `プロフィールを充実させる（${missingProfileFields.join("・")}が未設定）`,
+      reason:
+        "プロフィールが充実すると発見されやすくなり、支援者やコラボレーターからの信頼が高まります。",
+      priority: "low",
+      category: "next-step",
+    });
+  }
+
+  // 7. デフォルト提案
   if (actions.length < 2) {
     actions.push({
       id: "propose-next",
@@ -149,6 +242,10 @@ export async function buildDailyActionPlanOutput(params: {
       : `今日のやることを ${actions.length.toString()}件 整理しました。状況に合わせて取り組んでください。`;
 
   // AI enhancement: generate better action descriptions
+  const cashflowLine = hasCashflowData
+    ? `今月の収入: ${thisMonthRevenue.toLocaleString()} / 支出: ${thisMonthExpense.toLocaleString()} / 収支: ${netCashflow >= 0 ? "+" : ""}${netCashflow.toLocaleString()}${revenueTrendPct !== null ? ` / 先月比: ${revenueTrendPct >= 0 ? "+" : ""}${revenueTrendPct.toString()}%` : ""}`
+    : "収支データなし";
+
   const aiResult = await generateJson<{ summary: string; actions: DailyAction[] }>(
     `クリエイターの今日の優先アクションを整理してください。
 承認待ちタスク: ${pendingTaskCount.toString()}件
@@ -158,8 +255,10 @@ export async function buildDailyActionPlanOutput(params: {
 目標達成済み: ${activeGoal?.achievedAt ? "はい" : "いいえ"}
 Creator Stage: ${stageResult.stage} (${stageResult.stageLabel})
 次のマイルストーン: ${stageResult.nextMilestone ?? "なし"}
+最弱の成熟軸: ${weakestAxis ? `${weakestAxisLabel[weakestAxis[0]] ?? weakestAxis[0]}（${weakestAxis[1].toString()}点）` : "不明"}
+今月の収支: ${cashflowLine}
 
-Creator Stage に応じた具体的なアクションを3件以内で提案してください。category は "approval" / "posting" / "goal" / "engagement" / "next-step" のいずれかを使用。
+Creator Stage の最弱軸と収支状況を踏まえた具体的なアクションを3件以内で提案してください。category は "approval" / "posting" / "goal" / "engagement" / "next-step" のいずれかを使用。
 以下のJSON形式のみで返してください:
 {"summary":"今日の状況を一言で","actions":[{"id":"action-1","title":"具体的なアクション","reason":"理由（1文）","priority":"high","category":"approval"}]}`,
     {
@@ -184,6 +283,13 @@ Creator Stage に応じた具体的なアクションを3件以内で提案し�
       recentContributionCount: recentCount,
       stage: stageResult.stage,
       stageLabel: stageResult.stageLabel,
+      weakestMaturityAxis: weakestAxis?.[0] ?? null,
+      weakestMaturityScore: weakestAxis?.[1] ?? null,
+      thisMonthRevenue: hasCashflowData ? thisMonthRevenue : null,
+      thisMonthExpense: hasCashflowData ? thisMonthExpense : null,
+      netCashflow: hasCashflowData ? netCashflow : null,
+      revenueTrendPct,
+      missingProfileFields: missingProfileFields.length > 0 ? missingProfileFields : null,
     },
     basedOn: params.input,
   };

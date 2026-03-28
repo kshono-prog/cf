@@ -16,18 +16,31 @@ function tuneRuntimeDatabaseUrl(rawUrl: string): string {
     const isSupabase = url.hostname.includes("supabase.com");
     const isPooler =
       url.port === "6543" || url.searchParams.get("pgbouncer") === "true";
+    const isProductionRuntime = process.env.NODE_ENV === "production";
+    const isProductionBuild =
+      process.env.npm_lifecycle_event === "build" ||
+      process.env.NEXT_PHASE === "phase-production-build";
 
-    // Supabase pooler を使う実行時接続は、環境を問わず明示的に 1接続へ寄せる。
-    // これで長時間利用時や複数ルート遷移時の connection 枯渇を起こしにくくする。
+    // Supabase pooler 利用時は接続数を低く保ちつつ、
+    // 公開プロフィールのような read-heavy route が 20秒単位でぶら下がらない値へ寄せる。
     if (isSupabase && isPooler) {
       if (!url.searchParams.has("connection_limit")) {
-        url.searchParams.set("connection_limit", "1");
+        url.searchParams.set(
+          "connection_limit",
+          isProductionBuild ? "8" : isProductionRuntime ? "3" : "1"
+        );
       }
       if (!url.searchParams.has("pool_timeout")) {
-        url.searchParams.set("pool_timeout", "20");
+        url.searchParams.set(
+          "pool_timeout",
+          isProductionBuild ? "20" : isProductionRuntime ? "5" : "20"
+        );
       }
       if (!url.searchParams.has("connect_timeout")) {
-        url.searchParams.set("connect_timeout", "10");
+        url.searchParams.set(
+          "connect_timeout",
+          isProductionBuild ? "10" : isProductionRuntime ? "5" : "10"
+        );
       }
       return url.toString();
     }

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AppHeaderMenus } from "@/components/layout/AppHeaderMenus";
+
+import { AppHeaderMenusLoader } from "@/components/layout/AppHeaderMenusLoader";
 
 export function AppHeader({
   username,
@@ -37,7 +38,7 @@ export function AppHeader({
         </Link>
 
         <div className="flex items-center gap-2">
-          <AppHeaderMenus username={username} />
+          <AppHeaderMenusLoader username={username} />
         </div>
       </div>
     </header>

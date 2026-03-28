@@ -1,5 +1,5 @@
 import { isRecord, toOptionalString } from "@/lib/api/guards";
-import { isCreatorType } from "@/lib/creatorTaxonomy";
+import { isCreatorType, isEcosystemRole } from "@/lib/creatorTaxonomy";
 import {
   resolveConfirmedAmount,
   resolveGoalTargetAmount,
@@ -63,6 +63,7 @@ type CreatorProfileDbShape = {
   externalUrl: string | null;
   themeColor: string | null;
   creatorType: string | null;
+  ecosystemRole?: string | null;
   walletAddress: string | null;
   socialLinks?: CreatorSocialLinkRow[];
   youtubeVideos?: CreatorYoutubeVideoRow[];
@@ -244,6 +245,10 @@ export function serializeCreatorProfile(
       typeof record.creatorType === "string" && isCreatorType(record.creatorType)
         ? record.creatorType
         : null,
+    ecosystemRole:
+      typeof record.ecosystemRole === "string" && isEcosystemRole(record.ecosystemRole)
+        ? record.ecosystemRole
+        : null,
     socials: serializeSocialLinks(record.socialLinks),
     youtubeVideos: serializeYoutubeVideos(record.youtubeVideos),
   };
@@ -261,6 +266,7 @@ export function parseCreatorProfile(raw: unknown): CreatorProfile | null {
   const themeColor =
     raw.themeColor === null ? null : toNullOrString(raw.themeColor);
   const creatorTypeRaw = toNullOrString(raw.creatorType);
+  const ecosystemRoleRaw = toNullOrString(raw.ecosystemRole);
 
   if (!username || !displayName) return null;
 
@@ -275,6 +281,8 @@ export function parseCreatorProfile(raw: unknown): CreatorProfile | null {
     themeColor,
     creatorType:
       creatorTypeRaw && isCreatorType(creatorTypeRaw) ? creatorTypeRaw : null,
+    ecosystemRole:
+      ecosystemRoleRaw && isEcosystemRole(ecosystemRoleRaw) ? ecosystemRoleRaw : null,
     socials: toSocialLinks(raw.socials),
     youtubeVideos: toYoutubeVideos(raw.youtubeVideos),
   };

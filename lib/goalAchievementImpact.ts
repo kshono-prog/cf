@@ -1,6 +1,8 @@
+import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 
 export type PurposeImpactItem = {
   purposeLabel: string;
@@ -19,125 +21,245 @@ export type GoalAchievementImpact = {
   activityPostCount: number;
 };
 
-async function buildImpactForGoal(params: {
-  creatorProfileId: bigint;
+type AchievedGoalRow = {
+  achievedAt: Date | null;
   projectId: bigint;
-  projectTitle: string;
-  currency: string;
-  achievedAt: Date;
-  nextAchievedAt: Date | null;
-}): Promise<GoalAchievementImpact> {
-  const { creatorProfileId, projectId, projectTitle, currency, achievedAt, nextAchievedAt } =
-    params;
+  project: {
+    title: string;
+    currency: string;
+  };
+};
 
-  const purposes = await prisma.purpose.findMany({
-    where: { projectId },
-    select: { id: true, label: true },
-    orderBy: { orderIndex: "asc" },
-  });
+type PurposeRow = {
+  id: bigint;
+  projectId: bigint;
+  label: string;
+};
 
-  const contributionsByPurpose = await prisma.contribution.groupBy({
-    by: ["purposeId"],
-    where: { projectId, status: "CONFIRMED" },
-    _count: { _all: true },
-    _sum: { amountDecimal: true },
-  });
+type ContributionByPurposeRow = {
+  projectId: bigint;
+  purposeId: bigint | null;
+  _count: { _all: number };
+  _sum: { amountDecimal: Prisma.Decimal | null };
+};
 
-  const contributorAggregate = await prisma.contribution.groupBy({
-    by: ["fromAddress"],
-    where: { projectId, status: "CONFIRMED" },
-    _count: { _all: true },
-  });
+type ContributorAggregateRow = {
+  projectId: bigint;
+  fromAddress: string;
+  _count: { _all: number };
+};
 
-  const distributionRunCount = await prisma.distributionRun.count({ where: { projectId } });
+type DistributionRunAggregateRow = {
+  projectId: bigint;
+  _count: { _all: number };
+};
 
-  const activityPostCount = await prisma.post.count({
-    where: {
-      creatorProfileId,
-      status: "PUBLIC",
-      createdAt: {
-        gte: achievedAt,
-        ...(nextAchievedAt ? { lt: nextAchievedAt } : {}),
-      },
-    },
-  });
+function buildPurposeLabelsByProject(
+  purposes: PurposeRow[]
+): Map<string, Map<string, string>> {
+  const purposeLabelsByProject = new Map<string, Map<string, string>>();
 
-  const purposeMap = new Map(purposes.map((p) => [p.id, p.label]));
-
-  const purposeBreakdown: PurposeImpactItem[] = [];
-  let totalConfirmedAmount = 0;
-
-  for (const c of contributionsByPurpose) {
-    const amount = c._sum.amountDecimal ? Number(c._sum.amountDecimal) : 0;
-    totalConfirmedAmount += amount;
-    if (amount === 0 && c._count._all === 0) continue;
-    if (c.purposeId === null) {
-      purposeBreakdown.push({
-        purposeLabel: "用途未割当て",
-        confirmedAmount: amount,
-        contributionCount: c._count._all,
-      });
-    } else {
-      purposeBreakdown.push({
-        purposeLabel: purposeMap.get(c.purposeId) ?? "その他",
-        confirmedAmount: amount,
-        contributionCount: c._count._all,
-      });
-    }
+  for (const purpose of purposes) {
+    const projectKey = purpose.projectId.toString();
+    const current = purposeLabelsByProject.get(projectKey) ?? new Map<string, string>();
+    current.set(purpose.id.toString(), purpose.label);
+    purposeLabelsByProject.set(projectKey, current);
   }
 
-  purposeBreakdown.sort((a, b) => b.confirmedAmount - a.confirmedAmount);
+  return purposeLabelsByProject;
+}
 
-  return {
-    goalLabel: projectTitle,
-    achievedAt: achievedAt.toISOString(),
-    currency,
-    purposeBreakdown,
-    totalConfirmedAmount,
-    totalContributors: contributorAggregate.length,
-    distributionRunCount,
-    activityPostCount,
-  };
+function buildPurposeBreakdownByProject(
+  rows: ContributionByPurposeRow[],
+  purposeLabelsByProject: Map<string, Map<string, string>>
+): Map<string, { purposeBreakdown: PurposeImpactItem[]; totalConfirmedAmount: number }> {
+  const breakdownByProject = new Map<
+    string,
+    { purposeBreakdown: PurposeImpactItem[]; totalConfirmedAmount: number }
+  >();
+
+  for (const row of rows) {
+    const projectKey = row.projectId.toString();
+    const amount = row._sum.amountDecimal ? Number(row._sum.amountDecimal) : 0;
+    if (amount === 0 && row._count._all === 0) continue;
+
+    const current = breakdownByProject.get(projectKey) ?? {
+      purposeBreakdown: [],
+      totalConfirmedAmount: 0,
+    };
+
+    const purposeLabel =
+      row.purposeId === null
+        ? "用途未割当て"
+        : purposeLabelsByProject.get(projectKey)?.get(row.purposeId.toString()) ?? "その他";
+
+    current.purposeBreakdown.push({
+      purposeLabel,
+      confirmedAmount: amount,
+      contributionCount: row._count._all,
+    });
+    current.totalConfirmedAmount += amount;
+    breakdownByProject.set(projectKey, current);
+  }
+
+  for (const entry of breakdownByProject.values()) {
+    entry.purposeBreakdown.sort((a, b) => b.confirmedAmount - a.confirmedAmount);
+  }
+
+  return breakdownByProject;
+}
+
+function buildContributorCountByProject(
+  rows: ContributorAggregateRow[]
+): Map<string, number> {
+  const contributorCountByProject = new Map<string, number>();
+
+  for (const row of rows) {
+    const projectKey = row.projectId.toString();
+    contributorCountByProject.set(
+      projectKey,
+      (contributorCountByProject.get(projectKey) ?? 0) + 1
+    );
+  }
+
+  return contributorCountByProject;
+}
+
+function buildDistributionRunCountByProject(
+  rows: DistributionRunAggregateRow[]
+): Map<string, number> {
+  const distributionRunCountByProject = new Map<string, number>();
+
+  for (const row of rows) {
+    distributionRunCountByProject.set(row.projectId.toString(), row._count._all);
+  }
+
+  return distributionRunCountByProject;
+}
+
+function countPostsInWindow(
+  postDates: Date[],
+  achievedAt: Date,
+  nextAchievedAt: Date | null
+): number {
+  let count = 0;
+
+  for (const postDate of postDates) {
+    if (postDate < achievedAt) {
+      continue;
+    }
+
+    if (nextAchievedAt && postDate >= nextAchievedAt) {
+      break;
+    }
+
+    count += 1;
+  }
+
+  return count;
 }
 
 async function getAllGoalAchievementImpactsUncached(
   creatorProfileId: bigint
 ): Promise<GoalAchievementImpact[]> {
-  const achievedGoals = await prisma.goal.findMany({
-    where: {
-      project: { creatorProfileId },
-      achievedAt: { not: null },
-    },
-    orderBy: { achievedAt: "desc" },
-    select: {
-      achievedAt: true,
-      projectId: true,
-      project: {
-        select: { title: true, currency: true },
-      },
-    },
-  });
-
-  if (achievedGoals.length === 0) return [];
-
-  // Process goals sequentially to avoid exhausting the single Prisma connection
-  const impacts: GoalAchievementImpact[] = [];
-  for (let idx = 0; idx < achievedGoals.length; idx++) {
-    const goal = achievedGoals[idx];
-    const nextGoal = achievedGoals[idx - 1]; // array is desc, so index-1 is newer
-    impacts.push(
-      await buildImpactForGoal({
-        creatorProfileId,
-        projectId: goal.projectId,
-        projectTitle: goal.project.title,
-        currency: goal.project.currency,
-        achievedAt: goal.achievedAt!,
-        nextAchievedAt: nextGoal?.achievedAt ?? null,
+  try {
+    const achievedGoals: AchievedGoalRow[] = await withPrismaRetry(() =>
+      prisma.goal.findMany({
+        where: {
+          project: { creatorProfileId },
+          achievedAt: { not: null },
+        },
+        orderBy: { achievedAt: "desc" },
+        select: {
+          achievedAt: true,
+          projectId: true,
+          project: {
+            select: { title: true, currency: true },
+          },
+        },
       })
     );
-  }
 
-  return impacts;
+    if (achievedGoals.length === 0) return [];
+
+    const projectIds = achievedGoals.map((goal) => goal.projectId);
+    const [purposes, contributionsByPurpose, contributorAggregate, distributionRuns, posts] =
+      await withPrismaRetry(() =>
+        prisma.$transaction([
+          prisma.purpose.findMany({
+            where: { projectId: { in: projectIds } },
+            select: { id: true, projectId: true, label: true },
+            orderBy: [{ projectId: "asc" }, { orderIndex: "asc" }],
+          }),
+          prisma.contribution.groupBy({
+            by: ["projectId", "purposeId"],
+            where: { projectId: { in: projectIds }, status: "CONFIRMED" },
+            _count: { _all: true },
+            _sum: { amountDecimal: true },
+          }),
+          prisma.contribution.groupBy({
+            by: ["projectId", "fromAddress"],
+            where: { projectId: { in: projectIds }, status: "CONFIRMED" },
+            _count: { _all: true },
+          }),
+          prisma.distributionRun.groupBy({
+            by: ["projectId"],
+            where: { projectId: { in: projectIds } },
+            _count: { _all: true },
+          }),
+          prisma.post.findMany({
+            where: { creatorProfileId, status: "PUBLIC" },
+            select: { createdAt: true },
+            orderBy: { createdAt: "asc" },
+          }),
+        ])
+      );
+
+    const purposeLabelsByProject = buildPurposeLabelsByProject(purposes);
+    const purposeBreakdownByProject = buildPurposeBreakdownByProject(
+      contributionsByPurpose,
+      purposeLabelsByProject
+    );
+    const contributorCountByProject = buildContributorCountByProject(
+      contributorAggregate
+    );
+    const distributionRunCountByProject = buildDistributionRunCountByProject(
+      distributionRuns
+    );
+    const postDates = posts.map((post) => post.createdAt);
+
+    const impacts: GoalAchievementImpact[] = [];
+    for (let idx = 0; idx < achievedGoals.length; idx++) {
+      const goal = achievedGoals[idx];
+      const nextGoal = achievedGoals[idx - 1];
+      if (!goal.achievedAt) continue;
+
+      const projectKey = goal.projectId.toString();
+      const purposeData = purposeBreakdownByProject.get(projectKey);
+
+      impacts.push({
+        goalLabel: goal.project.title,
+        achievedAt: goal.achievedAt.toISOString(),
+        currency: goal.project.currency,
+        purposeBreakdown: purposeData?.purposeBreakdown ?? [],
+        totalConfirmedAmount: purposeData?.totalConfirmedAmount ?? 0,
+        totalContributors: contributorCountByProject.get(projectKey) ?? 0,
+        distributionRunCount: distributionRunCountByProject.get(projectKey) ?? 0,
+        activityPostCount: countPostsInWindow(
+          postDates,
+          goal.achievedAt,
+          nextGoal?.achievedAt ?? null
+        ),
+      });
+    }
+
+    return impacts;
+  } catch (error) {
+    if (isPrismaUnavailableError(error)) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 const _getAllGoalAchievementImpactsCached = unstable_cache(

@@ -2,11 +2,38 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { generateJson } from "@/lib/ai";
+import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
+import { deriveCreatorStage, MATURITY_AXIS_LABELS } from "@/lib/creatorStage";
+import type { CreatorMaturityAxes } from "@/lib/creatorStage";
+import {
+  CREATOR_TYPE_LABELS,
+  ECOSYSTEM_ROLE_LABELS,
+  isCreatorType,
+  isEcosystemRole,
+} from "@/lib/creatorTaxonomy";
 
 function toSafeInt(v: number | null | undefined): number {
   if (typeof v !== "number") return 0;
   if (!Number.isFinite(v)) return 0;
   return Math.max(0, Math.trunc(v));
+}
+
+const STAGE_TO_PHASE: Record<string, string> = {
+  SEED: "活動初期",
+  EARLY: "活動継続期",
+  EMERGING: "成長期",
+  PROFESSIONALIZING: "定着期",
+  ESTABLISHED: "安定期",
+};
+
+function weakAxes(
+  maturity: CreatorMaturityAxes,
+  threshold: number
+): string[] {
+  return (Object.entries(maturity) as [keyof CreatorMaturityAxes, number][])
+    .filter(([, score]) => score < threshold)
+    .sort((a, b) => a[1] - b[1])
+    .map(([axis]) => MATURITY_AXIS_LABELS[axis]);
 }
 
 export async function buildCareerPlanDraftOutput(params: {
@@ -16,50 +43,61 @@ export async function buildCareerPlanDraftOutput(params: {
 }): Promise<Prisma.InputJsonValue> {
   const since90Days = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-  const [recentPosts, achievedGoalCount, recentContribution, metricRows] =
-    await Promise.all([
-      prisma.post.findMany({
-        where: {
-          creatorProfileId: params.creatorProfileId,
-          createdAt: { gte: since90Days },
-        },
-        select: { createdAt: true, status: true },
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      }),
-      prisma.goal.count({
-        where: {
-          project: { creatorProfileId: params.creatorProfileId },
-          achievedAt: { not: null },
-        },
-      }),
-      params.projectId
-        ? prisma.contribution.aggregate({
-            where: {
-              projectId: params.projectId,
-              status: "CONFIRMED",
-              confirmedAt: { gte: since90Days },
-            },
-            _count: { _all: true },
-            _sum: { amountDecimal: true },
-          })
-        : Promise.resolve(null),
-      prisma.contentMetricSnapshot.findMany({
-        where: {
-          creatorProfileId: params.creatorProfileId,
-          capturedAt: { gte: since90Days },
-        },
-        select: {
-          platform: true,
-          views: true,
-          likes: true,
-          comments: true,
-          shares: true,
-        },
-        orderBy: { capturedAt: "desc" },
-        take: 50,
-      }),
-    ]);
+  const [
+    recentPosts,
+    achievedGoalCount,
+    recentContribution,
+    metricRows,
+    creatorProfile,
+    credibility,
+  ] = await Promise.all([
+    prisma.post.findMany({
+      where: {
+        creatorProfileId: params.creatorProfileId,
+        createdAt: { gte: since90Days },
+      },
+      select: { createdAt: true, status: true },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    prisma.goal.count({
+      where: {
+        project: { creatorProfileId: params.creatorProfileId },
+        achievedAt: { not: null },
+      },
+    }),
+    params.projectId
+      ? prisma.contribution.aggregate({
+          where: {
+            projectId: params.projectId,
+            status: "CONFIRMED",
+            confirmedAt: { gte: since90Days },
+          },
+          _count: { _all: true },
+          _sum: { amountDecimal: true },
+        })
+      : Promise.resolve(null),
+    prisma.contentMetricSnapshot.findMany({
+      where: {
+        creatorProfileId: params.creatorProfileId,
+        capturedAt: { gte: since90Days },
+      },
+      select: {
+        platform: true,
+        views: true,
+        likes: true,
+        comments: true,
+        shares: true,
+      },
+      orderBy: { capturedAt: "desc" },
+      take: 50,
+    }),
+    prisma.creatorProfile.findUnique({
+      where: { id: params.creatorProfileId },
+      select: { creatorType: true, ecosystemRole: true },
+    }),
+    getCreatorActivityCredibility(params.creatorProfileId),
+  ]);
 
   const publishedCount = recentPosts.filter((p) => p.status === "PUBLIC").length;
   const weeklyPostRate =
@@ -92,15 +130,25 @@ export async function buildCareerPlanDraftOutput(params: {
         return rateB - rateA;
       })[0]?.[0] ?? null;
 
-  // Determine current phase
-  const currentPhase =
-    achievedGoalCount >= 2
-      ? "定着期"
-      : achievedGoalCount === 1
-        ? "成長期"
-        : publishedCount >= 10
-          ? "活動継続期"
-          : "活動初期";
+  // Stage-based phase from 8-axis maturity
+  const stageResult = deriveCreatorStage(credibility);
+  const currentPhase = STAGE_TO_PHASE[stageResult.stage] ?? "活動初期";
+  const { maturity } = stageResult;
+
+  // Creator identity context
+  const creatorTypeRaw = creatorProfile?.creatorType;
+  const ecosystemRoleRaw = creatorProfile?.ecosystemRole;
+  const creatorTypeLabel =
+    creatorTypeRaw && isCreatorType(creatorTypeRaw)
+      ? CREATOR_TYPE_LABELS[creatorTypeRaw]
+      : null;
+  const ecosystemRoleLabel =
+    ecosystemRoleRaw && isEcosystemRole(ecosystemRoleRaw)
+      ? ECOSYSTEM_ROLE_LABELS[ecosystemRoleRaw]
+      : null;
+
+  // Weak axes below threshold 30 → feed into focus areas
+  const weakAxisLabels = weakAxes(maturity, 30);
 
   // Build 3-month milestones
   const milestones3mo: string[] = [];
@@ -133,7 +181,7 @@ export async function buildCareerPlanDraftOutput(params: {
     "公開プロフィールの活動実績バッジが2項目以上に達する",
   ];
 
-  // Focus areas
+  // Focus areas from maturity gaps + activity signals
   const focusAreas: string[] = [];
   if (publishedCount < 5) {
     focusAreas.push("まず投稿を増やして活動の存在感を作る");
@@ -145,6 +193,15 @@ export async function buildCareerPlanDraftOutput(params: {
   }
   if (achievedGoalCount === 0) {
     focusAreas.push("目標設定と支援導線の整備を優先する");
+  }
+  if (maturity.craft < 20) {
+    focusAreas.push("ライブ出演や受賞などの実績をエビデンスとして記録する");
+  }
+  if (maturity.team < 20) {
+    focusAreas.push("協力者をプロジェクトメンバーとして記録し、チーム体制を整える");
+  }
+  if (maturity.trust < 20 && credibility.totalContributorCount > 0) {
+    focusAreas.push("リピート支援者との関係を深め、信頼基盤を固める");
   }
   if (focusAreas.length === 0) {
     focusAreas.push("安定した投稿ペースを維持しながら支援者との継続的な関係を深める");
@@ -159,7 +216,25 @@ export async function buildCareerPlanDraftOutput(params: {
 
   const fallbackSummary = `現在の活動状況（${currentPhase}）をもとに、3ヶ月・6ヶ月の成長戦略をまとめました。`;
 
-  // AI enhancement: generate better milestone text
+  // Build maturity score lines for AI prompt
+  const maturityLines = (
+    Object.entries(maturity) as [keyof CreatorMaturityAxes, number][]
+  )
+    .map(([axis, score]) => `- ${MATURITY_AXIS_LABELS[axis]}: ${score.toString()}`)
+    .join("\n");
+
+  const identityContext = [
+    creatorTypeLabel ? `クリエイタータイプ: ${creatorTypeLabel}` : null,
+    ecosystemRoleLabel ? `エコシステムロール: ${ecosystemRoleLabel}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const weakAxisNote =
+    weakAxisLabels.length > 0
+      ? `\n最も伸びしろのある軸: ${weakAxisLabels.join("、")}`
+      : "";
+
   const aiResult = await generateJson<{
     summary: string;
     milestones_3mo: string[];
@@ -168,12 +243,16 @@ export async function buildCareerPlanDraftOutput(params: {
     weeklyPace: string;
   }>(
     `クリエイターの活動フェーズ「${currentPhase}」をもとに3ヶ月・6ヶ月の成長計画を作成してください。
+${identityContext ? `${identityContext}\n` : ""}現在のステージ: ${stageResult.stageLabel}（${stageResult.stageDescription}）
+成熟度スコア（0-100）:
+${maturityLines}${weakAxisNote}
+
 過去90日の公開投稿数: ${publishedCount.toString()}件（週${weeklyPostRate.toString()}件ペース）
 達成済みゴール数: ${achievedGoalCount.toString()}件
 直近90日の支援者数: ${recentContributionCount.toString()}名
 トッププラットフォーム: ${topPlatform ?? "未計測"}
 
-クリエイターが実際に実行できる具体的なマイルストーンを提案してください。
+クリエイターのタイプ・ロール・成熟度スコアを踏まえ、実際に実行できる具体的なマイルストーンを提案してください。
 以下のJSON形式のみで返してください:
 {"summary":"現在フェーズとプランの概要（1文）","milestones_3mo":["3ヶ月目標1","3ヶ月目標2","3ヶ月目標3"],"milestones_6mo":["6ヶ月目標1","6ヶ月目標2","6ヶ月目標3"],"focusAreas":["注力領域1","注力領域2"],"weeklyPace":"週次ペースへのアドバイス（1〜2文）"}`,
     {
@@ -187,6 +266,8 @@ export async function buildCareerPlanDraftOutput(params: {
   return {
     summary: aiResult?.summary ?? fallbackSummary,
     currentPhase,
+    stage: stageResult.stage,
+    stageLabel: stageResult.stageLabel,
     milestones_3mo: aiResult?.milestones_3mo?.length ? aiResult.milestones_3mo : milestones3mo,
     milestones_6mo: aiResult?.milestones_6mo?.length ? aiResult.milestones_6mo : milestones6mo,
     focusAreas: aiResult?.focusAreas?.length ? aiResult.focusAreas : focusAreas,
@@ -200,6 +281,9 @@ export async function buildCareerPlanDraftOutput(params: {
       totalViews,
       totalInteractions,
       topPlatform,
+      creatorType: creatorTypeRaw ?? null,
+      ecosystemRole: ecosystemRoleRaw ?? null,
+      maturity,
     },
     basedOn: params.input,
   };

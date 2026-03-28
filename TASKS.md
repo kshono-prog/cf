@@ -410,24 +410,229 @@ Sprint 13-C — 公開プロフィール Recent Supporters（Living Funding Puls
 - `components/profile/PublicProfileRecentSupporters.tsx` 新規作成（最近 4 件のアドレス chip + 合計人数）
 - `app/[username]/page.tsx` に 3 コンポーネントを ProfileClientSection 直後に配置
 
-## Phase 12 候補（次フェーズ）
+## Phase 14（完了）
 
-### Business Layer
-- **費用・収支 groundwork**: `Expense` / `Revenue` の最小モデル設計（スキーマ変更要承認）
-- **Contract / Billing stub**: ExternalContact の WON/ONGOING に contract 情報を紐づける最小フィールド
+Sprint 14-A — Opportunity CRM にノート作成導線: **完了**
+- WON/ONGOING カードにインライン `ManagerNote` 作成フォームを追加
+- 既存 `/api/manager-notes` POST を再利用（スキーマ変更なし）
 
-### AI 強化
-- **AI Office 使い捨て防止**: 採択率が低い task type を Overview で強調し、なぜ却下されているかのパターン検出を強化
+Sprint 14-B — Contact Pipeline 一括ステータス更新: **完了**
+- チェックボックス選択 + bulk action bar で複数 contact の `status` を一括変更
+- 既存 `/api/external-contacts/{id}` PATCH を並列呼び出し（スキーマ変更なし）
 
-### Public Profile 強化（即時候補）
-- **Activity Heatmap**: 投稿頻度を週×月グリッドで表示（GitHub スタイル）
-- **Supporter Wall**: 支援者アバターをグリッド状に並べる（匿名フラグ要設計）
-- **Next Goal Reveal**: ゴール達成後の「約束」と達成時期推定を表示
-- **Micro-testimonials**: 支援時メッセージをカード表示（Contribution.message フィールド追加要承認）
+Sprint 14-C — 公開プロフィール Activity Heatmap: **実装済み確認**
+- `PublicProfileActivityHeatmap.tsx` が既に実装・統合済み
 
-### Manager Desk 強化
-- **Opportunity CRM にノート作成導線**: WON/ONGOING 案件から直接 Manager Note を記録するインライン UI
-- **Contact Pipeline 一括ステータス更新**: 複数 contact の status を一括変更する操作面
+Sprint 14-D — 公開プロフィール Next Goal Reveal: **実装済み確認**
+- `PublicProfileNextGoalReveal.tsx` が既に実装・統合済み
+
+## Phase 15（完了）
+
+Sprint 15-A — Contribution.message フィールド追加: **完了**
+- Prisma `Contribution` モデルに `message String? @db.Text` 追加
+- migration 追加（additive）
+- `/api/contributions` POST に `message` フィールド追加・保存
+- `ProfileWalletClient.tsx` の支援フォームに任意メッセージ入力を追加
+- 公開プロフィールに `PublicProfileMicroTestimonials` コンポーネント追加
+
+Sprint 15-B — Business Layer minimal: **完了**
+- `Expense` モデル追加（creator / amount / category / date / note）
+- `ExternalContact` に `contractStatus String?` / `contractStartAt DateTime?` 追加
+- migration 追加（additive）
+- Manager Desk Creator Detail に費用サマリーセクション追加
+- Expense CRUD API 追加
+
+## Phase 16（完了）
+
+Sprint 16-A — AI Office 採択率改善ループ: **完了**
+- `AgentTask` に `rejectReason String? @db.Text` フィールド追加、migration 追加
+- `rejectWaitingTasks` executor が `params.note` を `rejectReason` として保存
+- `serializeAgentTask` / `AgentTaskView` / `aiOfficeDashboardParsers` に `rejectReason` を伝播
+- Inbox 却下フロー: `AgentTaskCard` に「却下の理由（任意）」インライン入力を実装済み確認
+- 却下済みタスクの履歴カードに `rejectReason` を表示（薔薇色スニペット）
+- Overview に「却下パターン分析」カード追加（RejectionPatternCard）
+
+Sprint 16-B — Meeting Copilot phase 1: **完了**
+- `upcomingMeetings` (SCHEDULED, 今日〜7日後) を readModel / readModelTypes に追加（スキーマ変更なし）
+- Manager Desk Creator Detail に「ミーティングコパイロット」セクション追加
+  - `MeetingCopilotCard`: 議事メモ / 決定事項 / 次のアクション の inline textarea + 「保存」「完了にして保存」ボタン
+  - 「完了にして保存」後: コパイロットカードから消去し、フォローアップNote作成 CTA を自動表示
+  - `onCompleted` コールバックで local state に completed ID を追跡（reload 不要）
+
+## Phase 17（完了）
+
+Sprint 17-A — Contact Pipeline 契約ステータス表示: **完了**
+- `SerializedExternalContact` に `contractStatus: string | null` / `contractStartAt: string | null` 追加
+- `serializeExternalContact` に対応フィールドを追加
+- Contact Pipeline カードの "Contact Snapshot" パネルに契約バッジ + 開始日を表示
+
+Sprint 17-B — Creator Home Expense 入力フォーム: **完了**
+- `useCreatorReadyExpenses` フック新規作成（GET /api/expenses をフェッチ）
+- `CreatorReadyExpenseInputSection` 新規作成（一覧 + inline 入力フォーム）
+- `CreatorReadyHomeRoute` に接続（StageGrowthPlan 直後）
+
+Sprint 17-C — AI Office Overview 履歴行からInboxタスクへジャンプ: **完了**
+- `AiOfficeOverviewSection` に `onOpenTaskInInbox` prop 追加
+- 「最近の作成履歴」各行を `<button>` に変更、クリックで Inbox + 該当タスクを開く
+- `AiOfficePanel` で `setOpenLatestTaskType` + `setActiveView("INBOX")` に接続
+
+## Phase 18（進行中）
+
+Sprint 18-A — Expense Analytics: **完了**
+- `CreatorReadyExpenseInputSection` に当月合計 + カテゴリ別集計バーを追加
+- `buildMonthlySummary` で currency 別合計 + カテゴリ上位5件をバー表示
+- 既存 `expenses` prop のみで計算（API・スキーマ変更なし）
+
+Sprint 18-B — Contract Lifecycle UI: **完了**
+- Contact Pipeline カードの契約ステータスをインライン input に変更（onBlur で PATCH）
+- `isContractRenewalNeeded` で 12ヶ月以上前の contractStartAt を検出しアンバーアラート表示
+- 既存 PATCH API を再利用（スキーマ変更なし）
+
+Sprint 18-C — RevenueRecord モデル + API（承認済み）: **完了**
+- `RevenueRecord` モデル追加（source / amountDecimal / currency / occurredAt / title / note）
+- migration `20260327150000_add_revenue_record` 追加（additive）
+- `app/api/revenue-records/route.ts` GET + POST 追加
+- `useCreatorReadyRevenueRecords` フック新規作成
+- `CreatorReadyRevenueSection` 新規作成（収入一覧 + inline 入力フォーム + 月次収支サマリー）
+- `CreatorReadyHomeRoute` に接続（ExpenseInputSection の前）
+
+## Phase 19（計画中）
+
+Sprint 19-A — StageEvidence モデル（承認済み）: **完了**
+- `StageEvidence` モデル追加（stageId / evidenceType / value / verifiedAt / recordedBy / notes）
+- migration `20260327160000_add_stage_evidence` 追加（additive）
+- `app/api/stage-evidence/route.ts` GET + POST 追加
+- `useManagerDeskStageEvidence` フック + `ManagerDeskStageEvidenceSection` 新規作成
+- Manager Desk Creator Detail の Creator Stage セクション直後に接続
+
+Sprint 19-B — Public Profile Revenue Proof card: **完了**
+- `getPublicRevenueProof` を `publicProfileEnhancement.ts` に追加（unstable_cache 付き）
+- 通貨別総収益・最大単月収益・収益活動月数を集計
+- `PublicProfileRevenueProofCard` 新規作成（RevenueRecord が存在する場合のみ表示）
+- `app/[username]/page.tsx` の CreatorStageCard 直後に配置
+
+## Phase 20（計画中）
+
+Sprint 20-A — AI Daily Briefing v2（収支 + ステージシグナル統合）: **完了**
+- `buildDailyActionPlanOutput` に今月/先月 RevenueRecord + Expense 集計クエリを追加
+- 収支赤字アクション追加（`cashflow-alert`）
+- AI プロンプトに今月収支・先月比・最弱成熟軸を追加
+- output context に `weakestMaturityAxis / thisMonthRevenue / netCashflow / revenueTrendPct` を追加
+
+Sprint 20-B — Contact Intelligence Alert AgentTask: **完了**
+- `contactIntelligenceAlertTask.ts` executor 新規作成
+  - 停滞日数・期限超過・温度感・次アクション未設定を分析して ContactRiskItem リストを生成
+  - AI で全体サマリーを付加
+- `CONTACT_INTELLIGENCE_ALERT` を TaskType / ALLOWED_TASK_TYPES / MANAGER candidateTaskTypes / executor / uxCopy / aiOfficeTaskConfig / AgentTaskOutputViews に登録
+- 出力カード: 接点総数・要対応数・要確認数のグリッド + リスク接点リスト（insight・recommendation 付き）
+
+## Phase 21（計画中）
+
+Sprint 21-A — Community Trust Surface: **完了**
+- `getPublicSupporterTrustSummary` を `publicProfileEnhancement.ts` に追加（unstable_cache 付き）
+- 連続支援月数（`computeRecentStreak`）+ `loyal` / `recurring` バッジを Contribution 履歴から計算
+- `PublicProfileSupporterTrustCard` 新規作成（継続・VIP 別カウント + アドレスチップ一覧）
+- `app/[username]/page.tsx` の SupporterWall 直後に配置
+
+Sprint 21-B — Supporter Relationship Depth: **完了**
+- `SupporterCrmItem` に `consecutiveSupportMonths` / `trustScore` フィールド追加
+- `getSupporterCrm` で並列 `findMany` を追加して連続月数・信頼スコア（count + consecutive×2）を計算
+- `CreatorReadySupporterCrmSection` に「継続」（emerald）/ VIP（amber）バッジ + 連続月数表示
+- 「信頼度順」ソートボタンを追加（trustScore 降順）
+
+## Phase 22（完了）
+
+Sprint 22-A — x402 Service Catalog groundwork: **完了**
+- `X402ServiceSurfaceId` に `DAILY_BRIEFING_API` / `CONTACT_INTELLIGENCE_API` / `MANAGER_OPERATIONS_API` / `GROWTH_ANALYTICS_API` / `FAN_RELATIONS_API` を追加
+- `X402ReadinessPhase` に `PHASE_3` を追加（Phase 20 以降タスクの課金準備フェーズ）
+- 5サーフェスすべてに `readinessPhase: "PHASE_3"` + 対応 taskTypes を定義
+- `getX402SurfaceForTaskType(taskType)` ヘルパーを追加
+
+Sprint 22-B — Ecosystem Role skeleton: **完了**
+- `CreatorProfile.ecosystemRole String?` フィールド追加（スキーマ変更）
+- migration `20260327170000_add_ecosystem_role` 追加（additive, nullable）
+- `creatorTaxonomy.ts` に `ECOSYSTEM_ROLE_OPTIONS` / `ECOSYSTEM_ROLE_LABELS` / `isEcosystemRole` 追加
+- Creator Discovery ページに `ecosystemRole` フィルターチップ行を追加（creatorType と独立して絞り込み可能）
+- CreatorCard にロールバッジ（violet 系）を追加
+
+## Phase 23（完了）
+
+Sprint 23-A — ecosystemRole 自己選択フルスタック: **完了**
+- `types/creator.ts` に `ecosystemRole?: EcosystemRole | null` 追加
+- `lib/serializers/creator.ts` に `serializeCreatorProfile` / `parseCreatorProfile` の ecosystemRole 変換を追加
+- `app/api/creator/route.ts` PATCH に `parseEcosystemRoleOrThrow` を追加、DB 更新・シリアライズに接続
+- `useMyPageProfileState` / `CreatorReadyWorkspaceContext` / `AccountPageClient` / `useAccountPageActions` / `profileApi.ts` に ecosystemRole を伝播
+- `CreatorProfileEditPublicPageSection.tsx` に ecosystemRole select UI を追加
+
+Sprint 23-B — Profile Completeness in Daily Briefing: **完了**
+- `buildDailyActionPlanOutput` に `creatorProfileSnapshot`（profileText / ecosystemRole）クエリを追加
+- 紹介文が空 or 20文字未満、または ecosystemRole 未設定の場合にプロフィール充実アクションを生成
+- context に `missingProfileFields` を出力
+
+## Phase 24（完了確認）
+
+Sprint 24-A — `STAGE_GROWTH_PLAN` AgentTask: **実装済み確認**（executor / registry / UI 全て実装済み）
+Sprint 24-B — `GROWTH_OPPORTUNITY_ALERT` AgentTask: **実装済み確認**（executor / registry / UI 全て実装済み）
+
+## Phase 25（完了）
+
+Sprint 25-A — `ProjectMember` スキーマ追加（承認済み）: **完了**
+- `ProjectMember` モデル追加（projectId / creatorProfileId / walletAddress / displayName / role / sharePercent / note / status）
+- `Project.projectMembers` / `CreatorProfile.projectMembers` 逆リレーション追加
+- migration `20260327180000_add_project_member` 追加（additive）
+- `npx prisma generate` で型を再生成
+
+Sprint 25-B — Manager Desk ProjectMembers セクション: **完了**
+- `app/api/project-members/route.ts` GET（一覧）+ POST（追加）追加
+- `useManagerDeskProjectMembers.ts` フック新規作成
+- `ManagerDeskProjectMembersSection.tsx` 新規作成（ロールバッジ・シェア% 表示 + インライン追加フォーム）
+- Manager Desk Creator Detail の StageEvidence セクション直後に接続
+
+## Phase 26（完了）
+
+Sprint 26-A — 公開プロフィールに ecosystemRole / creatorType バッジ表示: **完了**
+- `ProfileHero.tsx` に `creatorType` / `ecosystemRole` props を追加
+- `creatorTaxonomy.ts` の CREATOR_TYPE_LABELS / ECOSYSTEM_ROLE_LABELS を使って表示名+バッジを表示
+- `ProfileClient.tsx` から `creator.creatorType` / `creator.ecosystemRole` を ProfileHero に渡す
+- スキーマ・API 変更なし
+
+Sprint 26-B — 公開プロフィール チームメンバーセクション: **完了**
+- `getPublicTeamMembers` を `publicProfileEnhancement.ts` に追加（unstable_cache 付き）
+- `ProjectMember.status = "ACTIVE"` でプロジェクト紐付きメンバーを最大 20 件取得
+- `PublicProfileTeamSection.tsx` 新規作成（ロールバッジ・シェア% 表示）
+- `app/[username]/page.tsx` の SupporterTrustCard 直後に配置（メンバーが存在する場合のみ）
+
+Sprint 26-C — `DISTRIBUTION_PLAN_DRAFT` executor が ProjectMember.sharePercent を参照: **完了**
+- `DistributionPlanDraftContext` に optional `projectMembers?: DistributionPlanDraftMember[]` 追加
+- `buildRowsFromMemberShares` ヘルパー追加（walletAddress と sharePercent を持つメンバーを bridgedTotalAtomic で按分）
+- ソース優先度: existing_entries > saved_plan > member_share_template > bridged_total > blank
+- `distributionPlanDraftTask.ts` の `buildDistributionPlanDraftTaskOutput` に `projectMembers` 引数を追加
+- `agentTaskExecutors.ts` の `DISTRIBUTION_PLAN_DRAFT` executor で `prisma.projectMember.findMany` を追加して渡す
+- スキーマ変更なし（すべて additive な引数追加）
+
+## Phase 27（完了）
+
+Sprint 27-UX — 訪問者向けパブリックプロフィール UX 強化: **完了**
+- BottomNav 訪問者向け分離（`useAccount` でオーナー判定 / 未接続3タブ・接続済4タブ・オーナー5タブ）
+- スティッキー「応援する」CTA（50pxスクロール後に固定バー出現、テーマカラー適用）
+- セクション順序再設計（Creator Voice → 支援者 → 実績 の優先順位で再配置）
+- ProfileHero カバーバナー拡大（h-20→h-40/h-48、avatar 58→76px）
+- ImpactNumbers を Hero インライン統合（`PublicProfileImpactNumbersInline` → `impactContent` スロット経由）
+- スクロールアンカーナビ（`PublicProfileAnchorNav`：応援する/投稿/支援者/実績 の sticky 水平タブ）
+- Creator Discovery カード強化（テーマカラーバナー・支援者数・バナー重なりアバター）
+
+Sprint 27-A — 月次収支レポート自動起票: **完了**
+- `useMonthlyCashflowReportAutoTrigger.ts` 新規作成（3日以降・月1回・FINANCE agent ロール）
+- `CreatorReadyHomeRoute` に接続
+
+Sprint 27-B — Creator Home 収支ヘルスカード: **完了**
+- `CreatorReadyCashflowHealthCard.tsx` 新規作成（当月収入/支出/収支 グリッド + 先月比 + AI分析リンク）
+- Revenue/Expense セクション直後に配置
+
+Sprint 27-C — Creator Home 月次収支レポート inline 表示: **完了**
+- `CreatorReadyCashflowReportSection.tsx` 新規作成（StageGrowthPlanSection と同パターン）
+- 当月の MONTHLY_CASHFLOW_REPORT（WAITING_APPROVAL/APPROVED）を inline 表示
+- CashflowHealthCard 直後に配置
 
 ## Ready Queue
 

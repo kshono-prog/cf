@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import {
   CREATOR_READY_WORKSPACE_VIEWS,
+  getCreatorReadyWorkspaceConfig,
 } from "@/components/mypage/creatorReadyWorkspaceConfig";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import { NotificationBell } from "@/components/mypage/NotificationBell";
@@ -18,32 +19,41 @@ type Props = {
 export function CreatorReadyWorkspaceHeader(props: Props) {
   const workspace = useCreatorReadyWorkspace();
   const publicPageHref = `/${workspace.meCreatorUsername}`;
+  const activeViewConfig = getCreatorReadyWorkspaceConfig(props.activeView);
+  const secondaryActionClassName =
+    "inline-flex min-h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
 
   return (
-    <div className="flex flex-col gap-3 pb-1">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-lg font-semibold">
-          {workspace.displayName || workspace.meCreatorUsername} のワークスペース
-        </h1>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <NotificationBell />
-          <Link
-            href="/manager-desk"
-            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
-          >
-            Manager Desk
-          </Link>
-          <a
-            href={publicPageHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
-          >
-            ファン目線を確認 ↗
-          </a>
+    <div className="flex flex-col gap-4 pb-1">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-2xl space-y-1">
+          <h1 className="text-lg font-semibold">
+            {workspace.displayName || workspace.meCreatorUsername} のワークスペース
+          </h1>
+          {activeViewConfig ? (
+            <p className="text-sm text-[var(--text-subtle)]">
+              {activeViewConfig.description}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[22rem] sm:items-start lg:items-end">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-start lg:justify-end">
+            <NotificationBell />
+            <Link href="/manager-desk" className={secondaryActionClassName}>
+              Manager Desk
+            </Link>
+            <a
+              href={publicPageHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={secondaryActionClassName}
+            >
+              ファン目線を確認 ↗
+            </a>
+          </div>
           <button
             type="button"
-            className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="inline-flex min-h-10 w-full items-center justify-center self-stretch rounded-full border border-slate-900 bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 sm:w-auto sm:self-auto lg:self-end"
             onClick={props.onOpenPostingComposer}
           >
             投稿する
@@ -51,7 +61,7 @@ export function CreatorReadyWorkspaceHeader(props: Props) {
         </div>
       </div>
 
-      <div className="workspace-segment">
+      <div className="workspace-segment w-full overflow-x-auto">
         {CREATOR_READY_WORKSPACE_VIEWS.map((view) => (
           <button
             key={view.id}

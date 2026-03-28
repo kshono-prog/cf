@@ -26,7 +26,7 @@ export default async function ManagerDeskLayout({
             </div>
           </header>
 
-          <div className="px-3 pb-8 pt-[60px] sm:px-6 sm:pt-[82px]">
+          <div className="px-3 pb-[78px] pt-[60px] sm:px-6 sm:pb-[96px] md:pb-10">
             <div className="mx-auto w-full max-w-[760px]">{children}</div>
           </div>
         </div>

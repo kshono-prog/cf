@@ -15,6 +15,10 @@ import {
 import { useManagerDeskCreatorDetail } from "@/components/managerDesk/useManagerDeskCreatorDetail";
 import { useManagerDeskSupporterCrm } from "@/components/managerDesk/useManagerDeskSupporterCrm";
 import { ManagerDeskSupporterCrmSection } from "@/components/managerDesk/ManagerDeskSupporterCrmSection";
+import { useManagerDeskStageEvidence } from "@/components/managerDesk/useManagerDeskStageEvidence";
+import { ManagerDeskStageEvidenceSection } from "@/components/managerDesk/ManagerDeskStageEvidenceSection";
+import { useManagerDeskProjectMembers } from "@/components/managerDesk/useManagerDeskProjectMembers";
+import { ManagerDeskProjectMembersSection } from "@/components/managerDesk/ManagerDeskProjectMembersSection";
 import type { ManagerDeskCreatorDetailData } from "@/lib/managerDesk/readModelTypes";
 import {
   buildManagerDeskCreatorDetailAiSuggestions,
@@ -23,6 +27,9 @@ import {
 import type { PlannerTimelineItem } from "@/lib/operations/plannerTypes";
 import type { SerializedMeeting } from "@/lib/managerDesk/server";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
+
+const secondaryActionClassName = "btn-secondary justify-center text-sm";
+const compactSecondaryActionClassName = "btn-secondary justify-center text-xs";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "未設定";
@@ -259,7 +266,7 @@ function CompletedMeetingCard(props: {
           <button
             type="button"
             onClick={() => void createFollowUpNote()}
-            className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+            className={compactSecondaryActionClassName}
           >
             フォローアップNote作成
           </button>
@@ -271,6 +278,220 @@ function CompletedMeetingCard(props: {
           <span className="text-xs text-rose-600">作成に失敗しました</span>
         )}
       </div>
+    </article>
+  );
+}
+
+type MeetingCopilotSaveState = "idle" | "saving" | "saved" | "completing" | "completed" | "error";
+
+function MeetingCopilotCard(props: {
+  meeting: SerializedMeeting;
+  address: string | undefined;
+  onCompleted: (updatedMeeting: SerializedMeeting) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [notes, setNotes] = useState(props.meeting.notes ?? "");
+  const [decisions, setDecisions] = useState(props.meeting.decisions ?? "");
+  const [nextActions, setNextActions] = useState(props.meeting.nextActionsSummary ?? "");
+  const [saveState, setSaveState] = useState<MeetingCopilotSaveState>("idle");
+  const [followUpState, setFollowUpState] = useState<FollowUpNoteState>("idle");
+  const [showFollowUp, setShowFollowUp] = useState(false);
+
+  async function patchMeeting(extraFields: Record<string, unknown>) {
+    if (!props.address) return false;
+    const res = await ownerAuthFetch({
+      address: props.address,
+      url: `/api/meetings/${props.meeting.id}`,
+      init: {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: props.address,
+          notes: notes.trim() || null,
+          decisions: decisions.trim() || null,
+          nextActionsSummary: nextActions.trim() || null,
+          ...extraFields,
+        }),
+      },
+    });
+    return res.ok;
+  }
+
+  async function handleSave() {
+    setSaveState("saving");
+    try {
+      const ok = await patchMeeting({});
+      setSaveState(ok ? "saved" : "error");
+    } catch {
+      setSaveState("error");
+    }
+  }
+
+  async function handleComplete() {
+    setSaveState("completing");
+    try {
+      const ok = await patchMeeting({ status: "COMPLETED" });
+      if (ok) {
+        setSaveState("completed");
+        setShowFollowUp(true);
+        props.onCompleted({
+          ...props.meeting,
+          notes: notes.trim() || null,
+          decisions: decisions.trim() || null,
+          nextActionsSummary: nextActions.trim() || null,
+          status: "COMPLETED",
+        });
+      } else {
+        setSaveState("error");
+      }
+    } catch {
+      setSaveState("error");
+    }
+  }
+
+  async function handleCreateFollowUpNote() {
+    if (!props.address) return;
+    setFollowUpState("loading");
+    try {
+      const res = await ownerAuthFetch({
+        address: props.address,
+        url: `/api/meetings/${props.meeting.id}/follow-up-note`,
+        init: {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: props.address }),
+        },
+      });
+      setFollowUpState(res.ok ? "done" : "error");
+    } catch {
+      setFollowUpState("error");
+    }
+  }
+
+  const isCompleted = saveState === "completed";
+  const isBusy = saveState === "saving" || saveState === "completing";
+
+  return (
+    <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="status-badge status-badge-warn">予定</span>
+        <span className="status-badge status-badge-neutral">{props.meeting.meetingType}</span>
+      </div>
+      <div className="mt-2 text-sm font-semibold text-[var(--text)]">{props.meeting.title}</div>
+      <div className="mt-0.5 text-xs text-[var(--text-subtle)]">
+        {formatDateTime(props.meeting.scheduledAt)}
+        {props.meeting.locationText ? ` — ${props.meeting.locationText}` : ""}
+      </div>
+
+      {props.meeting.agenda ? (
+        <div className="mt-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">アジェンダ</div>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text)]">{props.meeting.agenda}</p>
+        </div>
+      ) : null}
+
+      {!isCompleted ? (
+        <button
+          type="button"
+          className={`mt-3 ${compactSecondaryActionClassName}`}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? "閉じる ↑" : "📝 議事メモを取る ↓"}
+        </button>
+      ) : null}
+
+      {open && !isCompleted ? (
+        <div className="mt-3 space-y-3">
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+              議事メモ
+            </label>
+            <textarea
+              className="input mt-1 w-full resize-none text-xs"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="会議中のメモ・気づき・状況など"
+              disabled={isBusy}
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+              決定事項
+            </label>
+            <textarea
+              className="input mt-1 w-full resize-none text-xs"
+              rows={2}
+              value={decisions}
+              onChange={(e) => setDecisions(e.target.value)}
+              placeholder="この会議で決まったこと"
+              disabled={isBusy}
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+              次のアクション
+            </label>
+            <textarea
+              className="input mt-1 w-full resize-none text-xs"
+              rows={2}
+              value={nextActions}
+              onChange={(e) => setNextActions(e.target.value)}
+              placeholder="誰が・いつまでに・何をするか"
+              disabled={isBusy}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-secondary text-xs"
+              onClick={() => void handleSave()}
+              disabled={isBusy}
+            >
+              {saveState === "saving" ? "保存中..." : saveState === "saved" ? "✓ 保存済み" : "保存"}
+            </button>
+            <button
+              type="button"
+              className="btn text-xs"
+              onClick={() => void handleComplete()}
+              disabled={isBusy || (!decisions.trim() && !nextActions.trim())}
+            >
+              {saveState === "completing" ? "完了中..." : "完了にして保存 →"}
+            </button>
+            {saveState === "error" ? (
+              <span className="text-xs text-rose-600">保存に失敗しました</span>
+            ) : null}
+          </div>
+          {(!decisions.trim() && !nextActions.trim()) ? (
+            <p className="text-[11px] text-[var(--text-subtle)]">決定事項または次のアクションを入力すると「完了にして保存」が使えます</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {showFollowUp ? (
+        <div className="accent-surface-emerald mt-3 rounded-xl px-3 py-2.5 space-y-2">
+          <div className="accent-text-emerald-strong text-xs font-semibold">
+            会議が完了しました。フォローアップNoteを作りますか？
+          </div>
+          <div>
+            {followUpState === "idle" ? (
+              <button
+                type="button"
+                className="btn-secondary accent-button-emerald px-3 py-1.5 text-xs"
+                onClick={() => void handleCreateFollowUpNote()}
+              >
+                フォローアップNote作成
+              </button>
+            ) : followUpState === "loading" ? (
+              <span className="text-xs text-[var(--text-subtle)]">作成中...</span>
+            ) : followUpState === "done" ? (
+              <span className="accent-text-emerald text-xs">✓ Noteを作成しました</span>
+            ) : (
+              <span className="text-xs text-rose-600">作成に失敗しました</span>
+            )}
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -291,15 +512,33 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
     creatorProfileId: props.creatorProfileId,
   });
 
+  const stageEvidence = useManagerDeskStageEvidence({
+    address,
+    isConnected,
+    creatorProfileId: props.creatorProfileId,
+  });
+
+  const projectMembers = useManagerDeskProjectMembers({
+    address,
+    isConnected,
+    creatorProfileId: props.creatorProfileId,
+    projectId: data?.activeProject?.projectId ?? null,
+  });
+
+  const [completedFromCopilot, setCompletedFromCopilot] = useState<Set<string>>(new Set());
+
   const nextActions = data ? buildNextActions(data) : [];
   const operatingSummary = data ? buildOperatingSummary(data) : [];
   const aiSummary = data ? buildManagerDeskCreatorDetailAiSummary(data) : null;
   const aiSuggestions = data
     ? buildManagerDeskCreatorDetailAiSuggestions(data)
     : [];
+  const activeUpcomingMeetings = data
+    ? data.upcomingMeetings.filter((m) => !completedFromCopilot.has(m.id))
+    : [];
 
   return (
-    <MyPageShell headerColor="#0f172a">
+    <MyPageShell headerColor="#0f172a" showPromo={false}>
       <div className="container-narrow space-y-4">
         <section className="surface-card space-y-4 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -318,20 +557,20 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/manager-desk"
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                className={secondaryActionClassName}
               >
                 Dashboard に戻る
               </Link>
               <Link
                 href={`/manager-desk/activity?creatorProfileId=${props.creatorProfileId}`}
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                className={secondaryActionClassName}
               >
                 Activity Timeline
               </Link>
               {data ? (
                 <Link
                   href={`/${data.creator.username}`}
-                  className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-400"
+                  className={secondaryActionClassName}
                 >
                   公開ページを見る
                 </Link>
@@ -399,7 +638,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Current Summary
                   </div>
@@ -419,6 +658,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
               </div>
 
               {data.stage ? (
+                <>
                 <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Creator Stage
@@ -457,10 +697,19 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     </p>
                   ) : null}
                   <div className="mt-3 grid grid-cols-4 gap-2">
-                    {(["output", "audience", "business", "continuity"] as const).map((axis) => (
+                    {([
+                      ["output", "発信量"],
+                      ["audience", "支援者"],
+                      ["business", "目標達成"],
+                      ["continuity", "継続性"],
+                      ["craft", "実績"],
+                      ["operations", "運営"],
+                      ["trust", "信頼"],
+                      ["team", "チーム"],
+                    ] as const).map(([axis, label]) => (
                       <div key={axis} className="space-y-1">
                         <div className="flex items-center justify-between text-[10px]">
-                          <span className="capitalize text-[var(--text-subtle)]">{axis}</span>
+                          <span className="text-[var(--text-subtle)]">{label}</span>
                           <span className="font-medium text-[var(--text)]">
                             {data.stage!.maturity[axis]}
                           </span>
@@ -475,12 +724,29 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     ))}
                   </div>
                 </section>
+                <ManagerDeskStageEvidenceSection
+                  address={address}
+                  creatorProfileId={props.creatorProfileId}
+                  currentStage={data.stage.stage}
+                  items={stageEvidence.items}
+                  loading={stageEvidence.loading}
+                  onItemAdded={stageEvidence.addItem}
+                />
+                <ManagerDeskProjectMembersSection
+                  items={projectMembers.items}
+                  loading={projectMembers.loading}
+                  error={projectMembers.error}
+                  projectId={data.activeProject?.projectId ?? null}
+                  address={address}
+                  onAdded={projectMembers.addItem}
+                />
+                </>
               ) : null}
 
               <div className="grid gap-4 xl:grid-cols-[1.25fr,0.75fr]">
                 <section
                   id="project-goal"
-                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Project / Goal
@@ -535,7 +801,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   )}
                 </section>
 
-                <section className="rounded-2xl border border-[var(--line)] bg-white p-4">
+                <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Operating Summary
                   </div>
@@ -561,7 +827,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
               <section
                 id="next-actions"
-                className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -612,7 +878,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
               <section
                 id="planner"
-                className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -679,10 +945,39 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 )}
               </section>
 
+              {activeUpcomingMeetings.length > 0 ? (
+                <section
+                  id="meeting-copilot"
+                  className="accent-surface-amber rounded-2xl p-4"
+                >
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="accent-text-amber-strong text-xs font-semibold uppercase tracking-[0.14em]">
+                      ミーティングコパイロット
+                    </div>
+                    <span className="status-badge status-badge-warn">{activeUpcomingMeetings.length}件</span>
+                  </div>
+                  <p className="accent-text-amber mb-3 text-[11px]">
+                    予定中のミーティングに議事メモ・決定事項・次のアクションを記録できます。
+                  </p>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {activeUpcomingMeetings.map((meeting) => (
+                      <MeetingCopilotCard
+                        key={meeting.id}
+                        meeting={meeting}
+                        address={address}
+                        onCompleted={(updated) => {
+                          setCompletedFromCopilot((prev) => new Set([...prev, updated.id]));
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
               {data.recentCompletedMeetings.length > 0 ? (
                 <section
                   id="completed-meetings"
-                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     直近の完了ミーティング（決定事項 → Note化）
@@ -702,7 +997,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
               <div className="grid gap-4 lg:grid-cols-2">
                 <section
                   id="latest-notes"
-                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -710,7 +1005,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     </div>
                     <Link
                       href={`/manager-desk/notes?creatorProfileId=${props.creatorProfileId}`}
-                      className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                      className={compactSecondaryActionClassName}
                     >
                       Notes Surface で見る
                     </Link>
@@ -755,7 +1050,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
                 <section
                   id="key-contacts"
-                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -763,7 +1058,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     </div>
                     <Link
                       href={`/manager-desk/contacts?creatorProfileId=${props.creatorProfileId}`}
-                      className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                      className={compactSecondaryActionClassName}
                     >
                       Contact Pipeline で見る
                     </Link>
@@ -808,7 +1103,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
               <section
                 id="recent-action-log"
-                className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -816,7 +1111,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   </div>
                   <Link
                     href={`/manager-desk/activity?creatorProfileId=${props.creatorProfileId}&sourceType=ACTION_LOG`}
-                    className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                    className={compactSecondaryActionClassName}
                   >
                     Timeline で見る
                   </Link>
@@ -870,6 +1165,55 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   onReload={() => { void supporterCrm.reload(); }}
                 />
               </section>
+
+              {data.expenseSummary.totalCount > 0 ? (
+                <section>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold text-[var(--text)]">費用サマリー</h2>
+                    <span className="status-badge status-badge-neutral">
+                      直近 {data.expenseSummary.totalCount} 件
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {data.expenseSummary.totalAmountByCategory.map((cat) => (
+                      <div
+                        key={`${cat.category}:${cat.currency}`}
+                        className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-2"
+                      >
+                        <span className="text-sm text-[var(--text)]">{cat.category}</span>
+                        <span className="text-sm font-semibold text-[var(--text)]">
+                          {Number(cat.total).toLocaleString("ja-JP")} {cat.currency}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {data.expenseSummary.recentExpenses.slice(0, 5).map((exp) => (
+                      <div
+                        key={exp.id}
+                        className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-sm font-medium text-[var(--text)]">{exp.title}</div>
+                          <div className="shrink-0 text-sm font-semibold text-[var(--text)]">
+                            {Number(exp.amountDecimal).toLocaleString("ja-JP")} {exp.currency}
+                          </div>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--text-subtle)]">
+                          <span>{exp.category}</span>
+                          <span>•</span>
+                          <span>{formatDateTime(exp.occurredAt)}</span>
+                        </div>
+                        {exp.note ? (
+                          <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                            {exp.note}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </div>
           ) : null}
         </section>

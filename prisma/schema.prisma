@@ -18,6 +18,7 @@ model CreatorProfile {
   externalUrl         String?
   themeColor          String?
   creatorType         String?
+  ecosystemRole       String?
   walletAddress       String?                 @unique
   email               String?                 @unique
   status              String                  @default("PUBLISHED")
@@ -45,8 +46,12 @@ model CreatorProfile {
   managerNotes        ManagerNote[]
   externalContacts    ExternalContact[]
   actionLogs          ActionLog[]
+  expenses            Expense[]
+  revenueRecords      RevenueRecord[]
+  stageEvidences      StageEvidence[]
   followingRelations  CreatorFollow[]         @relation("CreatorFollowing")
   followerRelations   CreatorFollow[]         @relation("CreatorFollowers")
+  projectMembers      ProjectMember[]
 }
 
 model CreatorFollow {
@@ -204,6 +209,7 @@ model Contribution {
   decimals      Int
   amountDecimal Decimal?  @db.Decimal(38, 18)
   status        String    @default("PENDING")
+  message       String?   @db.Text
   confirmedAt   DateTime? @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @db.Timestamptz(6)
@@ -285,6 +291,9 @@ model Project {
   meetings                  Meeting[]
   externalContacts          ExternalContact[]
   actionLogs                ActionLog[]
+  expenses                  Expense[]
+  revenueRecords            RevenueRecord[]
+  projectMembers            ProjectMember[]
 
   @@index([creatorProfileId])
   @@index([creatorProfileId, currency])
@@ -526,6 +535,7 @@ model AgentTask {
   approvedBy       String?
   approvedAt       DateTime?           @db.Timestamptz(6)
   approvalState    String              @default("NONE")
+  rejectReason     String?             @db.Text
   consumedByStep   String?
   createdAt        DateTime            @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime            @default(now()) @db.Timestamptz(6)
@@ -570,6 +580,7 @@ model ManagerAssignment {
   managerNotes         ManagerNote[]
   externalContacts     ExternalContact[]
   actionLogs           ActionLog[]
+  expenses             Expense[]
 
   @@index([creatorProfileId, status])
   @@index([managerWalletAddress, status])
@@ -668,6 +679,8 @@ model ExternalContact {
   sourceRef                 String?
   relationshipStrengthScore Int?
   lastOutcome               String?                  @db.Text
+  contractStatus            String?
+  contractStartAt           DateTime?                @db.Timestamptz(6)
   isArchived                Boolean                  @default(false)
   createdAt                 DateTime                 @default(now()) @db.Timestamptz(6)
   updatedAt                 DateTime                 @updatedAt @db.Timestamptz(6)
@@ -711,6 +724,87 @@ model ActionLog {
   @@index([actorType, occurredAt])
   @@index([actionType, occurredAt])
   @@index([targetEntityType, targetEntityId])
+}
+
+model Expense {
+  id                  String          @id @default(cuid())
+  creatorProfileId    BigInt
+  projectId           BigInt?
+  managerAssignmentId String?
+  category            String          @default("OTHER")
+  amountDecimal       Decimal         @db.Decimal(18, 2)
+  currency            String          @default("JPY")
+  occurredAt          DateTime        @db.Timestamptz(6)
+  title               String
+  note                String?         @db.Text
+  receiptUrl          String?
+  createdAt           DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime        @updatedAt @db.Timestamptz(6)
+  creatorProfile      CreatorProfile  @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project             Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  managerAssignment   ManagerAssignment? @relation(fields: [managerAssignmentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([creatorProfileId, occurredAt])
+  @@index([projectId, occurredAt])
+  @@index([managerAssignmentId, occurredAt])
+  @@index([category, occurredAt])
+}
+
+model RevenueRecord {
+  id               String         @id @default(cuid())
+  creatorProfileId BigInt
+  projectId        BigInt?
+  source           String         @default("OTHER")
+  amountDecimal    Decimal        @db.Decimal(18, 2)
+  currency         String         @default("JPY")
+  occurredAt       DateTime       @db.Timestamptz(6)
+  title            String
+  note             String?        @db.Text
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([creatorProfileId, occurredAt])
+  @@index([projectId, occurredAt])
+  @@index([source, occurredAt])
+}
+
+model StageEvidence {
+  id               String         @id @default(cuid())
+  creatorProfileId BigInt
+  stageId          String         // SEED / EARLY / EMERGING / PROFESSIONALIZING / ESTABLISHED
+  evidenceType     String         @default("OTHER") // PERFORMANCE / ACHIEVEMENT / RECOGNITION / CONTRACT / MEDIA / OTHER
+  value            String         @db.Text
+  verifiedAt       DateTime       @db.Timestamptz(6)
+  recordedBy       String?        // manager wallet address
+  notes            String?        @db.Text
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([creatorProfileId, stageId])
+  @@index([creatorProfileId, verifiedAt])
+}
+
+model ProjectMember {
+  id               String         @id @default(cuid())
+  projectId        BigInt
+  creatorProfileId BigInt?        // null if external collaborator
+  walletAddress    String?        // collaborator wallet (for external)
+  displayName      String?        // override display name for this project
+  role             String         @default("COLLABORATOR") // OWNER / MANAGER / COLLABORATOR / ADVISOR
+  sharePercent     Decimal?       @db.Decimal(5, 2)        // e.g. 30.00 = 30%
+  note             String?        @db.Text
+  status           String         @default("ACTIVE")       // ACTIVE / INACTIVE
+  addedAt          DateTime       @default(now()) @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @db.Timestamptz(6)
+  project          Project        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile   CreatorProfile? @relation(fields: [creatorProfileId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([projectId, status])
+  @@index([creatorProfileId, projectId])
 }
 
 model DistributionRun {

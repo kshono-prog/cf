@@ -20,6 +20,7 @@ type Args = {
   isConnected: boolean;
   connectionStatus: ConnectionStatus;
   username: string;
+  skipInitialRefresh?: boolean;
   initialProjectId?: string | null;
   initialProjectIdsByCurrency?: ProjectIdsByCurrency;
   initialMeStatus?: MeStatus | null;
@@ -52,6 +53,7 @@ export function useMyPageMeStatus({
   isConnected,
   connectionStatus,
   username,
+  skipInitialRefresh = false,
   initialProjectId = null,
   initialProjectIdsByCurrency = { JPYC: null, USDC: null },
   initialMeStatus = null,
@@ -147,6 +149,9 @@ export function useMyPageMeStatus({
       if (initialMeStatus && !hydratedRef.current) {
         hydrateFormFromSummary(initialMeStatus);
         hydratedRef.current = true;
+        if (skipInitialRefresh) {
+          return;
+        }
       } else {
         setStatus("loading");
       }
@@ -182,6 +187,7 @@ export function useMyPageMeStatus({
     isConnected,
     refreshMeStatus,
     resetProfileState,
+    skipInitialRefresh,
     username,
   ]);
 

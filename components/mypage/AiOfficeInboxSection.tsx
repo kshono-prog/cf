@@ -187,6 +187,14 @@ function AgentTaskCard(props: {
           </div>
         ) : null}
 
+        {/* Row 3b: reject reason (for REJECTED tasks) */}
+        {task.status === "REJECTED" && task.rejectReason ? (
+          <div className="mt-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2">
+            <span className="text-[11px] font-semibold text-rose-700">却下理由: </span>
+            <span className="text-xs text-rose-900">{task.rejectReason}</span>
+          </div>
+        ) : null}
+
         {/* Row 4: what happens after approval (only for approval-required tasks) */}
         {isWaiting && isApprovalRequired ? (
           <p className="mt-2 caption-text">

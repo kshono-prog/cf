@@ -100,6 +100,16 @@ const TASK_TYPE_COPY: Record<TaskType, Copy> = {
     helper:
       "現在のCreatorステージと4軸成熟度スコアをもとに、次のレベルへ向けた具体的な成長ステップを提案します。",
   },
+  CONTACT_INTELLIGENCE_ALERT: {
+    label: "接点リスクを分析する",
+    helper:
+      "Contact Pipeline の停滞・期限超過・温度感などを分析し、優先対応が必要な接点をリスト化します。",
+  },
+  MONTHLY_CASHFLOW_REPORT: {
+    label: "月次収支レポートを作る",
+    helper:
+      "今月の収入・支出を収入源・カテゴリ別に集計し、収支サマリーと次のアクションへのアドバイスを生成します。",
+  },
 };
 
 const TASK_STATUS_COPY: Record<TaskStatus, Copy> = {

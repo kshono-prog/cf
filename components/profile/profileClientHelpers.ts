@@ -19,6 +19,7 @@ export type LastTx = {
   projectId: string | null;
   purposeId: string | null;
   postId: string | null;
+  message: string | null;
   createdAtMs: number; // Date.now()
 };
 
@@ -97,6 +98,7 @@ function parseLastTx(v: unknown): LastTx | null {
   const projectId = v.projectId;
   const purposeId = v.purposeId;
   const postId = "postId" in v ? v.postId : null;
+  const message = "message" in v && (typeof v.message === "string" || v.message === null) ? (v.message as string | null) : null;
   const createdAtMs = v.createdAtMs;
 
   if (!isHexTxHash(txHash)) return null;
@@ -123,6 +125,7 @@ function parseLastTx(v: unknown): LastTx | null {
     projectId,
     purposeId,
     postId,
+    message,
     createdAtMs,
   };
 }

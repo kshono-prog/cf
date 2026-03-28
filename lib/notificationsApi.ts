@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 import { findCreatorByWalletAddress } from "@/lib/social";
 
 export type NotificationKind = "REPLY" | "LIKE" | "SUPPORT" | "NOTICE";
@@ -101,7 +102,8 @@ type NotificationsDeps = {
 const notificationsDeps: NotificationsDeps = {
   findCreatorByWalletAddress,
   findReplyNotifications: async (creatorId) =>
-    prisma.reply.findMany({
+    withPrismaRetry(() =>
+      prisma.reply.findMany({
       where: {
         post: { creatorProfileId: creatorId },
         creatorProfileId: { not: creatorId },
@@ -129,9 +131,11 @@ const notificationsDeps: NotificationsDeps = {
           },
         },
       },
-    }),
+      })
+    ),
   findLikeNotifications: async (creatorId) =>
-    prisma.postLike.findMany({
+    withPrismaRetry(() =>
+      prisma.postLike.findMany({
       where: {
         post: { creatorProfileId: creatorId },
         creatorProfileId: { not: creatorId },
@@ -159,9 +163,11 @@ const notificationsDeps: NotificationsDeps = {
           },
         },
       },
-    }),
+      })
+    ),
   findSupportNotifications: async (creatorId) =>
-    prisma.contribution.findMany({
+    withPrismaRetry(() =>
+      prisma.contribution.findMany({
       where: {
         status: "CONFIRMED",
         project: { creatorProfileId: creatorId },
@@ -197,7 +203,8 @@ const notificationsDeps: NotificationsDeps = {
           },
         },
       },
-    }),
+      })
+    ),
 };
 
 function shortAddress(value: string): string {
@@ -238,11 +245,9 @@ export async function fetchNotificationsByOwnerAddress(
       };
     }
 
-    const [replies, likes, supports] = await Promise.all([
-      deps.findReplyNotifications(creator.id),
-      deps.findLikeNotifications(creator.id),
-      deps.findSupportNotifications(creator.id),
-    ]);
+    const replies = await deps.findReplyNotifications(creator.id);
+    const likes = await deps.findLikeNotifications(creator.id);
+    const supports = await deps.findSupportNotifications(creator.id);
 
     const items: NotificationItem[] = [
       ...replies.map((reply) => ({
@@ -302,7 +307,17 @@ export async function fetchNotificationsByOwnerAddress(
         items,
       },
     };
-  } catch {
+  } catch (error) {
+    if (isPrismaUnavailableError(error)) {
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          items: [],
+        },
+      };
+    }
+
     return {
       status: 500,
       body: {

@@ -22,8 +22,76 @@ type Props = {
   onOpenCreate: () => void;
   onOpenCreateForRole: (roleId: CreatorAiAgentRole) => void;
   onOpenInbox: (roleId?: CreatorAiAgentRole) => void;
+  onOpenTaskInInbox: (taskType: string) => void;
   onCollectMetrics: () => void;
 };
+
+function RejectionPatternCard({ tasks }: { tasks: AgentTaskView[] }) {
+  const rejectedTasks = tasks.filter(
+    (t) => t.status === "FAILED" && t.rejectReason != null && t.rejectReason.trim().length > 0
+  );
+
+  const countsByType = new Map<string, number>();
+  for (const t of tasks.filter((t) => t.status === "FAILED")) {
+    countsByType.set(t.taskType, (countsByType.get(t.taskType) ?? 0) + 1);
+  }
+  const topRejectedTypes = [...countsByType.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  return (
+    <div className="card p-5 space-y-3 border-l-4 border-rose-400">
+      <div>
+        <div className="section-label text-rose-700">却下パターン分析</div>
+        <p className="caption-text mt-0.5">
+          却下が多い担当・理由を確認して、次の依頼に活かしましょう。
+        </p>
+      </div>
+
+      {topRejectedTypes.length > 0 ? (
+        <div className="space-y-2">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+            却下が多い Task Type
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {topRejectedTypes.map(([type, count]) => (
+              <span key={type} className="status-badge status-badge-error">
+                {getAgentTaskTypeCopy(type).label} — {count}件
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {rejectedTasks.length > 0 ? (
+        <div className="space-y-2">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+            直近の却下理由
+          </div>
+          <div className="space-y-1.5">
+            {rejectedTasks.slice(0, 3).map((t) => (
+              <div
+                key={t.id}
+                className="rounded-2xl border border-rose-100 bg-rose-50 px-3 py-2"
+              >
+                <div className="text-[11px] font-semibold text-rose-700">
+                  {getAgentTaskTypeCopy(t.taskType).label}
+                </div>
+                <div className="mt-0.5 text-xs leading-5 text-rose-900">
+                  {t.rejectReason}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-[var(--text-subtle)]">
+          理由付き却下がまだありません。次回から却下時にコメントを入れると、ここに表示されます。
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function AiOfficeOverviewSection(props: Props) {
   const roleChoices = React.useMemo(() => getAiOfficeRoleChoices(), []);
@@ -151,6 +219,11 @@ export function AiOfficeOverviewSection(props: Props) {
         ) : null}
       </div>
 
+      {/* ── Area 1.5: 却下パターン分析 ── */}
+      {props.usefulness.rejectedCount >= 3 && props.usefulness.approvalRate < 0.7 ? (
+        <RejectionPatternCard tasks={props.tasks} />
+      ) : null}
+
       {/* ── Area 2: 最近の作成履歴 ── */}
       <div className="card">
         <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-3 border-b border-[var(--line)]">
@@ -183,7 +256,14 @@ export function AiOfficeOverviewSection(props: Props) {
                   log.action === AGENT_TASK_AUDIT_ACTION.OUTPUT_COPIED
               );
               return (
-                <div key={task.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <button
+                  key={task.id}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-subtle)] disabled:opacity-50"
+                  onClick={() => props.onOpenTaskInInbox(task.taskType)}
+                  disabled={props.loading}
+                  title="受信トレイで確認する"
+                >
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-[var(--text)] truncate">
                       {getAgentTaskTypeCopy(task.taskType).label}
@@ -210,7 +290,7 @@ export function AiOfficeOverviewSection(props: Props) {
                       {statusCopy.label}
                     </span>
                   </span>
-                </div>
+                </button>
               );
             })
           )}

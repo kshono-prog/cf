@@ -180,6 +180,8 @@ export function parseAiOfficeTasks(json: unknown): AgentTaskView[] {
         } => log !== null
       );
 
+    const rejectReason = asStringOrNull(row.rejectReason);
+
     out.push({
       id,
       projectId,
@@ -187,6 +189,7 @@ export function parseAiOfficeTasks(json: unknown): AgentTaskView[] {
       status,
       approvedBy,
       approvedAt,
+      rejectReason,
       createdAt,
       output: row.output,
       auditLogs,

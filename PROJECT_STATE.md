@@ -1,6 +1,6 @@
 # Project State
 
-最終更新: 2026-03-26（Phase 8 完了）
+最終更新: 2026-03-27（Phase 27 完了）
 
 ## Project Name
 
@@ -105,6 +105,38 @@ The current implementation already includes several building blocks that support
 - Phase 8: Meeting planner から AI Office MEETING_AGENDA_DRAFT へのショートカットリンク
 - Phase 8: AI Office 承認実績サマリー（承認数/却下数/承認率/判断中央値を Overview に追加）
 - Phase 8: Wave 1 rename（外部SNS連携 → CF 内投稿向けコピーに修正）
+- Phase 14-A: Opportunity CRM カードからインラインノート作成（`/api/manager-notes` POST）
+- Phase 14-B: Contact Pipeline 一括ステータス更新（PATCH + `Promise.allSettled`）
+- Phase 14-C/D: PublicProfile ActivityHeatmap / NextGoalReveal / SupporterWall（実装済み確認）
+- Phase 15-A: `Contribution.message` スキーマ・API・UI・MicroTestimonials（公開プロフィール）
+- Phase 15-B: `Expense` モデル + `ExternalContact.contractStatus` スキーマ・API・Manager Desk 費用サマリー
+- Phase 16-A: `AgentTask.rejectReason` スキーマ・executor・シリアライズ・Overview RejectionPatternCard・Inbox 却下理由表示
+- Phase 16-B: Meeting Copilot phase 1（upcomingMeetings readModel + Manager Desk インライン議事メモ）
+- Phase 17-A: Contact Pipeline 契約ステータス表示（SerializedExternalContact に contractStatus/contractStartAt）
+- Phase 17-B: Creator Home Expense 入力フォーム（useCreatorReadyExpenses + CreatorReadyExpenseInputSection）
+- Phase 17-C: AI Office Overview 履歴行から Inbox タスクへジャンプ（onOpenTaskInInbox + setOpenLatestTaskType）
+- Phase 18-A: Expense Analytics（CreatorReadyExpenseInputSection に当月合計 + カテゴリ別バー）
+- Phase 18-B: Contract Lifecycle UI（Contact Pipeline 契約ステータスインライン編集 + 12ヶ月更新アラート）
+- Phase 18-C: `RevenueRecord` モデル + API + Creator Home 収入記録セクション + 月次収支サマリー
+- Phase 19-A: `StageEvidence` モデル + API + Manager Desk Creator Detail Stage Evidence セクション
+- Phase 19-B: 公開プロフィール Revenue Proof card（総収益・最大単月・収益活動月数、RevenueRecord 存在時のみ）
+- Phase 20-A: `DAILY_ACTION_PLAN` executor に収支シグナル（今月収支・先月比・最弱成熟軸）を統合
+- Phase 20-B: `CONTACT_INTELLIGENCE_ALERT` AgentTask 追加（停滞・期限超過・温度感を分析しリスク接点をリスト化）
+- Phase 21-A: 公開プロフィール Community Trust Surface（連続支援月数・loyal/recurring バッジ・`PublicProfileSupporterTrustCard`）
+- Phase 21-B: SupporterCRM 信頼スコア（`consecutiveSupportMonths` / `trustScore` 追加・信頼度順ソート・継続バッジ）
+- Phase 22-A: x402 Service Catalog groundwork（PHASE_3 サーフェス5種追加・`getX402SurfaceForTaskType` ヘルパー追加）
+- Phase 22-B: `CreatorProfile.ecosystemRole` スキーマ追加・Creator Discovery ロールフィルター・CreatorCard ロールバッジ
+- Phase 23-A: ecosystemRole 自己選択フルスタック（serializer→API→state→context→AccountPageClient→actions→profileApi→EditForm）
+- Phase 23-B: Daily Briefing プロフィール完成度シグナル（紹介文 < 20文字 or ecosystemRole 未設定でアクション追加）
+- Phase 25-A: `ProjectMember` スキーマ追加（role / sharePercent / walletAddress / displayName / status + migration）
+- Phase 25-B: Manager Desk ProjectMembers セクション（API GET+POST + フック + UI + Creator Detail 統合）
+- Phase 26-A: 公開プロフィール ProfileHero に creatorType / ecosystemRole バッジを追加（ProfileClient から伝播）
+- Phase 26-B: 公開プロフィール チームメンバーセクション（`getPublicTeamMembers` + `PublicProfileTeamSection`）
+- Phase 26-C: `DISTRIBUTION_PLAN_DRAFT` executor が ProjectMember.sharePercent で按分 draft を生成（member_share_template ソース追加）
+- Phase 27-UX: 訪問者向けパブリックプロフィール UX 強化（BottomNav 3/4/5タブ分離・スティッキーCTA・セクション順序再設計・ProfileHero バナー拡大・ImpactNumbers Hero統合・スクロールアンカーナビ・CreatorDiscovery カード強化）
+- Phase 27-A: 月次収支レポート自動起票（`useMonthlyCashflowReportAutoTrigger` — 3日以降・月1回・FINANCE agent）
+- Phase 27-B: Creator Home 収支ヘルスカード（`CreatorReadyCashflowHealthCard` — 当月収支グリッド + 先月比 + AI分析リンク）
+- Phase 27-C: Creator Home 月次収支レポート inline 表示（`CreatorReadyCashflowReportSection` — 当月承認済みレポートを inline 描画）
 
 ### Current constraints
 

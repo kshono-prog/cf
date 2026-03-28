@@ -95,7 +95,7 @@ export function LinkPreviewCard({ url }: Props) {
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="mt-2.5 block overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] transition hover:border-gray-400"
+      className="mt-2.5 block overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] transition hover:border-[var(--muted)]"
     >
       {data.image ? (
         // eslint-disable-next-line @next/next/no-img-element

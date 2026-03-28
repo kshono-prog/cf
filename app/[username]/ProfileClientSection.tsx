@@ -17,6 +17,7 @@ type ProfileClientSectionProps = {
   supportProfileView?: SupportProfileView | null;
   recruitingProjects?: SupportProjectView[] | null;
   initialFeed?: FeedListView | null;
+  introContent?: React.ReactNode;
 };
 
 export function ProfileClientSection({
@@ -27,6 +28,7 @@ export function ProfileClientSection({
   supportProfileView,
   recruitingProjects,
   initialFeed,
+  introContent,
 }: ProfileClientSectionProps) {
   return (
     <ProfileClient
@@ -37,7 +39,7 @@ export function ProfileClientSection({
       supportProfileView={supportProfileView ?? null}
       recruitingProjects={recruitingProjects ?? []}
       initialFeed={initialFeed ?? null}
-      layout="content"
+      introContent={introContent}
     />
   );
 }

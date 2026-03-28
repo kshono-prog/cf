@@ -62,7 +62,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       viewerAddress: authenticatedViewerAddress,
     });
 
-    return okJson(result);
+    const res = okJson(result);
+    if (!authenticatedViewerAddress) {
+      // Anonymous requests: allow CDN and browser caching for 15 s (matches unstable_cache TTL).
+      res.headers.set("Cache-Control", "public, max-age=15, stale-while-revalidate=60");
+    } else {
+      // Personalised (liked-by-viewer) responses: private, short-lived.
+      res.headers.set("Cache-Control", "private, max-age=15");
+    }
+    return res;
   } catch (error) {
     console.error("FEED_GET_FAILED", error);
     return errJson("FEED_GET_FAILED", 500);

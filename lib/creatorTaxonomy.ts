@@ -59,6 +59,24 @@ export function isCreatorType(value: string): value is CreatorType {
   return CREATOR_TYPE_OPTIONS.includes(value as CreatorType);
 }
 
+export const ECOSYSTEM_ROLE_OPTIONS = [
+  "CREATOR",
+  "MANAGER",
+  "COLLABORATOR",
+] as const;
+
+export type EcosystemRole = (typeof ECOSYSTEM_ROLE_OPTIONS)[number];
+
+export const ECOSYSTEM_ROLE_LABELS: Record<EcosystemRole, string> = {
+  CREATOR: "クリエイター",
+  MANAGER: "マネージャー",
+  COLLABORATOR: "コラボレーター",
+};
+
+export function isEcosystemRole(value: string): value is EcosystemRole {
+  return ECOSYSTEM_ROLE_OPTIONS.includes(value as EcosystemRole);
+}
+
 export function isEventCategory(value: string): value is EventCategory {
   return EVENT_CATEGORY_OPTIONS.includes(value as EventCategory);
 }

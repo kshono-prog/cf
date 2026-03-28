@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { Address } from "viem";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
+import type { EcosystemRole } from "@/lib/creatorTaxonomy";
 import {
   saveMyPageUser,
   requestCreatorApply,
@@ -20,6 +21,7 @@ type Args = {
   externalUrl: string;
   themeColor: string;
   creatorType: CreatorProfile["creatorType"];
+  ecosystemRole: EcosystemRole | null;
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   // callbacks after successful mutation
@@ -38,6 +40,7 @@ export function useAccountPageActions(args: Args) {
     externalUrl,
     themeColor,
     creatorType,
+    ecosystemRole,
     socials,
     youtubeVideos,
     onSaved,
@@ -117,6 +120,7 @@ export function useAccountPageActions(args: Args) {
         externalUrl,
         themeColor,
         creatorType,
+        ecosystemRole,
         socials,
         youtubeVideos,
       });

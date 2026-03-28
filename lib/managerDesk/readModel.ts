@@ -1411,7 +1411,9 @@ export async function getManagerDeskCreatorDetail(args: {
 
   const completedMeetingWindow = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const [creator, assignment, projects, contributionRows, notes, contacts, logs, planner, completedMeetings, credibility] =
+  const upcomingMeetingWindow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const [creator, assignment, projects, contributionRows, notes, contacts, logs, planner, completedMeetings, upcomingMeetings, credibility, recentExpenses] =
     await Promise.all([
       prisma.creatorProfile.findUnique({
         where: { id: args.creatorProfileId },
@@ -1510,7 +1512,30 @@ export async function getManagerDeskCreatorDetail(args: {
         orderBy: { scheduledAt: "desc" },
         take: 5,
       }),
+      prisma.meeting.findMany({
+        where: {
+          creatorProfileId: args.creatorProfileId,
+          status: "SCHEDULED",
+          scheduledAt: { gte: now, lte: upcomingMeetingWindow },
+        },
+        orderBy: { scheduledAt: "asc" },
+        take: 5,
+      }),
       getCreatorActivityCredibility(args.creatorProfileId),
+      prisma.expense.findMany({
+        where: { creatorProfileId: args.creatorProfileId },
+        orderBy: { occurredAt: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          category: true,
+          amountDecimal: true,
+          currency: true,
+          occurredAt: true,
+          title: true,
+          note: true,
+        },
+      }),
     ]);
 
   if (!creator) return null;
@@ -1536,16 +1561,44 @@ export async function getManagerDeskCreatorDetail(args: {
     activeProject ? new Date(activeProject.updatedAt) : null
   );
 
+  // Compute expense summary
+  const expenseTotalsByCategory = new Map<string, { total: number; currency: string }>();
+  for (const exp of recentExpenses) {
+    const key = `${exp.category}:${exp.currency}`;
+    const existing = expenseTotalsByCategory.get(key) ?? { total: 0, currency: exp.currency };
+    existing.total += Number(exp.amountDecimal.toString());
+    expenseTotalsByCategory.set(key, existing);
+  }
+  const totalAmountByCategory = [...expenseTotalsByCategory.entries()].map(([key, val]) => ({
+    category: key.split(":")[0] ?? "OTHER",
+    total: val.total.toFixed(2),
+    currency: val.currency,
+  }));
+
   return {
     creator: serializeCreator(creator),
     assignment: assignment ? serializeManagerAssignment(assignment) : null,
     stage,
     activeProject,
     planner,
+    upcomingMeetings: upcomingMeetings.map(serializeMeeting),
     recentCompletedMeetings: completedMeetings.map(serializeMeeting),
     latestManagerNotes: notes.map(serializeManagerNote),
     keyContacts: contacts.map(serializeExternalContact),
     recentActionLogs: logs.map(serializeActionLog),
+    expenseSummary: {
+      recentExpenses: recentExpenses.map((exp) => ({
+        id: exp.id,
+        category: exp.category,
+        amountDecimal: exp.amountDecimal.toString(),
+        currency: exp.currency,
+        occurredAt: exp.occurredAt.toISOString(),
+        title: exp.title,
+        note: exp.note,
+      })),
+      totalCount: recentExpenses.length,
+      totalAmountByCategory,
+    },
     summary: {
       latestActionAt: latestActionAtDate?.toISOString() ?? null,
       latestActionTitle:

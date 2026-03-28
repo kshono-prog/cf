@@ -226,7 +226,9 @@ export function CreatorFeedSection(props: Props) {
       try {
         const response = await fetch(url, {
           method: "GET",
-          cache: "no-store",
+          // Cursor-based load-more: allow browser cache (same cursor won't change within TTL).
+          // Fresh loads (append=false): bypass cache to always show latest posts.
+          cache: params.append ? "default" : "no-store",
         });
         const json = await readJsonSafe(response);
         if (!response.ok) {
@@ -319,8 +321,7 @@ export function CreatorFeedSection(props: Props) {
   }, [creatorUsername, initialFeed]);
 
   useEffect(() => {
-    const shouldUseInitialFeed =
-      hasInitialFeed && refreshToken === 0 && viewerAddress === null;
+    const shouldUseInitialFeed = hasInitialFeed && refreshToken === 0;
     if (shouldUseInitialFeed) {
       setNotice(null);
       return;

@@ -26,6 +26,7 @@ import {
   requireOwnerSessionFromBody,
   requireOwnerSessionFromSearchParams,
 } from "@/lib/ownerAuthSession";
+import { isPrismaUnavailableError } from "@/lib/prismaRetry";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,7 @@ function toAutoPost(v: unknown): boolean {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  let status: ReturnType<typeof toTaskStatus> = null;
   try {
     const { searchParams } = new URL(req.url);
     const ownerSession = await requireOwnerSessionFromSearchParams(
@@ -76,7 +78,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       searchParams
     );
     if (!ownerSession.ok) return withCorsResponse(req, ownerSession.response);
-    const status = toTaskStatus(searchParams.get("status"));
+    status = toTaskStatus(searchParams.get("status"));
     if (searchParams.get("status") && !status) {
       return err(req, "STATUS_INVALID", 400);
     }
@@ -123,6 +125,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       status: status ?? null,
     });
   } catch (e) {
+    if (isPrismaUnavailableError(e)) {
+      return ok(req, {
+        tasks: [],
+        count: 0,
+        status: status ?? null,
+      });
+    }
     console.error("AGENT_TASKS_GET_FAILED", e);
     return err(req, "AGENT_TASKS_GET_FAILED", 500);
   }

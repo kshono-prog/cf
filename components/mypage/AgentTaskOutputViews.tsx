@@ -2459,6 +2459,316 @@ function StageGrowthPlanOutputCard(props: { output: StageGrowthPlanOutputView })
   );
 }
 
+// ── Contact Intelligence Alert ────────────────────────────────────────────────
+
+type ContactRiskOutputItem = {
+  contactId: string;
+  organizationName: string;
+  riskLevel: "high" | "medium" | "low";
+  riskType: string;
+  staleDays: number | null;
+  nextActionDueAt: string | null;
+  insight: string;
+  recommendation: string;
+};
+
+type ContactIntelligenceAlertOutputView = {
+  summary: string;
+  riskContacts: ContactRiskOutputItem[];
+  healthSummary: {
+    totalContacts: number;
+    highRiskCount: number;
+    mediumRiskCount: number;
+    staleCount: number;
+    overdueCount: number;
+    noNextActionCount: number;
+  };
+};
+
+// ── MONTHLY_CASHFLOW_REPORT ────────────────────────────────────────────────
+
+type CashflowSourceGroup = { source: string; amount: number; label: string };
+type CashflowCategoryGroup = { category: string; amount: number; label: string };
+
+type MonthlyCashflowReportOutputView = {
+  summary: string;
+  advice: string;
+  period: string;
+  totalRevenue: number;
+  totalExpense: number;
+  netCashflow: number;
+  revenueBySource: CashflowSourceGroup[];
+  expenseByCategory: CashflowCategoryGroup[];
+  prevMonthRevenue: number | null;
+  prevMonthExpense: number | null;
+  revenueDiff: number | null;
+  expenseDiff: number | null;
+  revenueRecordCount: number;
+  expenseCount: number;
+};
+
+function parseCashflowGroup<T extends { source?: string; category?: string; amount: number; label: string }>(
+  v: unknown
+): T | null {
+  if (!isRecord(v)) return null;
+  const amount = typeof v.amount === "number" ? v.amount : null;
+  const label = asStringOrNull(v.label);
+  if (amount === null || !label) return null;
+  return v as unknown as T;
+}
+
+function parseMonthlyCashflowReportOutput(
+  v: unknown
+): MonthlyCashflowReportOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  const period = asStringOrNull(v.period);
+  if (!summary || !period) return null;
+
+  const advice = asStringOrNull(v.advice) ?? "";
+  const totalRevenue = typeof v.totalRevenue === "number" ? v.totalRevenue : 0;
+  const totalExpense = typeof v.totalExpense === "number" ? v.totalExpense : 0;
+  const netCashflow = typeof v.netCashflow === "number" ? v.netCashflow : totalRevenue - totalExpense;
+
+  const revenueBySource = asArray(v.revenueBySource)
+    .map((item) => parseCashflowGroup<CashflowSourceGroup>(item))
+    .filter((x): x is CashflowSourceGroup => x !== null);
+  const expenseByCategory = asArray(v.expenseByCategory)
+    .map((item) => parseCashflowGroup<CashflowCategoryGroup>(item))
+    .filter((x): x is CashflowCategoryGroup => x !== null);
+
+  const prevMonthRevenue = typeof v.prevMonthRevenue === "number" ? v.prevMonthRevenue : null;
+  const prevMonthExpense = typeof v.prevMonthExpense === "number" ? v.prevMonthExpense : null;
+  const revenueDiff = typeof v.revenueDiff === "number" ? v.revenueDiff : null;
+  const expenseDiff = typeof v.expenseDiff === "number" ? v.expenseDiff : null;
+  const revenueRecordCount = typeof v.revenueRecordCount === "number" ? v.revenueRecordCount : revenueBySource.length;
+  const expenseCount = typeof v.expenseCount === "number" ? v.expenseCount : expenseByCategory.length;
+
+  return {
+    summary,
+    advice,
+    period,
+    totalRevenue,
+    totalExpense,
+    netCashflow,
+    revenueBySource,
+    expenseByCategory,
+    prevMonthRevenue,
+    prevMonthExpense,
+    revenueDiff,
+    expenseDiff,
+    revenueRecordCount,
+    expenseCount,
+  };
+}
+
+function DiffBadge({ diff }: { diff: number | null }) {
+  if (diff === null) return null;
+  const positive = diff >= 0;
+  return (
+    <span
+      className={[
+        "ml-1 text-[10px] font-medium",
+        positive ? "text-green-600" : "text-red-500",
+      ].join(" ")}
+    >
+      {positive ? `+${diff.toString()}` : diff.toString()}%
+    </span>
+  );
+}
+
+function MonthlyCashflowReportOutputCard(props: {
+  output: MonthlyCashflowReportOutputView;
+}) {
+  const { output } = props;
+  const isPositive = output.netCashflow >= 0;
+
+  return (
+    <div className="mt-1 space-y-2 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px]">
+      <div className="text-[10px] font-medium text-[var(--text-subtle)]">{output.period}</div>
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+
+      {/* Net cashflow highlight */}
+      <div className="flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+        <div className="flex-1">
+          <div className="text-[10px] text-[var(--text-subtle)]">収入</div>
+          <div className="font-semibold tabular-nums text-[var(--text)]">
+            ¥{output.totalRevenue.toLocaleString()}
+            <DiffBadge diff={output.revenueDiff} />
+          </div>
+        </div>
+        <div className="flex-1">
+          <div className="text-[10px] text-[var(--text-subtle)]">支出</div>
+          <div className="font-semibold tabular-nums text-[var(--text)]">
+            ¥{output.totalExpense.toLocaleString()}
+            <DiffBadge diff={output.expenseDiff} />
+          </div>
+        </div>
+        <div className="flex-1">
+          <div className="text-[10px] text-[var(--text-subtle)]">収支</div>
+          <div
+            className={[
+              "font-semibold tabular-nums",
+              isPositive ? "text-green-600" : "text-red-500",
+            ].join(" ")}
+          >
+            {isPositive ? "+" : ""}¥{output.netCashflow.toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue breakdown */}
+      {output.revenueBySource.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">収入内訳</div>
+          {output.revenueBySource.map((r, i) => (
+            <div
+              key={`rev:${i.toString()}`}
+              className="flex items-center justify-between rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1"
+            >
+              <span className="text-[var(--text)]">{r.label}</span>
+              <span className="tabular-nums font-medium text-[var(--text)]">
+                ¥{r.amount.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Expense breakdown */}
+      {output.expenseByCategory.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">支出内訳</div>
+          {output.expenseByCategory.map((e, i) => (
+            <div
+              key={`exp:${i.toString()}`}
+              className="flex items-center justify-between rounded border border-dashed border-[var(--line)] bg-[var(--surface)] px-2 py-1"
+            >
+              <span className="text-[var(--text)]">{e.label}</span>
+              <span className="tabular-nums font-medium text-red-500">
+                ¥{e.amount.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Advice */}
+      {output.advice ? (
+        <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1.5 text-[10px] text-indigo-800">
+          {output.advice}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function parseContactIntelligenceAlertOutput(
+  v: unknown
+): ContactIntelligenceAlertOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+  const riskContacts: ContactRiskOutputItem[] = asArray(v.riskContacts)
+    .filter(isRecord)
+    .map((item) => ({
+      contactId: asStringOrNull(item.contactId) ?? "",
+      organizationName: asStringOrNull(item.organizationName) ?? "（名称未設定）",
+      riskLevel: (["high", "medium", "low"].includes(String(item.riskLevel))
+        ? item.riskLevel
+        : "low") as ContactRiskOutputItem["riskLevel"],
+      riskType: asStringOrNull(item.riskType) ?? "stale",
+      staleDays:
+        typeof item.staleDays === "number" ? item.staleDays : null,
+      nextActionDueAt: asStringOrNull(item.nextActionDueAt) ?? null,
+      insight: asStringOrNull(item.insight) ?? "",
+      recommendation: asStringOrNull(item.recommendation) ?? "",
+    }));
+  const hs = isRecord(v.healthSummary) ? v.healthSummary : {};
+  return {
+    summary,
+    riskContacts,
+    healthSummary: {
+      totalContacts: typeof hs.totalContacts === "number" ? hs.totalContacts : 0,
+      highRiskCount: typeof hs.highRiskCount === "number" ? hs.highRiskCount : 0,
+      mediumRiskCount: typeof hs.mediumRiskCount === "number" ? hs.mediumRiskCount : 0,
+      staleCount: typeof hs.staleCount === "number" ? hs.staleCount : 0,
+      overdueCount: typeof hs.overdueCount === "number" ? hs.overdueCount : 0,
+      noNextActionCount: typeof hs.noNextActionCount === "number" ? hs.noNextActionCount : 0,
+    },
+  };
+}
+
+const RISK_LEVEL_BADGE: Record<ContactRiskOutputItem["riskLevel"], string> = {
+  high: "status-badge status-badge-error",
+  medium: "status-badge status-badge-warn",
+  low: "status-badge status-badge-neutral",
+};
+
+const RISK_LEVEL_LABEL: Record<ContactRiskOutputItem["riskLevel"], string> = {
+  high: "要対応",
+  medium: "要確認",
+  low: "参考",
+};
+
+function ContactIntelligenceAlertOutputCard(props: {
+  output: ContactIntelligenceAlertOutputView;
+}) {
+  const { output } = props;
+  const { healthSummary: hs } = output;
+  return (
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-3">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-center">
+          <div className="text-[10px] text-[var(--text-subtle)]">接点総数</div>
+          <div className="mt-0.5 text-xl font-semibold text-[var(--text)]">{hs.totalContacts}</div>
+        </div>
+        <div className={`rounded-xl border px-3 py-2 text-center ${hs.highRiskCount > 0 ? "border-rose-200 bg-rose-50" : "border-[var(--line)] bg-white"}`}>
+          <div className={`text-[10px] ${hs.highRiskCount > 0 ? "text-rose-700" : "text-[var(--text-subtle)]"}`}>要対応</div>
+          <div className={`mt-0.5 text-xl font-semibold ${hs.highRiskCount > 0 ? "text-rose-700" : "text-[var(--text)]"}`}>{hs.highRiskCount}</div>
+        </div>
+        <div className={`rounded-xl border px-3 py-2 text-center ${hs.mediumRiskCount > 0 ? "border-amber-200 bg-amber-50" : "border-[var(--line)] bg-white"}`}>
+          <div className={`text-[10px] ${hs.mediumRiskCount > 0 ? "text-amber-700" : "text-[var(--text-subtle)]"}`}>要確認</div>
+          <div className={`mt-0.5 text-xl font-semibold ${hs.mediumRiskCount > 0 ? "text-amber-700" : "text-[var(--text)]"}`}>{hs.mediumRiskCount}</div>
+        </div>
+      </div>
+      {output.riskContacts.length > 0 ? (
+        <div className="space-y-2">
+          {output.riskContacts.map((contact, i) => (
+            <div
+              key={contact.contactId || i}
+              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 space-y-1"
+            >
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={RISK_LEVEL_BADGE[contact.riskLevel]}>
+                  {RISK_LEVEL_LABEL[contact.riskLevel]}
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--text)]">
+                  {contact.organizationName}
+                </span>
+                {contact.staleDays !== null ? (
+                  <span className="text-[10px] text-[var(--text-subtle)]">
+                    {contact.staleDays}日停滞
+                  </span>
+                ) : null}
+              </div>
+              <div className="text-[11px] text-[var(--text-subtle)]">{contact.insight}</div>
+              <div className="text-[11px] font-medium text-[var(--text)]">
+                → {contact.recommendation}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[11px] text-[var(--text-subtle)]">
+          現在リスクの高い接点はありません。
+        </p>
+      )}
+    </div>
+  );
+}
+
 type OutputRenderer = {
   render: (output: unknown, context: OutputActionContext) => React.ReactNode | null;
 };
@@ -2611,6 +2921,18 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     render: (output) => {
       const parsed = parseStageGrowthPlanOutput(output);
       return parsed ? <StageGrowthPlanOutputCard output={parsed} /> : null;
+    },
+  },
+  CONTACT_INTELLIGENCE_ALERT: {
+    render: (output) => {
+      const parsed = parseContactIntelligenceAlertOutput(output);
+      return parsed ? <ContactIntelligenceAlertOutputCard output={parsed} /> : null;
+    },
+  },
+  MONTHLY_CASHFLOW_REPORT: {
+    render: (output) => {
+      const parsed = parseMonthlyCashflowReportOutput(output);
+      return parsed ? <MonthlyCashflowReportOutputCard output={parsed} /> : null;
     },
   },
 };

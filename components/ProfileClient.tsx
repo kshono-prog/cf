@@ -1,26 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 
 import type { FeedListView } from "@/lib/feedList";
 import type { CreatorProfile } from "@/lib/profileTypes";
-import {
-  clampPct,
-  type Currency,
-} from "@/components/profile/profileClientHelpers";
-import { LazyFeedSection } from "@/components/feed/LazyFeedSection";
-import { Avatar } from "@/components/shared/Avatar";
-import { CreatorManagementStrip } from "@/components/profile/CreatorManagementStrip";
-import { ProfileHero } from "@/components/profile/ProfileHero";
-import { ProfileViewerGuideCard } from "@/components/profile/ProfileViewerGuideCard";
+import type { Currency } from "@/components/profile/profileClientHelpers";
+import { DeferredFeedSection } from "@/components/feed/DeferredFeedSection";
 import {
   type SupportProjectView,
   type SupportProfileView,
 } from "@/lib/supportProfileView";
-import { SupportProjectSummaryCard } from "@/components/support/SupportProjectSummaryCard";
 import { useWalletResume } from "@/components/profile/useWalletResume";
 import { useProjectProgress } from "@/components/profile/useProjectProgress";
 import { useContributionFlow } from "@/components/profile/useContributionFlow";
@@ -65,6 +56,16 @@ const CreatorCommunityCard = dynamic(
   }
 );
 
+const ProfileViewerGuideCard = dynamic(
+  () =>
+    import("@/components/profile/ProfileViewerGuideCard").then(
+      (module) => module.ProfileViewerGuideCard
+    ),
+  {
+    loading: () => null,
+  }
+);
+
 type CreatorProfileInput = Omit<CreatorProfile, "address"> & {
   address?: string | null;
 };
@@ -80,26 +81,8 @@ type Props = {
   supportProfileView?: SupportProfileView | null;
   recruitingProjects?: SupportProjectView[];
   initialFeed?: FeedListView | null;
-  layout?: "full" | "content";
+  introContent?: React.ReactNode;
 };
-
-
-function formatSupportAmount(value: number, currency: Currency): string {
-  if (!Number.isFinite(value)) return currency === "USDC" ? "0.00" : "0";
-  if (currency === "USDC") {
-    return value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  }
-
-  return Math.floor(value).toLocaleString();
-}
-
-function extractYouTubeId(url: string): string {
-  const match = url.match(/(?:v=|youtu\.be\/)([^&]+)/);
-  return match ? match[1] : "";
-}
 
 export default function ProfileClient({
   username,
@@ -109,7 +92,7 @@ export default function ProfileClient({
   supportProfileView,
   recruitingProjects = [],
   initialFeed = null,
-  layout = "full",
+  introContent,
 }: Props) {
   const { address: viewerAddress } = useAccount();
   const creator: CreatorProfile = useMemo(() => {
@@ -147,11 +130,18 @@ export default function ProfileClient({
       }
     );
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
+  const [stickyVisible, setStickyVisible] = useState(false);
 
   useEffect(() => {
     if (!supportProfileView) return;
     setSupportProfileState(supportProfileView);
   }, [supportProfileView]);
+
+  useEffect(() => {
+    const onScroll = () => setStickyVisible(window.scrollY > 50);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const recruitingProjectMap = useMemo(
     () =>
@@ -184,7 +174,6 @@ export default function ProfileClient({
     openSupportSheet,
     closeSupportSheet,
     handleSelectPostTip,
-    handleOpenProjectSupport,
   } = useSupportSheet({
     canOpenSupportSheet,
     recruitingProjectMap,
@@ -241,8 +230,6 @@ export default function ProfileClient({
 
   // ── P1-5: useProjectProgress ─────────────────────────────────────────────
   const {
-    progressLoading,
-    progressError,
     goalAchievedAt,
     supportedJpycChainIds,
     supportedChainIdsByCurrency,
@@ -271,21 +258,6 @@ export default function ProfileClient({
   });
 
   const displayName = creator.displayName || username;
-  const supportMode = supportProfileState.mode;
-  const supportCardReady = activeSupportProject !== null;
-  const supportTitle =
-    supportCardReady
-      ? activeSupportProject?.title ?? `${displayName}の活動を応援する`
-      : supportMode === "draft"
-      ? supportProfileState.draft?.title ?? `${displayName}の公開ページは準備中です`
-      : `${displayName}の公開ページは準備中です`;
-  const supportDescription =
-    supportCardReady
-      ? activeSupportProject?.description ?? null
-      : supportMode === "draft"
-      ? supportProfileState.draft?.description ?? null
-      : "公開ページを準備中です。応援内容が整うと、ここから確認できます。";
-
   const ownerProjectOptions = useMemo(() => {
     const options: Array<{ id: string; label: string }> = [];
     const seen = new Set<string>();
@@ -316,43 +288,16 @@ export default function ProfileClient({
     ? `/${viewerState.creatorUsername}`
     : viewerWorkspaceHref;
   const pageDisplayName = displayName;
-  const availableCurrencies = availableSupportCurrencies;
-  const selectedCurrencyLabel =
-    activeSupportProject?.currency ??
-    supportProfileState.activeCurrency ??
-    "JPYC";
-  const currentSupportLabel = activeSupportProject
-    ? `${formatSupportAmount(
-        activeSupportProject.confirmedAmount,
-        activeSupportProject.currency
-      )} ${activeSupportProject.currency}`
-    : "-";
-  const targetSupportLabel = activeSupportProject
-    ? activeSupportProject.targetAmount != null
-      ? `${formatSupportAmount(
-          activeSupportProject.targetAmount,
-          activeSupportProject.currency
-        )} ${activeSupportProject.currency}`
-      : "-"
-    : "-";
-  const statusLabel =
-    activeSupportProject?.status === "ACHIEVED"
-      ? "目標達成済み"
-      : activeSupportProject?.status === "NO_GOAL"
-      ? "目標未設定"
-      : "受付中";
-  const statusDetail = activeSupportProject?.deadline
-    ? `期限 ${activeSupportProject.deadline.slice(0, 10)}`
-    : activeSupportProject
-    ? null
-    : supportMode === "draft"
-    ? "公開ページを準備中です"
-    : "応援を受け付ける準備が整っていません";
 
-  async function handleViewerConnect(): Promise<void> {
+  const handleViewerConnect = useCallback(async (): Promise<void> => {
     const { appkit } = await import("@/lib/appkitInstance");
     await appkit.open({ view: "Connect" });
-  }
+  }, []);
+
+  const showStickyBar =
+    stickyVisible &&
+    !viewerState.isOwner &&
+    (canOpenSupportSheet || viewerState.mode === "unconnected");
 
   const profileGuideCard = (
     <ProfileViewerGuideCard
@@ -366,267 +311,27 @@ export default function ProfileClient({
     />
   );
 
+  const standaloneCommunityCard = (
+    <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-4">
+      <CreatorCommunityCard
+        username={username}
+        viewerAddress={viewerAddress ?? null}
+        viewerState={viewerState}
+        managementHref={ownerComposerManagementHref}
+        registrationHref={viewerWorkspaceHref}
+        onRequireConnection={() => void handleViewerConnect()}
+      />
+    </section>
+  );
+
   const profileScreen = (
     <div className="space-y-3">
-      <ProfileHero
-        username={username}
-        displayName={displayName}
-        avatarUrl={creator.avatarUrl}
-        profile={creator.profile}
-        externalUrl={creator.url}
-        themeColor={creator.themeColor}
-        socials={creator.socials}
-        communityContent={
-          <CreatorCommunityCard
-            username={username}
-            viewerAddress={viewerAddress ?? null}
-            viewerState={viewerState}
-            managementHref={ownerComposerManagementHref}
-            registrationHref={viewerWorkspaceHref}
-            onRequireConnection={() => void handleViewerConnect()}
-          />
-        }
-      />
+      {introContent}
+      {standaloneCommunityCard}
 
       {viewerState.mode !== "unconnected" ? profileGuideCard : null}
-      {recruitingProjects.length === 0 ? (
-        <section
-          id="support-projects"
-          className="panel-card px-3.5 py-2.5 sm:px-4 sm:py-3"
-        >
-          <div className="grid gap-2.5 pb-2.5 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-3">
-            <div className="flex min-w-0 flex-col items-center justify-center gap-2 text-center">
-              <div className="flex min-w-0 flex-col items-center gap-2">
-                <Avatar
-                  src={creator.avatarUrl}
-                  alt={`${displayName} のアイコン`}
-                  fallbackText={displayName.slice(0, 1) || "?"}
-                  size={32}
-                />
-                <div className="text-[11px] font-medium text-[var(--text-subtle)]">
-                  {displayName}
-                </div>
-              </div>
-              <div>
-                {viewerState.isOwner ? (
-                  <Link
-                    href={viewerWorkspaceHref}
-                    className="btn-secondary px-3 py-1.5 text-[12px]"
-                  >
-                    公開ページを整える
-                  </Link>
-                ) : canOpenSupportSheet ? (
-                  <button
-                    type="button"
-                    className="btn px-3 py-1.5 text-[12px]"
-                    onClick={openSupportSheet}
-                  >
-                    応援する
-                  </button>
-                ) : null}
-              </div>
-            </div>
-            <div className="min-w-0">
-              <div className="text-[14px] font-semibold text-[var(--text)] sm:text-[15px]">
-                {supportTitle}
-              </div>
-              {supportDescription ? (
-                <p className="mt-0.5 whitespace-pre-wrap text-[11px] leading-4.5 text-[var(--text-subtle)] sm:mt-1 sm:text-[12px]">
-                  {supportDescription}
-                </p>
-              ) : null}
-            </div>
-          </div>
-
-          {!supportCardReady ? (
-            <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[11px] leading-5 text-[var(--text-subtle)]">
-              {supportMode === "draft"
-                ? "公開ページを準備中です。応援内容が整うと、ここに進捗が表示されます。"
-                : "いまは応援内容を読み込めません。時間をおいてもう一度お試しください。"}
-            </div>
-          ) : progressLoading ? (
-            <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-sm text-[var(--text-subtle)]">
-              読み込み中です
-            </div>
-          ) : progressError ? (
-            <div className="alert-warn mt-1.5">
-              うまく読み込めませんでした。もう一度お試しください。
-            </div>
-          ) : (
-            <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-[var(--line)] pt-1.5 sm:grid-cols-4">
-              <div className="min-w-0">
-                <div className="text-[10px] font-medium text-[var(--text-subtle)]">集まった応援</div>
-                <div className="mt-0.5 text-[14px] font-semibold text-[var(--text)] sm:text-[1rem]">
-                  {currentSupportLabel}
-                </div>
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] font-medium text-[var(--text-subtle)]">目標</div>
-                <div className="mt-0.5 text-[14px] font-semibold text-[var(--text)] sm:text-[1rem]">
-                  {targetSupportLabel}
-                </div>
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="text-[10px] font-medium text-[var(--text-subtle)]">進捗</div>
-                  <div className="text-[12px] font-semibold text-[var(--text)]">
-                    {activeSupportProject
-                      ? `${Math.floor(clampPct(activeSupportProject.progressPct))}%`
-                      : "-"}
-                  </div>
-                </div>
-                <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-                  <div
-                    className="h-full rounded-full bg-[var(--support)]"
-                    style={{
-                      width: `${
-                        activeSupportProject
-                          ? clampPct(activeSupportProject.progressPct)
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] font-medium text-[var(--text-subtle)]">状態</div>
-                <div className="mt-0.5 text-[13px] font-semibold text-[var(--text)]">
-                  {statusLabel}
-                </div>
-                {statusDetail ? (
-                  <div className="mt-0.5 text-[10px] leading-4 text-[var(--text-subtle)]">
-                    {statusDetail}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          )}
-
-          {supportCardReady && availableCurrencies.length > 1 ? (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 border-t border-[var(--line)] pt-1.5">
-              <div className="text-[10px] font-medium text-[var(--text-subtle)]">
-                表示通貨
-              </div>
-              {(["JPYC", "USDC"] as const).map((currency) => (
-                <button
-                  key={currency}
-                  type="button"
-                  className={`px-2.5 py-1 text-[11px] ${
-                    viewCurrency === currency ? "action-pill-active" : "chip-button"
-                  }`}
-                  disabled={!supportProfileState.projectsByCurrency[currency]}
-                  onClick={() => setViewCurrency(currency)}
-                >
-                  {currency}
-                </button>
-              ))}
-            </div>
-          ) : supportCardReady && availableCurrencies.length === 1 ? (
-            <div className="mt-1.5 border-t border-[var(--line)] pt-1.5 text-[10px] text-[var(--text-subtle)]">
-              表示通貨: {selectedCurrencyLabel}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {recruitingProjects.length > 0 ? (
-        <section
-          id="support-projects"
-          className="panel-card px-4 py-4 sm:px-5 sm:py-5"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-base font-semibold text-[var(--text)]">
-                募集中のプロジェクト
-              </div>
-              <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                いま応援を受け付けている project をまとめて見られます。
-              </p>
-            </div>
-            <div className="text-sm text-[var(--text-subtle)]">
-              {recruitingProjects.length} 件
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {recruitingProjects.map((project) => {
-              const isSelected = activeSupportProject?.projectId === project.projectId;
-
-              return (
-                <SupportProjectSummaryCard
-                  key={project.projectId}
-                  creator={{
-                    username,
-                    displayName,
-                    avatarUrl: creator.avatarUrl ?? null,
-                  }}
-                  project={project}
-                  isSelected={isSelected}
-                  actionLabel={
-                    isSelected ? "選択中の project" : "この project を応援"
-                  }
-                  onAction={() => {
-                    handleOpenProjectSupport(project);
-                  }}
-                />
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      {creator.youtubeVideos && creator.youtubeVideos.length > 0 ? (
-        <section className="panel-card px-4 py-4 sm:px-5 sm:py-5">
-          <div className="text-base font-semibold text-[var(--text)]">紹介動画</div>
-          <div className="mt-3 space-y-4">
-            {creator.youtubeVideos.map((video, index) => {
-              const videoId = extractYouTubeId(video.url);
-
-              return (
-                <div key={`${video.url}-${index}`} className="space-y-2.5">
-                  {videoId ? (
-                    <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-black">
-                      <div className="aspect-video w-full">
-                        <iframe
-                          src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
-                          title={video.title || "紹介動画"}
-                          className="h-full w-full"
-                          loading="lazy"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          referrerPolicy="strict-origin-when-cross-origin"
-                          allowFullScreen
-                        />
-                      </div>
-                    </div>
-                  ) : video.url ? (
-                    <Link
-                      href={video.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex rounded-full border border-[var(--line)] px-3 py-2 text-sm text-[var(--text)] transition hover:bg-[var(--surface-subtle)]"
-                    >
-                      動画を開く
-                    </Link>
-                  ) : null}
-                  <div>
-                    <div className="text-[15px] font-semibold text-[var(--text)]">
-                      {video.title || "紹介動画"}
-                    </div>
-                    {video.description ? (
-                      <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-subtle)]">
-                        {video.description}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
       <div id="posts" ref={timelineRef}>
-        <LazyFeedSection
+        <DeferredFeedSection
           creatorUsername={username}
           viewerAddress={viewerAddress ?? null}
           managedCreatorUsername={viewerState.creatorUsername}
@@ -696,16 +401,51 @@ export default function ProfileClient({
     </>
   );
 
-  if (layout === "content") {
-    return content;
-  }
+  const supportBgColor = creator.themeColor ?? "#7c3aed";
+
+  const stickyBar = showStickyBar ? (
+    <div
+      className={`fixed inset-x-0 z-40 transition-transform duration-300 ${
+        stickyVisible ? "translate-y-0" : "translate-y-full"
+      }`}
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 64px)" }}
+    >
+      <div className="mx-auto max-w-[760px] px-4 pb-2">
+        <button
+          type="button"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[15px] font-semibold text-white shadow-lg transition active:scale-[0.98]"
+          style={{ backgroundColor: supportBgColor }}
+          onClick={() => {
+            if (viewerState.mode === "unconnected") {
+              void handleViewerConnect();
+            } else if (canOpenSupportSheet) {
+              openSupportSheet();
+            }
+          }}
+        >
+          {/* Gift icon */}
+          <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-hidden="true">
+            <path
+              d="M12 7c-1-2-3-3-3.5-1.5C8 7 10 7.5 12 7c1-2 3-3 3.5-1.5C16 7 14 7.5 12 7Z"
+              fill="white"
+              stroke="white"
+              strokeWidth="1.3"
+              strokeLinejoin="round"
+            />
+            <rect x="4" y="7" width="16" height="3.2" rx="1" fill="white" />
+            <rect x="5.2" y="10.2" width="13.6" height="8.8" rx="1" fill="white" />
+            <line x1="12" y1="7" x2="12" y2="19" stroke={supportBgColor} strokeWidth="1.4" />
+          </svg>
+          <span>{displayName}を応援する</span>
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   return (
-    <div className="space-y-4">
-      {viewerState.isOwner ? (
-        <CreatorManagementStrip username={username} />
-      ) : null}
+    <>
       {content}
-    </div>
+      {stickyBar}
+    </>
   );
 }

@@ -111,17 +111,18 @@ function buildContributionTotals(
   return totals;
 }
 
-async function loadContributionTotals(
-  projectIds: bigint[]
+async function loadContributionTotalsByCreatorProfileId(
+  creatorProfileId: bigint
 ): Promise<PublicProfileContributionTotals> {
-  if (projectIds.length === 0) return new Map();
-
   const rows = await withPrismaRetry(() =>
     prisma.contribution.groupBy({
       by: ["projectId", "currency"],
       where: {
-        projectId: { in: projectIds },
         status: "CONFIRMED",
+        project: {
+          creatorProfileId,
+          currency: { in: ["JPYC", "USDC"] },
+        },
       },
       _sum: { amountDecimal: true },
     })
@@ -306,35 +307,37 @@ export async function loadPublicProfileProjectData(args: {
   activeProjectIdUsdc: string | null;
   creator: Pick<CreatorProfile, "displayName" | "profile">;
 }): Promise<PublicProfileProjectData> {
-  const rawProjects = await withPrismaRetry(() =>
-    prisma.project.findMany({
-      where: {
-        creatorProfileId: args.creatorProfileId,
-        currency: { in: ["JPYC", "USDC"] },
-      },
-      select: {
-        id: true,
-        creatorProfileId: true,
-        title: true,
-        description: true,
-        currency: true,
-        status: true,
-        createdAt: true,
-        goal: {
-          select: {
-            targetAmount: true,
-            targetAmountJpyc: true,
-            achievedAt: true,
-            deadline: true,
+  const [rawProjects, totals] = await Promise.all([
+    withPrismaRetry(() =>
+      prisma.project.findMany({
+        where: {
+          creatorProfileId: args.creatorProfileId,
+          currency: { in: ["JPYC", "USDC"] },
+        },
+        select: {
+          id: true,
+          creatorProfileId: true,
+          title: true,
+          description: true,
+          currency: true,
+          status: true,
+          createdAt: true,
+          goal: {
+            select: {
+              targetAmount: true,
+              targetAmountJpyc: true,
+              achievedAt: true,
+              deadline: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    })
-  );
+        orderBy: { createdAt: "desc" },
+      })
+    ),
+    loadContributionTotalsByCreatorProfileId(args.creatorProfileId),
+  ]);
 
   const projects = normalizeProjectRows(rawProjects);
-  const totals = await loadContributionTotals(projects.map((project) => project.id));
 
   return derivePublicProfileProjectData({
     projects,

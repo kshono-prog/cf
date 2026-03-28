@@ -65,7 +65,34 @@ export function CreatorCommunityCard(props: Props) {
   }, [props.username, query]);
 
   useEffect(() => {
-    void fetchSummary();
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const scheduleFetch = () => {
+      void fetchSummary();
+    };
+
+    if (
+      typeof window !== "undefined" &&
+      typeof window.requestIdleCallback === "function"
+    ) {
+      idleId = window.requestIdleCallback(scheduleFetch, { timeout: 2000 });
+    } else {
+      timeoutId = globalThis.setTimeout(scheduleFetch, 500);
+    }
+
+    return () => {
+      if (
+        idleId !== null &&
+        typeof window !== "undefined" &&
+        typeof window.cancelIdleCallback === "function"
+      ) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        globalThis.clearTimeout(timeoutId);
+      }
+    };
   }, [fetchSummary]);
 
   async function handleToggleFollow(): Promise<void> {
@@ -116,7 +143,7 @@ export function CreatorCommunityCard(props: Props) {
       return (
         <Link
           href={props.managementHref}
-          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+          className="btn-secondary text-xs"
         >
           投稿管理へ
         </Link>
@@ -151,7 +178,7 @@ export function CreatorCommunityCard(props: Props) {
         <button
           type="button"
           disabled
-          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-500"
+          className="btn-secondary text-xs text-[var(--text-subtle)]"
         >
           判定中...
         </button>

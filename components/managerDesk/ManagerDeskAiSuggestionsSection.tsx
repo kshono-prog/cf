@@ -52,10 +52,10 @@ function DecisionButton(props: {
     <button
       type="button"
       onClick={props.onClick}
-      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+      className={`btn-secondary px-3 py-1.5 text-xs font-medium transition ${
         props.active
-          ? "border-slate-900 bg-slate-900 text-white"
-          : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+          ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
+          : ""
       }`}
     >
       {props.label}
@@ -76,7 +76,7 @@ export function ManagerDeskAiSuggestionsSection(props: {
   );
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-white p-4">
+    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -162,7 +162,7 @@ export function ManagerDeskAiSuggestionsSection(props: {
                   />
                   <Link
                     href={suggestion.href}
-                    className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-gray-400"
+                    className="btn-secondary px-3 py-1.5 text-xs"
                   >
                     {suggestion.actionLabel}
                   </Link>

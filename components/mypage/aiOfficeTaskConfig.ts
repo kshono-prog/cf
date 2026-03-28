@@ -180,6 +180,18 @@ export const AI_OFFICE_TASK_CHOICES: readonly AiOfficeTaskChoice[] = [
     whenToUse: "現在のステージと成熟度から、次のレベルに向けた具体的な成長ステップを確認したいとき",
     tier: "MVP",
   },
+  {
+    taskType: "CONTACT_INTELLIGENCE_ALERT",
+    eyebrow: "接点リスク分析",
+    whenToUse: "Contact Pipeline の停滞・期限超過・温度感を AI が分析し、優先対応すべき接点を洗い出したいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "MONTHLY_CASHFLOW_REPORT",
+    eyebrow: "月次収支レポート",
+    whenToUse: "今月の収入・支出を集計してAIに収支サマリーとアドバイスを作ってもらいたいとき",
+    tier: "MVP",
+  },
 ] as const;
 
 export const AI_OFFICE_TASK_TIER_HELPER: Record<ProductTier, string> = {

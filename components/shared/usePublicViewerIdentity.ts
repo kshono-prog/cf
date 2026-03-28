@@ -35,6 +35,8 @@ export function usePublicViewerIdentity(args: Args) {
 
     const connectedAddress = viewerAddress;
     let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
 
     async function loadViewer(): Promise<void> {
       setViewerIdentityResolved(false);
@@ -54,10 +56,31 @@ export function usePublicViewerIdentity(args: Args) {
       }
     }
 
-    void loadViewer();
+    const scheduleLoad = () => {
+      void loadViewer();
+    };
+
+    if (
+      typeof window !== "undefined" &&
+      typeof window.requestIdleCallback === "function"
+    ) {
+      idleId = window.requestIdleCallback(scheduleLoad, { timeout: 1500 });
+    } else {
+      timeoutId = globalThis.setTimeout(scheduleLoad, 350);
+    }
 
     return () => {
       cancelled = true;
+      if (
+        idleId !== null &&
+        typeof window !== "undefined" &&
+        typeof window.cancelIdleCallback === "function"
+      ) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        globalThis.clearTimeout(timeoutId);
+      }
     };
   }, [isConnected, viewerAddress]);
 

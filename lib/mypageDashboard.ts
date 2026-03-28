@@ -10,6 +10,22 @@ import { getProjectSummaryView } from "@/lib/projectSummary";
 import { getProjectSettlementView } from "@/lib/projectSettlementView";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 
+const globalForMyPageDashboardCache = globalThis as unknown as {
+  myPageDashboardCache?: Map<string, MyPageDashboardData>;
+};
+
+function getDashboardCache(): Map<string, MyPageDashboardData> {
+  if (!globalForMyPageDashboardCache.myPageDashboardCache) {
+    globalForMyPageDashboardCache.myPageDashboardCache = new Map();
+  }
+
+  return globalForMyPageDashboardCache.myPageDashboardCache;
+}
+
+function buildDashboardCacheKey(address: string, view: WorkspaceView): string {
+  return `${address.toLowerCase()}::${view}`;
+}
+
 async function loadProjectDashboard(
   projectId: string | null,
   options: MyPageDashboardLoadOptions
@@ -17,14 +33,12 @@ async function loadProjectDashboard(
   if (!projectId) return null;
 
   const bigintProjectId = BigInt(projectId);
-  const [summary, settlement] = await Promise.all([
-    options.includeSummary
-      ? getProjectSummaryView(bigintProjectId)
-      : Promise.resolve(null),
-    options.includeSettlement
-      ? getProjectSettlementView(bigintProjectId)
-      : Promise.resolve(null),
-  ]);
+  const summary = options.includeSummary
+    ? await getProjectSummaryView(bigintProjectId)
+    : null;
+  const settlement = options.includeSettlement
+    ? await getProjectSettlementView(bigintProjectId)
+    : null;
 
   if (!summary && !settlement) return null;
 
@@ -47,12 +61,10 @@ export async function getMyPageDashboard(
     USDC: null,
   };
 
-  const [jpyc, usdc] = await Promise.all([
-    loadProjectDashboard(projectIdsByCurrency.JPYC, options),
-    loadProjectDashboard(projectIdsByCurrency.USDC, options),
-  ]);
+  const jpyc = await loadProjectDashboard(projectIdsByCurrency.JPYC, options);
+  const usdc = await loadProjectDashboard(projectIdsByCurrency.USDC, options);
 
-  return {
+  const dashboard: MyPageDashboardData = {
     me,
     selectedProjectId: me.projectId ?? projectIdsByCurrency.JPYC ?? projectIdsByCurrency.USDC,
     projectsByCurrency: {
@@ -60,4 +72,15 @@ export async function getMyPageDashboard(
       USDC: usdc,
     } satisfies Record<CurrencyCode, MyPageProjectDashboard | null>,
   };
+
+  getDashboardCache().set(buildDashboardCacheKey(address, view), dashboard);
+
+  return dashboard;
+}
+
+export function getCachedMyPageDashboard(
+  address: string,
+  view: WorkspaceView
+): MyPageDashboardData | null {
+  return getDashboardCache().get(buildDashboardCacheKey(address, view)) ?? null;
 }

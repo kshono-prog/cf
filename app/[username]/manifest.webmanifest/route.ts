@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
-import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
-import { resolveBaseUrlFromRequestUrl, withBaseUrl } from "@/utils/baseUrl";
+import { loadPublicProfileMetadataSeed } from "@/lib/publicProfileMetadata";
+import { resolveBaseUrlFromRequestUrl } from "@/utils/baseUrl";
 
 type Params = { username: string };
 
@@ -10,19 +10,11 @@ export async function GET(
 ): Promise<Response> {
   const { username } = await ctx.params;
   const siteBaseUrl = resolveBaseUrlFromRequestUrl(request.url);
-  const creator =
-    (await getCreatorProfileByUsername(username))?.creator ?? null;
-
-  const displayName = creator?.displayName || username;
-  const rawImage = creator?.avatarUrl || "/icon/nagesen250.png";
-  const imageUrl =
-    rawImage && rawImage.startsWith("http")
-      ? rawImage
-      : withBaseUrl(rawImage, siteBaseUrl);
+  const metadataSeed = await loadPublicProfileMetadataSeed(username, siteBaseUrl);
 
   const manifest: MetadataRoute.Manifest = {
-    name: displayName,
-    short_name: displayName,
+    name: metadataSeed.displayName,
+    short_name: metadataSeed.displayName,
     start_url: `/${username}`,
     scope: `/${username}`,
     display: "standalone",
@@ -30,7 +22,7 @@ export async function GET(
     theme_color: "#ffffff",
     icons: [
       {
-        src: imageUrl,
+        src: metadataSeed.imageUrl,
         sizes: "512x512",
         purpose: "any",
       },

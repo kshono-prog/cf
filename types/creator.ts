@@ -1,5 +1,6 @@
 import type {
   CreatorType,
+  EcosystemRole,
 } from "@/lib/creatorTaxonomy";
 
 export type SocialLinks = Partial<
@@ -25,6 +26,7 @@ export type CreatorProfile = {
   url?: string | null;
   themeColor?: string | null;
   creatorType?: CreatorType | null;
+  ecosystemRole?: EcosystemRole | null;
   socials?: SocialLinks;
   youtubeVideos?: YoutubeVideo[];
 };

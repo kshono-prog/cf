@@ -37,6 +37,7 @@ export function CreatorReadyWorkspaceRouteContent(props: Props) {
   return (
     <CreatorReadyHomeRoute
       onOpenSettings={() => props.onNavigateToView("settings")}
+      workspaceBasePath={props.workspaceBasePath}
     />
   );
 }

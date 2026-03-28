@@ -46,7 +46,7 @@ function SupporterRow(props: { item: SupporterCrmItem; rank: number }) {
             {abbrevAddress(item.fromAddress)}
           </span>
           {isVip ? (
-            <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+            <span className="accent-badge-amber shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
               VIP
             </span>
           ) : null}

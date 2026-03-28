@@ -21,7 +21,7 @@ export function CreatorReadyAccountView(props: CreatorReadyAccountViewProps) {
   });
 
   return (
-    <MyPageShell headerColor={promoHeaderColor}>
+    <MyPageShell headerColor={promoHeaderColor} showPromo={false}>
       <div className="container-narrow space-y-4">
         <CreatorReadyWorkspaceHeader
           activeView={activeView}

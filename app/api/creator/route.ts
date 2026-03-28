@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   isCreatorType,
+  isEcosystemRole,
   type CreatorType,
+  type EcosystemRole,
 } from "@/lib/creatorTaxonomy";
 
 import type { SocialLinks, YoutubeVideo } from "@/types/creator";
@@ -122,6 +124,17 @@ function parseCreatorTypeOrThrow(
   return v;
 }
 
+function parseEcosystemRoleOrThrow(
+  v: unknown
+): EcosystemRole | null | undefined {
+  if (v === undefined) return undefined;
+  if (v === null || v === "") return null;
+  if (typeof v !== "string" || !isEcosystemRole(v)) {
+    throw new Error("ECOSYSTEM_ROLE_INVALID");
+  }
+  return v;
+}
+
 /**
  * 旧Goal拒否（UIから外しているのに、APIが受けてしまうと混乱するため）
  */
@@ -168,6 +181,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const externalUrl = toOptionalNullableString(json.externalUrl);
     const themeColor = toOptionalNullableString(json.themeColor);
     const creatorType = parseCreatorTypeOrThrow(json.creatorType);
+    const ecosystemRole = parseEcosystemRoleOrThrow(json.ecosystemRole);
 
     // “指定された場合のみ全入れ替え” を維持するため、
     // socials/youtubeVideos は undefined と “空オブジェクト/空配列” を区別する
@@ -207,6 +221,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
             themeColor === undefined ? creator.themeColor : themeColor,
           creatorType:
             creatorType === undefined ? creator.creatorType : creatorType,
+          ecosystemRole:
+            ecosystemRole === undefined ? creator.ecosystemRole : ecosystemRole,
         },
       });
 
@@ -271,6 +287,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       externalUrl: result.externalUrl,
       themeColor: result.themeColor,
       creatorType: result.creatorType,
+      ecosystemRole: result.ecosystemRole,
       walletAddress: result.walletAddress,
       socialLinks: result.socialLinks,
       youtubeVideos: result.youtubeVideos,
@@ -283,7 +300,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       if (e.message === "CREATOR_NOT_FOUND") {
         return jsonErr("CREATOR_NOT_FOUND", 404);
       }
-      if (e.message === "CREATOR_TYPE_INVALID") {
+      if (e.message === "CREATOR_TYPE_INVALID" || e.message === "ECOSYSTEM_ROLE_INVALID") {
         return jsonErr(e.message, 400, e.message);
       }
     }

@@ -7,6 +7,11 @@ import {
   type SuggestionPriority,
 } from "@/lib/creator-ai/nextActionSuggestions";
 import type { SummaryViewData } from "@/lib/mypage/accountPageTypes";
+import {
+  MATURITY_AXIS_LABELS,
+  type CreatorMaturityAxes,
+  type CreatorStageResult,
+} from "@/lib/creatorStage";
 
 export type ManagerAgentTaskInput = {
   source: string;
@@ -36,6 +41,15 @@ export type ManagerAgentTaskEvidence = {
   distributionRunCount: number;
 };
 
+export type ManagerAgentMaturitySignal = {
+  stage: string;
+  stageLabel: string;
+  nextMilestone: string | null;
+  weakestAxis: keyof CreatorMaturityAxes | null;
+  weakestAxisLabel: string | null;
+  weakestScore: number | null;
+};
+
 export type ManagerAgentProjectSnapshot = {
   projectId: string;
   title: string;
@@ -51,6 +65,7 @@ export type ManagerAgentTaskOutput = {
   summary: string;
   suggestedActions: ManagerAgentSuggestedAction[];
   evidence: ManagerAgentTaskEvidence;
+  maturitySignal: ManagerAgentMaturitySignal | null;
   basedOn: ManagerAgentTaskInput;
   projectSnapshot?: ManagerAgentProjectSnapshot;
 };
@@ -119,6 +134,27 @@ function buildProjectSnapshot(
   };
 }
 
+function buildMaturitySignal(
+  stageResult: CreatorStageResult | null
+): ManagerAgentMaturitySignal | null {
+  if (!stageResult) return null;
+
+  const entries = Object.entries(stageResult.maturity) as [
+    keyof CreatorMaturityAxes,
+    number,
+  ][];
+  const weakest = entries.sort((a, b) => a[1] - b[1])[0] ?? null;
+
+  return {
+    stage: stageResult.stage,
+    stageLabel: stageResult.stageLabel,
+    nextMilestone: stageResult.nextMilestone,
+    weakestAxis: weakest?.[0] ?? null,
+    weakestAxisLabel: weakest ? (MATURITY_AXIS_LABELS[weakest[0]] ?? null) : null,
+    weakestScore: weakest?.[1] ?? null,
+  };
+}
+
 function toStoredSuggestedActions(
   summary: SummaryViewData | null,
   isOwner: boolean
@@ -138,7 +174,8 @@ function toStoredSuggestedActions(
 
 function buildOutputSummary(
   summary: SummaryViewData | null,
-  suggestedActions: readonly ManagerAgentSuggestedAction[]
+  suggestedActions: readonly ManagerAgentSuggestedAction[],
+  maturitySignal: ManagerAgentMaturitySignal | null
 ): string {
   if (!summary) {
     return "Project summary がまだ取得できないため、Manager Agent は次の一手を確定できませんでした。";
@@ -151,20 +188,28 @@ function buildOutputSummary(
   const topAction = suggestedActions[0];
   const progressText = `${Math.floor(summary.progress.progressPct)}%`;
 
-  return `現在の project 状態から ${suggestedActions.length} 件の next action を整理しました。最優先は「${topAction.title}」で、進捗は ${progressText} です。`;
+  const axisNote =
+    maturitySignal?.weakestAxisLabel && maturitySignal.weakestScore !== null
+      ? ` 成熟度では「${maturitySignal.weakestAxisLabel}」（${maturitySignal.weakestScore.toString()}点）が最も伸びしろがあります。`
+      : "";
+
+  return `現在の project 状態から ${suggestedActions.length.toString()} 件の next action を整理しました。最優先は「${topAction.title}」で、進捗は ${progressText} です。${axisNote}`;
 }
 
 export function buildManagerAgentTaskOutput(args: {
   summary: SummaryViewData | null;
   input: ManagerAgentTaskInput;
   isOwner: boolean;
+  stageResult?: CreatorStageResult | null;
 }): ManagerAgentTaskOutput {
   const suggestedActions = toStoredSuggestedActions(args.summary, args.isOwner);
+  const maturitySignal = buildMaturitySignal(args.stageResult ?? null);
 
   return {
-    summary: buildOutputSummary(args.summary, suggestedActions),
+    summary: buildOutputSummary(args.summary, suggestedActions, maturitySignal),
     suggestedActions,
     evidence: buildManagerEvidence(args.summary),
+    maturitySignal,
     basedOn: args.input,
     ...(args.summary
       ? { projectSnapshot: buildProjectSnapshot(args.summary) }

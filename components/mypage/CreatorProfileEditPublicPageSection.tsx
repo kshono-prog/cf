@@ -3,7 +3,10 @@
 import {
   CREATOR_TYPE_LABELS,
   CREATOR_TYPE_OPTIONS,
+  ECOSYSTEM_ROLE_LABELS,
+  ECOSYSTEM_ROLE_OPTIONS,
   isCreatorType,
+  isEcosystemRole,
 } from "@/lib/creatorTaxonomy";
 import { SocialLinksEditor } from "@/components/mypage/SocialLinksEditor";
 import { YoutubeVideosEditor } from "@/components/mypage/YoutubeVideosEditor";
@@ -63,6 +66,37 @@ export function CreatorProfileEditPublicPageSection() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-medium text-[var(--text)]">
+          エコシステムロール
+        </label>
+        <select
+          className="input"
+          value={workspace.ecosystemRole ?? ""}
+          onChange={(e) => {
+            const nextValue = e.target.value;
+            workspace.setEcosystemRole(
+              nextValue === ""
+                ? null
+                : isEcosystemRole(nextValue)
+                  ? nextValue
+                  : null
+            );
+          }}
+          disabled={workspace.saving}
+        >
+          <option value="">未設定</option>
+          {ECOSYSTEM_ROLE_OPTIONS.map((role) => (
+            <option key={role} value={role}>
+              {ECOSYSTEM_ROLE_LABELS[role]}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-[var(--text-subtle)]">
+          クリエイター・マネージャー・コラボレーターのいずれかを選択できます。
+        </p>
       </div>
 
       <SocialLinksEditor

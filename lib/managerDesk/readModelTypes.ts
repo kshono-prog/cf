@@ -202,16 +202,34 @@ export type ManagerDeskOpportunityCrmData = {
   generatedAt: string;
 };
 
+export type ManagerDeskExpenseSummaryItem = {
+  id: string;
+  category: string;
+  amountDecimal: string;
+  currency: string;
+  occurredAt: string;
+  title: string;
+  note: string | null;
+};
+
+export type ManagerDeskExpenseSummary = {
+  recentExpenses: ManagerDeskExpenseSummaryItem[];
+  totalCount: number;
+  totalAmountByCategory: { category: string; total: string; currency: string }[];
+};
+
 export type ManagerDeskCreatorDetailData = {
   creator: ManagerDeskCreatorIdentity;
   assignment: SerializedManagerAssignment | null;
   stage: CreatorStageResult | null;
   activeProject: ManagerDeskProjectSummary | null;
   planner: PlannerTimelineData;
+  upcomingMeetings: SerializedMeeting[];
   recentCompletedMeetings: SerializedMeeting[];
   latestManagerNotes: SerializedManagerNote[];
   keyContacts: SerializedExternalContact[];
   recentActionLogs: SerializedActionLog[];
+  expenseSummary: ManagerDeskExpenseSummary;
   summary: {
     latestActionAt: string | null;
     latestActionTitle: string | null;

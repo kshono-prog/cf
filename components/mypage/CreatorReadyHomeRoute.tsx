@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 
 import { CreatorReadyAiManagerSection } from "@/components/mypage/CreatorReadyAiManagerSection";
 import { CreatorReadyDailyBriefingHero } from "@/components/mypage/CreatorReadyDailyBriefingHero";
@@ -27,6 +28,13 @@ import { CreatorReadySupporterOverviewSection } from "@/components/mypage/Creato
 import { useCreatorReadySupporterCrm } from "@/components/mypage/useCreatorReadySupporterCrm";
 import { CreatorReadySupporterCrmSection } from "@/components/mypage/CreatorReadySupporterCrmSection";
 import { CreatorReadyStageGrowthPlanSection } from "@/components/mypage/CreatorReadyStageGrowthPlanSection";
+import { useCreatorReadyExpenses } from "@/components/mypage/useCreatorReadyExpenses";
+import { CreatorReadyExpenseInputSection } from "@/components/mypage/CreatorReadyExpenseInputSection";
+import { useCreatorReadyRevenueRecords } from "@/components/mypage/useCreatorReadyRevenueRecords";
+import { CreatorReadyRevenueSection } from "@/components/mypage/CreatorReadyRevenueSection";
+import { CreatorReadyCashflowHealthCard } from "@/components/mypage/CreatorReadyCashflowHealthCard";
+import { CreatorReadyCashflowReportSection } from "@/components/mypage/CreatorReadyCashflowReportSection";
+import { useMonthlyCashflowReportAutoTrigger } from "@/components/mypage/useMonthlyCashflowReportAutoTrigger";
 import { useCreatorReadyPlannerTimeline } from "@/components/mypage/useCreatorReadyPlannerTimeline";
 import { useCreatorReadyHomeStats } from "@/components/mypage/useCreatorReadyHomeStats";
 import { useCreatorReadyWorkspaceProjectDashboards } from "@/components/mypage/useCreatorReadyWorkspaceProjectDashboards";
@@ -50,10 +58,14 @@ const CreatorWorkspaceAiOfficePanel = dynamic(
 
 type Props = {
   onOpenSettings: () => void;
+  workspaceBasePath: string;
 };
 
 export function CreatorReadyHomeRoute(props: Props) {
   const workspace = useCreatorReadyWorkspace();
+  const searchParams = useSearchParams();
+  const backgroundInsightsEnabled =
+    workspace.isConnected && !workspace.isManualCheck;
   const { dashboardError, projectDashboardsByCurrency } =
     useCreatorReadyWorkspaceProjectDashboards("daily-work");
 
@@ -65,7 +77,7 @@ export function CreatorReadyHomeRoute(props: Props) {
     hasCreatorReadySettlementAttention(activeDashboards);
 
   const homeStats = useCreatorReadyHomeStats({
-    address: workspace.address,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
     projectDashboardsByCurrency,
   });
 
@@ -84,13 +96,19 @@ export function CreatorReadyHomeRoute(props: Props) {
   useDailyActionPlanAutoTrigger({
     address: workspace.address,
     projectId: localProjectId,
-    isConnected: workspace.isConnected,
+    isConnected: backgroundInsightsEnabled,
   });
 
   useStageGrowthPlanAutoTrigger({
     address: workspace.address,
     projectId: localProjectId,
-    isConnected: workspace.isConnected,
+    isConnected: backgroundInsightsEnabled,
+  });
+
+  useMonthlyCashflowReportAutoTrigger({
+    address: workspace.address,
+    projectId: localProjectId,
+    isConnected: backgroundInsightsEnabled,
   });
 
   const isNewCreator =
@@ -98,49 +116,54 @@ export function CreatorReadyHomeRoute(props: Props) {
     (homeStats.postCount ?? 1) === 0 &&
     goalMissing;
   const aiOfficeSummary = useCreatorReadyHomeAiOfficeSummary({
-    address: workspace.address,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
     projectId: localProjectId,
-    isConnected: workspace.isConnected,
+    isConnected: backgroundInsightsEnabled,
   });
   const dailyBriefing = useCreatorReadyDailyBriefing({
-    address: workspace.address,
-    isConnected: workspace.isConnected,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
   });
   const planner = useCreatorReadyPlannerTimeline({
-    address: workspace.address,
-    isConnected: workspace.isConnected,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
     limit: 6,
   });
   const managerFeed = useCreatorReadyManagerFeed({
-    address: workspace.address,
-    isConnected: workspace.isConnected,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
     limit: 4,
   });
   const growthReflection = useCreatorReadyGrowthReflection({
-    address: workspace.address,
-    isConnected: workspace.isConnected,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
   });
   const stageData = useCreatorReadyStage({
-    address: workspace.address,
-    isConnected: workspace.isConnected,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
   });
   const supporterOverview = useCreatorReadySupporterOverview({
-    address: workspace.address,
-    isConnected: workspace.isConnected,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
   });
   const supporterCrm = useCreatorReadySupporterCrm({
-    address: workspace.address,
-    isConnected: workspace.isConnected,
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
+  });
+  const { expenses, addExpense } = useCreatorReadyExpenses({
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
+  });
+  const { revenueRecords, addRevenueRecord } = useCreatorReadyRevenueRecords({
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
   });
 
   function buildAiOfficeHref(state: AiOfficePanelUrlState): string {
-    if (typeof window === "undefined") {
-      return "#ai-office";
-    }
     return buildAiOfficePanelHref({
-      pathname: window.location.pathname,
+      pathname: props.workspaceBasePath,
       hash: "#ai-office",
-      currentSearchParams: new URLSearchParams(window.location.search),
+      currentSearchParams: new URLSearchParams(searchParams.toString()),
       state,
     });
   }
@@ -182,6 +205,13 @@ export function CreatorReadyHomeRoute(props: Props) {
     openLatestTaskType: null,
     openCreateTaskType: "MEETING_AGENDA_DRAFT",
   });
+  const aiOfficeCreateFinanceHref = buildAiOfficeHref({
+    activeView: "CREATE",
+    selectedRoleId: "FINANCE",
+    selectedInboxRoleId: null,
+    openLatestTaskType: null,
+    openCreateTaskType: "MONTHLY_CASHFLOW_REPORT",
+  });
   const aiOfficeHref = isNewCreator ? aiOfficeCreateManagerHref : aiOfficeOverviewHref;
 
   const currentYearMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
@@ -192,8 +222,14 @@ export function CreatorReadyHomeRoute(props: Props) {
         (t.status === "WAITING_APPROVAL" || t.status === "APPROVED") &&
         t.createdAt.startsWith(currentYearMonth)
     ) ?? null;
-  const publicPageHref = `/${workspace.meCreatorUsername}`;
 
+  const cashflowReportTask =
+    aiOfficeSummary.tasks.find(
+      (t) =>
+        t.taskType === "MONTHLY_CASHFLOW_REPORT" &&
+        (t.status === "WAITING_APPROVAL" || t.status === "APPROVED") &&
+        t.createdAt.startsWith(currentYearMonth)
+    ) ?? null;
   const aiManagerCards = buildCreatorReadyAiManagerCards({
     tasks: aiOfficeSummary.tasks,
     usefulness: aiOfficeSummary.usefulness,
@@ -241,7 +277,6 @@ export function CreatorReadyHomeRoute(props: Props) {
       ) : null}
       <CreatorReadyDailyBriefingHero
         creatorName={workspace.displayName || workspace.meCreatorUsername}
-        publicPageHref={publicPageHref}
         aiOfficeHref={aiOfficeHref}
         primaryDashboard={primaryDashboard}
         avgProgressPct={homeStats.avgProgressPct}
@@ -296,6 +331,26 @@ export function CreatorReadyHomeRoute(props: Props) {
       <CreatorReadyStageGrowthPlanSection
         task={stageGrowthTask}
         address={workspace.address}
+      />
+      <CreatorReadyRevenueSection
+        address={workspace.address ?? null}
+        revenueRecords={revenueRecords}
+        expenses={expenses}
+        onRevenueAdded={addRevenueRecord}
+      />
+      <CreatorReadyCashflowHealthCard
+        revenueRecords={revenueRecords}
+        expenses={expenses}
+        aiOfficeFinanceHref={aiOfficeCreateFinanceHref}
+      />
+      <CreatorReadyCashflowReportSection
+        task={cashflowReportTask}
+        address={workspace.address}
+      />
+      <CreatorReadyExpenseInputSection
+        address={workspace.address ?? null}
+        expenses={expenses}
+        onExpenseAdded={addExpense}
       />
       <CreatorWorkspaceAiOfficePanel />
       <CreatorReadyWeeklySummarySection

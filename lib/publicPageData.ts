@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
+import { isPrismaUnavailableError } from "@/lib/prismaRetry";
 import type { PublicSummaryLite } from "@/lib/publicSummary";
 import type { SupportProfileView, SupportProjectView } from "@/lib/supportProfileView";
 import { loadPublicProfileProjectData } from "@/lib/publicProfileProjectData";
@@ -15,6 +16,18 @@ type PublicPageData = {
   supportProfileView: SupportProfileView;
   recruitingProjects: SupportProjectView[];
 };
+
+const globalForPublicPageData = globalThis as unknown as {
+  publicPageDataStaleByKey?: Map<string, PublicPageData>;
+};
+
+function getPublicPageDataStaleMap(): Map<string, PublicPageData> {
+  if (!globalForPublicPageData.publicPageDataStaleByKey) {
+    globalForPublicPageData.publicPageDataStaleByKey = new Map();
+  }
+
+  return globalForPublicPageData.publicPageDataStaleByKey;
+}
 
 async function loadPublicPageDataUncached(
   username: string,
@@ -43,8 +56,27 @@ async function loadPublicPageDataUncached(
 }
 
 const getPublicPageDataCached = unstable_cache(
-  async (username: string, includePublicSummary: boolean) =>
-    loadPublicPageDataUncached(username, includePublicSummary),
+  async (username: string, includePublicSummary: boolean) => {
+    const staleMap = getPublicPageDataStaleMap();
+    const staleKey = `${username}:${includePublicSummary ? "1" : "0"}`;
+
+    try {
+      const result = await loadPublicPageDataUncached(username, includePublicSummary);
+      if (result) {
+        staleMap.set(staleKey, result);
+      }
+      return result;
+    } catch (error) {
+      if (isPrismaUnavailableError(error)) {
+        const stale = staleMap.get(staleKey);
+        if (stale) {
+          return stale;
+        }
+      }
+
+      throw error;
+    }
+  },
   ["public-page-data"],
   { revalidate: 120 }
 );

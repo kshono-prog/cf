@@ -8,6 +8,12 @@ import {
   SOCIAL_ICON_CONFIG,
   type SocialLinks,
 } from "@/lib/profileTypes";
+import {
+  CREATOR_TYPE_LABELS,
+  ECOSYSTEM_ROLE_LABELS,
+  type EcosystemRole,
+} from "@/lib/creatorTaxonomy";
+import type { CreatorType } from "@/lib/creatorTaxonomy";
 
 type ProfileHeroProps = {
   username: string;
@@ -17,7 +23,10 @@ type ProfileHeroProps = {
   externalUrl: string | null | undefined;
   themeColor?: string | null | undefined;
   socials?: SocialLinks | null | undefined;
+  creatorType?: CreatorType | null | undefined;
+  ecosystemRole?: EcosystemRole | null | undefined;
   communityContent?: React.ReactNode;
+  impactContent?: React.ReactNode;
 };
 
 function getInitials(value: string): string {
@@ -42,20 +51,20 @@ export function ProfileHero(props: ProfileHeroProps) {
     : undefined;
 
   return (
-    <section className="panel-card overflow-hidden">
+    <section className="sheet-section overflow-hidden">
       <div
-        className="h-20 bg-[linear-gradient(135deg,#ffffff,rgba(240,241,244,0.92)_45%,rgba(229,231,235,0.72))]"
+        className="h-40 bg-[var(--surface-subtle)] sm:h-48"
         style={heroBackgroundStyle}
       />
-      <div className="-mt-8 px-4 pb-3.5 sm:px-5 sm:pb-4">
+      <div className="-mt-11 px-4 pb-3.5 sm:-mt-14 sm:px-5 sm:pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <div className="inline-flex rounded-full border border-white bg-white p-1 shadow-sm">
+            <div className="inline-flex rounded-full border-2 border-[var(--surface)] bg-[var(--surface)] p-1 shadow-sm">
               <Avatar
                 src={props.avatarUrl}
                 alt={`${props.displayName} のアイコン`}
                 fallbackText={getInitials(props.displayName)}
-                size={58}
+                size={76}
               />
             </div>
             <div className="mt-2.5">
@@ -63,6 +72,20 @@ export function ProfileHero(props: ProfileHeroProps) {
                 {props.displayName}
               </h1>
               <p className="mt-0.5 text-[12px] text-[var(--text-subtle)]">@{props.username}</p>
+              {(props.creatorType || props.ecosystemRole) ? (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {props.creatorType ? (
+                    <span className="surface-chip">
+                      {CREATOR_TYPE_LABELS[props.creatorType]}
+                    </span>
+                  ) : null}
+                  {props.ecosystemRole ? (
+                    <span className="surface-chip">
+                      {ECOSYSTEM_ROLE_LABELS[props.ecosystemRole]}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             {props.profile ? (
               <p className="mt-2 max-w-2xl whitespace-pre-wrap text-[12px] leading-5 text-[var(--text)]">
@@ -91,7 +114,7 @@ export function ProfileHero(props: ProfileHeroProps) {
                 ))}
                 {shouldShowExternalUrl ? (
                   <Link
-                    href={props.externalUrl ?? "#"}
+                    href={props.externalUrl!}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex h-8 w-8 items-center justify-center text-[var(--text-subtle)] transition hover:text-[var(--text)]"
@@ -111,6 +134,11 @@ export function ProfileHero(props: ProfileHeroProps) {
             {props.communityContent ? (
               <div className="mt-2.5 border-t border-[var(--line)] pt-2.5">
                 {props.communityContent}
+              </div>
+            ) : null}
+            {props.impactContent ? (
+              <div className="mt-3 border-t border-[var(--line)] pt-3">
+                {props.impactContent}
               </div>
             ) : null}
           </div>

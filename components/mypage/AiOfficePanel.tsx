@@ -804,6 +804,11 @@ export function AiOfficePanel(props: {
                 setSelectedInboxRoleId(null);
                 setActiveView("INBOX");
               }}
+              onOpenTaskInInbox={(taskType) => {
+                setOpenLatestTaskType(taskType as TaskType);
+                setSelectedInboxRoleId(null);
+                setActiveView("INBOX");
+              }}
               onCollectMetrics={() => void collectMetrics()}
             />
           ) : null}

@@ -140,9 +140,17 @@ export function NotificationBell() {
 
   // Fetch on mount if address is available
   React.useEffect(() => {
-    if (address) {
-      void fetch();
+    if (!address) {
+      return;
     }
+
+    const timeoutId = window.setTimeout(() => {
+      void fetch();
+    }, 2500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [address, fetch]);
 
   // Close panel on outside click

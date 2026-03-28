@@ -43,7 +43,7 @@ export function SupportSheet(props: SupportSheetProps) {
         aria-label="応援シートを閉じる"
       />
       <div className="sheet-panel px-4 pb-[max(env(safe-area-inset-bottom,0px),16px)] pt-4 sm:px-6">
-        <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-slate-200" />
+        <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[var(--line)]" />
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-[var(--text)]">

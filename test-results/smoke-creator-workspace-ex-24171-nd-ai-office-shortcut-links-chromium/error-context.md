@@ -1,0 +1,71 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "kazu のアイコン" [ref=e5] [cursor=pointer]:
+          - /url: /kazu
+          - img "kazu のアイコン" [ref=e7]
+        - button "ウォレット" [ref=e10]:
+          - img [ref=e11]
+          - generic [ref=e13]: ウォレット
+          - img [ref=e14]
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - heading "creatorfoundingについて" [level=1] [ref=e19]
+        - paragraph [ref=e20]: 本サイトは、JPYCなどのステーブルコインを使って、世界中からクリエイターを直接応援できる投げ銭プラットフォームです。少額から、安心して想いを届けられます。
+      - generic [ref=e21]:
+        - heading "設定" [level=1] [ref=e22]
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - generic [ref=e26]: 設定を使うには、まずウォレット接続
+            - paragraph [ref=e27]: 接続すると、自分のページ準備やユーザー登録をこの画面から始められます。まずは見るだけでも大丈夫です。
+          - button "ウォレット接続" [ref=e28] [cursor=pointer]
+        - generic [ref=e29]:
+          - button "1. ウォレットの準備 ▲" [ref=e30]:
+            - generic [ref=e31]: 1. ウォレットの準備
+            - generic [ref=e32]: ▲
+          - generic [ref=e33]:
+            - paragraph [ref=e34]: 1. PCまたはスマートフォンにWeb3ウォレットを準備します。
+            - paragraph [ref=e35]: ※ MetaMask、hashport Walletなど複数のウォレットに対応
+        - generic [ref=e36]:
+          - button "2. JPYC を入手 ▲" [ref=e37]:
+            - generic [ref=e38]: 2. JPYC を入手
+            - generic [ref=e39]: ▲
+          - generic [ref=e41]:
+            - paragraph [ref=e42]: 1. JPYC EX にアクセスし、アカウントを作成します。
+            - paragraph [ref=e43]: 2. 本人確認（KYC）や必要な登録を完了しJPYCを購入します。
+            - paragraph [ref=e44]: 3. 購入した JPYC を、自分の ウォレットアドレスに送金します。
+            - paragraph [ref=e45]: ※ 実際の手続きや手数料、リスクは必ずご自身でご確認ください。
+        - generic [ref=e46]:
+          - button "3. 応援と公開ページの流れ ▲" [ref=e47]:
+            - generic [ref=e48]: 3. 応援と公開ページの流れ
+            - generic [ref=e49]: ▲
+          - generic [ref=e50]:
+            - paragraph [ref=e51]: 1. 中央のページより、ウォレット接続します。
+            - paragraph [ref=e52]: 2. 他の人のページを開き、JPYC で応援を送ることができます。
+            - paragraph [ref=e53]: 3. 表示名やプロフィールを登録するとご自身のページを作成することができます。
+        - generic [ref=e54]:
+          - paragraph [ref=e55]: 利用規約
+          - paragraph [ref=e56]: 1. 本サービスは個人学習による無償提供のUIツールです。
+          - paragraph [ref=e57]: 2. 送付は外部ウォレットで実行され、本サービスは処理に関与しません。
+          - paragraph [ref=e58]: 3. 送付ミス・詐欺・障害等による損害は補償できません。
+          - paragraph [ref=e59]: 4. なりすまし・不正利用は禁止します。
+          - paragraph [ref=e60]: 5. 予告なく機能変更・停止・終了することがあります。
+        - generic [ref=e62]:
+          - generic [ref=e63]: PR
+          - heading "JPYCの購入はこちら" [level=3] [ref=e64]
+          - link "JPYC EX Logo" [ref=e65] [cursor=pointer]:
+            - /url: https://jpyc.co.jp/
+            - img "JPYC EX Logo" [ref=e66]
+          - paragraph [ref=e67]: 日本円のステーブルコイン「JPYC」を JPYC EXで、今すぐはじめよう。
+          - paragraph [ref=e68]:
+            - text: ※「JPYC」はJPYC株式会社が提供する1号電子決済手段（ステーブルコイン）です。
+            - text: ※JPYCおよびJPYCロゴは、JPYC株式会社の登録商標です。
+      - contentinfo [ref=e70]:
+        - paragraph [ref=e71]: © Creator Founding
+        - paragraph [ref=e72]: Thanks for supporting creators with JPYC.
+  - alert [ref=e73]
+```

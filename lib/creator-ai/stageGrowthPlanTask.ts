@@ -1,9 +1,9 @@
 import { Prisma } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
 import { generateJson } from "@/lib/ai";
+import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
 import { deriveCreatorStage } from "@/lib/creatorStage";
-import type { CreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
+import type { CreatorMaturityAxes } from "@/lib/creatorStage";
 
 type GrowthStep = {
   step: number;
@@ -13,14 +13,21 @@ type GrowthStep = {
   priority: "high" | "medium" | "low";
 };
 
-const AXIS_LABELS: Record<string, string> = {
+const AXIS_LABELS: Record<keyof CreatorMaturityAxes, string> = {
   output: "発信力（投稿数）",
   audience: "支援者基盤",
   business: "事業実績（目標達成）",
   continuity: "継続性（活動期間）",
+  craft: "実績・エビデンス",
+  operations: "運営体制",
+  trust: "信頼・リピート支援者",
+  team: "チーム形成",
 };
 
-const AXIS_GROWTH_ADVICE: Record<string, { title: string; description: string }> = {
+const AXIS_GROWTH_ADVICE: Record<
+  keyof CreatorMaturityAxes,
+  { title: string; description: string }
+> = {
   output: {
     title: "投稿ペースを週1件に引き上げる",
     description:
@@ -41,73 +48,43 @@ const AXIS_GROWTH_ADVICE: Record<string, { title: string; description: string }>
     description:
       "継続性スコアは活動期間に連動します。小さくても定期的な活動記録が積み上がると、信頼性の基盤が育ちます。",
   },
+  craft: {
+    title: "実績をエビデンスとして記録する",
+    description:
+      "ライブ出演、受賞、メディア掲載などの実績をマネージャーと一緒にエビデンスとして残しましょう。積み重ねがステージ評価の根拠になります。",
+  },
+  operations: {
+    title: "外部接点と会議を増やして運営体制を整える",
+    description:
+      "会場・主催者・ブランドとのコンタクトを記録し、定期的なミーティングを設定しましょう。運営の構造化がプロ化への第一歩です。",
+  },
+  trust: {
+    title: "リピート支援者との関係を深める",
+    description:
+      "複数回支援してくれるファンがいる場合、特別なメッセージや進捗報告で関係を深めましょう。信頼スコアの向上につながります。",
+  },
+  team: {
+    title: "プロジェクトにメンバーを加える",
+    description:
+      "協力者やアドバイザーをプロジェクトメンバーとして記録しましょう。チーム体制が整うことで、より大きな機会への準備ができます。",
+  },
 };
-
-async function loadCredibility(
-  creatorProfileId: bigint
-): Promise<CreatorActivityCredibility> {
-  const firstPost = await prisma.post.findFirst({
-    where: { creatorProfileId, status: "PUBLIC" },
-    orderBy: { createdAt: "asc" },
-    select: { createdAt: true },
-  });
-
-  const [totalPostCount, goalAchievedCount, contributorAggregate, lastPost] =
-    await Promise.all([
-      prisma.post.count({
-        where: { creatorProfileId, status: "PUBLIC" },
-      }),
-      prisma.goal.count({
-        where: { project: { creatorProfileId }, achievedAt: { not: null } },
-      }),
-      prisma.contribution.groupBy({
-        by: ["fromAddress"],
-        where: { project: { creatorProfileId }, status: "CONFIRMED" },
-        _count: { _all: true },
-      }),
-      prisma.post.findFirst({
-        where: { creatorProfileId, status: "PUBLIC" },
-        orderBy: { createdAt: "desc" },
-        select: { createdAt: true },
-      }),
-    ]);
-
-  const now = new Date();
-  const activeMonths = firstPost
-    ? Math.max(
-        1,
-        Math.ceil(
-          (now.getTime() - firstPost.createdAt.getTime()) /
-            (1000 * 60 * 60 * 24 * 30)
-        )
-      )
-    : 0;
-
-  return {
-    activeMonths,
-    totalPostCount,
-    goalAchievedCount,
-    totalContributorCount: contributorAggregate.length,
-    lastActiveAt: lastPost?.createdAt.toISOString() ?? null,
-  };
-}
 
 export async function buildStageGrowthPlanOutput(params: {
   creatorProfileId: bigint;
   projectId: bigint | null;
   input: Prisma.InputJsonValue;
 }): Promise<Prisma.InputJsonValue> {
-  const credibility = await loadCredibility(params.creatorProfileId);
+  const credibility = await getCreatorActivityCredibility(params.creatorProfileId);
   const stageResult = deriveCreatorStage(credibility);
   const { maturity } = stageResult;
 
-  // Identify weakest axis
-  const axes = ["output", "audience", "business", "continuity"] as const;
+  // Identify weakest and secondary axis across all 8 axes
+  const axes = Object.keys(maturity) as (keyof CreatorMaturityAxes)[];
   const weakestAxis = axes.reduce((minAxis, axis) =>
     maturity[axis] < maturity[minAxis] ? axis : minAxis
   );
 
-  // Build growth steps focused on weakest axis + one secondary
   const secondaryAxis = axes
     .filter((a) => a !== weakestAxis)
     .reduce((minAxis, axis) =>
@@ -148,6 +125,10 @@ export async function buildStageGrowthPlanOutput(params: {
   const weakestLabel = AXIS_LABELS[weakestAxis] ?? weakestAxis;
   const fallbackSummary = `現在のステージ「${stageResult.stageLabel}」において、最も伸びしろがある「${weakestLabel}」を中心に成長ステップを整理しました。`;
 
+  const maturityLines = (Object.entries(maturity) as [keyof CreatorMaturityAxes, number][])
+    .map(([axis, score]) => `- ${AXIS_LABELS[axis]}: ${score.toString()}`)
+    .join("\n");
+
   const aiResult = await generateJson<{
     summary: string;
     growthSteps: GrowthStep[];
@@ -155,10 +136,7 @@ export async function buildStageGrowthPlanOutput(params: {
     `クリエイターの成長プランを作成してください。
 現在のステージ: ${stageResult.stageLabel}（${stageResult.stageDescription}）
 成熟度スコア（0-100）:
-- 発信力（投稿数）: ${maturity.output.toString()}
-- 支援者基盤: ${maturity.audience.toString()}
-- 事業実績（目標達成）: ${maturity.business.toString()}
-- 継続性（活動期間）: ${maturity.continuity.toString()}
+${maturityLines}
 
 最も低いスコアの軸: ${weakestLabel}（${maturity[weakestAxis].toString()}点）
 

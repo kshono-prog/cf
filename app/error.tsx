@@ -7,7 +7,7 @@ export default function RootError(props: {
   reset: () => void;
 }) {
   return (
-    <div className="min-h-screen bg-[var(--bg)] px-3 pb-[78px] pt-[96px] text-[var(--text)] sm:px-6 sm:pb-[96px] sm:pt-[120px]">
+    <div className="min-h-screen bg-[var(--bg)] px-3 pb-[78px] pt-[60px] text-[var(--text)] sm:px-6 sm:pb-[96px]">
       <div className="mx-auto w-full max-w-[760px]">
         <RouteErrorState
           error={props.error}

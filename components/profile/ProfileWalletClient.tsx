@@ -49,6 +49,7 @@ type ContributionArgs = {
   projectId?: string;
   purposeId?: string;
   postId?: string;
+  message?: string;
   chainId: number;
   currency: Currency;
   tokenAddress: string;
@@ -135,6 +136,7 @@ export function ProfileWalletClient({
   const toAddress = creator.address ?? "";
   const [currency, setCurrency] = useState<Currency>("JPYC");
   const [amount, setAmount] = useState<string>(TOKENS["JPYC"].presets[0]);
+  const [message, setMessage] = useState<string>("");
   const [resolvedProjectIdsByCurrency, setResolvedProjectIdsByCurrency] =
     useState<{
       JPYC: string | null;
@@ -715,6 +717,7 @@ export function ProfileWalletClient({
       fromAddress,
       toAddress: lastTx.toAddress,
       amount: lastTx.amount,
+      message: lastTx.message ?? undefined,
     });
 
     if (!contributionResult.ok) {
@@ -837,6 +840,7 @@ export function ProfileWalletClient({
         projectId: projectIdForSend,
         purposeId: purposeId ?? null,
         postId: selectedPostId ?? null,
+        message: message.trim() || null,
         createdAtMs: Date.now(),
       });
 
@@ -863,6 +867,7 @@ export function ProfileWalletClient({
           projectId: projectIdForSend,
           purposeId: purposeId ?? null,
           postId: selectedPostId ?? null,
+          message: message.trim() || null,
           createdAtMs: Date.now(),
         },
         sender
@@ -963,6 +968,23 @@ export function ProfileWalletClient({
         sending={sending}
       />
 
+      {connected && !onWrongChain ? (
+        <div className="mt-3 px-1">
+          <label className="block text-xs text-[var(--text-subtle)] mb-1">
+            応援メッセージ（任意・500文字まで）
+          </label>
+          <textarea
+            value={message}
+            disabled={sending}
+            maxLength={500}
+            rows={2}
+            placeholder="クリエイターへひとこと…"
+            onChange={(e) => setMessage(e.target.value)}
+            className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--muted)] resize-none disabled:opacity-50 focus:outline-none focus:border-[var(--muted)]"
+          />
+        </div>
+      ) : null}
+
       {connected &&
         !onWrongChain &&
         totalLast24hJpyc != null &&
@@ -975,7 +997,7 @@ export function ProfileWalletClient({
           </div>
         )}
 
-      <p className="mt-4 min-h-6 text-center text-sm text-gray-700" aria-live="polite">
+      <p className="mt-4 min-h-6 text-center text-sm text-[var(--text-subtle)]" aria-live="polite">
         {status}
       </p>
     </>

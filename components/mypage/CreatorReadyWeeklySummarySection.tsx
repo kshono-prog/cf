@@ -105,31 +105,30 @@ export function CreatorReadyWeeklySummarySection(props: Props) {
               → {stage.nextMilestone}
             </p>
           ) : null}
-          <div className="mt-3 grid grid-cols-4 gap-2">
-            {(["output", "audience", "business", "continuity"] as const).map((axis) => {
-              const AXIS_LABELS: Record<string, string> = {
-                output: "発信",
-                audience: "支援者",
-                business: "実績",
-                continuity: "継続",
-              };
-              return (
-                <div key={axis} className="space-y-1">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-[var(--text-subtle)]">{AXIS_LABELS[axis]}</span>
-                    <span className="font-medium text-[var(--text)]">
-                      {stage.maturity[axis]}
-                    </span>
-                  </div>
-                  <div className="h-1 overflow-hidden rounded-full bg-[var(--surface-muted)]">
-                    <div
-                      className="h-full rounded-full bg-[var(--text-subtle)]"
-                      style={{ width: `${stage.maturity[axis]}%` }}
-                    />
-                  </div>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {([
+              ["output", "発信"],
+              ["audience", "支援者"],
+              ["business", "実績"],
+              ["continuity", "継続"],
+              ["craft", "エビデンス"],
+              ["trust", "信頼"],
+            ] as const).map(([axis, label]) => (
+              <div key={axis} className="space-y-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-[var(--text-subtle)]">{label}</span>
+                  <span className="font-medium text-[var(--text)]">
+                    {stage.maturity[axis]}
+                  </span>
                 </div>
-              );
-            })}
+                <div className="h-1 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--text-subtle)]"
+                    style={{ width: `${stage.maturity[axis]}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ) : null}
