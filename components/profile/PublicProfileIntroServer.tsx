@@ -66,6 +66,10 @@ function clampProgress(value: number): number {
   return Math.max(0, Math.min(100, value));
 }
 
+function buildSupportHref(username: string, projectId: string): string {
+  return `/${username}?projectId=${encodeURIComponent(projectId)}&support=1#support-projects`;
+}
+
 function StaticAvatar(props: {
   src?: string | null;
   alt: string;
@@ -102,6 +106,7 @@ function StaticSupportProjectCard(props: {
   displayName: string;
   project: SupportProjectView;
   compact?: boolean;
+  actionHref?: string;
 }) {
   const progressPct = Math.floor(clampProgress(props.project.progressPct));
 
@@ -206,6 +211,14 @@ function StaticSupportProjectCard(props: {
           </div>
         ) : null}
       </div>
+
+      {props.actionHref ? (
+        <div className="mt-4 border-t border-[var(--line)] pt-4">
+          <Link href={props.actionHref} className="btn w-full sm:w-auto">
+            応援する
+          </Link>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -412,9 +425,16 @@ export function PublicProfileIntroServer({
                   募集 project {activeSupportProject ? "1件" : "0件"}
                 </span>
               </div>
-              <div className="border-t border-[var(--line)] pt-3 text-[11px] leading-5 text-[var(--text-subtle)]">
-                応援操作は、画面下の「応援する」メニューから始められます。
-              </div>
+              {activeSupportProject ? (
+                <div className="border-t border-[var(--line)] pt-3">
+                  <Link
+                    href={buildSupportHref(username, activeSupportProject.projectId)}
+                    className="btn w-full sm:w-auto"
+                  >
+                    {displayName}を応援する
+                  </Link>
+                </div>
+              ) : null}
             </div>
 
             <div className="min-w-0">
@@ -462,12 +482,9 @@ export function PublicProfileIntroServer({
                 creator={creator}
                 displayName={displayName}
                 project={project}
+                actionHref={buildSupportHref(username, project.projectId)}
               />
             ))}
-          </div>
-
-          <div className="mt-4 border-t border-[var(--line)] pt-3 text-[11px] text-[var(--text-subtle)]">
-            応援操作は、画面下の「応援する」メニューから始められます。
           </div>
         </section>
       )}
