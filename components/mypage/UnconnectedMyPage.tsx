@@ -19,11 +19,6 @@ export function UnconnectedMyPage({
 }: UnconnectedMyPageProps) {
   const promoColor = "#005bbb"; // JPYC EX PR バッジ用カラー
 
-  async function handleConnect(): Promise<void> {
-    const { appkit } = await import("@/lib/appkitInstance");
-    await appkit.open({ view: "Connect" });
-  }
-
   return (
     <div className="container-narrow space-y-4">
       <h1 className="text-lg font-semibold mb-2">設定</h1>
@@ -33,18 +28,15 @@ export function UnconnectedMyPage({
       )}
 
       <div className="surface-card p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
           <div>
             <div className="text-lg font-semibold text-[var(--text)]">
               設定を使うには、まずウォレット接続
             </div>
             <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              接続すると、自分のページ準備やユーザー登録をこの画面から始められます。まずは見るだけでも大丈夫です。
+              右上のウォレットから接続すると、自分のページ準備やユーザー登録をこの画面から始められます。まずは見るだけでも大丈夫です。
             </p>
           </div>
-          <button type="button" className="btn" onClick={() => void handleConnect()}>
-            ウォレット接続
-          </button>
         </div>
       </div>
 
@@ -108,7 +100,7 @@ export function UnconnectedMyPage({
         </button>
         {open.flow && (
           <div className="px-3 py-2 text-[11px] text-gray-700 space-y-1 bg-white">
-            <p>1. 中央のページより、ウォレット接続します。</p>
+            <p>1. 右上のウォレットから接続します。</p>
             <p>2. 他の人のページを開き、JPYC で応援を送ることができます。</p>
             <p>
               3.

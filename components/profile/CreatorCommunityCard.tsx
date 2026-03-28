@@ -18,7 +18,6 @@ type Props = {
   viewerState: PublicViewerState;
   managementHref: string;
   registrationHref: string;
-  onRequireConnection: () => void;
 };
 
 function countLabel(value: number): string {
@@ -96,10 +95,7 @@ export function CreatorCommunityCard(props: Props) {
   }, [fetchSummary]);
 
   async function handleToggleFollow(): Promise<void> {
-    if (!props.viewerAddress) {
-      props.onRequireConnection();
-      return;
-    }
+    if (!props.viewerAddress) return;
     if (props.viewerState.mode === "loading") return;
     if (props.viewerState.mode === "unregistered") {
       setError("フォローするには先にユーザー登録をしてください。");
@@ -162,15 +158,7 @@ export function CreatorCommunityCard(props: Props) {
     }
 
     if (props.viewerState.mode === "unconnected") {
-      return (
-        <button
-          type="button"
-          onClick={props.onRequireConnection}
-          className="btn"
-        >
-          接続してフォロー
-        </button>
-      );
+      return null;
     }
 
     if (props.viewerState.mode === "loading") {
@@ -227,9 +215,15 @@ export function CreatorCommunityCard(props: Props) {
               {loading ? "-" : countLabel(summary?.counts.following ?? 0)}
             </div>
           </Link>
-        </div>
+      </div>
         {actionButton}
       </div>
+
+      {props.viewerState.mode === "unconnected" ? (
+        <div className="text-xs leading-5 text-[var(--text-subtle)]">
+          フォローするには、右上のウォレットから接続してください。
+        </div>
+      ) : null}
 
       {error ? (
         <div className="text-xs text-rose-600">{error}</div>

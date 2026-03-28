@@ -30,11 +30,6 @@ export function ComposePageClient(props: ComposePageClientProps) {
     viewerAddress: address ?? null,
   });
 
-  async function handleConnect(): Promise<void> {
-    const { appkit } = await import("@/lib/appkitInstance");
-    await appkit.open({ view: "Connect" });
-  }
-
   const projectOptions = useMemo(() => {
     const options: Array<{ id: string; label: string }> = [];
 
@@ -77,17 +72,17 @@ export function ComposePageClient(props: ComposePageClientProps) {
     if (viewerState.mode === "unconnected") {
       return (
         <CommunityGuideCard
-          title="投稿を始めるには、まずウォレット接続"
-          body="このアプリでは、ウォレット接続のあとにユーザー登録をすると、自分のページを作って投稿できるようになります。"
+          title="投稿を始める前にウォレット接続"
+          body="投稿機能は、右上のウォレットから接続したあとに使えます。接続後にユーザー登録をすると、自分のページと投稿画面を使い始められます。"
           centered
           maxWidthClassName="max-w-xl"
           actions={
             <>
-              <button type="button" className="btn" onClick={() => void handleConnect()}>
-                ウォレット接続
-              </button>
               <Link href={`/${props.username}`} className="btn-secondary">
                 プロフィールを見る
+              </Link>
+              <Link href={`/${props.username}/search`} className="btn-secondary">
+                検索へ
               </Link>
             </>
           }

@@ -101,11 +101,6 @@ export function NotificationsPageClient({ username }: { username: string }) {
     return items.filter((item) => item.kind === filter);
   }, [filter, items]);
 
-  async function handleConnect(): Promise<void> {
-    const { appkit } = await import("@/lib/appkitInstance");
-    await appkit.open({ view: "Connect" });
-  }
-
   const { settingsHref, composeHref } = resolveCommunityViewerLinks({
     fallbackUsername: username,
     identity: viewerIdentity,
@@ -115,17 +110,17 @@ export function NotificationsPageClient({ username }: { username: string }) {
     <div className="space-y-4">
       {viewerMode === "unconnected" ? (
         <CommunityGuideCard
-          title="通知を見るにはウォレット接続が必要です"
-          body="接続すると、自分への反応や応援をここでまとめて確認できます。"
+          title="通知を見る前にウォレット接続"
+          body="通知は、右上のウォレットから接続したあとに確認できます。接続すると、自分への反応や応援をここでまとめて見られます。"
           centered
           maxWidthClassName="max-w-lg"
           actions={
             <>
-              <button type="button" className="btn" onClick={() => void handleConnect()}>
-                ウォレット接続
-              </button>
               <Link href={`/${username}`} className="btn-secondary">
                 プロフィールを見る
+              </Link>
+              <Link href={`/${username}/search`} className="btn-secondary">
+                検索へ
               </Link>
             </>
           }

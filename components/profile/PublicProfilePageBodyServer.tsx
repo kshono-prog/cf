@@ -10,12 +10,16 @@ import { PublicProfileIntroServer } from "@/components/profile/PublicProfileIntr
 import { PublicProfileImpactNumbersInline } from "@/components/profile/PublicProfileImpactNumbers";
 import { loadPublicProfilePageReadModel } from "@/lib/publicProfilePageReadModel";
 import { isPrismaUnavailableError } from "@/lib/prismaRetry";
+import { serializeJsonLd } from "@/lib/seo/jsonLd";
+import { buildPublicProfileStructuredData } from "@/lib/seo/publicProfileStructuredData";
 import { getActiveSupportProject } from "@/lib/supportProfileView";
 import type { SupportProfileView } from "@/lib/supportProfileView";
 
 type Props = {
   username: string;
 };
+
+const PUBLIC_SITE_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "";
 
 function DeferredSectionsFallback() {
   return (
@@ -109,9 +113,16 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
       initialFeed,
       credibility,
     } = await loadPublicProfilePageReadModel(username);
+    const structuredData = buildPublicProfileStructuredData({
+      baseUrl: PUBLIC_SITE_BASE_URL,
+      username,
+      creator,
+      supportProfileView,
+      credibility,
+    });
 
     const anchorTabs = [
-      { id: "support", label: "応援する", anchor: "#support-projects" },
+      { id: "support", label: "応援へ", anchor: "#support-projects" },
       { id: "posts", label: "投稿", anchor: "#posts" },
       { id: "supporters", label: "支援者", anchor: "#supporters-section" },
       { id: "credibility", label: "実績", anchor: "#credibility-section" },
@@ -119,6 +130,12 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
 
     return (
       <div className="space-y-4">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(structuredData),
+          }}
+        />
         <ProfileClientSection
           username={username}
           creator={creator}

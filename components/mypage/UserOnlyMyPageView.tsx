@@ -2,6 +2,7 @@
 
 import React from "react";
 
+import { AiConciergeGuideCard } from "@/components/mypage/AiConciergeGuideCard";
 import { CreatorApplyCard } from "@/components/mypage/CreatorApplyCard";
 import {
   MyPageAccordion,
@@ -41,6 +42,25 @@ export function UserOnlyMyPageView(props: Props) {
           description="次は公開ページを使う準備です。クリエイターとして申請すると、公開ページ、応援設定、投稿管理が使えるようになります。"
           nextActionTitle="公開してもよい見え方を先に整える"
           nextActionBody="表示名と紹介文を軽く整えてから進めると、公開ページの初期状態が分かりやすくなります。"
+        />
+
+        <AiConciergeGuideCard
+          title="AIコンシェルジュが公開準備を案内します"
+          body="クリエイター申請まで進むと、AI Office がプロフィール整備、最初の投稿、支援導線づくりを段階ごとに手伝えるようになります。"
+          points={[
+            {
+              title: "見え方を整える",
+              body: "表示名と紹介文を軽くそろえておくと、公開ページの初期印象が安定します。",
+            },
+            {
+              title: "申請後の運営を知る",
+              body: "公開ページ、応援設定、投稿管理、AI Office の運営導線が使えるようになります。",
+            },
+            {
+              title: "最初の相談先を持つ",
+              body: "申請後は AI コンシェルジュとして、最初の一歩や次にやることを提案できます。",
+            },
+          ]}
         />
 
         {props.error && (

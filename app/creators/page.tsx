@@ -16,15 +16,153 @@ import {
 } from "@/lib/creatorTaxonomy";
 import type { CreatorType, EcosystemRole } from "@/lib/creatorTaxonomy";
 import { Avatar } from "@/components/shared/Avatar";
+import { serializeJsonLd } from "@/lib/seo/jsonLd";
+import { buildCreatorDiscoveryStructuredData } from "@/lib/seo/creatorDiscoveryStructuredData";
+import { withBaseUrl } from "@/utils/baseUrl";
 
-export const metadata: Metadata = {
-  title: "クリエイターを探す — Creator Founding",
-  description: "Creator Founding に参加しているクリエイターを一覧で見つけられます。",
-};
+const SITE_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "";
+const CREATORS_SOCIAL_IMAGE_URL = withBaseUrl("/icon/nagesen250.png", SITE_BASE_URL);
 
 export const revalidate = 120;
 
 type SearchParams = { creatorType?: string; ecosystemRole?: string };
+
+function resolveCreatorType(value: string | undefined): CreatorType | null {
+  return typeof value === "string" && isCreatorType(value) ? value : null;
+}
+
+function resolveEcosystemRole(value: string | undefined): EcosystemRole | null {
+  return typeof value === "string" && isEcosystemRole(value) ? value : null;
+}
+
+function buildCreatorsFilterQueryString(
+  creatorType: CreatorType | null,
+  ecosystemRole: EcosystemRole | null
+): string {
+  const params = new URLSearchParams();
+
+  if (creatorType) {
+    params.set("creatorType", creatorType);
+  }
+
+  if (ecosystemRole) {
+    params.set("ecosystemRole", ecosystemRole);
+  }
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+function buildCreatorsMetadataCopy(
+  creatorType: CreatorType | null,
+  ecosystemRole: EcosystemRole | null
+): {
+  heading: string;
+  title: string;
+  description: string;
+  keywords: string[];
+  canonicalUrl: string;
+} {
+  const typeLabel = creatorType ? CREATOR_TYPE_LABELS[creatorType] : null;
+  const roleLabel = ecosystemRole ? ECOSYSTEM_ROLE_LABELS[ecosystemRole] : null;
+  const queryString = buildCreatorsFilterQueryString(creatorType, ecosystemRole);
+  const canonicalUrl = withBaseUrl(`/creators${queryString}`, SITE_BASE_URL);
+
+  if (typeLabel && roleLabel) {
+    return {
+      heading: `${typeLabel} の ${roleLabel}を探す`,
+      title: `${typeLabel} の ${roleLabel}を探す — Creator Founding`,
+      description: `${typeLabel} 領域で活動する ${roleLabel} を Creator Founding で一覧できます。公開プロフィールや支援導線、投稿の雰囲気をまとめて確認できます。`,
+      keywords: [
+        "クリエイターを探す",
+        "Creator Founding",
+        typeLabel,
+        roleLabel,
+        `${typeLabel} ${roleLabel}`,
+      ],
+      canonicalUrl,
+    };
+  }
+
+  if (typeLabel) {
+    return {
+      heading: `${typeLabel} のクリエイターを探す`,
+      title: `${typeLabel} のクリエイターを探す — Creator Founding`,
+      description: `${typeLabel} で活動するクリエイターを Creator Founding で見つけられます。公開プロフィール、支援導線、投稿の様子を一覧で確認できます。`,
+      keywords: [
+        "クリエイターを探す",
+        "Creator Founding",
+        typeLabel,
+        `${typeLabel} クリエイター`,
+      ],
+      canonicalUrl,
+    };
+  }
+
+  if (roleLabel) {
+    return {
+      heading: `${roleLabel} を探す`,
+      title: `${roleLabel} を探す — Creator Founding`,
+      description: `Creator Founding に参加している ${roleLabel} を一覧できます。公開プロフィールや活動の見え方を比較しながら探せます。`,
+      keywords: [
+        "クリエイターを探す",
+        "Creator Founding",
+        roleLabel,
+        `${roleLabel} 一覧`,
+      ],
+      canonicalUrl,
+    };
+  }
+
+  return {
+    heading: "クリエイターを探す",
+    title: "クリエイターを探す — Creator Founding",
+    description: "Creator Founding に参加しているクリエイターを一覧で見つけられます。",
+    keywords: [
+      "クリエイターを探す",
+      "Creator Founding",
+      "クリエイター一覧",
+      "コラボレーター",
+      "マネージャー",
+    ],
+    canonicalUrl,
+  };
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const creatorType = resolveCreatorType(params.creatorType);
+  const ecosystemRole = resolveEcosystemRole(params.ecosystemRole);
+  const metadataCopy = buildCreatorsMetadataCopy(creatorType, ecosystemRole);
+
+  return {
+    title: metadataCopy.title,
+    description: metadataCopy.description,
+    alternates: {
+      canonical: metadataCopy.canonicalUrl,
+    },
+    keywords: metadataCopy.keywords,
+    openGraph: {
+      title: metadataCopy.title,
+      description: metadataCopy.description,
+      url: metadataCopy.canonicalUrl,
+      siteName: "Creator Founding",
+      locale: "ja_JP",
+      type: "website",
+      images: [{ url: CREATORS_SOCIAL_IMAGE_URL }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: metadataCopy.title,
+      description: metadataCopy.description,
+      images: [CREATORS_SOCIAL_IMAGE_URL],
+    },
+  };
+}
 
 const discoveryChipBaseClass =
   "rounded-full border px-3 py-1 text-[12px] font-medium transition";
@@ -204,20 +342,36 @@ export default async function CreatorsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const { creatorType: typeParam, ecosystemRole: roleParam } = await searchParams;
-  const selectedType =
-    typeof typeParam === "string" && isCreatorType(typeParam) ? typeParam : null;
-  const selectedRole =
-    typeof roleParam === "string" && isEcosystemRole(roleParam) ? roleParam : null;
+  const selectedType = resolveCreatorType(typeParam);
+  const selectedRole = resolveEcosystemRole(roleParam);
+  const metadataCopy = buildCreatorsMetadataCopy(selectedType, selectedRole);
 
   const creators = await getCachedCreators(selectedType, selectedRole);
+  const structuredData = buildCreatorDiscoveryStructuredData({
+    baseUrl: SITE_BASE_URL,
+    creators: creators.map((creator) => ({
+      username: creator.username,
+      displayName: creator.displayName,
+      profileText: creator.profileText,
+      avatarUrl: creator.avatarUrl,
+      creatorType: creator.creatorType,
+      ecosystemRole: creator.ecosystemRole,
+    })),
+    selectedType,
+    selectedRole,
+  });
 
   return (
     <div className="space-y-6 py-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(structuredData),
+        }}
+      />
       <div>
-        <h1 className="text-xl font-bold text-[var(--text)]">クリエイターを探す</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Creator Founding に参加しているクリエイターを見つけて、活動を応援しましょう。
-        </p>
+        <h1 className="text-xl font-bold text-[var(--text)]">{metadataCopy.heading}</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">{metadataCopy.description}</p>
       </div>
 
       {/* Filter chips — creator type */}

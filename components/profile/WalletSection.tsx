@@ -53,11 +53,6 @@ function shortAddress(value: string): string {
 }
 
 export function WalletSection(props: WalletSectionProps) {
-  async function handleConnect(): Promise<void> {
-    const { appkit } = await import("@/lib/appkitInstance");
-    await appkit.open({ view: "Connect" });
-  }
-
   const currentChainLabel =
     props.currentChainId != null
       ? getChainConfig(props.currentChainId as SupportedChainId)?.shortName ??
@@ -75,10 +70,12 @@ export function WalletSection(props: WalletSectionProps) {
             <div className="text-sm font-semibold text-[var(--text)]">
               {props.connected
                 ? "応援の準備ができています"
-                : "ウォレットを接続すると応援できます"}
+                : "ウォレット接続で応援を始められます"}
             </div>
             <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              {props.creatorDisplayName} さんへの応援は、接続したウォレットから直接送ります。
+              {props.connected
+                ? `${props.creatorDisplayName} さんへの応援は、接続したウォレットから直接送ります。`
+                : `${props.creatorDisplayName} さんへの応援は、右上のウォレットから接続すると始められます。`}
             </p>
           </div>
           {props.connected ? (
@@ -90,17 +87,16 @@ export function WalletSection(props: WalletSectionProps) {
             >
               接続解除
             </button>
-          ) : (
-            <button
-              type="button"
-              className="btn shrink-0"
-              onClick={() => void handleConnect()}
-              disabled={props.isWalletConnecting || props.suppressConnectUI}
-            >
-              {props.isWalletConnecting ? "接続中です" : "ウォレット接続"}
-            </button>
-          )}
+          ) : null}
         </div>
+
+        {!props.connected ? (
+          <div className="mt-4 surface-subtle px-4 py-3 text-sm leading-6 text-[var(--text-subtle)]">
+            {props.isWalletConnecting
+              ? "ウォレット接続を待っています。右上のメニューで承認を完了してください。"
+              : "右上のウォレットから接続すると、この場で送金内容を確認して応援できます。"}
+          </div>
+        ) : null}
 
         {props.connected ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-3">

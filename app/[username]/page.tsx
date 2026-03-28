@@ -126,6 +126,9 @@ export async function generateMetadata({
     title: metadataSeed.title,
     description: metadataSeed.description,
     applicationName: metadataSeed.displayName,
+    alternates: {
+      canonical: metadataSeed.pageUrl,
+    },
     appleWebApp: {
       title: metadataSeed.displayName,
     },
@@ -138,7 +141,9 @@ export async function generateMetadata({
       title: metadataSeed.title,
       description: metadataSeed.description,
       url: metadataSeed.pageUrl,
-      type: "website",
+      siteName: "Creator Founding",
+      locale: "ja_JP",
+      type: "profile",
       images: [{ url: metadataSeed.imageUrl }],
     },
     twitter: {

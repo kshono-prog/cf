@@ -117,48 +117,31 @@ function IconProfile() {
   );
 }
 
-/** ギフト箱 — 「応援・寄付」を表す（ハートの「いいね」と混同されない） */
-function IconGift({ filled = false }: { filled?: boolean }) {
+/** コイン+プラス — 「応援を送る」をより直感的に表す */
+function IconSupport({ filled = false }: { filled?: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
-      {/* ribbon bow */}
+      <circle
+        cx="10"
+        cy="12"
+        r="5.8"
+        fill={filled ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
       <path
-        d="M12 7c-1-2-3-3-3.5-1.5C8 7 10 7.5 12 7c1-2 3-3 3.5-1.5C16 7 14 7.5 12 7Z"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      {/* box top */}
-      <rect
-        x="4"
-        y="7"
-        width="16"
-        height="3.2"
-        rx="1"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-      {/* box body */}
-      <rect
-        x="5.2"
-        y="10.2"
-        width="13.6"
-        height="8.8"
-        rx="1"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-      {/* vertical ribbon through box */}
-      <line
-        x1="12"
-        y1="7"
-        x2="12"
-        y2="19"
+        d="M10 8.9v6.2M6.9 12h6.2"
+        fill="none"
         stroke={filled ? "white" : "currentColor"}
-        strokeWidth="1.4"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M16.4 8.4h3.2M18 6.8v3.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -250,7 +233,7 @@ function iconFor(key: NavItemKey, highlight?: boolean) {
     case "self":
       return <IconProfile />;
     case "support":
-      return <IconGift filled={highlight} />;
+      return <IconSupport filled={highlight} />;
     case "wallet":
       return <IconWallet />;
     case "back":
@@ -439,7 +422,7 @@ export default function BottomNav({
         {
           kind: "button",
           key: "support",
-          label: "応援する",
+          label: "応援へ",
           highlight: true,
           onClick: scrollToSupport,   // already connected → scroll to support card
         },
@@ -468,13 +451,6 @@ export default function BottomNav({
       // Unconnected visitor on a creator profile page
       items = [
         { kind: "link", key: "discover", label: "発見", href: "/creators" },
-        {
-          kind: "button",
-          key: "support",
-          label: "応援する（ウォレット接続が必要）",
-          highlight: true,
-          onClick: () => void openWalletConnect(),
-        },
         {
           kind: "button",
           key: "wallet",

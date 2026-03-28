@@ -94,7 +94,13 @@ export function FeedActionControl(props: FeedActionControlProps) {
     onClick,
     tone = "default",
   } = props;
-  const className = active ? "feed-action feed-action-active" : "feed-action";
+  const className = [
+    "feed-action",
+    active ? "feed-action-active" : "",
+    onClick ? "" : "feed-action-static",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const content = (
     <>
       <span className="feed-action-icon-wrap">{icon}</span>
@@ -130,6 +136,8 @@ type Props = {
   headerAction?: React.ReactNode;
   selectedForTip: boolean;
   canTip: boolean;
+  likeInteractive: boolean;
+  tipInteractive: boolean;
   showTipAction: boolean;
   liking: boolean;
   repliesOpen: boolean;
@@ -184,6 +192,8 @@ export function FeedPostCard(props: Props) {
     headerAction,
     selectedForTip,
     canTip,
+    likeInteractive,
+    tipInteractive,
     showTipAction,
     liking,
     repliesOpen,
@@ -342,12 +352,18 @@ export function FeedPostCard(props: Props) {
         />
 
         <FeedActionControl
-          label={post.viewerHasLiked ? "いいね済み" : "いいね"}
+          label={
+            likeInteractive
+              ? post.viewerHasLiked
+                ? "いいね済み"
+                : "いいね"
+              : "いいね数"
+          }
           icon={<LikeIcon />}
           count={post.counts.likes}
-          active={post.viewerHasLiked}
+          active={likeInteractive && post.viewerHasLiked}
           tone="like"
-          onClick={onToggleLike}
+          onClick={likeInteractive ? onToggleLike : undefined}
           disabled={liking}
         />
 
@@ -355,13 +371,19 @@ export function FeedPostCard(props: Props) {
 
         {showTipAction ? (
           <FeedActionControl
-            label={selectedForTip ? "応援先を確認" : "応援する"}
+            label={
+              tipInteractive
+                ? selectedForTip
+                  ? "応援先を確認"
+                  : "応援する"
+                : "応援数"
+            }
             icon={<TipIcon />}
             count={post.counts.tips}
-            active={selectedForTip}
+            active={tipInteractive && selectedForTip}
             tone="tip"
-            onClick={canTip ? onTip : undefined}
-            disabled={!canTip}
+            onClick={tipInteractive ? onTip : undefined}
+            disabled={tipInteractive ? !canTip : false}
           />
         ) : null}
       </div>

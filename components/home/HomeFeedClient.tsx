@@ -115,11 +115,6 @@ export function HomeFeedClient({
     ? `/${viewerState.creatorUsername}/compose`
     : viewerWorkspaceHref;
 
-  async function handleViewerConnect(): Promise<void> {
-    const { appkit } = await import("@/lib/appkitInstance");
-    await appkit.open({ view: "Connect" });
-  }
-
   function handleOwnerPostCreated() {
     setFeedRefreshToken((current) => current + 1);
     window.requestAnimationFrame(() => {
@@ -216,7 +211,7 @@ export function HomeFeedClient({
           onSelectTipPost={() => {
             // Home timeline keeps support on each profile, not inline.
           }}
-          onFocusWalletSection={() => void handleViewerConnect()}
+          onFocusWalletSection={() => {}}
         />
       </div>
     </div>

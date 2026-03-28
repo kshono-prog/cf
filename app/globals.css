@@ -314,6 +314,11 @@ select {
   transition: color 150ms ease, opacity 150ms ease, transform 80ms ease;
 }
 
+.feed-action-static {
+  color: #94a3b8;
+  opacity: 0.88;
+}
+
 .feed-action:hover {
   color: #0f172a;
 }
@@ -515,6 +520,11 @@ html[data-theme="dark"] .action-pill-active {
 
 html[data-theme="dark"] .feed-action {
   color: #94a3b8;
+}
+
+html[data-theme="dark"] .feed-action-static {
+  color: #64748b;
+  opacity: 0.9;
 }
 
 html[data-theme="dark"] .feed-action:hover,

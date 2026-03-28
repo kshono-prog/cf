@@ -1,8 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+import { AiConciergeGuideCard } from "@/components/mypage/AiConciergeGuideCard";
 import { CreatorReadyAiManagerSection } from "@/components/mypage/CreatorReadyAiManagerSection";
 import { CreatorReadyDailyBriefingHero } from "@/components/mypage/CreatorReadyDailyBriefingHero";
 import { CreatorReadyGrowthReflectionSection } from "@/components/mypage/CreatorReadyGrowthReflectionSection";
@@ -213,6 +215,26 @@ export function CreatorReadyHomeRoute(props: Props) {
     openCreateTaskType: "MONTHLY_CASHFLOW_REPORT",
   });
   const aiOfficeHref = isNewCreator ? aiOfficeCreateManagerHref : aiOfficeOverviewHref;
+  const conciergeHref = profileMissing
+    ? buildAiOfficeHref({
+        activeView: "CREATE",
+        selectedRoleId: "MANAGER",
+        selectedInboxRoleId: null,
+        openLatestTaskType: null,
+        openCreateTaskType: "PROFILE_UPDATE_PROPOSAL",
+      })
+    : buildAiOfficeHref({
+        activeView: "CREATE",
+        selectedRoleId: "MANAGER",
+        selectedInboxRoleId: null,
+        openLatestTaskType: null,
+        openCreateTaskType: "DAILY_ACTION_PLAN",
+      });
+  const conciergeCtaLabel = profileMissing
+    ? "AIにプロフィール改善を相談する"
+    : isNewCreator
+      ? "AIに最初の一歩を相談する"
+      : "AIに今日の進め方を相談する";
 
   const currentYearMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
   const stageGrowthTask =
@@ -269,11 +291,53 @@ export function CreatorReadyHomeRoute(props: Props) {
       aiOfficeCreatePromotion: aiOfficeCreatePromotionHref,
     },
   });
+  const conciergePoints =
+    taskLists.today.length > 0
+      ? taskLists.today.slice(0, 3).map((item) => ({
+          title: item.title,
+          body: item.body,
+        }))
+      : [
+          {
+            title: "プロフィールの土台を整える",
+            body: "紹介文や基本情報が見えると、公開ページと AI の提案が具体的になります。",
+          },
+          {
+            title: "Goal を決める",
+            body: "支援理由と目標が見えると、応援導線と日々の運営が整理しやすくなります。",
+          },
+          {
+            title: "近況を1本出す",
+            body: "最初の投稿があるだけで、活動が止まっていないことが伝わりやすくなります。",
+          },
+        ];
 
   return (
     <div className="space-y-4">
       {dashboardError ? (
         <WorkspaceStatusNotice tone="error" title={dashboardError} />
+      ) : null}
+      {(isNewCreator || needsSetup) ? (
+        <AiConciergeGuideCard
+          title={
+            isNewCreator
+              ? "AIコンシェルジュと最初の一歩を決める"
+              : "AIコンシェルジュが公開準備を支援します"
+          }
+          body={
+            isNewCreator
+              ? "AI Office は、プロフィール、Goal、最初の投稿づくりを“今どこから始めるか”の順で案内できます。"
+              : "公開ページ、支援導線、日々の運営で迷いやすいところを、AI Office がコンシェルジュのように整理して支援します。"
+          }
+          points={conciergePoints}
+        >
+          <Link href={conciergeHref} className="btn">
+            {conciergeCtaLabel}
+          </Link>
+          <button type="button" className="btn-secondary" onClick={props.onOpenSettings}>
+            設定・準備を開く
+          </button>
+        </AiConciergeGuideCard>
       ) : null}
       <CreatorReadyDailyBriefingHero
         creatorName={workspace.displayName || workspace.meCreatorUsername}

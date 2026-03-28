@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 
 import type { FeedListView } from "@/lib/feedList";
@@ -311,16 +311,12 @@ export default function ProfileClient({
     : viewerWorkspaceHref;
   const pageDisplayName = displayName;
 
-  const handleViewerConnect = useCallback(async (): Promise<void> => {
-    const { appkit } = await import("@/lib/appkitInstance");
-    await appkit.open({ view: "Connect" });
-  }, []);
-
   const showStickyBar =
     stickyVisible &&
     !supportSectionInView &&
     !viewerState.isOwner &&
-    (canOpenSupportSheet || viewerState.mode === "unconnected");
+    viewerState.mode !== "unconnected" &&
+    canOpenSupportSheet;
 
   const profileGuideCard = (
     <ProfileViewerGuideCard
@@ -342,7 +338,6 @@ export default function ProfileClient({
         viewerState={viewerState}
         managementHref={ownerComposerManagementHref}
         registrationHref={viewerWorkspaceHref}
-        onRequireConnection={() => void handleViewerConnect()}
       />
     </section>
   );
@@ -439,9 +434,7 @@ export default function ProfileClient({
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[15px] font-semibold text-white shadow-lg transition active:scale-[0.98]"
           style={{ backgroundColor: supportBgColor }}
           onClick={() => {
-            if (viewerState.mode === "unconnected") {
-              void handleViewerConnect();
-            } else if (canOpenSupportSheet) {
+            if (canOpenSupportSheet) {
               openSupportSheet();
             }
           }}

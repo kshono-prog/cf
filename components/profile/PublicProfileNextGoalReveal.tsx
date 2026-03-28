@@ -97,7 +97,7 @@ export function PublicProfileNextGoalReveal({ data }: Props) {
           </div>
 
           <Link href="#support-projects" className="btn w-full">
-            応援する
+            応援へ
           </Link>
         </div>
       </div>

@@ -357,7 +357,7 @@ export function CreatorFeedSection(props: Props) {
   }
 
   function handleNeedConnection() {
-    setNotice("いいねや返信を続けるには、まずウォレットを接続してください。");
+    setNotice("いいねや返信を続けるには、右上のウォレットから接続してください。");
     onFocusWalletSection();
   }
 
@@ -1068,6 +1068,11 @@ export function CreatorFeedSection(props: Props) {
                 }
                 selectedForTip={selectedPostId === post.id}
                 canTip={isTipSupported(cardPost, projectIdsByCurrency)}
+                likeInteractive={viewerAddress !== null}
+                tipInteractive={
+                  viewerAddress !== null &&
+                  isTipSupported(cardPost, projectIdsByCurrency)
+                }
                 showTipAction={showTipAction}
                 liking={pendingPostLikeIds.has(post.id)}
                 repliesOpen={isOpen}
@@ -1267,6 +1272,7 @@ export function CreatorFeedSection(props: Props) {
                           value={detail.replyInput}
                           disabled={!viewerAddress}
                           submitting={detail.replying}
+                          viewerConnected={viewerAddress !== null}
                           onChange={(nextValue) => {
                             handleReplyInputChange(post.id, nextValue);
                           }}
