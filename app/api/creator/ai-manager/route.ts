@@ -124,6 +124,8 @@ function parseAiManagerSlug(value: unknown, code: string): string | undefined {
   if (typeof value !== "string") {
     throw new Error(code);
   }
+  // Empty string means "no slug provided" — fall back to default
+  if (value.trim().length === 0) return undefined;
 
   const normalized = normalizeAiManagerSlug(value);
   if (!normalized) {
