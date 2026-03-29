@@ -16,7 +16,10 @@ export function CreatorApplyCard({ saving, onApply }: Props) {
           公開ページの準備
         </div>
         <p className="mt-1 text-xs leading-relaxed text-gray-700">
-          この申請を行うと、公開ページの編集や応援設定を使えるようになります。名前と紹介文を確認してから進めてください。
+          申請すると、公開用のクリエイターページ作成フローに進めるようになります。名前と紹介文を確認してから進めてください。
+        </p>
+        <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
+          あとでプロフィールや目標は編集できます。
         </p>
       </div>
       <button

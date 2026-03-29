@@ -6,6 +6,7 @@ import { AiOfficeCreateSection } from "@/components/mypage/AiOfficeCreateSection
 import { AiOfficeStatusNotice } from "@/components/mypage/AiOfficeFeedback";
 import { AiOfficeInboxSection } from "@/components/mypage/AiOfficeInboxSection";
 import { AiOfficeOverviewSection } from "@/components/mypage/AiOfficeOverviewSection";
+import { useCreatorAiManagerAccount } from "@/components/mypage/useCreatorAiManagerAccount";
 import {
   buildAiOfficePanelSearchParams,
   parseAiOfficePanelUrlState,
@@ -51,7 +52,7 @@ import {
   AI_OFFICE_LABEL,
   getAiOfficeMessageState,
 } from "@/lib/uxCopy";
-import { isRecord } from "@/lib/api/guards";
+import { isRecord, toAddressOrNull } from "@/lib/api/guards";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 const DEFAULT_AI_OFFICE_TASK_TYPE: TaskType = "MANAGER_NEXT_ACTIONS";
@@ -135,6 +136,14 @@ export function AiOfficePanel(props: {
   const BULK_CONFIRM_THRESHOLD = 5;
 
   const canUse = isConnected && !!walletAddress;
+  const ownerAddress = useMemo(
+    () => (walletAddress ? toAddressOrNull(walletAddress) ?? undefined : undefined),
+    [walletAddress]
+  );
+  const aiManagerAccount = useCreatorAiManagerAccount({
+    address: ownerAddress,
+    isConnected,
+  });
   const visibleMessage = useMemo(
     () => getAiOfficeMessageState(message),
     [message]
@@ -792,6 +801,9 @@ export function AiOfficePanel(props: {
               waitingApprovalCount={waitingApprovalCount}
               tasks={tasks}
               usefulness={usefulness}
+              aiManagerAccount={aiManagerAccount.account}
+              aiManagerLoading={aiManagerAccount.loading}
+              aiManagerError={aiManagerAccount.error}
               onOpenCreate={() => setActiveView("CREATE")}
               onOpenCreateForRole={(roleId) => {
                 openRoleShortcut(roleId, "CREATE");

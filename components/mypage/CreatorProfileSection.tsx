@@ -7,15 +7,22 @@ import { CreatorProfileViewCard } from "./CreatorProfileViewCard";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 
 type Props = {
+  assistantSection?: React.ReactNode;
   extraSections?: React.ReactNode;
+  missingSetupHints?: string[];
 };
 
 export function CreatorProfileSection(props: Props) {
   const workspace = useCreatorReadyWorkspace();
 
   if (!workspace.editingProfile) {
-    return <CreatorProfileViewCard />;
+    return <CreatorProfileViewCard missingSetupHints={props.missingSetupHints} />;
   }
 
-  return <CreatorProfileEditForm extraSections={props.extraSections} />;
+  return (
+    <CreatorProfileEditForm
+      assistantSection={props.assistantSection}
+      extraSections={props.extraSections}
+    />
+  );
 }

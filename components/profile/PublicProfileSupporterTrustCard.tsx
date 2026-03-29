@@ -14,7 +14,9 @@ function TrustSupporterChip(props: { item: PublicProfileSupporterTrustItem }) {
   const style = BADGE_STYLES[item.badge];
   return (
     <div className="flex items-center gap-1.5 rounded-lg border border-[var(--line)] bg-[var(--surface-subtle)] px-2.5 py-1.5">
-      <span className="truncate font-mono text-xs text-[var(--text)]">{item.addressAbbr}</span>
+      <span className="truncate text-xs text-[var(--text)]">
+        {item.username ? `@${item.username}` : item.displayLabel !== item.addressAbbr ? item.displayLabel : item.addressAbbr}
+      </span>
       <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${style.bg} ${style.text}`}>
         {style.label}
       </span>

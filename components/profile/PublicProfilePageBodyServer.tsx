@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 import { CreatorActivityCredibilityBadge } from "@/components/profile/CreatorActivityCredibilityBadge";
+import { PublicProfileAiManagerCard } from "@/components/profile/PublicProfileAiManagerCard";
 import { CreatorStageCard } from "@/components/profile/CreatorStageCard";
 import { PublicProfileAnchorNav } from "@/components/profile/PublicProfileAnchorNav";
 import { PublicProfileCreatorVoiceCard } from "@/components/profile/PublicProfileCreatorVoiceCard";
@@ -10,6 +11,7 @@ import { PublicProfileIntroServer } from "@/components/profile/PublicProfileIntr
 import { PublicProfileImpactNumbersInline } from "@/components/profile/PublicProfileImpactNumbers";
 import { loadPublicProfilePageReadModel } from "@/lib/publicProfilePageReadModel";
 import { isPrismaUnavailableError } from "@/lib/prismaRetry";
+import { deriveCreatorStage } from "@/lib/creatorStage";
 import { serializeJsonLd } from "@/lib/seo/jsonLd";
 import { buildPublicProfileStructuredData } from "@/lib/seo/publicProfileStructuredData";
 import { getActiveSupportProject } from "@/lib/supportProfileView";
@@ -107,22 +109,31 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
         profile,
         projectId,
         projectIdsByCurrency,
+        publicAiManager,
         supportProfileView,
         recruitingProjects,
       },
       initialFeed,
       credibility,
     } = await loadPublicProfilePageReadModel(username);
+    const stageResult =
+      credibility.totalPostCount > 0 || credibility.activeMonths > 0
+        ? deriveCreatorStage(credibility)
+        : null;
     const structuredData = buildPublicProfileStructuredData({
       baseUrl: PUBLIC_SITE_BASE_URL,
       username,
       creator,
       supportProfileView,
+      recruitingProjectCount: recruitingProjects.length,
       credibility,
     });
 
     const anchorTabs = [
       { id: "support", label: "応援へ", anchor: "#support-projects" },
+      ...(publicAiManager
+        ? [{ id: "ai-manager", label: "運営AI", anchor: "#ai-manager-section" }]
+        : []),
       { id: "posts", label: "投稿", anchor: "#posts" },
       { id: "supporters", label: "支援者", anchor: "#supporters-section" },
       { id: "credibility", label: "実績", anchor: "#credibility-section" },
@@ -150,6 +161,7 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
               creator={creator}
               supportProfileView={supportProfileView}
               recruitingProjects={recruitingProjects}
+              stageBadge={stageResult?.stageLabel ?? null}
               impactContent={
                 <PublicProfileImpactNumbersInline credibility={credibility} />
               }
@@ -159,9 +171,18 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
 
         <PublicProfileAnchorNav tabs={anchorTabs} />
 
+        {publicAiManager ? (
+          <PublicProfileAiManagerCard
+            creatorUsername={username}
+            creatorDisplayName={creator.displayName || username}
+            aiManager={publicAiManager}
+          />
+        ) : null}
+
         <PublicProfileCreatorVoiceCard
           displayName={creator.displayName || username}
           supportProfileView={supportProfileView}
+          ecosystemRole={creator.ecosystemRole ?? null}
         />
 
         <div id="credibility-section" className="space-y-4">

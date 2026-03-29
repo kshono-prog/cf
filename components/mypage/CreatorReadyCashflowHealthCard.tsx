@@ -40,6 +40,17 @@ function formatAmount(amount: number, currency: string): string {
   return `${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  VENUE: "会場費",
+  EQUIPMENT: "機材",
+  MARKETING: "プロモーション",
+  TRAVEL: "交通費",
+  PERSONNEL: "人件費",
+  PRODUCTION: "制作費",
+  SUBSCRIPTION: "サブスク",
+  OTHER: "その他",
+};
+
 type CashflowByCurrency = {
   currency: string;
   revenue: number;
@@ -69,6 +80,23 @@ export function CreatorReadyCashflowHealthCard({
   );
 
   if (currencies.length === 0) return null;
+
+  // Expense category breakdown for this month
+  const expCategoryMap = new Map<string, number>();
+  for (const e of expenses) {
+    if (!e.occurredAt.startsWith(thisMonth)) continue;
+    const key = e.category ?? "OTHER";
+    expCategoryMap.set(key, (expCategoryMap.get(key) ?? 0) + Number(e.amountDecimal));
+  }
+  const totalExpenseAll = Array.from(expCategoryMap.values()).reduce((s, v) => s + v, 0);
+  const expCategoryRanked = Array.from(expCategoryMap.entries())
+    .map(([cat, amount]) => ({
+      label: CATEGORY_LABELS[cat] ?? cat,
+      amount,
+      pct: totalExpenseAll > 0 ? Math.round((amount / totalExpenseAll) * 100) : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
 
   const rows: CashflowByCurrency[] = currencies.map((currency) => ({
     currency,
@@ -146,6 +174,26 @@ export function CreatorReadyCashflowHealthCard({
           );
         })}
       </div>
+
+      {expCategoryRanked.length > 0 ? (
+        <div className="mt-3 space-y-1.5">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">支出カテゴリ</div>
+          {expCategoryRanked.map((cat) => (
+            <div key={cat.label} className="space-y-0.5">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-[var(--text)]">{cat.label}</span>
+                <span className="text-[var(--text-subtle)]">{cat.pct}%</span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+                <div
+                  className="h-full rounded-full bg-[var(--text-subtle)]"
+                  style={{ width: `${cat.pct.toString()}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

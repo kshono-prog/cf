@@ -3,6 +3,7 @@
 import React from "react";
 import type { Address } from "viem";
 
+import type { ProfileDraftResult } from "@/lib/ai/profileDraft";
 import type { AiOfficePanelUrlState } from "@/components/mypage/aiOfficePanelUrlState";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
 import type { EcosystemRole } from "@/lib/creatorTaxonomy";
@@ -15,6 +16,18 @@ import type {
   OpenSections,
   SectionKey,
 } from "@/components/mypage/MyPageAccordion";
+import type { GrowthEventPayload } from "@/lib/growth/types";
+import type {
+  SetupLocalMilestoneKey,
+  SetupLocalMilestones,
+} from "@/lib/growth/setup";
+
+export type SetupAiDraftState = {
+  goalTitle: string | null;
+  projectTitle: string;
+  projectDescription: string;
+  goalTargetInput: string;
+};
 
 export type CreatorReadyWorkspaceState = {
   meCreatorUsername: string;
@@ -56,6 +69,12 @@ export type CreatorReadyWorkspaceState = {
   openSections: OpenSections;
   onToggleSection: (key: SectionKey) => void;
   initialAiOfficeUrlState?: Partial<AiOfficePanelUrlState>;
+  reportGrowthEvent: (payload: GrowthEventPayload) => void;
+  localGrowthMilestones: SetupLocalMilestones;
+  markLocalGrowthMilestone: (key: SetupLocalMilestoneKey) => void;
+  aiSetupDraft: SetupAiDraftState;
+  aiSetupDraftVersion: number;
+  applyAiProfileDraft: (draft: ProfileDraftResult) => void;
 };
 
 export type CreatorReadyWorkspaceShellProps = {

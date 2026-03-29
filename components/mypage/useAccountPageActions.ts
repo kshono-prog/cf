@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import type { Address } from "viem";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
 import type { EcosystemRole } from "@/lib/creatorTaxonomy";
+import type { MeStatus } from "@/lib/mypage/types";
 import {
   saveMyPageUser,
   requestCreatorApply,
@@ -25,8 +26,14 @@ type Args = {
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   // callbacks after successful mutation
-  onSaved: (addr: Address) => Promise<unknown>;
+  onSaved: (addr: Address) => Promise<MeStatus | null>;
   cancelEditingProfile: () => void;
+  onUserSavedSuccess?: (me: MeStatus) => void;
+  onCreatorAppliedSuccess?: (me: MeStatus) => void;
+  onCreatorProfileSavedSuccess?: (result: {
+    me: MeStatus;
+    creator: CreatorProfile | null;
+  }) => void;
 };
 
 export function useAccountPageActions(args: Args) {
@@ -45,6 +52,9 @@ export function useAccountPageActions(args: Args) {
     youtubeVideos,
     onSaved,
     cancelEditingProfile,
+    onUserSavedSuccess,
+    onCreatorAppliedSuccess,
+    onCreatorProfileSavedSuccess,
   } = args;
 
   const [saving, setSaving] = useState(false);
@@ -71,6 +81,7 @@ export function useAccountPageActions(args: Args) {
       }
 
       await onSaved(address);
+      onUserSavedSuccess?.(result.data);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -95,6 +106,7 @@ export function useAccountPageActions(args: Args) {
       }
 
       await onSaved(address);
+      onCreatorAppliedSuccess?.(result.data);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "クリエイター申請に失敗しました。"
@@ -131,6 +143,10 @@ export function useAccountPageActions(args: Args) {
 
       cancelEditingProfile();
       await onSaved(address);
+      onCreatorProfileSavedSuccess?.({
+        me: result.data,
+        creator: result.creator,
+      });
     } catch (err: unknown) {
       setError(
         err instanceof Error

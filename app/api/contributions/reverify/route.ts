@@ -8,6 +8,7 @@ import { errJson, okJson } from "@/lib/api/responses";
 import { isRecord } from "@/lib/api/guards";
 import { getBridgeRuntimeEnv } from "@/lib/env";
 import { applyConfirmedContributionToPostTips } from "@/lib/social";
+import { recordFirstTipReceivedIfNeeded } from "@/lib/growth/firstTip";
 
 import {
   createPublicClient,
@@ -329,6 +330,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     } catch (e) {
       console.warn("GOAL_AUTO_ACHIEVE_FAILED", e);
+    }
+
+    try {
+      await recordFirstTipReceivedIfNeeded({
+        contributionId: updated.id,
+        now,
+      });
+    } catch (error) {
+      console.warn("FIRST_TIP_RECEIVED_TRACK_FAILED", error);
     }
 
     return okJson({

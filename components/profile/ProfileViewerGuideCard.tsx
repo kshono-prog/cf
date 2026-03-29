@@ -8,9 +8,12 @@ type Props = {
   viewerState: PublicViewerState;
   canOpenSupportSheet: boolean;
   pageDisplayName: string;
+  ownerPageReviewed: boolean;
+  ownerShareDraftHref: string;
   viewerComposeHref: string;
   viewerWorkspaceHref: string;
   viewerProfileHref: string;
+  onConfirmOwnerPageReviewed: () => void;
   onOpenSupportSheet: () => void;
 };
 
@@ -18,9 +21,12 @@ export function ProfileViewerGuideCard({
   viewerState,
   canOpenSupportSheet,
   pageDisplayName,
+  ownerPageReviewed,
+  ownerShareDraftHref,
   viewerComposeHref,
   viewerWorkspaceHref,
   viewerProfileHref,
+  onConfirmOwnerPageReviewed,
   onOpenSupportSheet,
 }: Props) {
   if (viewerState.isOwner) {
@@ -32,15 +38,24 @@ export function ProfileViewerGuideCard({
               これはあなたの公開ページです
             </div>
             <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-subtle)]">
-              見え方を確認しながら、投稿や設定をすぐ開けます。
+              見え方を確認しながら、拡散文面づくりや進捗共有にすぐ進めます。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href={viewerComposeHref} className="btn">
-              投稿する
+            <button
+              type="button"
+              className={ownerPageReviewed ? "btn-secondary" : "btn-secondary"}
+              onClick={onConfirmOwnerPageReviewed}
+            >
+              {ownerPageReviewed
+                ? "確認済みとして反映済み"
+                : "この公開ページを確認しました"}
+            </button>
+            <Link href={ownerShareDraftHref} className="btn-secondary">
+              拡散文面を作る
             </Link>
-            <Link href={viewerWorkspaceHref} className="btn-secondary">
-              設定を開く
+            <Link href={viewerComposeHref} className="btn">
+              今の進捗をシェアする
             </Link>
           </div>
         </div>

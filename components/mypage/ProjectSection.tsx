@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ProjectCreateCard } from "@/components/mypage/ProjectCreateCard";
+import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import type { SummaryProject } from "@/lib/mypage/accountPageTypes";
 import { useProjectSection } from "@/components/mypage/useProjectSection";
 
@@ -14,6 +15,7 @@ export function ProjectSection(props: {
   onActiveProjectIdChange?: (projectId: string, currency: "JPYC" | "USDC") => void;
   integratedGoalPanel?: React.ReactNode;
 }) {
+  const workspace = useCreatorReadyWorkspace();
   const {
     ownerAddress,
     activeProjectId,
@@ -39,11 +41,32 @@ export function ProjectSection(props: {
     currency,
     onActiveProjectIdChange,
   });
+  const handleProjectCreated = React.useCallback(
+    (projectId: string) => {
+      handleCreated(projectId);
+      workspace.reportGrowthEvent({
+        event: "project_created",
+        projectId,
+        metadata: {
+          currency,
+        },
+      });
+    },
+    [currency, handleCreated, workspace]
+  );
+  const aiDefaultValues =
+    workspace.aiSetupDraft.projectTitle.trim().length > 0 ||
+    workspace.aiSetupDraft.projectDescription.trim().length > 0
+      ? {
+          title: workspace.aiSetupDraft.projectTitle,
+          description: workspace.aiSetupDraft.projectDescription,
+        }
+      : undefined;
 
   return (
     <div className="card p-4 space-y-3 bg-white">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Project</h2>
+        <h2 className="text-sm font-semibold">公開向け Project</h2>
         {hasActive ? (
           <span className="text-[11px] text-gray-500">
             projectId: <span className="font-mono">{activeProjectId}</span>
@@ -190,8 +213,9 @@ export function ProjectSection(props: {
               <ProjectCreateCard
                 ownerAddress={ownerAddress}
                 currency={currency}
+                defaultValues={aiDefaultValues}
                 shownProjectId={activeProjectId}
-                onCreated={handleCreated}
+                onCreated={handleProjectCreated}
               />
 
               <button
@@ -209,7 +233,8 @@ export function ProjectSection(props: {
         <ProjectCreateCard
           ownerAddress={ownerAddress}
           currency={currency}
-          onCreated={handleCreated}
+          defaultValues={aiDefaultValues}
+          onCreated={handleProjectCreated}
         />
       )}
 

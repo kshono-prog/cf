@@ -25,6 +25,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     buildSitemapEntry("/", now, "daily", 1),
     buildSitemapEntry("/creators", now, "daily", 0.9),
+    buildSitemapEntry("/llms.txt", now, "weekly", 0.4),
+    buildSitemapEntry("/llms-full.txt", now, "weekly", 0.4),
+    buildSitemapEntry("/public-api-examples", now, "weekly", 0.4),
   ];
 
   try {

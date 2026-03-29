@@ -61,11 +61,18 @@ export type ManagerAgentProjectSnapshot = {
   deadline: string | null;
 };
 
+export type TaskTypeApprovalStat = {
+  taskType: string;
+  approvedCount: number;
+  rejectedCount: number;
+};
+
 export type ManagerAgentTaskOutput = {
   summary: string;
   suggestedActions: ManagerAgentSuggestedAction[];
   evidence: ManagerAgentTaskEvidence;
   maturitySignal: ManagerAgentMaturitySignal | null;
+  approvalInsight: string | null;
   basedOn: ManagerAgentTaskInput;
   projectSnapshot?: ManagerAgentProjectSnapshot;
 };
@@ -172,6 +179,33 @@ function toStoredSuggestedActions(
   }));
 }
 
+function buildApprovalInsight(
+  history: readonly TaskTypeApprovalStat[]
+): string | null {
+  if (history.length === 0) return null;
+
+  const approvedTypes = history
+    .filter((h) => h.approvedCount > 0)
+    .sort((a, b) => b.approvedCount - a.approvedCount)
+    .slice(0, 3);
+  const highRejected = history.filter(
+    (h) => h.rejectedCount > 0 && h.approvedCount === 0
+  );
+
+  const parts: string[] = [];
+  if (approvedTypes.length > 0) {
+    const labels = approvedTypes
+      .map((h) => `${h.taskType}（承認${h.approvedCount.toString()}回）`)
+      .join("、");
+    parts.push(`これまでに承認されたタスク: ${labels}`);
+  }
+  if (highRejected.length > 0) {
+    const labels = highRejected.map((h) => h.taskType).join("、");
+    parts.push(`却下されたタスク: ${labels}`);
+  }
+  return parts.length > 0 ? parts.join("。") + "。" : null;
+}
+
 function buildOutputSummary(
   summary: SummaryViewData | null,
   suggestedActions: readonly ManagerAgentSuggestedAction[],
@@ -201,15 +235,18 @@ export function buildManagerAgentTaskOutput(args: {
   input: ManagerAgentTaskInput;
   isOwner: boolean;
   stageResult?: CreatorStageResult | null;
+  approvalHistory?: readonly TaskTypeApprovalStat[];
 }): ManagerAgentTaskOutput {
   const suggestedActions = toStoredSuggestedActions(args.summary, args.isOwner);
   const maturitySignal = buildMaturitySignal(args.stageResult ?? null);
+  const approvalInsight = buildApprovalInsight(args.approvalHistory ?? []);
 
   return {
     summary: buildOutputSummary(args.summary, suggestedActions, maturitySignal),
     suggestedActions,
     evidence: buildManagerEvidence(args.summary),
     maturitySignal,
+    approvalInsight,
     basedOn: args.input,
     ...(args.summary
       ? { projectSnapshot: buildProjectSnapshot(args.summary) }

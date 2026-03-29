@@ -69,6 +69,9 @@ test("fetchNotificationsByOwnerAddress merges and sorts reply/like/support items
         postTips: [],
       },
     ],
+    findSupporterContributionCounts: async () => [
+      { fromAddress: "0x1234567890abcdef1234567890abcdef12345678", _count: { id: 3 } },
+    ],
   });
 
   assert.equal(response.status, 200);
@@ -99,6 +102,7 @@ test("fetchNotificationsByOwnerAddress returns 404 when the creator is missing",
     findReplyNotifications: async () => [],
     findLikeNotifications: async () => [],
     findSupportNotifications: async () => [],
+    findSupporterContributionCounts: async () => [],
   });
 
   assert.equal(response.status, 404);
@@ -122,6 +126,7 @@ test("fetchNotificationsByOwnerAddress returns 500 when notification reads fail"
     },
     findLikeNotifications: async () => [],
     findSupportNotifications: async () => [],
+    findSupporterContributionCounts: async () => [],
   });
 
   assert.equal(response.status, 500);

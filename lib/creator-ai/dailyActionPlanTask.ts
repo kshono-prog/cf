@@ -241,37 +241,66 @@ export async function buildDailyActionPlanOutput(params: {
       ? `今日の優先タスクは ${highCount.toString()}件です。承認待ちと重要度の高いものから始めましょう。`
       : `今日のやることを ${actions.length.toString()}件 整理しました。状況に合わせて取り組んでください。`;
 
-  // AI enhancement: generate better action descriptions
+  // AI enhancement: improve descriptions of precomputed actions
   const cashflowLine = hasCashflowData
     ? `今月の収入: ${thisMonthRevenue.toLocaleString()} / 支出: ${thisMonthExpense.toLocaleString()} / 収支: ${netCashflow >= 0 ? "+" : ""}${netCashflow.toLocaleString()}${revenueTrendPct !== null ? ` / 先月比: ${revenueTrendPct >= 0 ? "+" : ""}${revenueTrendPct.toString()}%` : ""}`
     : "収支データなし";
 
+  // Deduplicate: max 2 per category, preserve priority order
+  function deduplicateActions(raw: DailyAction[]): DailyAction[] {
+    const countPerCategory: Record<string, number> = {};
+    return raw.filter((a) => {
+      const count = countPerCategory[a.category] ?? 0;
+      if (count >= 2) return false;
+      countPerCategory[a.category] = count + 1;
+      return true;
+    });
+  }
+
+  const deduplicatedActions = deduplicateActions(actions);
+
+  // Build precomputed action list for AI context
+  const precomputedLines = deduplicatedActions
+    .map((a) => `[${a.priority}] ${a.title} — ${a.reason}`)
+    .join("\n");
+
   const aiResult = await generateJson<{ summary: string; actions: DailyAction[] }>(
-    `クリエイターの今日の優先アクションを整理してください。
-承認待ちタスク: ${pendingTaskCount.toString()}件
-最終投稿からの日数: ${daysSincePost === null ? "まだ投稿なし" : `${daysSincePost.toString()}日`}
-直近7日の新規支援者: ${recentCount.toString()}名
-目標期限まで: ${activeGoal?.deadline ? `${Math.floor((activeGoal.deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)).toString()}日` : "未設定"}
-目標達成済み: ${activeGoal?.achievedAt ? "はい" : "いいえ"}
+    `クリエイターの今日の優先アクションを整理してください。以下のアクション候補をもとに、より具体的な言葉で改善してください（削除や並び替えは不要です）。
+
+## アクション候補
+${precomputedLines}
+
+## コンテキスト
 Creator Stage: ${stageResult.stage} (${stageResult.stageLabel})
 次のマイルストーン: ${stageResult.nextMilestone ?? "なし"}
 最弱の成熟軸: ${weakestAxis ? `${weakestAxisLabel[weakestAxis[0]] ?? weakestAxis[0]}（${weakestAxis[1].toString()}点）` : "不明"}
 今月の収支: ${cashflowLine}
 
-Creator Stage の最弱軸と収支状況を踏まえた具体的なアクションを3件以内で提案してください。category は "approval" / "posting" / "goal" / "engagement" / "next-step" のいずれかを使用。
-以下のJSON形式のみで返してください:
-{"summary":"今日の状況を一言で","actions":[{"id":"action-1","title":"具体的なアクション","reason":"理由（1文）","priority":"high","category":"approval"}]}`,
+以下のJSON形式のみで返してください（actions の件数は候補と同じにしてください）:
+{"summary":"今日の状況を一言で（数字を含めて具体的に）","actions":[{"id":"action-1","title":"具体的なアクション","reason":"理由（1文）","priority":"high","category":"approval"}]}`,
     {
       systemPrompt:
-        "あなたはクリエイターの日常運営をサポートするAIアシスタントです。具体的で実行可能な日本語で答えてください。",
-      maxTokens: 512,
-      temperature: 0.5,
+        "あなたはクリエイターの日常運営をサポートするAIアシスタントです。具体的で実行可能な日本語で答えてください。category は approval/posting/goal/engagement/next-step のいずれかのみ使用。",
+      maxTokens: 600,
+      temperature: 0.4,
     }
   );
 
+  // Always keep critical rule-based actions (approval) even if AI drops them
+  const criticalActions = deduplicatedActions.filter((a) => a.category === "approval");
+  let mergedActions: DailyAction[];
+  if (aiResult?.actions?.length) {
+    const aiActions = aiResult.actions.slice(0, 5);
+    const hasApprovalAction = aiActions.some((a) => a.category === "approval");
+    mergedActions = hasApprovalAction
+      ? aiActions
+      : [...criticalActions, ...aiActions.filter((a) => a.category !== "approval")].slice(0, 5);
+  } else {
+    mergedActions = deduplicatedActions;
+  }
+
   const finalSummary = aiResult?.summary ?? fallbackSummary;
-  const finalActions =
-    aiResult?.actions?.length ? aiResult.actions.slice(0, 5) : actions;
+  const finalActions = mergedActions;
 
   return {
     summary: finalSummary,

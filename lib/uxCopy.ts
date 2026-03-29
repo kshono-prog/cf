@@ -110,6 +110,21 @@ const TASK_TYPE_COPY: Record<TaskType, Copy> = {
     helper:
       "今月の収入・支出を収入源・カテゴリ別に集計し、収支サマリーと次のアクションへのアドバイスを生成します。",
   },
+  STAGE_PROGRESS_REPORT: {
+    label: "ステージ診断レポートを確認する",
+    helper:
+      "現在の成長ステージと8軸成熟度スコアを診断し、強い軸・伸ばすべき軸のギャップと次に取り組むべきアクションを整理します。",
+  },
+  CONTRACT_RENEWAL_ALERT: {
+    label: "契約更新アラートを確認する",
+    helper:
+      "Contact Pipeline に登録された接点の契約開始日・ステータスをもとに、更新対応が必要な接点を優先度付きで整理します。",
+  },
+  MEETING_FOLLOWUP_DRAFT: {
+    label: "会議フォローアップを作成する",
+    helper:
+      "完了した会議の議事メモをもとに、アクション項目・決定事項・次回議題・参加者共有用サマリーを構造化して整理します。",
+  },
 };
 
 const TASK_STATUS_COPY: Record<TaskStatus, Copy> = {
@@ -248,6 +263,41 @@ const AI_OFFICE_MESSAGE_COPY: Record<string, MessageState> = {
     tone: "info",
     title: "作成する内容の種類が正しくありません。",
     description: "選び直してから、もう一度お試しください。",
+  },
+  AI_MANAGER_BILLING_PAUSED: {
+    tone: "info",
+    title: "AIマネージャーの billable 利用は一時停止中です。",
+    description: "Settings の pause reason を確認してから再度お試しください。",
+  },
+  AI_MANAGER_CAPABILITY_DISABLED: {
+    tone: "info",
+    title: "この種類の AI 作業は現在許可されていません。",
+    description: "AIマネージャー設定で capability の許可範囲をご確認ください。",
+  },
+  AI_MANAGER_AUTO_PAY_DISABLED: {
+    tone: "info",
+    title: "自動支払いが無効のため実行できません。",
+    description: "無料範囲以外を使う場合は auto-pay を有効にしてください。",
+  },
+  AI_MANAGER_BUDGET_REQUIRED: {
+    tone: "info",
+    title: "AI予算残高が不足しています。",
+    description: "無料範囲は継続します。billable task を使うには JPYC 予算が必要です。",
+  },
+  AI_MANAGER_ACTION_CAP_EXCEEDED: {
+    tone: "info",
+    title: "1回あたりの上限を超えるため実行できません。",
+    description: "per action cap を見直すか、軽い task を利用してください。",
+  },
+  AI_MANAGER_DAILY_CAP_EXCEEDED: {
+    tone: "info",
+    title: "今日の AI 利用上限に達しました。",
+    description: "daily cap の範囲内で翌日以降に再度お試しください。",
+  },
+  AI_MANAGER_MONTHLY_CAP_EXCEEDED: {
+    tone: "info",
+    title: "今月の AI 利用上限に達しました。",
+    description: "monthly cap の範囲内で翌月または設定変更後に再度お試しください。",
   },
   TASK_ID_REQUIRED: {
     tone: "info",

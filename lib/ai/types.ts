@@ -105,6 +105,8 @@ export function extractApiErrorInfo(err: unknown): ApiErrorInfo {
  */
 export function isBillingError(info: ApiErrorInfo): boolean {
   const { status, code, type } = info;
+  // 429 is always rate-limit, never billing — must check before message heuristics
+  if (status === 429) return false;
   if (status === 402) return true;
   if (
     code === "insufficient_quota" ||

@@ -14,6 +14,7 @@ import {
   ensurePostTipLink,
   isUuidString,
 } from "@/lib/social";
+import { recordFirstTipReceivedIfNeeded } from "@/lib/growth/firstTip";
 import { getRpcUrl as getRpcUrlFromLib } from "../_lib/chain";
 import {
   createPublicClient,
@@ -587,6 +588,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       return { row, postTipLinked };
     });
+
+    if (!wasConfirmedBefore && result.row.status === "CONFIRMED") {
+      try {
+        await recordFirstTipReceivedIfNeeded({
+          contributionId: result.row.id,
+          now,
+        });
+      } catch (error) {
+        console.warn("FIRST_TIP_RECEIVED_TRACK_FAILED", error);
+      }
+    }
 
     return okJson({
       verified: status === "CONFIRMED",

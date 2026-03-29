@@ -97,10 +97,28 @@ type NotificationsDeps = {
   findSupportNotifications: (
     creatorId: bigint
   ) => Promise<SupportNotificationRow[]>;
+  findSupporterContributionCounts: (
+    creatorId: bigint,
+    addresses: string[]
+  ) => Promise<Array<{ fromAddress: string; _count: { id: number } }>>;
 };
 
 const notificationsDeps: NotificationsDeps = {
   findCreatorByWalletAddress,
+  findSupporterContributionCounts: async (creatorId, addresses) => {
+    const rows = await withPrismaRetry(() =>
+      prisma.contribution.groupBy({
+        by: ["fromAddress"],
+        where: {
+          status: "CONFIRMED",
+          fromAddress: { in: addresses },
+          project: { creatorProfileId: creatorId },
+        },
+        _count: { id: true },
+      })
+    );
+    return rows.map((r) => ({ fromAddress: r.fromAddress, _count: { id: r._count.id } }));
+  },
   findReplyNotifications: async (creatorId) =>
     withPrismaRetry(() =>
       prisma.reply.findMany({
@@ -245,9 +263,22 @@ export async function fetchNotificationsByOwnerAddress(
       };
     }
 
-    const replies = await deps.findReplyNotifications(creator.id);
-    const likes = await deps.findLikeNotifications(creator.id);
-    const supports = await deps.findSupportNotifications(creator.id);
+    const [replies, likes, supports] = await Promise.all([
+      deps.findReplyNotifications(creator.id),
+      deps.findLikeNotifications(creator.id),
+      deps.findSupportNotifications(creator.id),
+    ]);
+
+    const uniqueAddresses = [...new Set(supports.map((s) => s.fromAddress))];
+    const supporterCounts =
+      uniqueAddresses.length > 0
+        ? await deps.findSupporterContributionCounts(creator.id, uniqueAddresses)
+        : [];
+    const firstTimerSet = new Set(
+      supporterCounts
+        .filter((row) => row._count.id <= 1)
+        .map((row) => row.fromAddress)
+    );
 
     const items: NotificationItem[] = [
       ...replies.map((reply) => ({
@@ -278,26 +309,31 @@ export async function fetchNotificationsByOwnerAddress(
         },
         meta: null,
       })),
-      ...supports.map((support) => ({
-        id: `support-${support.id}`,
-        kind: "SUPPORT" as const,
-        createdAt: (support.confirmedAt ?? support.createdAt).toISOString(),
-        href: `/${
-          support.project.creatorProfile?.username ?? creator.username
-        }#posts`,
-        title: "応援が届きました",
-        body:
-          support.postTips[0]?.post.body != null
-            ? buildPreview(support.postTips[0].post.body)
-            : "公開ページへの応援です。",
-        actor: null,
-        meta: `${shortAddress(support.fromAddress)} から ${formatContributionAmount(
-          support.amountDecimal,
-          support.amountRaw,
-          support.decimals,
-          support.currency
-        )}`,
-      })),
+      ...supports.map((support) => {
+        const isFirstTime = firstTimerSet.has(support.fromAddress);
+        return {
+          id: `support-${support.id}`,
+          kind: "SUPPORT" as const,
+          createdAt: (support.confirmedAt ?? support.createdAt).toISOString(),
+          href: `/${
+            support.project.creatorProfile?.username ?? creator.username
+          }#posts`,
+          title: isFirstTime ? "はじめての応援が届きました！" : "応援が届きました",
+          body:
+            support.postTips[0]?.post.body != null
+              ? buildPreview(support.postTips[0].post.body)
+              : isFirstTime
+              ? "新しい支援者が初めて応援してくれました。"
+              : "公開ページへの応援です。",
+          actor: null,
+          meta: `${shortAddress(support.fromAddress)} から ${formatContributionAmount(
+            support.amountDecimal,
+            support.amountRaw,
+            support.decimals,
+            support.currency
+          )}`,
+        };
+      }),
     ].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 
     return {

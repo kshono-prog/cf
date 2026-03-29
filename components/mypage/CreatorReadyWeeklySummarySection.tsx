@@ -105,31 +105,55 @@ export function CreatorReadyWeeklySummarySection(props: Props) {
               → {stage.nextMilestone}
             </p>
           ) : null}
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {([
+          {(() => {
+            const axes = [
               ["output", "発信"],
               ["audience", "支援者"],
               ["business", "実績"],
               ["continuity", "継続"],
               ["craft", "エビデンス"],
               ["trust", "信頼"],
-            ] as const).map(([axis, label]) => (
-              <div key={axis} className="space-y-1">
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-[var(--text-subtle)]">{label}</span>
-                  <span className="font-medium text-[var(--text)]">
-                    {stage.maturity[axis]}
-                  </span>
+              ["operations", "運営"],
+              ["team", "チーム"],
+            ] as const;
+            const weakestAxis = axes.reduce(
+              (min, cur) =>
+                stage.maturity[cur[0]] < stage.maturity[min[0]] ? cur : min,
+              axes[0]
+            );
+            return (
+              <>
+                <div className="mt-2 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[11px]">
+                  <span className="text-[var(--text-subtle)]">次に伸ばすべき軸 </span>
+                  <span className="font-semibold text-[var(--text)]">{weakestAxis[1]}</span>
+                  <span className="ml-1 text-[var(--text-subtle)]">({stage.maturity[weakestAxis[0]]}pt)</span>
                 </div>
-                <div className="h-1 overflow-hidden rounded-full bg-[var(--surface-muted)]">
-                  <div
-                    className="h-full rounded-full bg-[var(--text-subtle)]"
-                    style={{ width: `${stage.maturity[axis]}%` }}
-                  />
+                <div className="mt-2 grid grid-cols-4 gap-2">
+                  {axes.map(([axis, label]) => {
+                    const isWeakest = axis === weakestAxis[0];
+                    return (
+                      <div key={axis} className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className={isWeakest ? "font-semibold text-[var(--text)]" : "text-[var(--text-subtle)]"}>
+                            {label}
+                          </span>
+                          <span className={isWeakest ? "font-semibold text-[var(--text)]" : "font-medium text-[var(--text)]"}>
+                            {stage.maturity[axis]}
+                          </span>
+                        </div>
+                        <div className="h-1 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+                          <div
+                            className={`h-full rounded-full ${isWeakest ? "bg-amber-400" : "bg-[var(--text-subtle)]"}`}
+                            style={{ width: `${stage.maturity[axis]}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            ))}
-          </div>
+              </>
+            );
+          })()}
         </div>
       ) : null}
     </div>

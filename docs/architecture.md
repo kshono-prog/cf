@@ -69,6 +69,9 @@ Current state:
 - summary / actions
 - gas support
 - creator application / user application flows
+- setup progress and next-best-action guidance toward public launch
+- AI profile draft generation before manual save
+- AI share draft generation after public page setup
 
 Planned direction:
 
@@ -76,6 +79,7 @@ Planned direction:
 - make it a state-first, action-first, AI-assisted operating surface
 - keep editing secondary / collapsible
 - preserve existing project, goal, summary, and settlement functionality while changing information priority
+- make onboarding and public launch completion visible as a first-class flow
 
 Runtime notes:
 
@@ -113,6 +117,7 @@ Planned direction:
 - not become the main internal operations console
 - later receive curated public activity signals without absorbing manager/internal workflows
 - keep progress, trust, and support cues legible to supporters
+- show lightweight owner-only CTA for page review and share generation without changing supporter-facing contribution meaning
 
 ### 2.3 Manager Surface
 
@@ -363,6 +368,35 @@ Current implementation status:
 
 - [`docs/specs/operations/meeting-planner-follow-up-minimum.md`](/Users/shounokazuaki/cf/docs/specs/operations/meeting-planner-follow-up-minimum.md)
 
+### 5.6 GrowthEvent
+
+Stores additive, low-risk growth telemetry for onboarding and public launch.
+
+Purpose:
+
+- measure onboarding conversion
+- measure public launch completion
+- measure share draft usage
+- measure share execution logging
+- support future funnel reporting without touching financial semantics
+
+Current fields:
+
+- id
+- event
+- username
+- walletAddress
+- projectId
+- metadata
+- createdAt
+
+Indexes:
+
+- `(event, createdAt)`
+- `(username, createdAt)`
+- `(walletAddress, createdAt)`
+- `(projectId, createdAt)`
+
 ## 6. Planned Information Architecture Changes
 
 ### 6.1 Creator Home target structure
@@ -384,6 +418,16 @@ Replace current settings-dominant layout with:
 - Settings / Edit (collapsed)
 
 This keeps existing functionality but changes priority order.
+
+Near-term growth-first additions:
+
+- setup completion card
+- next-best-action card
+- growth coach card
+- AI profile draft entry point
+- AI share draft entry point
+- strong public page open CTA
+- advanced management panels collapsed by default
 
 ### 6.2 Manager Desk target structure
 
@@ -450,6 +494,60 @@ Supporting parts:
 - apply CORS allowlists only to explicitly externalizable low-risk read or draft APIs, not to settlement or broad internal surfaces
 - prefer `GET,OPTIONS` for cross-origin read-only surfaces, and keep mixed read/write routes read-only from the CORS boundary unless they are split
 - keep `public viewer identity` same-origin only until privacy expectations and downstream cache consumers are explicitly designed for cross-origin use
+
+### 7.5 AI draft layer
+
+The growth phase adds a narrow AI draft layer focused on proposal generation rather than execution.
+
+Responsibilities:
+
+- generate profile drafts from natural language
+- suggest conservative goal / project starting points
+- generate share-ready draft copy with the public page URL
+- validate unknown AI responses with runtime guards before use
+
+Rules:
+
+- AI is propose-first
+- no `any`; validate unknown inputs and outputs
+- AI draft failures must not block core creator UI
+- financial actions stay outside this layer
+
+### 7.6 Growth tracking layer
+
+The growth tracking layer is intentionally lightweight and non-blocking.
+
+Responsibilities:
+
+- collect onboarding funnel events
+- record owner public-page review milestones
+- record share draft generation and copy activity
+- record manual share execution logs after creators actually post
+- keep growth event writes additive and independent from contribution / goal / summary writes
+
+Rules:
+
+- growth event failures must not block core UI
+- invalid event names are rejected server-side
+- metadata is sanitized before persistence
+
+### 7.7 Growth and AI draft APIs
+
+Additive APIs introduced for the growth phase:
+
+- `POST /api/growth/events`
+- `POST /api/ai/profile-draft`
+- `POST /api/ai/share-drafts`
+- `GET /api/mypage/growth-overview`
+
+Boundary notes:
+
+- these APIs should not change the meaning of existing financial / contribution / goal / summary routes
+- draft APIs may help creators prepare content, but final save still flows through existing write APIs
+- the growth events API is owner-auth-free telemetry and should return a stable `{ ok: true } | { ok: false; error: string }` shape
+- growth overview is an owner-auth read model over additive telemetry and confirmed contribution facts
+- `first_tip_received` should be emitted from the confirmed contribution path on the server, not from client UI intent
+- manual share logging stays on the same additive telemetry rail and does not mutate posting or contribution data
 
 ## 8. Trust / Stage / Skill Architecture Direction
 
@@ -521,11 +619,15 @@ Restructure creator mypage into Creator Home.
 
 ### Priority 4
 
-Design Manager Desk as a first-class surface.
+Add a growth-first onboarding layer to creator mypage without breaking the financial core.
 
 ### Priority 5
 
-Add lightweight AI operational assistance over structured data.
+Design Manager Desk as a first-class surface.
+
+### Priority 6
+
+Add lightweight AI operational assistance over structured data and propose-first setup flows.
 
 ## 12. Architecture Constraints
 
@@ -534,3 +636,6 @@ Add lightweight AI operational assistance over structured data.
 - DB-affecting changes must explain migration impact
 - AI-generated changes must stay within narrow scopes
 - machine-billable surfaces must stay separate from custody-like or funds-movement operations
+- growth tracking failures must not block core UI
+- financial actions must remain separate from growth actions
+- `unknown` + runtime guards are preferred over `any`

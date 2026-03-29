@@ -4,6 +4,7 @@ import React from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { AiSuggestionsCard } from "@/components/mypage/AiSuggestionsCard";
+import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import { useCurrencyGoalSettlementPanel } from "@/components/mypage/useCurrencyGoalSettlementPanel";
 import {
   getNextActionSuggestions,
@@ -22,6 +23,7 @@ export function CurrencyGoalSettlementPanel(props: {
   isConnected: boolean;
   initialSummary?: SummaryViewData | null;
 }) {
+  const workspace = useCreatorReadyWorkspace();
   const {
     currency,
     projectId,
@@ -65,6 +67,18 @@ export function CurrencyGoalSettlementPanel(props: {
       isOwner,
     });
   }, [isOwner, summary]);
+  React.useEffect(() => {
+    const suggestedTarget = workspace.aiSetupDraft.goalTargetInput.trim();
+    if (!suggestedTarget) {
+      return;
+    }
+
+    setTargetInput(suggestedTarget);
+  }, [
+    setTargetInput,
+    workspace.aiSetupDraft.goalTargetInput,
+    workspace.aiSetupDraftVersion,
+  ]);
 
   const suggestionsEmptyLabel = !projectId
     ? "Project 作成後に提案が表示されます"
@@ -199,9 +213,25 @@ export function CurrencyGoalSettlementPanel(props: {
     summaryAnchorId,
   ]);
 
+  const handleSaveGoal = React.useCallback(async () => {
+    const saved = await onSaveGoal();
+    if (!saved) {
+      return;
+    }
+
+    workspace.reportGrowthEvent({
+      event: "goal_saved",
+      projectId,
+      metadata: {
+        currency,
+        targetInput,
+      },
+    });
+  }, [currency, onSaveGoal, projectId, targetInput, workspace]);
+
   return (
     <div className="space-y-3">
-      <div className="font-semibold">Project Goal（{currency}）</div>
+      <div className="font-semibold">公開ページに載せる Goal（{currency}）</div>
 
       {!projectId ? (
         <>
@@ -215,6 +245,17 @@ export function CurrencyGoalSettlementPanel(props: {
         </>
       ) : (
         <>
+          {workspace.aiSetupDraft.goalTitle ? (
+            <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700">
+                AI 提案
+              </div>
+              <div className="mt-1 text-sm text-sky-950">
+                Goal の言い方: {workspace.aiSetupDraft.goalTitle}
+              </div>
+            </div>
+          ) : null}
+
           <div
             id={goalInputAnchorId}
             className="grid grid-cols-1 gap-3 md:grid-cols-2 scroll-mt-24"
@@ -247,7 +288,7 @@ export function CurrencyGoalSettlementPanel(props: {
           <div className="flex items-center gap-2">
             <button
               className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
-              onClick={() => void onSaveGoal()}
+              onClick={() => void handleSaveGoal()}
               disabled={!isConnected || !address || goalSaving}
               title={!isConnected ? "ウォレット接続が必要です" : ""}
               type="button"

@@ -1,6 +1,10 @@
 import "server-only";
 
 import { getAddress, isAddress } from "viem";
+import {
+  isSupportedChainId,
+  type SupportedChainId,
+} from "@/lib/chainConfig";
 
 type EnvSource = Record<string, string | undefined>;
 
@@ -53,6 +57,19 @@ function readIntegerWithDefault(
   defaultValue: number
 ): number {
   return readOptionalInteger(source, name) ?? defaultValue;
+}
+
+function readSupportedChainIdWithDefault(
+  source: EnvSource,
+  name: string,
+  defaultValue: SupportedChainId
+): SupportedChainId {
+  const parsed = readOptionalInteger(source, name);
+  if (parsed === null) return defaultValue;
+  if (!isSupportedChainId(parsed)) {
+    throw new Error(`INVALID_${name}`);
+  }
+  return parsed;
 }
 
 function readOptionalAddress(source: EnvSource, name: string): string | null {
@@ -115,6 +132,13 @@ export type AvatarUploadEnv = {
 
 export type CorsEnv = {
   allowedOrigins: string[];
+};
+
+export type AiManagerBillingEnv = {
+  platformOperationsWalletAddress: string | null;
+  platformOperationsChainId: SupportedChainId;
+  x402EndpointUrl: string | null;
+  x402ConnectorToken: string | null;
 };
 
 function readRequiredUrlFromAliases(
@@ -245,12 +269,32 @@ export function parseCorsEnv(source: EnvSource): CorsEnv {
   };
 }
 
+export function parseAiManagerBillingEnv(source: EnvSource): AiManagerBillingEnv {
+  return {
+    platformOperationsWalletAddress: readOptionalAddress(
+      source,
+      "AI_MANAGER_PLATFORM_OPERATIONS_WALLET_ADDRESS"
+    ),
+    platformOperationsChainId: readSupportedChainIdWithDefault(
+      source,
+      "AI_MANAGER_PLATFORM_OPERATIONS_CHAIN_ID",
+      137
+    ),
+    x402EndpointUrl: readOptionalUrl(source, "AI_MANAGER_X402_ENDPOINT_URL"),
+    x402ConnectorToken: readOptionalString(
+      source,
+      "AI_MANAGER_X402_CONNECTOR_TOKEN"
+    ),
+  };
+}
+
 let bridgeRuntimeEnvCache: BridgeRuntimeEnv | null = null;
 let eventChainEnvCache: EventChainEnv | null = null;
 let eventRpcEnvCache: EventRpcEnv | null = null;
 let gasSupportEnvCache: GasSupportEnv | null = null;
 let avatarUploadEnvCache: AvatarUploadEnv | null = null;
 let corsEnvCache: CorsEnv | null = null;
+let aiManagerBillingEnvCache: AiManagerBillingEnv | null = null;
 
 export function getBridgeRuntimeEnv(source?: EnvSource): BridgeRuntimeEnv {
   if (source) return parseBridgeRuntimeEnv(source);
@@ -258,6 +302,14 @@ export function getBridgeRuntimeEnv(source?: EnvSource): BridgeRuntimeEnv {
     bridgeRuntimeEnvCache = parseBridgeRuntimeEnv(process.env);
   }
   return bridgeRuntimeEnvCache;
+}
+
+export function getAiManagerBillingEnv(source?: EnvSource): AiManagerBillingEnv {
+  if (source) return parseAiManagerBillingEnv(source);
+  if (!aiManagerBillingEnvCache) {
+    aiManagerBillingEnvCache = parseAiManagerBillingEnv(process.env);
+  }
+  return aiManagerBillingEnvCache;
 }
 
 export function getEventChainEnv(source?: EnvSource): EventChainEnv {

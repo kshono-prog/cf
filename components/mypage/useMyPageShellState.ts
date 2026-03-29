@@ -11,11 +11,11 @@ const DEFAULT_OPEN_SECTIONS: OpenSections = {
   about: true,
   wallet: true,
   jpyc: true,
-  flow: true,
+  flow: false,
   gas: true,
   project: true,
   supporter: true,
-  posting: true,
+  posting: false,
 };
 
 export function useMyPageShellState() {

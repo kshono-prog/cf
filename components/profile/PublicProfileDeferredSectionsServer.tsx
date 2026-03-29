@@ -26,6 +26,8 @@ export async function PublicProfileDeferredSectionsServer({
 
   return (
     <>
+      <PublicProfileMicroTestimonials data={data.enhancements.microTestimonials} />
+
       <div id="supporters-section" className="space-y-4">
         <PublicProfileRecentSupporters data={data.enhancements.recentSupporters} />
         <PublicProfileSupporterWall data={data.enhancements.supporterWall} />
@@ -48,7 +50,6 @@ export async function PublicProfileDeferredSectionsServer({
         <PublicProfileActivityHeatmap data={data.enhancements.activityHeatmap} />
       ) : null}
 
-      <PublicProfileMicroTestimonials data={data.enhancements.microTestimonials} />
       <GoalAchievementImpactSection impacts={data.impacts} />
 
       {data.reportSummary ? (

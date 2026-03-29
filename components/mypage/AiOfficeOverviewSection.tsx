@@ -8,7 +8,13 @@ import type {
 } from "@/components/mypage/aiOfficeTypes";
 import { getAiOfficeRoleChoices } from "@/components/mypage/aiOfficeTaskConfig";
 import { AGENT_TASK_AUDIT_ACTION } from "@/lib/agentTaskAudit";
+import { deriveAiManagerX402DeliveryEvents } from "@/lib/aiManager/x402DeliveryEvents";
+import { deriveAiManagerPendingX402Queue } from "@/lib/aiManager/pendingQueue";
+import { deriveAiManagerX402FollowUps } from "@/lib/aiManager/x402FollowUps";
+import { deriveAiManagerX402RecoveryItems } from "@/lib/aiManager/x402Recovery";
+import { deriveAiManagerX402ActivityTimeline } from "@/lib/aiManager/x402Timeline";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
+import type { SerializedAiManagerAccount } from "@/lib/serializers/aiManager";
 import {
   getAgentTaskStatusCopy,
   getAgentTaskTypeCopy,
@@ -19,12 +25,148 @@ type Props = {
   waitingApprovalCount: number;
   tasks: AgentTaskView[];
   usefulness: AiOfficeUsefulnessSummaryView;
+  aiManagerAccount: SerializedAiManagerAccount | null;
+  aiManagerLoading: boolean;
+  aiManagerError: string | null;
   onOpenCreate: () => void;
   onOpenCreateForRole: (roleId: CreatorAiAgentRole) => void;
   onOpenInbox: (roleId?: CreatorAiAgentRole) => void;
   onOpenTaskInInbox: (taskType: string) => void;
   onCollectMetrics: () => void;
 };
+
+function getAiManagerStatusLabel(
+  status: SerializedAiManagerAccount["status"]
+): string {
+  switch (status) {
+    case "ACTIVE":
+      return "稼働中";
+    case "PAUSED":
+      return "一時停止";
+    case "ARCHIVED":
+      return "アーカイブ";
+    case "DRAFT":
+      return "準備中";
+  }
+}
+
+function getAiManagerVisibilityLabel(
+  visibility: SerializedAiManagerAccount["publicVisibility"]
+): string {
+  switch (visibility) {
+    case "PUBLIC_BADGED":
+      return "公開 + AI明記";
+    case "PRIVATE":
+      return "完全非公開";
+    case "OWNER_ONLY":
+      return "owner only";
+  }
+}
+
+function formatJpycAmount(value: string | null): string {
+  if (!value) return "0 JPYC";
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return `${value} JPYC`;
+  }
+  return `${amount.toLocaleString("ja-JP")} JPYC`;
+}
+
+function formatOverviewDate(value: string | null): string {
+  if (!value) return "なし";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getBillableCapabilityLabel(capability: string): string {
+  switch (capability) {
+    case "POST_DRAFTING":
+      return "投稿下書き";
+    case "FAN_REPLY_ASSIST":
+      return "ファン返信補助";
+    case "PROGRESS_SUMMARY":
+      return "進捗サマリー";
+    case "WEB_RESEARCH":
+      return "Web情報収集";
+    default:
+      return capability;
+  }
+}
+
+function getUsageStateLabel(state: string): string {
+  switch (state) {
+    case "WAIVED":
+      return "無料範囲";
+    case "SETTLED":
+      return "支払い記録済み";
+    case "FAILED":
+      return "失敗";
+    case "PAYMENT_PENDING":
+      return "支払い待ち";
+    case "METERED":
+      return "計測済み";
+    default:
+      return state;
+  }
+}
+
+function getBudgetTransactionTypeLabel(type: string): string {
+  switch (type) {
+    case "OWNER_TOP_UP":
+      return "owner top-up";
+    case "OWNER_DEDUCTION":
+      return "owner deduction";
+    case "USAGE_SETTLEMENT":
+      return "usage settlement";
+    default:
+      return type;
+  }
+}
+
+function getPaymentAttemptStatusLabel(status: string): string {
+  switch (status) {
+    case "PENDING":
+      return "owner確認待ち";
+    case "CONFIRMED":
+      return "確認済み";
+    case "FAILED":
+      return "失敗";
+    default:
+      return status;
+  }
+}
+
+const X402_DELIVERY_STATUS_LABELS = {
+  NONE: "pending なし",
+  ACTIVE: "callback 待ち",
+  WATCH: "やや滞留",
+  STALE: "長時間滞留",
+} as const;
+
+const X402_EVENT_SOURCE_LABELS = {
+  BILLING_SYSTEM: "billing system",
+  OWNER_REVIEW: "owner review",
+  X402_CONNECTOR: "x402 connector",
+} as const;
+
+const X402_EVENT_TYPE_LABELS = {
+  ATTEMPT_CREATED: "settlement started",
+  PENDING_OBSERVED: "pending observed",
+  SETTLEMENT_CONFIRMED: "settlement confirmed",
+  SETTLEMENT_FAILED: "settlement failed",
+  SETTLEMENT_REPLAYED: "duplicate replay accepted",
+} as const;
+
+const X402_FOLLOW_UP_PRIORITY_LABELS = {
+  HIGH: "要確認",
+  MEDIUM: "確認推奨",
+} as const;
 
 function RejectionPatternCard({ tasks }: { tasks: AgentTaskView[] }) {
   const rejectedTasks = tasks.filter(
@@ -102,6 +244,32 @@ export function AiOfficeOverviewSection(props: Props) {
         props.usefulness.roleBreakdown.map((role) => [role.roleId, role] as const)
       ),
     [props.usefulness.roleBreakdown]
+  );
+  const aiManagerAvailableAmount =
+    props.aiManagerAccount?.budgetBalance?.availableAmount ?? null;
+  const aiManagerAvailableValue = Number(aiManagerAvailableAmount ?? "0");
+  const aiManagerHasBudget =
+    Number.isFinite(aiManagerAvailableValue) && aiManagerAvailableValue > 0;
+  const aiManagerBillingPaused =
+    props.aiManagerAccount?.billingPolicy?.status === "PAUSED";
+  const pendingX402Settlements =
+    props.aiManagerAccount?.recentUsageRecords.filter(
+      (usage) =>
+        usage.latestPaymentAttempt?.rail === "X402" &&
+        usage.latestPaymentAttempt.status === "PENDING"
+    ) ?? [];
+  const pendingX402Queue = deriveAiManagerPendingX402Queue(
+    props.aiManagerAccount
+  );
+  const x402FollowUps = deriveAiManagerX402FollowUps(props.aiManagerAccount);
+  const x402RecoveryItems = deriveAiManagerX402RecoveryItems(
+    props.aiManagerAccount
+  );
+  const recentX402DeliveryEvents = deriveAiManagerX402DeliveryEvents(
+    props.aiManagerAccount
+  );
+  const recentX402Activity = deriveAiManagerX402ActivityTimeline(
+    props.aiManagerAccount
   );
 
   return (
@@ -216,6 +384,551 @@ export function AiOfficeOverviewSection(props: Props) {
               </span>
             ) : null}
           </div>
+        ) : null}
+      </div>
+
+      {/* ── Area 1.25: AI Manager Identity / Billing Boundary ── */}
+      <div className="card p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="section-label">AIマネージャーの運用境界</div>
+            <p className="caption-text mt-0.5">
+              だれが動き、どこまで無料で、どの予算ルールで billable task を使うかを確認できます。
+            </p>
+          </div>
+          <div className="text-[11px] text-[var(--text-subtle)]">
+            公開時は常に AI 明記
+          </div>
+        </div>
+
+        {props.aiManagerLoading ? (
+          <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-5 text-sm text-[var(--text-subtle)]">
+            AIマネージャーの状態を読み込んでいます。
+          </div>
+        ) : null}
+
+        {!props.aiManagerLoading && props.aiManagerError ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+              案内
+            </div>
+            <div className="mt-1 text-sm font-semibold text-amber-950">
+              AIマネージャー情報は次回の読み込みで更新されます
+            </div>
+            <div className="mt-1 text-xs leading-5 text-amber-800">
+              {props.aiManagerError}
+            </div>
+          </div>
+        ) : null}
+
+        {!props.aiManagerLoading && !props.aiManagerAccount ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] px-4 py-5">
+            <div className="text-sm font-semibold text-[var(--text)]">
+              AIマネージャーはまだ作成されていません
+            </div>
+            <p className="mt-1 caption-text">
+              1 creator = 1 AIマネージャーを前提に、まず owner only で作成してから運営ルールを育てます。
+            </p>
+          </div>
+        ) : null}
+
+        {props.aiManagerAccount ? (
+          <>
+            <div className="mt-4 grid gap-2 sm:grid-cols-4">
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+                <div className="text-[11px] font-medium text-[var(--text)]">人格</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+                  {props.aiManagerAccount.displayName}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
+                <div className="text-[11px] font-medium text-[var(--text)]">状態</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+                  {getAiManagerStatusLabel(props.aiManagerAccount.status)}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
+                <div className="text-[11px] font-medium text-[var(--text)]">公開範囲</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+                  {getAiManagerVisibilityLabel(
+                    props.aiManagerAccount.publicVisibility
+                  )}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
+                <div className="text-[11px] font-medium text-[var(--text)]">利用モード</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+                  {aiManagerBillingPaused
+                    ? "billable 一時停止"
+                    : props.aiManagerAccount.billingPolicy?.autoPayEnabled
+                    ? "cap 付き自動支払い"
+                    : "手動 top-up"}
+                </div>
+              </div>
+            </div>
+
+            {aiManagerBillingPaused ? (
+              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                  billable pause
+                </div>
+                <div className="mt-1 text-sm font-semibold text-amber-950">
+                  billable capability は現在停止中です
+                </div>
+                <div className="mt-1 text-xs leading-5 text-amber-900">
+                  {props.aiManagerAccount.billingPolicy?.pauseReason ??
+                    "Settings で pause reason を確認し、再開条件を整えてください。"}
+                </div>
+                {pendingX402Queue.length > 0 ? (
+                  <div className="mt-3 grid gap-2">
+                    {pendingX402Queue.slice(0, 3).map((entry) => (
+                      <div
+                        key={entry.paymentAttemptId}
+                        className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+                      >
+                        <div className="font-semibold text-[var(--text)]">
+                          {entry.taskLabel ?? entry.capabilityLabel}
+                        </div>
+                        <div>
+                          {formatJpycAmount(entry.amount)} /{" "}
+                          {X402_DELIVERY_STATUS_LABELS[entry.deliveryStatus]}
+                        </div>
+                        <div>created: {formatOverviewDate(entry.createdAt)}</div>
+                        {entry.lastEventLabel && entry.lastEventSourceLabel ? (
+                          <div>
+                            last event: {entry.lastEventSourceLabel} /{" "}
+                            {entry.lastEventLabel}
+                          </div>
+                        ) : null}
+                        {entry.lastEventAt ? (
+                          <div>event at: {formatOverviewDate(entry.lastEventAt)}</div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {!aiManagerBillingPaused && pendingX402Settlements.length > 0 ? (
+              <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">
+                  x402 confirmation pending
+                </div>
+                <div className="mt-1 text-sm font-semibold text-sky-950">
+                  owner 確認待ちの x402 settlement が{" "}
+                  {pendingX402Settlements.length}件あります
+                </div>
+                <div className="mt-1 text-xs leading-5 text-sky-900">
+                  budget は消費済みです。Settings の AIマネージャーから tx hash を記録して、
+                  settlement を confirmed に進めてください。
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-3 grid gap-2 lg:grid-cols-[1.2fr,0.8fr]">
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                  行動ルール
+                </div>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3">
+                    <div className="text-[11px] text-[var(--text-subtle)]">無料範囲</div>
+                    <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+                      内部ブリーフィング + 軽い下書き
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3">
+                    <div className="text-[11px] text-[var(--text-subtle)]">Web収集</div>
+                    <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+                      手動トリガーのみ
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(props.aiManagerAccount.billingPolicy?.allowedBillableCapabilities ??
+                    []
+                  ).map((capability) => (
+                    <span key={capability} className="status-badge status-badge-neutral">
+                      {getBillableCapabilityLabel(capability)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                  予算と cap
+                </div>
+                <div className="mt-2 text-sm text-[var(--text)]">
+                  {aiManagerHasBudget
+                    ? "残高の範囲で billable capability を使えます。"
+                    : "残高ゼロのため、現在は無料範囲で動作します。"}
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3">
+                    <div className="text-[11px] text-[var(--text-subtle)]">available</div>
+                    <div className="mt-1 text-base font-semibold text-[var(--text)]">
+                      {formatJpycAmount(aiManagerAvailableAmount)}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3 text-xs leading-6 text-[var(--text-subtle)]">
+                    <div>
+                      per action:{" "}
+                      {props.aiManagerAccount.billingPolicy?.perActionJpycCap ?? 0} JPYC
+                    </div>
+                    <div>
+                      daily: {props.aiManagerAccount.billingPolicy?.dailyJpycCap ?? 0} JPYC
+                    </div>
+                    <div>
+                      monthly:{" "}
+                      {props.aiManagerAccount.billingPolicy?.monthlyJpycCap ?? 0} JPYC
+                    </div>
+                  </div>
+                  {props.aiManagerAccount.recentBudgetTransactions[0] ? (
+                    <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                      <div className="font-semibold text-[var(--text)]">
+                        直近の予算操作
+                      </div>
+                      <div className="mt-1">
+                        {props.aiManagerAccount.recentBudgetTransactions[0].direction ===
+                        "CREDIT"
+                          ? "+"
+                          : "-"}
+                        {props.aiManagerAccount.recentBudgetTransactions[0].amount}{" "}
+                        {props.aiManagerAccount.recentBudgetTransactions[0].currency}
+                      </div>
+                      <div>
+                        {getBudgetTransactionTypeLabel(
+                          props.aiManagerAccount.recentBudgetTransactions[0]
+                            .transactionType
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {props.aiManagerAccount.reconciliation.requiresAttention ? (
+              <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                  reconciliation summary
+                </div>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                    <div className="font-semibold text-[var(--text)]">
+                      pending x402
+                    </div>
+                    <div>
+                      {props.aiManagerAccount.reconciliation.pendingX402Count}件 /{" "}
+                      {formatJpycAmount(
+                        props.aiManagerAccount.reconciliation.pendingX402Amount
+                      )}
+                    </div>
+                    <div>
+                      oldest:{" "}
+                      {formatOverviewDate(
+                        props.aiManagerAccount.reconciliation
+                          .oldestPendingX402CreatedAt
+                      )}
+                    </div>
+                    <div>
+                      delivery:{" "}
+                      {
+                        X402_DELIVERY_STATUS_LABELS[
+                          props.aiManagerAccount.reconciliation
+                            .pendingX402DeliveryStatus
+                        ]
+                      }
+                    </div>
+                    {props.aiManagerAccount.reconciliation
+                      .latestPendingX402EventSource &&
+                    props.aiManagerAccount.reconciliation
+                      .latestPendingX402EventType ? (
+                      <div>
+                        latest event:{" "}
+                        {
+                          X402_EVENT_SOURCE_LABELS[
+                            props.aiManagerAccount.reconciliation
+                              .latestPendingX402EventSource
+                          ]
+                        }{" "}
+                        /{" "}
+                        {
+                          X402_EVENT_TYPE_LABELS[
+                            props.aiManagerAccount.reconciliation
+                              .latestPendingX402EventType
+                          ]
+                        }
+                      </div>
+                    ) : null}
+                    {props.aiManagerAccount.reconciliation
+                      .pendingX402DeliveryHint ? (
+                      <div>
+                        {
+                          props.aiManagerAccount.reconciliation
+                            .pendingX402DeliveryHint
+                        }
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                    <div className="font-semibold text-[var(--text)]">
+                      unmatched evidence
+                    </div>
+                    <div>
+                      {
+                        props.aiManagerAccount.reconciliation
+                          .unmatchedFundingEvidenceCount
+                      }
+                      件 /{" "}
+                      {formatJpycAmount(
+                        props.aiManagerAccount.reconciliation
+                          .unmatchedFundingEvidenceAmount
+                      )}
+                    </div>
+                    <div>
+                      latest confirmed:{" "}
+                      {formatOverviewDate(
+                        props.aiManagerAccount.reconciliation.latestConfirmedX402At
+                      )}
+                    </div>
+                    <div>
+                      recovery: {props.aiManagerAccount.reconciliation.recoveryCount}件
+                      {props.aiManagerAccount.reconciliation.latestRecoveryLabel &&
+                      props.aiManagerAccount.reconciliation.latestRecoverySourceLabel
+                        ? ` / ${props.aiManagerAccount.reconciliation.latestRecoveryLabel} / ${props.aiManagerAccount.reconciliation.latestRecoverySourceLabel}`
+                        : ""}
+                    </div>
+                    <div>
+                      connector {props.aiManagerAccount.reconciliation.recoveryConnectorCount} / owner review{" "}
+                      {props.aiManagerAccount.reconciliation.recoveryOwnerReviewCount}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                    <div className="font-semibold text-[var(--text)]">
+                      failed x402
+                    </div>
+                    <div>
+                      {props.aiManagerAccount.reconciliation.failedX402Count}件 /{" "}
+                      {formatJpycAmount(
+                        props.aiManagerAccount.reconciliation.failedX402Amount
+                      )}
+                    </div>
+                    <div>
+                      {props.aiManagerAccount.reconciliation.failedX402Count > 0
+                        ? "pause と合わせて確認してください。"
+                        : "現在は問題ありません。"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {x402FollowUps.length > 0 ? (
+              <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                  owner follow-up
+                </div>
+                <div className="mt-3 space-y-2">
+                  {x402FollowUps.slice(0, 3).map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-semibold text-[var(--text)]">
+                          {entry.title}
+                        </div>
+                        <span className="status-badge status-badge-neutral">
+                          {X402_FOLLOW_UP_PRIORITY_LABELS[entry.priority]}
+                        </span>
+                        {entry.routeLabel ? (
+                          <span className="status-badge status-badge-neutral">
+                            {entry.routeLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                        {entry.detail}
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                        next: {entry.actionLabel}
+                        {entry.createdAt
+                          ? ` / ${formatOverviewDate(entry.createdAt)}`
+                          : ""}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                recent delivery events
+              </div>
+              {recentX402DeliveryEvents.length === 0 ? (
+                <div className="mt-2 text-sm text-[var(--text-subtle)]">
+                  まだ x402 delivery event はありません。
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {recentX402DeliveryEvents.slice(0, 3).map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-semibold text-[var(--text)]">
+                          {entry.taskLabel ?? entry.capabilityLabel}
+                        </div>
+                        <div className="text-xs text-[var(--text-subtle)]">
+                          {entry.sourceLabel}
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                        {entry.eventLabel} / {formatOverviewDate(entry.createdAt)}
+                      </div>
+                      {entry.detail ? (
+                        <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                          {entry.detail}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                recent x402 activity
+              </div>
+              {recentX402Activity.length === 0 ? (
+                <div className="mt-2 text-sm text-[var(--text-subtle)]">
+                  まだ x402 activity はありません。
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {recentX402Activity.slice(0, 3).map((entry) => (
+                    <div
+                      key={entry.paymentAttemptId}
+                      className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-semibold text-[var(--text)]">
+                          {entry.taskLabel ?? entry.capabilityLabel}
+                        </div>
+                        <div className="text-xs text-[var(--text-subtle)]">
+                          {getPaymentAttemptStatusLabel(entry.status)}
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                        {formatJpycAmount(entry.amount)} / {formatOverviewDate(entry.eventAt)}
+                      </div>
+                      {entry.failureReason ? (
+                        <div className="mt-1 text-xs leading-5 text-amber-800">
+                          {entry.failureReason}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                直近の usage ledger
+              </div>
+              {props.aiManagerAccount.recentUsageRecords.length === 0 ? (
+                <div className="mt-2 text-sm text-[var(--text-subtle)]">
+                  まだ AIマネージャーの利用記録はありません。
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {props.aiManagerAccount.recentUsageRecords.slice(0, 3).map((usage) => (
+                    <div
+                      key={usage.id}
+                      className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-semibold text-[var(--text)]">
+                          {getBillableCapabilityLabel(usage.capability)}
+                        </div>
+                        <div className="text-xs text-[var(--text-subtle)]">
+                          {getUsageStateLabel(usage.billingState)}
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                        {usage.taskType ? `${getAgentTaskTypeCopy(usage.taskType).label} / ` : ""}
+                        {usage.chargeAmount} {usage.currency}
+                      </div>
+                      {usage.latestPaymentAttempt ? (
+                        <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                          settlement:{" "}
+                          {usage.latestPaymentAttempt.rail === "X402"
+                            ? "x402"
+                            : "internal ledger fallback"}{" "}
+                          /{" "}
+                          {getPaymentAttemptStatusLabel(
+                            usage.latestPaymentAttempt.status
+                          )}
+                        </div>
+                      ) : null}
+                      {usage.failureReason ? (
+                        <div className="mt-1 text-xs leading-5 text-amber-800">
+                          {usage.failureReason}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                recovery summary
+              </div>
+              {x402RecoveryItems.length === 0 ? (
+                <div className="mt-2 text-sm text-[var(--text-subtle)]">
+                  まだ replay / recovery はありません。
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {x402RecoveryItems.slice(0, 3).map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-semibold text-[var(--text)]">
+                          {entry.taskLabel ?? entry.capabilityLabel}
+                        </div>
+                        <span className="status-badge status-badge-neutral">
+                          {entry.recoveryLabel}
+                        </span>
+                        <span className="status-badge status-badge-neutral">
+                          {entry.sourceLabel}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                        {formatOverviewDate(entry.createdAt)}
+                      </div>
+                      {entry.detail ? (
+                        <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+                          {entry.detail}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         ) : null}
       </div>
 

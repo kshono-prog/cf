@@ -32,6 +32,7 @@ import { deriveCreatorStage } from "@/lib/creatorStage";
 import { getPlannerTimeline } from "@/lib/operations/plannerTimeline";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_CLOSED_PROJECT_STATUSES } from "@/lib/recruitingProjects";
+import { serializeManagerDeskAiManagerSummary } from "@/lib/serializers/aiManager";
 
 type SupportedCurrency = "JPYC" | "USDC";
 
@@ -1413,7 +1414,10 @@ export async function getManagerDeskCreatorDetail(args: {
 
   const upcomingMeetingWindow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const [creator, assignment, projects, contributionRows, notes, contacts, logs, planner, completedMeetings, upcomingMeetings, credibility, recentExpenses] =
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const [creator, assignment, aiManager, projects, contributionRows, notes, contacts, logs, planner, completedMeetings, upcomingMeetings, credibility, recentExpenses] =
     await Promise.all([
       prisma.creatorProfile.findUnique({
         where: { id: args.creatorProfileId },
@@ -1434,6 +1438,35 @@ export async function getManagerDeskCreatorDetail(args: {
             where: { id: access.managerAssignmentId },
           })
         : Promise.resolve(null),
+      prisma.aiManagerAccount.findUnique({
+        where: { creatorProfileId: args.creatorProfileId },
+        select: {
+          status: true,
+          displayName: true,
+          intro: true,
+          archetype: true,
+          publicVisibility: true,
+          primaryLanguage: true,
+          tone: true,
+          supportStyle: true,
+          disclosurePolicy: true,
+          specialties: true,
+          updatedAt: true,
+          billingPolicy: {
+            select: {
+              status: true,
+              freeTierScope: true,
+              autoPayEnabled: true,
+              allowedBillableCapabilities: true,
+            },
+          },
+          budgetBalance: {
+            select: {
+              availableAmount: true,
+            },
+          },
+        },
+      }),
       prisma.project.findMany({
         where: { creatorProfileId: args.creatorProfileId },
         select: {
@@ -1523,9 +1556,11 @@ export async function getManagerDeskCreatorDetail(args: {
       }),
       getCreatorActivityCredibility(args.creatorProfileId),
       prisma.expense.findMany({
-        where: { creatorProfileId: args.creatorProfileId },
+        where: {
+          creatorProfileId: args.creatorProfileId,
+          occurredAt: { gte: prevMonthStart },
+        },
         orderBy: { occurredAt: "desc" },
-        take: 10,
         select: {
           id: true,
           category: true,
@@ -1563,21 +1598,42 @@ export async function getManagerDeskCreatorDetail(args: {
 
   // Compute expense summary
   const expenseTotalsByCategory = new Map<string, { total: number; currency: string }>();
+  const thisMonthTotalsByCategory = new Map<string, { total: number; currency: string }>();
+  const prevMonthTotalsByCategory = new Map<string, { total: number; currency: string }>();
   for (const exp of recentExpenses) {
     const key = `${exp.category}:${exp.currency}`;
     const existing = expenseTotalsByCategory.get(key) ?? { total: 0, currency: exp.currency };
     existing.total += Number(exp.amountDecimal.toString());
     expenseTotalsByCategory.set(key, existing);
+
+    if (exp.occurredAt >= thisMonthStart) {
+      const tm = thisMonthTotalsByCategory.get(key) ?? { total: 0, currency: exp.currency };
+      tm.total += Number(exp.amountDecimal.toString());
+      thisMonthTotalsByCategory.set(key, tm);
+    } else {
+      const pm = prevMonthTotalsByCategory.get(key) ?? { total: 0, currency: exp.currency };
+      pm.total += Number(exp.amountDecimal.toString());
+      prevMonthTotalsByCategory.set(key, pm);
+    }
   }
-  const totalAmountByCategory = [...expenseTotalsByCategory.entries()].map(([key, val]) => ({
-    category: key.split(":")[0] ?? "OTHER",
-    total: val.total.toFixed(2),
-    currency: val.currency,
-  }));
+  function toCategoryTotals(map: Map<string, { total: number; currency: string }>) {
+    return [...map.entries()].map(([key, val]) => ({
+      category: key.split(":")[0] ?? "OTHER",
+      total: val.total.toFixed(2),
+      currency: val.currency,
+    }));
+  }
+  const totalAmountByCategory = toCategoryTotals(expenseTotalsByCategory);
+  const thisMonthAmountByCategory = toCategoryTotals(thisMonthTotalsByCategory);
+  const prevMonthAmountByCategory = toCategoryTotals(prevMonthTotalsByCategory);
 
   return {
     creator: serializeCreator(creator),
+    viewerRole: access.role,
     assignment: assignment ? serializeManagerAssignment(assignment) : null,
+    aiManager: aiManager
+      ? serializeManagerDeskAiManagerSummary(aiManager)
+      : null,
     stage,
     activeProject,
     planner,
@@ -1587,7 +1643,7 @@ export async function getManagerDeskCreatorDetail(args: {
     keyContacts: contacts.map(serializeExternalContact),
     recentActionLogs: logs.map(serializeActionLog),
     expenseSummary: {
-      recentExpenses: recentExpenses.map((exp) => ({
+      recentExpenses: recentExpenses.slice(0, 10).map((exp) => ({
         id: exp.id,
         category: exp.category,
         amountDecimal: exp.amountDecimal.toString(),
@@ -1598,6 +1654,8 @@ export async function getManagerDeskCreatorDetail(args: {
       })),
       totalCount: recentExpenses.length,
       totalAmountByCategory,
+      thisMonthAmountByCategory,
+      prevMonthAmountByCategory,
     },
     summary: {
       latestActionAt: latestActionAtDate?.toISOString() ?? null,

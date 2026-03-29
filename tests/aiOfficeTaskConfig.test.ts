@@ -44,6 +44,14 @@ test("AI Office task choice helpers preserve tier order and task lookup", () => 
       "SUPPORTER_RESULT_REPORT",
       "CAREER_PLAN_DRAFT",
       "GROWTH_OPPORTUNITY_ALERT",
+      "MEETING_AGENDA_DRAFT",
+      "CONTACT_OUTREACH_DRAFT",
+      "STAGE_GROWTH_PLAN",
+      "CONTACT_INTELLIGENCE_ALERT",
+      "MONTHLY_CASHFLOW_REPORT",
+      "STAGE_PROGRESS_REPORT",
+      "CONTRACT_RENEWAL_ALERT",
+      "MEETING_FOLLOWUP_DRAFT",
     ]
   );
   assert.deepEqual(

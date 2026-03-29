@@ -54,13 +54,29 @@ export async function generateText(
   options?: GenerateOptions
 ): Promise<string | null> {
   const providers = availableProviders();
-  if (providers.length === 0) return null;
+  if (providers.length === 0) {
+    console.warn("[ai] No AI providers configured. Returning null.");
+    return null;
+  }
 
-  for (const provider of providers) {
+  const tried: string[] = [];
+
+  for (let i = 0; i < providers.length; i++) {
+    const provider = providers[i];
+    const start = Date.now();
     try {
       const result = await provider.generate(prompt, options);
+      const ms = Date.now() - start;
+      if (tried.length > 0) {
+        console.info(
+          `[ai] ✓ ${provider.name} succeeded after fallback from [${tried.join(" → ")}] in ${ms.toString()}ms`
+        );
+      } else {
+        console.info(`[ai] ✓ ${provider.name} succeeded in ${ms.toString()}ms`);
+      }
       return result;
     } catch (err) {
+      tried.push(provider.name);
       if (err instanceof ModelUnavailableError) {
         // Model has been deprecated or removed — log prominently and try next
         console.warn(
@@ -71,13 +87,13 @@ export async function generateText(
       } else {
         const info = extractApiErrorInfo(err);
         const summary = formatApiErrorSummary(info);
-        if (isBillingError(info)) {
-          console.error(
-            `[ai] 🚨 BILLING/QUOTA ERROR — ${provider.name} | ${summary}`
-          );
-        } else if (isRateLimitError(info)) {
+        if (isRateLimitError(info)) {
           console.warn(
             `[ai] ⏱ Rate limit — ${provider.name} | ${summary}`
+          );
+        } else if (isBillingError(info)) {
+          console.error(
+            `[ai] 🚨 BILLING/QUOTA ERROR — ${provider.name} | ${summary}`
           );
         } else {
           console.error(
@@ -85,11 +101,18 @@ export async function generateText(
           );
         }
       }
+      const next = providers[i + 1];
+      if (next) {
+        console.info(`[ai] → Falling back: ${provider.name} → ${next.name}`);
+      }
       // Try the next provider in the chain
       continue;
     }
   }
 
+  console.error(
+    `[ai] ✗ All providers exhausted [${tried.join(" → ")}]. Returning null.`
+  );
   return null;
 }
 
@@ -113,6 +136,9 @@ export async function generateJson<T>(
   try {
     return JSON.parse(stripped) as T;
   } catch {
+    console.warn(
+      `[ai] ✗ JSON parse failed. Response (first 200 chars): ${stripped.slice(0, 200)}`
+    );
     return null;
   }
 }

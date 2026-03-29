@@ -27,6 +27,11 @@ import {
   requireOwnerSessionFromSearchParams,
 } from "@/lib/ownerAuthSession";
 import { isPrismaUnavailableError } from "@/lib/prismaRetry";
+import {
+  AiManagerTaskBillingError,
+  prepareAiManagerTaskBilling,
+  recordBlockedAiManagerTaskBilling,
+} from "@/lib/aiManager/billing";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +72,22 @@ function toRequiresApproval(v: unknown): boolean {
 
 function toAutoPost(v: unknown): boolean {
   return v === true;
+}
+
+function toBillingErrorStatus(code: string): number {
+  switch (code) {
+    case "AI_MANAGER_AUTO_PAY_DISABLED":
+    case "AI_MANAGER_BUDGET_REQUIRED":
+      return 402;
+    case "AI_MANAGER_ACTION_CAP_EXCEEDED":
+    case "AI_MANAGER_DAILY_CAP_EXCEEDED":
+    case "AI_MANAGER_MONTHLY_CAP_EXCEEDED":
+    case "AI_MANAGER_BILLING_PAUSED":
+    case "AI_MANAGER_CAPABILITY_DISABLED":
+      return 409;
+    default:
+      return 400;
+  }
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -188,6 +209,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ? { ...validatedInput.value, autoPost }
       : validatedInput.value;
 
+    const aiManagerBilling = await prepareAiManagerTaskBilling({
+      creatorProfileId: creator.id,
+      projectId,
+      taskType,
+    });
+
+    if (aiManagerBilling.kind === "blocked") {
+      await recordBlockedAiManagerTaskBilling(aiManagerBilling);
+      return err(
+        req,
+        aiManagerBilling.errorCode,
+        toBillingErrorStatus(aiManagerBilling.errorCode)
+      );
+    }
+
     const row = await createAgentTask({
       creatorProfileId: creator.id,
       projectId,
@@ -197,6 +233,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       autoPost,
       requestedBy: ownerSession.address,
       roleId,
+      aiManagerBilling,
     });
 
     return ok(req, {
@@ -204,6 +241,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       outputSchema: getTaskOutputSchema(taskType),
     });
   } catch (e) {
+    if (e instanceof AiManagerTaskBillingError) {
+      return err(req, e.code, toBillingErrorStatus(e.code));
+    }
     console.error("AGENT_TASKS_POST_FAILED", e);
     return err(req, "AGENT_TASKS_POST_FAILED", 500);
   }

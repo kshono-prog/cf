@@ -121,23 +121,23 @@ export function useCurrencyGoalSettlementPanel(
   // ボタン表示制御のみ。進捗チェックは API 側（goal/achieve）が行う。
   const canAchieve = isOwner && goalIsSet && !goalAchieved;
 
-  const onSaveGoal = useCallback(async () => {
+  const onSaveGoal = useCallback(async (): Promise<boolean> => {
     setMsg(null);
 
     if (!projectId) {
       setMsg("PROJECT_ID_MISSING");
-      return;
+      return false;
     }
     if (!address) {
       setMsg("WALLET_NOT_CONNECTED");
-      return;
+      return false;
     }
 
     const trimmed = targetInput.trim();
     const numericTarget = Number(trimmed);
     if (!trimmed || !Number.isFinite(numericTarget) || numericTarget <= 0) {
       setMsg("GOAL_TARGET_INVALID");
-      return;
+      return false;
     }
 
     const targetAmount =
@@ -161,13 +161,15 @@ export function useCurrencyGoalSettlementPanel(
 
       if (!result.ok) {
         setMsg(result.error);
-        return;
+        return false;
       }
 
       setMsg("GOAL_SAVED");
       await refreshSummary();
+      return true;
     } catch {
       setMsg("GOAL_SAVE_FAILED");
+      return false;
     } finally {
       setGoalSaving(false);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createMyPageProject } from "@/lib/api/project";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 
@@ -32,6 +32,16 @@ export function ProjectCreateCard({
   );
   const [creating, setCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTitle(defaultValues?.title ?? "");
+    setDescription(defaultValues?.description ?? "");
+    setPurposeMode(defaultValues?.purposeMode ?? "OPTIONAL");
+  }, [
+    defaultValues?.description,
+    defaultValues?.purposeMode,
+    defaultValues?.title,
+  ]);
 
   const canCreate = title.trim().length > 0 && !creating;
 
@@ -66,7 +76,7 @@ export function ProjectCreateCard({
   return (
     <div className="card p-4 space-y-3 bg-white">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Project 作成</h2>
+        <h2 className="text-sm font-semibold">最初の Project</h2>
 
         {shownProjectId ? (
           <span className="text-[11px] text-gray-500">
@@ -79,8 +89,7 @@ export function ProjectCreateCard({
       </div>
 
       <p className="text-xs text-gray-600">
-        L1 設定・ブリッジ機能を使うには Project が必要です。ここで Project
-        を作成できます。
+        公開ページで最初に支援してもらう単位です。何を前に進めたいのかが一言で伝わるタイトルがおすすめです。
       </p>
 
       {createMsg && (
@@ -95,7 +104,7 @@ export function ProjectCreateCard({
           <input
             type="text"
             className="input"
-            placeholder="例）新しいイベント支援プロジェクト"
+            placeholder="例）ライブ活動を広げる最初の Project"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             disabled={creating}

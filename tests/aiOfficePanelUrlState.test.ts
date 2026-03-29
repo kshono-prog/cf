@@ -21,6 +21,7 @@ test("AI Office URL state parser reads supported view and role params", () => {
     selectedRoleId: "PROMOTION",
     selectedInboxRoleId: "FINANCE",
     openLatestTaskType: "MANAGER_NEXT_ACTIONS",
+    openCreateTaskType: null,
   });
 });
 
@@ -37,6 +38,7 @@ test("AI Office URL state parser ignores invalid view and role params", () => {
     selectedRoleId: undefined,
     selectedInboxRoleId: null,
     openLatestTaskType: null,
+    openCreateTaskType: null,
   });
 });
 

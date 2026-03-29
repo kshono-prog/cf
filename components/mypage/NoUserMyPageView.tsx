@@ -11,6 +11,7 @@ import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 type Props = {
   headerColor: string;
   error: string | null;
+  assistantSection?: React.ReactNode;
   usernameInput: string;
   displayName: string;
   profile: string;
@@ -57,6 +58,8 @@ export function NoUserMyPageView(props: Props) {
         {props.error && (
           <WorkspaceStatusNotice tone="error" title={props.error} />
         )}
+
+        {props.assistantSection}
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <div className="mb-3 space-y-1">

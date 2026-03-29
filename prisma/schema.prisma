@@ -38,6 +38,10 @@ model CreatorProfile {
   postLikes           PostLike[]
   replyLikes          ReplyLike[]
   aiAgents            AiAgent[]
+  aiManagerAccount    AiManagerAccount?
+  aiManagerBudgetTransactions AiManagerBudgetTransaction[]
+  aiManagerFundingEvidences AiManagerFundingEvidence[]
+  aiManagerUsageRecords AiManagerUsageRecord[]
   aiPromotionJobs     AiPromotionJob[]
   agentTasks          AgentTask[]
   agentTaskAuditLogs  AgentTaskAuditLog[]
@@ -294,6 +298,7 @@ model Project {
   expenses                  Expense[]
   revenueRecords            RevenueRecord[]
   projectMembers            ProjectMember[]
+  aiManagerUsageRecords     AiManagerUsageRecord[]
 
   @@index([creatorProfileId])
   @@index([creatorProfileId, currency])
@@ -500,6 +505,187 @@ model AiAgent {
   @@index([creatorProfileId, role, status], map: "AiAgent_creator_role_status_idx")
 }
 
+model AiManagerAccount {
+  id                           String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId             BigInt                    @unique
+  status                       AiManagerAccountStatus    @default(DRAFT)
+  displayName                  String
+  slug                         String?
+  avatarAssetUrl               String?
+  intro                        String?                   @db.Text
+  archetype                    AiManagerArchetype        @default(GENTLE_SUPPORTER)
+  publicVisibility             AiManagerPublicVisibility @default(OWNER_ONLY)
+  primaryLanguage              String                    @default("ja")
+  tone                         AiManagerTone             @default(FRIENDLY)
+  supportStyle                 AiManagerSupportStyle     @default(ENCOURAGING)
+  disclosurePolicy             AiManagerDisclosurePolicy @default(ALWAYS_DISCLOSE_AI)
+  managerActivityWalletAddress String?
+  budgetWalletAddress          String?
+  specialties                  String[]                  @default([])
+  forbiddenTopics              String[]                  @default([])
+  brandGuardrails              String[]                  @default([])
+  createdAt                    DateTime                  @default(now()) @db.Timestamptz(6)
+  updatedAt                    DateTime                  @updatedAt @db.Timestamptz(6)
+  creatorProfile               CreatorProfile            @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  billingPolicy                AiManagerBillingPolicy?
+  budgetBalance                AiManagerBudgetBalance?
+  budgetTransactions           AiManagerBudgetTransaction[]
+  fundingEvidences             AiManagerFundingEvidence[]
+  paymentAttemptEvents         AiManagerPaymentAttemptEvent[]
+  usageRecords                 AiManagerUsageRecord[]
+
+  @@index([status, publicVisibility], map: "AiManagerAccount_status_visibility_idx")
+}
+
+model AiManagerBillingPolicy {
+  aiManagerAccountId          String               @id @db.Uuid
+  status                      AiManagerBillingPolicyStatus @default(ACTIVE)
+  billingMode                 AiManagerBillingMode @default(MANUAL_TOPUP)
+  preferredRail               AiManagerPaymentRail @default(X402_PREFERRED)
+  currency                    String               @default("JPYC")
+  freeTierEnabled             Boolean              @default(true)
+  freeTierScope               AiManagerFreeTierScope @default(BRIEFING_AND_LIGHT_DRAFTS)
+  autoPayEnabled              Boolean              @default(false)
+  monthlyJpycCap              Int                  @default(3000)
+  dailyJpycCap                Int                  @default(300)
+  perActionJpycCap            Int                  @default(100)
+  allowedBillableCapabilities String[]             @default(["POST_DRAFTING", "FAN_REPLY_ASSIST", "PROGRESS_SUMMARY", "WEB_RESEARCH"])
+  pausedAt                    DateTime?            @db.Timestamptz(6)
+  pauseReason                 String?              @db.Text
+  createdAt                   DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt                   DateTime             @updatedAt @db.Timestamptz(6)
+  aiManagerAccount            AiManagerAccount     @relation(fields: [aiManagerAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model AiManagerBudgetBalance {
+  aiManagerAccountId String           @id @db.Uuid
+  currency           String           @default("JPYC")
+  availableAmount    Decimal          @default(0) @db.Decimal(18, 2)
+  reservedAmount     Decimal          @default(0) @db.Decimal(18, 2)
+  createdAt          DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime         @updatedAt @db.Timestamptz(6)
+  aiManagerAccount   AiManagerAccount @relation(fields: [aiManagerAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model AiManagerBudgetTransaction {
+  id                     String                             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  aiManagerAccountId     String                             @db.Uuid
+  creatorProfileId       BigInt
+  usageRecordId          String?                            @db.Uuid
+  direction              AiManagerBudgetTransactionDirection
+  transactionType        AiManagerBudgetTransactionType
+  currency               String                             @default("JPYC")
+  amount                 Decimal                            @db.Decimal(18, 2)
+  resultingAvailableAmount Decimal                          @db.Decimal(18, 2)
+  note                   String?                            @db.Text
+  actorAddress           String?
+  createdAt              DateTime                           @default(now()) @db.Timestamptz(6)
+  aiManagerAccount       AiManagerAccount                   @relation(fields: [aiManagerAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile         CreatorProfile                     @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  usageRecord            AiManagerUsageRecord?              @relation(fields: [usageRecordId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  fundingEvidence        AiManagerFundingEvidence?          @relation("AiManagerBudgetFundingEvidence")
+
+  @@index([aiManagerAccountId, createdAt], map: "AiManagerBudgetTransaction_account_created_idx")
+  @@index([creatorProfileId, createdAt], map: "AiManagerBudgetTransaction_creator_created_idx")
+  @@index([usageRecordId], map: "AiManagerBudgetTransaction_usage_idx")
+}
+
+model AiManagerFundingEvidence {
+  id                        String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  aiManagerAccountId        String                        @db.Uuid
+  creatorProfileId          BigInt
+  matchedBudgetTransactionId String?                      @unique @db.Uuid
+  status                    AiManagerFundingEvidenceStatus @default(SELF_REPORTED)
+  chainId                   Int
+  currency                  String                        @default("JPYC")
+  amount                    Decimal                       @db.Decimal(18, 2)
+  txHash                    String                        @unique
+  fromWalletAddress         String?
+  toWalletAddress           String
+  reportedByAddress         String?
+  note                      String?                       @db.Text
+  createdAt                 DateTime                      @default(now()) @db.Timestamptz(6)
+  matchedAt                 DateTime?                     @db.Timestamptz(6)
+  aiManagerAccount          AiManagerAccount              @relation(fields: [aiManagerAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile            CreatorProfile                @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  matchedBudgetTransaction  AiManagerBudgetTransaction?   @relation("AiManagerBudgetFundingEvidence", fields: [matchedBudgetTransactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([aiManagerAccountId, createdAt], map: "AiManagerFundingEvidence_account_created_idx")
+  @@index([creatorProfileId, createdAt], map: "AiManagerFundingEvidence_creator_created_idx")
+  @@index([status, createdAt], map: "AiManagerFundingEvidence_status_created_idx")
+}
+
+model AiManagerUsageRecord {
+  id                String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  aiManagerAccountId String                    @db.Uuid
+  creatorProfileId  BigInt
+  projectId         BigInt?
+  agentTaskId       String?                    @db.Uuid
+  capability        AiManagerBillableCapability
+  provider          String
+  model             String?
+  currency          String                     @default("JPYC")
+  chargeAmount      Decimal                    @default(0) @db.Decimal(18, 2)
+  providerCostUsd   Decimal                    @default(0) @db.Decimal(18, 6)
+  platformFeeUsd    Decimal                    @default(0) @db.Decimal(18, 6)
+  totalChargeUsd    Decimal                    @default(0) @db.Decimal(18, 6)
+  billingState      AiManagerUsageBillingState @default(METERED)
+  failureReason     String?                    @db.Text
+  createdAt         DateTime                   @default(now()) @db.Timestamptz(6)
+  aiManagerAccount  AiManagerAccount           @relation(fields: [aiManagerAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creatorProfile    CreatorProfile             @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project           Project?                   @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  agentTask         AgentTask?                 @relation(fields: [agentTaskId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  paymentAttempts   AiManagerPaymentAttempt[]
+  budgetTransactions AiManagerBudgetTransaction[]
+
+  @@index([aiManagerAccountId, createdAt], map: "AiManagerUsageRecord_account_created_idx")
+  @@index([creatorProfileId, createdAt], map: "AiManagerUsageRecord_creator_created_idx")
+  @@index([projectId, createdAt], map: "AiManagerUsageRecord_project_created_idx")
+  @@index([agentTaskId], map: "AiManagerUsageRecord_agent_task_idx")
+  @@index([billingState, createdAt], map: "AiManagerUsageRecord_state_created_idx")
+}
+
+model AiManagerPaymentAttempt {
+  id                 String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usageRecordId      String                       @db.Uuid
+  rail               AiManagerPaymentAttemptRail
+  payerWalletAddress String?
+  payeeWalletAddress String?
+  currency           String                       @default("JPYC")
+  amount             Decimal                      @default(0) @db.Decimal(18, 2)
+  txHash             String?
+  status             AiManagerPaymentAttemptStatus @default(PENDING)
+  failureReason      String?                      @db.Text
+  createdAt          DateTime                     @default(now()) @db.Timestamptz(6)
+  confirmedAt        DateTime?                    @db.Timestamptz(6)
+  usageRecord        AiManagerUsageRecord         @relation(fields: [usageRecordId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events             AiManagerPaymentAttemptEvent[]
+
+  @@index([usageRecordId, createdAt], map: "AiManagerPaymentAttempt_usage_created_idx")
+  @@index([status, createdAt], map: "AiManagerPaymentAttempt_status_created_idx")
+  @@index([txHash], map: "AiManagerPaymentAttempt_tx_hash_idx")
+}
+
+model AiManagerPaymentAttemptEvent {
+  id                 String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  aiManagerAccountId String                            @db.Uuid
+  paymentAttemptId   String                            @db.Uuid
+  source             AiManagerPaymentAttemptEventSource
+  eventType          AiManagerPaymentAttemptEventType
+  status             AiManagerPaymentAttemptStatus
+  txHash             String?
+  detail             String?                           @db.Text
+  createdAt          DateTime                          @default(now()) @db.Timestamptz(6)
+  aiManagerAccount   AiManagerAccount                  @relation(fields: [aiManagerAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  paymentAttempt     AiManagerPaymentAttempt           @relation(fields: [paymentAttemptId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([aiManagerAccountId, createdAt], map: "AiManagerPaymentAttemptEvent_account_created_idx")
+  @@index([paymentAttemptId, createdAt], map: "AiManagerPaymentAttemptEvent_attempt_created_idx")
+  @@index([source, createdAt], map: "AiManagerPaymentAttemptEvent_source_created_idx")
+  @@index([eventType, createdAt], map: "AiManagerPaymentAttemptEvent_type_created_idx")
+}
+
 model AiPromotionJob {
   id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   creatorProfileId BigInt
@@ -542,6 +728,7 @@ model AgentTask {
   creatorProfile   CreatorProfile      @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   project          Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   auditLogs        AgentTaskAuditLog[]
+  aiManagerUsageRecords AiManagerUsageRecord[]
 
   @@index([creatorProfileId, status, createdAt], map: "AgentTask_creator_status_created_idx")
   @@index([projectId, taskType, createdAt], map: "AgentTask_project_type_created_idx")
@@ -724,6 +911,21 @@ model ActionLog {
   @@index([actorType, occurredAt])
   @@index([actionType, occurredAt])
   @@index([targetEntityType, targetEntityId])
+}
+
+model GrowthEvent {
+  id            String   @id @default(cuid())
+  event         String
+  username      String?
+  walletAddress String?
+  projectId     String?
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([event, createdAt])
+  @@index([username, createdAt])
+  @@index([walletAddress, createdAt])
+  @@index([projectId, createdAt])
 }
 
 model Expense {
@@ -1008,6 +1210,123 @@ enum ProjectSettlementStatus {
   BRIDGING
   READY_FOR_DISTRIBUTION
   DISTRIBUTED
+}
+
+enum AiManagerAccountStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AiManagerArchetype {
+  GENTLE_SUPPORTER
+  PRODUCER
+  ANALYST
+  PROMOTER
+  FAN_GUIDE
+}
+
+enum AiManagerPublicVisibility {
+  OWNER_ONLY
+  PUBLIC_BADGED
+  PRIVATE
+}
+
+enum AiManagerTone {
+  POLITE
+  FRIENDLY
+  ELEGANT
+  ENERGETIC
+  COOL
+}
+
+enum AiManagerSupportStyle {
+  ENCOURAGING
+  CALM
+  DATA_DRIVEN
+  PROMOTIONAL
+}
+
+enum AiManagerDisclosurePolicy {
+  ALWAYS_DISCLOSE_AI
+  DISCLOSE_ON_PUBLIC_ACTION
+}
+
+enum AiManagerBillingMode {
+  MANUAL_TOPUP
+  AUTO_PAY_WITH_CAP
+}
+
+enum AiManagerBillingPolicyStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum AiManagerPaymentRail {
+  X402_PREFERRED
+  INTERNAL_LEDGER_FALLBACK
+}
+
+enum AiManagerBillableCapability {
+  POST_DRAFTING
+  FAN_REPLY_ASSIST
+  PROGRESS_SUMMARY
+  WEB_RESEARCH
+}
+
+enum AiManagerFreeTierScope {
+  BRIEFING_AND_LIGHT_DRAFTS
+}
+
+enum AiManagerUsageBillingState {
+  METERED
+  PAYMENT_PENDING
+  SETTLED
+  FAILED
+  WAIVED
+}
+
+enum AiManagerPaymentAttemptRail {
+  X402
+  INTERNAL_LEDGER
+}
+
+enum AiManagerPaymentAttemptStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum AiManagerPaymentAttemptEventSource {
+  BILLING_SYSTEM
+  OWNER_REVIEW
+  X402_CONNECTOR
+}
+
+enum AiManagerPaymentAttemptEventType {
+  ATTEMPT_CREATED
+  PENDING_OBSERVED
+  SETTLEMENT_CONFIRMED
+  SETTLEMENT_FAILED
+  SETTLEMENT_REPLAYED
+}
+
+enum AiManagerBudgetTransactionDirection {
+  CREDIT
+  DEBIT
+}
+
+enum AiManagerBudgetTransactionType {
+  OWNER_TOP_UP
+  OWNER_DEDUCTION
+  USAGE_SETTLEMENT
+}
+
+enum AiManagerFundingEvidenceStatus {
+  SELF_REPORTED
+  MATCHED_TO_LEDGER
+  REJECTED
 }
 
 enum ManagerAssignmentRole {

@@ -1,8 +1,10 @@
 import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 
+import { getPublicAiManagerProfileByCreatorProfileId } from "@/lib/aiManager/publicProfile";
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { isPrismaUnavailableError } from "@/lib/prismaRetry";
+import type { SerializedPublicAiManagerProfile } from "@/lib/serializers/aiManager";
 import type { PublicSummaryLite } from "@/lib/publicSummary";
 import type { SupportProfileView, SupportProjectView } from "@/lib/supportProfileView";
 import { loadPublicProfileProjectData } from "@/lib/publicProfileProjectData";
@@ -13,6 +15,7 @@ type PublicPageData = {
   projectId: string | null;
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
   publicSummary: PublicSummaryLite | null;
+  publicAiManager: SerializedPublicAiManagerProfile | null;
   supportProfileView: SupportProfileView;
   recruitingProjects: SupportProjectView[];
 };
@@ -37,12 +40,16 @@ async function loadPublicPageDataUncached(
   if (!creatorResult) return null;
 
   const { creator, profile } = creatorResult;
-  const projectData = await loadPublicProfileProjectData({
-    creatorProfileId: BigInt(profile.id),
-    activeProjectIdJpyc: profile.activeProjectIdJpyc ?? null,
-    activeProjectIdUsdc: profile.activeProjectIdUsdc ?? null,
-    creator,
-  });
+  const creatorProfileId = BigInt(profile.id);
+  const [projectData, publicAiManager] = await Promise.all([
+    loadPublicProfileProjectData({
+      creatorProfileId,
+      activeProjectIdJpyc: profile.activeProjectIdJpyc ?? null,
+      activeProjectIdUsdc: profile.activeProjectIdUsdc ?? null,
+      creator,
+    }),
+    getPublicAiManagerProfileByCreatorProfileId(creatorProfileId),
+  ]);
 
   return {
     creator,
@@ -50,6 +57,7 @@ async function loadPublicPageDataUncached(
     projectId: projectData.projectId,
     projectIdsByCurrency: projectData.projectIdsByCurrency,
     publicSummary: includePublicSummary ? projectData.publicSummary : null,
+    publicAiManager,
     recruitingProjects: projectData.recruitingProjects,
     supportProfileView: projectData.supportProfileView,
   };

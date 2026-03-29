@@ -6,6 +6,7 @@ import {
 } from "@/lib/creatorTaxonomy";
 import type { CreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
 import type { CreatorProfile, SocialLinks } from "@/lib/profileTypes";
+import { buildPublicProfileFaqEntries } from "@/lib/seo/publicProfileFaq";
 import {
   getActiveSupportProject,
   type SupportProfileView,
@@ -58,9 +59,17 @@ export function buildPublicProfileStructuredData(args: {
   username: string;
   creator: PublicStructuredCreator;
   supportProfileView: SupportProfileView;
+  recruitingProjectCount: number;
   credibility: CreatorActivityCredibility;
 }): Record<string, unknown> {
-  const { baseUrl, username, creator, supportProfileView, credibility } = args;
+  const {
+    baseUrl,
+    username,
+    creator,
+    supportProfileView,
+    recruitingProjectCount,
+    credibility,
+  } = args;
   const displayName = creator.displayName || username;
   const description =
     creator.profile?.trim() ||
@@ -73,6 +82,11 @@ export function buildPublicProfileStructuredData(args: {
   const activeSupportProject = getActiveSupportProject(supportProfileView);
   const creatorEntityId = `${pageUrl}#creator`;
   const breadcrumbId = `${pageUrl}#breadcrumb`;
+  const faqEntries = buildPublicProfileFaqEntries({
+    displayName,
+    recruitingProjectCount,
+    supportProfileView,
+  });
 
   const creatorEntity: Record<string, unknown> = {
     "@type": "Person",
@@ -165,8 +179,25 @@ export function buildPublicProfileStructuredData(args: {
     ],
   };
 
+  const graph: Record<string, unknown>[] = [profilePage, breadcrumbList, creatorEntity];
+
+  if (faqEntries.length > 0) {
+    graph.push({
+      "@type": "FAQPage",
+      "@id": `${pageUrl}#faq`,
+      mainEntity: faqEntries.map((entry) => ({
+        "@type": "Question",
+        name: entry.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: entry.answer,
+        },
+      })),
+    });
+  }
+
   return {
     "@context": "https://schema.org",
-    "@graph": [profilePage, breadcrumbList, creatorEntity],
+    "@graph": graph,
   };
 }

@@ -12,6 +12,7 @@ import {
   type CreatorProfile,
   type SocialLinks,
 } from "@/lib/profileTypes";
+import { buildPublicProfileFaqEntries } from "@/lib/seo/publicProfileFaq";
 import {
   getActiveSupportProject,
   type SupportProfileView,
@@ -30,6 +31,8 @@ type Props = {
   supportProfileView: SupportProfileView;
   recruitingProjects: SupportProjectView[];
   impactContent?: React.ReactNode;
+  /** Creator Stage ラベル（Seed / Early / Emerging / Professionalizing / Established） */
+  stageBadge?: string | null;
 };
 
 function getInitials(value: string): string {
@@ -229,6 +232,7 @@ export function PublicProfileIntroServer({
   supportProfileView,
   recruitingProjects,
   impactContent,
+  stageBadge,
 }: Props) {
   const displayName = creator.displayName || username;
   const socialEntries = SOCIAL_ICON_CONFIG.flatMap((item) => {
@@ -246,6 +250,11 @@ export function PublicProfileIntroServer({
     : undefined;
 
   const activeSupportProject = getActiveSupportProject(supportProfileView);
+  const faqEntries = buildPublicProfileFaqEntries({
+    displayName,
+    recruitingProjectCount: recruitingProjects.length,
+    supportProfileView,
+  });
   const supportCardReady = activeSupportProject !== null;
   const supportTitle = supportCardReady
     ? activeSupportProject.title
@@ -305,7 +314,7 @@ export function PublicProfileIntroServer({
                       {displayName}
                     </h1>
                     <p className="mt-0.5 text-[12px] text-[var(--text-subtle)]">@{username}</p>
-                    {creator.creatorType || creator.ecosystemRole ? (
+                    {(creator.creatorType || creator.ecosystemRole || stageBadge) ? (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {creator.creatorType ? (
                           <span className="surface-chip">
@@ -315,6 +324,11 @@ export function PublicProfileIntroServer({
                         {creator.ecosystemRole ? (
                           <span className="surface-chip">
                             {ECOSYSTEM_ROLE_LABELS[creator.ecosystemRole]}
+                          </span>
+                        ) : null}
+                        {stageBadge ? (
+                          <span className="surface-chip text-[var(--text-subtle)]">
+                            Stage: {stageBadge}
                           </span>
                         ) : null}
                       </div>
@@ -362,6 +376,16 @@ export function PublicProfileIntroServer({
                           />
                         </Link>
                       ) : null}
+                    </div>
+                  ) : null}
+                  {activeSupportProject ? (
+                    <div className="mt-3">
+                      <Link
+                        href={buildSupportHref(username, activeSupportProject.projectId)}
+                        className="btn"
+                      >
+                        {displayName}を応援する
+                      </Link>
                     </div>
                   ) : null}
                   {impactContent ? (
@@ -425,16 +449,6 @@ export function PublicProfileIntroServer({
                   募集 project {activeSupportProject ? "1件" : "0件"}
                 </span>
               </div>
-              {activeSupportProject ? (
-                <div className="border-t border-[var(--line)] pt-3">
-                  <Link
-                    href={buildSupportHref(username, activeSupportProject.projectId)}
-                    className="btn w-full sm:w-auto"
-                  >
-                    {displayName}を応援する
-                  </Link>
-                </div>
-              ) : null}
             </div>
 
             <div className="min-w-0">
@@ -488,6 +502,25 @@ export function PublicProfileIntroServer({
           </div>
         </section>
       )}
+
+      <section className="sheet-section px-4 py-4 sm:px-5 sm:py-5">
+        <div className="section-kicker">FAQ</div>
+        <div className="text-base font-semibold text-[var(--text)]">
+          よくある質問
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+          {faqEntries.map((entry) => (
+            <article key={entry.question} className="data-tile px-4 py-4">
+              <h2 className="text-sm font-semibold text-[var(--text)]">
+                {entry.question}
+              </h2>
+              <p className="mt-2 text-[12px] leading-6 text-[var(--text-subtle)]">
+                {entry.answer}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
 
       {creator.youtubeVideos && creator.youtubeVideos.length > 0 ? (
         <section className="sheet-section px-4 py-4 sm:px-5 sm:py-5">

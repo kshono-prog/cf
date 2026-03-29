@@ -4,10 +4,16 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 
+import { trackGrowthEvent } from "@/lib/growth/client";
+import {
+  readSetupLocalMilestones,
+  writeSetupLocalMilestone,
+} from "@/lib/growth/setup";
 import type { FeedListView } from "@/lib/feedList";
 import type { CreatorProfile } from "@/lib/profileTypes";
 import type { Currency } from "@/components/profile/profileClientHelpers";
 import { DeferredFeedSection } from "@/components/feed/DeferredFeedSection";
+import { CreatorManagementStrip } from "@/components/profile/CreatorManagementStrip";
 import {
   type SupportProjectView,
   type SupportProfileView,
@@ -132,11 +138,19 @@ export default function ProfileClient({
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
   const [stickyVisible, setStickyVisible] = useState(false);
   const [supportSectionInView, setSupportSectionInView] = useState(true);
+  const [ownerPageReviewed, setOwnerPageReviewed] = useState(false);
+  const ownerViewTrackedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!supportProfileView) return;
     setSupportProfileState(supportProfileView);
   }, [supportProfileView]);
+
+  useEffect(() => {
+    setOwnerPageReviewed(
+      readSetupLocalMilestones(username).publicPageViewedByOwner
+    );
+  }, [username]);
 
   useEffect(() => {
     const onScroll = () => setStickyVisible(window.scrollY > 50);
@@ -299,7 +313,8 @@ export default function ProfileClient({
     return options;
   }, [resolvedProjectIdsByCurrency, supportProfileState.projectsByCurrency]);
 
-  const ownerComposerManagementHref = `/${username}/mypage#public-page`;
+  const ownerComposerManagementHref = `/${username}/mypage/settings#public-page`;
+  const ownerShareDraftHref = `/${username}/mypage/settings#growth-share`;
   const viewerWorkspaceHref = viewerState.userUsername
     ? `/${viewerState.userUsername}/mypage`
     : `/${username}/mypage`;
@@ -318,14 +333,49 @@ export default function ProfileClient({
     viewerState.mode !== "unconnected" &&
     canOpenSupportSheet;
 
+  useEffect(() => {
+    if (!viewerState.isOwner) {
+      return;
+    }
+
+    const trackKey = `${username}:${(viewerAddress ?? creator.address ?? "").toLowerCase()}`;
+    if (ownerViewTrackedRef.current === trackKey) {
+      return;
+    }
+
+    ownerViewTrackedRef.current = trackKey;
+
+    trackGrowthEvent({
+      event: "public_page_viewed_by_owner",
+      username,
+      walletAddress: viewerAddress ?? creator.address ?? null,
+      projectId: activeProjectId,
+      metadata: {
+        pagePath:
+          typeof window !== "undefined" ? window.location.pathname : `/${username}`,
+      },
+    });
+  }, [activeProjectId, creator.address, username, viewerAddress, viewerState.isOwner]);
+
+  // first_tip_received should be emitted from the confirmed contribution path
+  // on the server side, not from this owner-view UI.
+
+  const handleConfirmOwnerPageReviewed = () => {
+    writeSetupLocalMilestone(username, "publicPageViewedByOwner", true);
+    setOwnerPageReviewed(true);
+  };
+
   const profileGuideCard = (
     <ProfileViewerGuideCard
       viewerState={viewerState}
       canOpenSupportSheet={canOpenSupportSheet}
       pageDisplayName={pageDisplayName}
+      ownerPageReviewed={ownerPageReviewed}
+      ownerShareDraftHref={ownerShareDraftHref}
       viewerComposeHref={viewerComposeHref}
       viewerWorkspaceHref={viewerWorkspaceHref}
       viewerProfileHref={viewerProfileHref}
+      onConfirmOwnerPageReviewed={handleConfirmOwnerPageReviewed}
       onOpenSupportSheet={openSupportSheet}
     />
   );
@@ -373,6 +423,7 @@ export default function ProfileClient({
 
   const content = (
     <>
+      {viewerState.isOwner ? <CreatorManagementStrip username={username} /> : null}
       {profileScreen}
 
       {canOpenSupportSheet && (supportSheetLoaded || supportSheetOpen) ? (

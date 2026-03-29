@@ -3,7 +3,11 @@
 import { CREATOR_TYPE_LABELS } from "@/lib/creatorTaxonomy";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 
-export function CreatorProfileViewCard() {
+type Props = {
+  missingSetupHints?: string[];
+};
+
+export function CreatorProfileViewCard({ missingSetupHints = [] }: Props) {
   const workspace = useCreatorReadyWorkspace();
 
   return (
@@ -97,6 +101,19 @@ export function CreatorProfileViewCard() {
           <div>Facebook: {workspace.socials.facebook}</div>
         ) : null}
       </div>
+
+      {missingSetupHints.length > 0 ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">
+            公開前に整えたい項目
+          </div>
+          <ul className="mt-2 space-y-1 text-sm text-amber-900">
+            {missingSetupHints.slice(0, 3).map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {workspace.youtubeVideos.length > 0 &&
       workspace.youtubeVideos.some((video) => video.url.trim()) ? (

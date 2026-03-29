@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { useAccount } from "wagmi";
 
+import { ManagerDeskAiManagerReadOnlySection } from "@/components/managerDesk/ManagerDeskAiManagerReadOnlySection";
 import { ManagerDeskAiSuggestionsSection } from "@/components/managerDesk/ManagerDeskAiSuggestionsSection";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
@@ -657,6 +658,12 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 </div>
               </div>
 
+              <ManagerDeskAiManagerReadOnlySection
+                creatorDisplayName={data.creator.displayName || data.creator.username}
+                viewerRole={data.viewerRole}
+                aiManager={data.aiManager}
+              />
+
               {data.stage ? (
                 <>
                 <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
@@ -1175,17 +1182,55 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     </span>
                   </div>
                   <div className="space-y-2">
-                    {data.expenseSummary.totalAmountByCategory.map((cat) => (
-                      <div
-                        key={`${cat.category}:${cat.currency}`}
-                        className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-2"
-                      >
-                        <span className="text-sm text-[var(--text)]">{cat.category}</span>
-                        <span className="text-sm font-semibold text-[var(--text)]">
-                          {Number(cat.total).toLocaleString("ja-JP")} {cat.currency}
-                        </span>
-                      </div>
-                    ))}
+                    {data.expenseSummary.thisMonthAmountByCategory.map((cat) => {
+                      const prevCat = data.expenseSummary.prevMonthAmountByCategory.find(
+                        (p) => p.category === cat.category && p.currency === cat.currency
+                      );
+                      const thisTotal = Number(cat.total);
+                      const prevTotal = prevCat ? Number(prevCat.total) : null;
+                      const diff = prevTotal !== null ? thisTotal - prevTotal : null;
+                      const diffPct =
+                        diff !== null && prevTotal !== null && prevTotal > 0
+                          ? Math.round((diff / prevTotal) * 100)
+                          : null;
+                      return (
+                        <div
+                          key={`${cat.category}:${cat.currency}`}
+                          className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-2"
+                        >
+                          <span className="text-sm text-[var(--text)]">{cat.category}</span>
+                          <div className="flex items-center gap-2">
+                            {diffPct !== null ? (
+                              <span
+                                className={`text-[11px] font-medium ${
+                                  diffPct > 0 ? "text-rose-500" : "text-emerald-600"
+                                }`}
+                              >
+                                {diffPct > 0 ? "+" : ""}
+                                {diffPct.toString()}%
+                              </span>
+                            ) : null}
+                            <span className="text-sm font-semibold text-[var(--text)]">
+                              {thisTotal.toLocaleString("ja-JP")} {cat.currency}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {data.expenseSummary.thisMonthAmountByCategory.length === 0 &&
+                    data.expenseSummary.totalAmountByCategory.length > 0
+                      ? data.expenseSummary.totalAmountByCategory.map((cat) => (
+                          <div
+                            key={`${cat.category}:${cat.currency}`}
+                            className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-2"
+                          >
+                            <span className="text-sm text-[var(--text)]">{cat.category}</span>
+                            <span className="text-sm font-semibold text-[var(--text)]">
+                              {Number(cat.total).toLocaleString("ja-JP")} {cat.currency}
+                            </span>
+                          </div>
+                        ))
+                      : null}
                   </div>
                   <div className="mt-3 space-y-2">
                     {data.expenseSummary.recentExpenses.slice(0, 5).map((exp) => (

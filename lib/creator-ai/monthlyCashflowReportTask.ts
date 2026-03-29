@@ -158,35 +158,43 @@ export async function buildMonthlyCashflowReportOutput(params: {
     ? `前月比: 収入 ${revenueDiff != null ? (revenueDiff >= 0 ? `+${revenueDiff.toString()}` : revenueDiff.toString()) : "N/A"}% / 支出 ${expenseDiff != null ? (expenseDiff >= 0 ? `+${expenseDiff.toString()}` : expenseDiff.toString()) : "N/A"}%`
     : "前月データなし";
 
-  const aiResult = await generateJson<{
-    summary: string;
-    advice: string;
-  }>(
-    `クリエイターの ${period} 月次収支レポートを生成してください。
+  // データが全くない場合は AI 呼び出しをスキップしてフォールバックを返す
+  const hasData = thisMonthRevenues.length > 0 || thisMonthExpenses.length > 0;
+
+  const aiResult = hasData
+    ? await generateJson<{ summary: string; advice: string; keyInsight: string }>(
+        `クリエイターの ${period} 月次収支レポートを生成してください。
+
+## 収支概要
 収入合計: ${totalRevenue.toLocaleString()}円
 支出合計: ${totalExpense.toLocaleString()}円
 収支: ${netCashflow >= 0 ? "+" : ""}${netCashflow.toLocaleString()}円
 ${comparisonLine}
 
-収入内訳:
+## 収入内訳
 ${revenueLines}
 
-支出内訳:
+## 支出内訳
 ${expenseLines}
 
-この月の収支状況を1〜2文で要約し、次のアクションへの具体的なアドバイスを1〜2文で提示してください。
-以下のJSON形式のみで返してください:
-{"summary":"収支状況の要約（1〜2文）","advice":"次のアクションへのアドバイス（1〜2文）"}`,
-    {
-      systemPrompt:
-        "あなたはクリエイターの財務アドバイザーです。実態に即した、実行可能な日本語のアドバイスを返してください。",
-      maxTokens: 256,
-      temperature: 0.6,
-    }
-  );
+以下 3 つを日本語で生成してください（JSON のみで返す）:
+- summary: 収支状況の率直な要約（1〜2文）
+- keyInsight: この月で特に目立つ数字や変化を1文で（例「ライブ収入が支出の80%を占め、プロモーション費が前月比+40%」）
+- advice: 今すぐ実行できる具体的なアクション（1〜2文、数字を含むと良い）
+
+JSON: {"summary":"...","keyInsight":"...","advice":"..."}`,
+        {
+          systemPrompt:
+            "あなたはクリエイターの財務アドバイザーです。数字に基づいた、実行可能な日本語のアドバイスを返してください。曖昧な一般論は避けてください。",
+          maxTokens: 400,
+          temperature: 0.5,
+        }
+      ).catch(() => null)
+    : null;
 
   return {
     summary: aiResult?.summary ?? fallbackSummary,
+    keyInsight: aiResult?.keyInsight ?? null,
     advice: aiResult?.advice ?? fallbackAdvice,
     period,
     totalRevenue,

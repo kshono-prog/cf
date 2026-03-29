@@ -1,11 +1,27 @@
 "use client";
 
-import React, { useEffect, useLayoutEffect, useMemo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useAccount } from "wagmi";
 
+import type { ProfileDraftResult } from "@/lib/ai/profileDraft";
+import {
+  readSetupLocalMilestones,
+  writeSetupLocalMilestone,
+  type SetupLocalMilestoneKey,
+  type SetupLocalMilestones,
+} from "@/lib/growth/setup";
+import { trackGrowthEvent } from "@/lib/growth/client";
 import { generateRandomId } from "@/lib/mypage/helpers";
 
 import { CreatorReadyAccountView } from "@/components/mypage/CreatorReadyAccountView";
+import { AiProfileDraftCard } from "@/components/mypage/AiProfileDraftCard";
 import type { AiOfficePanelUrlState } from "@/components/mypage/aiOfficePanelUrlState";
 import { LoadingMyPageView } from "@/components/mypage/LoadingMyPageView";
 import { NoUserMyPageView } from "@/components/mypage/NoUserMyPageView";
@@ -57,6 +73,16 @@ export default function AccountPageClient({
     () => `user_${generateRandomId()}`,
     []
   );
+  const [localGrowthMilestones, setLocalGrowthMilestones] =
+    useState<SetupLocalMilestones>(() => readSetupLocalMilestones(username));
+  const [aiSetupDraft, setAiSetupDraft] = useState({
+    goalTitle: null as string | null,
+    projectTitle: "",
+    projectDescription: "",
+    goalTargetInput: "",
+  });
+  const [aiSetupDraftVersion, setAiSetupDraftVersion] = useState(0);
+  const trackedWalletRef = useRef<string | null>(null);
   const {
     openSections,
     setOpenSections,
@@ -115,12 +141,98 @@ export default function AccountPageClient({
     applyCreatorProfile,
   });
 
+  const currentGrowthUsername =
+    me?.creator?.username ?? me?.user?.username ?? username;
+
+  const reportGrowthEvent = useCallback(
+    (payload: Parameters<typeof trackGrowthEvent>[0]) => {
+      if (manualCheckOwnerAddress) {
+        return;
+      }
+
+      trackGrowthEvent({
+        ...payload,
+        username: payload.username ?? currentGrowthUsername,
+        walletAddress:
+          payload.walletAddress ??
+          (effectiveAddress ? effectiveAddress.toLowerCase() : null),
+        projectId: payload.projectId ?? localProjectId ?? null,
+      });
+    },
+    [
+      currentGrowthUsername,
+      effectiveAddress,
+      localProjectId,
+      manualCheckOwnerAddress,
+    ]
+  );
+
+  const markLocalGrowthMilestone = useCallback(
+    (key: SetupLocalMilestoneKey) => {
+      const next = writeSetupLocalMilestone(currentGrowthUsername, key, true);
+      setLocalGrowthMilestones(next);
+    },
+    [currentGrowthUsername]
+  );
+
+  const applyAiProfileDraft = useCallback(
+    (draft: ProfileDraftResult) => {
+      setDisplayName(draft.displayName);
+      setProfile(draft.profile);
+      setThemeColor(draft.suggestedThemeColor);
+      setAiSetupDraft({
+        goalTitle: draft.goalTitle,
+        projectTitle: draft.suggestedProjectTitle,
+        projectDescription: draft.suggestedProjectDescription,
+        goalTargetInput: String(draft.suggestedGoalTargetJpyc),
+      });
+      setAiSetupDraftVersion((current) => current + 1);
+    },
+    [setDisplayName, setProfile, setThemeColor]
+  );
+
   useLayoutEffect(() => {
     registerOwnerAuthDevOverride(manualCheckOwnerAddress);
     return () => {
       registerOwnerAuthDevOverride(null);
     };
   }, [manualCheckOwnerAddress]);
+
+  useEffect(() => {
+    setLocalGrowthMilestones(readSetupLocalMilestones(currentGrowthUsername));
+  }, [currentGrowthUsername]);
+
+  useEffect(() => {
+    if (status !== "unconnected") {
+      return;
+    }
+
+    setAiSetupDraft({
+      goalTitle: null,
+      projectTitle: "",
+      projectDescription: "",
+      goalTargetInput: "",
+    });
+    setAiSetupDraftVersion(0);
+  }, [status]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const refreshLocalMilestones = () => {
+      setLocalGrowthMilestones(readSetupLocalMilestones(currentGrowthUsername));
+    };
+
+    window.addEventListener("focus", refreshLocalMilestones);
+    window.addEventListener("storage", refreshLocalMilestones);
+
+    return () => {
+      window.removeEventListener("focus", refreshLocalMilestones);
+      window.removeEventListener("storage", refreshLocalMilestones);
+    };
+  }, [currentGrowthUsername]);
 
   useEffect(() => {
     if (!manualCheckOwnerAddress || typeof window === "undefined") {
@@ -168,6 +280,32 @@ export default function AccountPageClient({
     };
   }, [manualCheckOwnerAddress]);
 
+  useEffect(() => {
+    if (!effectiveIsConnected || !effectiveAddress || manualCheckOwnerAddress) {
+      return;
+    }
+
+    const normalizedAddress = effectiveAddress.toLowerCase();
+    if (trackedWalletRef.current === normalizedAddress) {
+      return;
+    }
+
+    trackedWalletRef.current = normalizedAddress;
+
+    reportGrowthEvent({
+      event: "wallet_connected",
+      walletAddress: normalizedAddress,
+      metadata: {
+        source: "mypage",
+      },
+    });
+  }, [
+    effectiveAddress,
+    effectiveIsConnected,
+    manualCheckOwnerAddress,
+    reportGrowthEvent,
+  ]);
+
   // ── P1-1: API handlers in useAccountPageActions ───────────────────────────
   const { saving, error, handleSaveUser, handleApplyCreator, handleSaveCreatorProfile } =
     useAccountPageActions({
@@ -185,6 +323,33 @@ export default function AccountPageClient({
       youtubeVideos,
       onSaved: refreshMeStatus,
       cancelEditingProfile,
+      onUserSavedSuccess: (nextMe) => {
+        if (status !== "noUser") {
+          return;
+        }
+
+        reportGrowthEvent({
+          event: "user_registered",
+          username: nextMe.user?.username ?? usernameInput.trim() ?? null,
+        });
+      },
+      onCreatorAppliedSuccess: (nextMe) => {
+        reportGrowthEvent({
+          event: "creator_applied",
+          username: nextMe.creator?.username ?? nextMe.user?.username ?? null,
+        });
+      },
+      onCreatorProfileSavedSuccess: (result) => {
+        reportGrowthEvent({
+          event: "profile_saved",
+          username:
+            result.creator?.username ?? result.me.creator?.username ?? currentGrowthUsername,
+          metadata: {
+            socialLinkCount: Object.values(socials).filter(Boolean).length,
+            hasAvatar: avatarUrl.trim().length > 0,
+          },
+        });
+      },
     });
 
   // ==================================================
@@ -212,6 +377,29 @@ export default function AccountPageClient({
       <NoUserMyPageView
         headerColor={promoHeaderColor}
         error={error}
+        assistantSection={
+          <AiProfileDraftCard
+            username={usernameInput || null}
+            existingDisplayName={displayName}
+            existingProfile={profile}
+            existingGoalTitle={aiSetupDraft.goalTitle}
+            existingSocials={socials}
+            existingYoutubeVideos={youtubeVideos}
+            onApply={(draft) => {
+              applyAiProfileDraft(draft);
+            }}
+            onGenerated={(draft) => {
+              reportGrowthEvent({
+                event: "profile_ai_generated",
+                username: usernameInput.trim() || null,
+                metadata: {
+                  sourceStatus: "noUser",
+                  suggestedGoalTargetJpyc: draft.suggestedGoalTargetJpyc,
+                },
+              });
+            }}
+          />
+        }
         usernameInput={usernameInput}
         displayName={displayName}
         profile={profile}
@@ -287,6 +475,12 @@ export default function AccountPageClient({
     openSections,
     onToggleSection: toggleSection,
     initialAiOfficeUrlState,
+    reportGrowthEvent,
+    localGrowthMilestones,
+    markLocalGrowthMilestone,
+    aiSetupDraft,
+    aiSetupDraftVersion,
+    applyAiProfileDraft,
   };
 
   return (

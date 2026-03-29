@@ -16,6 +16,15 @@
 
 ## Active Tracks
 
+Track 8-I — Growth onboarding and launch conversion
+- 完了: setup progress / next-best-action / AI profile draft / AI share draft
+- 完了: owner public-page review event
+- 完了: `first_tip_received` server-side confirmed contribution tracking
+- 完了: owner-auth `growth overview` API + settings card
+- 完了: home / settings `growth coach` card
+- 完了: settings setup progress / next action の server-side growth sync
+- 完了: settings manual share execution log + `share_post_logged` tracking
+
 Track 8-A — Creator Home first slice
 - `CH-1` 完了: `Hero / Daily Briefing`
 - `CH-1` 完了: `Project Progress` card 化
@@ -66,6 +75,43 @@ Track 8-G — Creator Home deferred sections
 Track 8-H — Missing Items Detection / Meeting Follow-up Flow
 - 完了: missing-items detection (Manager Desk) — Note/Contact/Meeting gaps を横断検出
 - 完了: Meeting 決定事項 → ManagerNote 変換 minimum flow
+
+Track 8-J — AI Manager Account rollout
+- 完了: `AI Manager Account` 構想書 / billing policy / x402方針 / owner-control 原則の仕様化
+- 完了: additive Prisma schema + migration (`AiManagerAccount / AiManagerBillingPolicy / AiManagerBudgetBalance`)
+- 完了: owner-auth `GET / POST / PATCH /api/creator/ai-manager`
+- 完了: settings `AIマネージャー` セクション（人格・公開範囲・JPYC 予算・cap 設定）
+- 完了: Creator Home `AI Manager` セクションに account state / visibility / budget summary を追加
+- 完了: `AM-2` AI Office Overview に manager identity / billing boundary を統合
+- 完了: `AM-3` usage record / payment attempt ledger と pause-on-failure 基盤を追加
+- 完了: `AM-4` budget top-up / balance operation UX（owner-operated internal ledger）を追加
+- 完了: `AM-5` public badged AI Manager surface と公開時 disclosure copy を公開プロフィールへ追加
+- 完了: `AM-6` Manager Desk read-only view と owner / manager / AI の責務境界表示を追加
+- 完了: `AM-7` real wallet top-up / x402 readiness API と settings surface を追加
+- 完了: `AM-8` real wallet top-up evidence と internal ledger credit の照合フローを追加
+- 完了: `AM-9` x402 pending confirmation / fail-to-pause / owner reconciliation UI を追加
+- 完了: `AM-10` owner-facing reconciliation summary を Account / Home / AI Office に追加
+- 完了: `AM-11` verified payee registry groundwork を funding surface / billing rail 判定へ統合
+- 完了: `AM-12` external x402 connector ingestion route と shared settlement state machine を追加
+- 完了: `AM-13` `/<creator>/manager/<slug>` public showcase route と slug-based public identity を追加
+- 完了: `AM-14` public showcase に creator progress / activity proof / support CTA を統合
+- 完了: `AM-15` public showcase に public-safe な recent support activity summary を追加
+- 完了: `AM-16` x402 connector ingestion を idempotent retry-safe にし、structured observability log を追加
+- 完了: `AM-17` pending x402 delivery status visibility を reconciliation / Settings / Home / AI Office に追加
+- 完了: `AM-18` pending x402 queue visibility を Settings / AI Office に追加
+- 完了: `AM-19` recent x402 activity visibility を Settings / AI Office に追加
+- 完了: `AM-20` owner follow-up queue を Settings / Home / AI Office に追加し、stale pending / failed / unmatched evidence の次アクションを可視化
+- 完了: `AM-21` payment attempt event ledger を追加し、recent delivery events を Settings / AI Office で可視化
+- 完了: `AM-22` pending x402 queue を event-aware にし、最後の delivery event source / label / time を Settings / AI Office に表示
+- 完了: `AM-23` reconciliation summary に latest pending x402 event を統合し、Home / Settings / AI Office の上位サマリーを event-aware 化
+- 完了: `AM-24` delivery-status 判定そのものに latest pending event を反映し、recent connector activity がある pending を stale 扱いしにくくした
+- 完了: `AM-25` owner follow-up を event source aware にし、connector / owner review / funding evidence の見る先を UI で明示
+- 完了: `AM-26` failed x402 follow-up も event source aware にし、connector failure と owner-side failure の戻し先を分けた
+- 完了: `AM-27` replay / recovery 専用の owner summary を Settings / Home / AI Office に追加
+- 完了: `AM-28` recovery summary を reconciliation card に統合し、上位サマリーから recent recovery を把握できるようにした
+- 完了: `AM-29` recovery summary に source 別 breakdown を追加し、connector / owner review の回復線を上位サマリーで比較できるようにした
+- 完了: `AM-30` external x402 connector の pending polling check-in route を追加し、`PENDING_OBSERVED` event と短時間重複 suppress で pending delivery の鮮度を上げた
+- next: connector polling の event を owner-facing recent timeline / copy にさらに馴染ませるか、recovery summary を時系列 trend に発展させるか整理する
 
 ## Phase 2 UX（完了済み）
 

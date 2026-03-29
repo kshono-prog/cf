@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   parseAvatarUploadEnv,
+  parseAiManagerBillingEnv,
   parseBridgeRuntimeEnv,
   parseCorsEnv,
   parseEventChainEnv,
@@ -107,6 +108,23 @@ test("parseAvatarUploadEnv requires supabase url and service key", () => {
 
   assert.equal(env.supabaseUrl, "https://project.supabase.co/");
   assert.equal(env.supabaseServiceKey, "service-key");
+});
+
+test("parseAiManagerBillingEnv reads wallet, chain, and x402 endpoint", () => {
+  const env = parseAiManagerBillingEnv({
+    AI_MANAGER_PLATFORM_OPERATIONS_WALLET_ADDRESS: ADDRESS_A,
+    AI_MANAGER_PLATFORM_OPERATIONS_CHAIN_ID: "137",
+    AI_MANAGER_X402_ENDPOINT_URL: "https://payments.creator.example.com/x402",
+    AI_MANAGER_X402_CONNECTOR_TOKEN: "connector-secret",
+  });
+
+  assert.equal(env.platformOperationsWalletAddress, ADDRESS_A);
+  assert.equal(env.platformOperationsChainId, 137);
+  assert.equal(
+    env.x402EndpointUrl,
+    "https://payments.creator.example.com/x402"
+  );
+  assert.equal(env.x402ConnectorToken, "connector-secret");
 });
 
 test("parseCorsEnv reads explicit origins and base url", () => {

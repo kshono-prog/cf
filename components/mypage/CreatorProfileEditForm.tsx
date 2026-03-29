@@ -7,10 +7,14 @@ import { CreatorProfileEditPublicPageSection } from "@/components/mypage/Creator
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 
 type Props = {
+  assistantSection?: React.ReactNode;
   extraSections?: React.ReactNode;
 };
 
-export function CreatorProfileEditForm({ extraSections }: Props) {
+export function CreatorProfileEditForm({
+  assistantSection,
+  extraSections,
+}: Props) {
   const workspace = useCreatorReadyWorkspace();
 
   return (
@@ -26,6 +30,8 @@ export function CreatorProfileEditForm({ extraSections }: Props) {
           名前や紹介文、公開ページに出すリンクをまとめて整えます。
         </p>
       </div>
+
+      {assistantSection}
 
       <CreatorProfileEditBasicInfoSection />
       <CreatorProfileEditPublicPageSection />

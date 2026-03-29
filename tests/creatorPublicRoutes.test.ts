@@ -8,6 +8,7 @@ import {
   type PublicErr,
   type PublicOk,
 } from "../lib/publicCreatorApi";
+import { PUBLIC_CREATOR_API_EXAMPLE } from "../lib/publicApiExamples";
 
 const creatorRecord = createCreatorProfileLookupResult({
   creator: {
@@ -109,6 +110,7 @@ test("fetchPublicCreatorByUsername returns the public creator envelope without l
 
   assert.equal(response.status, 200);
   assertPublicOkResponse(response.body);
+  assert.deepEqual(response.body, PUBLIC_CREATOR_API_EXAMPLE);
 
   assert.deepEqual(response.body.projectIdsByCurrency, {
     JPYC: "10",

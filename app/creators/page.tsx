@@ -347,6 +347,10 @@ export default async function CreatorsPage({
   const metadataCopy = buildCreatorsMetadataCopy(selectedType, selectedRole);
 
   const creators = await getCachedCreators(selectedType, selectedRole);
+  const pageDescription =
+    creators.length > 0
+      ? `${metadataCopy.description} 現在 ${creators.length} 名を表示しています。`
+      : metadataCopy.description;
   const structuredData = buildCreatorDiscoveryStructuredData({
     baseUrl: SITE_BASE_URL,
     creators: creators.map((creator) => ({
@@ -371,7 +375,7 @@ export default async function CreatorsPage({
       />
       <div>
         <h1 className="text-xl font-bold text-[var(--text)]">{metadataCopy.heading}</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">{metadataCopy.description}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{pageDescription}</p>
       </div>
 
       {/* Filter chips — creator type */}

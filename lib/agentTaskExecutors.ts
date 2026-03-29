@@ -26,10 +26,13 @@ import { buildSupporterResultReportOutput } from "@/lib/creator-ai/supporterResu
 import { buildCareerPlanDraftOutput } from "@/lib/creator-ai/careerPlanDraftTask";
 import { buildGrowthOpportunityAlertOutput } from "@/lib/creator-ai/growthOpportunityAlertTask";
 import { buildMeetingAgendaDraftOutput } from "@/lib/creator-ai/meetingAgendaDraftTask";
+import { buildMeetingFollowupDraftOutput } from "@/lib/creator-ai/meetingFollowupDraftTask";
 import { buildContactOutreachDraftOutput } from "@/lib/creator-ai/contactOutreachDraftTask";
 import { buildStageGrowthPlanOutput } from "@/lib/creator-ai/stageGrowthPlanTask";
+import { buildStageProgressReportOutput } from "@/lib/creator-ai/stageProgressReportTask";
 import { buildContactIntelligenceAlertOutput } from "@/lib/creator-ai/contactIntelligenceAlertTask";
 import { buildMonthlyCashflowReportOutput } from "@/lib/creator-ai/monthlyCashflowReportTask";
+import { buildContractRenewalAlertOutput } from "@/lib/creator-ai/contractRenewalAlertTask";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { getProjectSettlementView } from "@/lib/projectSettlementView";
@@ -40,6 +43,12 @@ import {
   parseTranslationTaskInput,
 } from "@/lib/translation";
 import { generateJson } from "@/lib/ai";
+import {
+  AiManagerTaskBillingError,
+  applyAiManagerTaskBilling,
+  pauseAiManagerBillingAfterUnexpectedFailure,
+  type PreparedAiManagerTaskBilling,
+} from "@/lib/aiManager/billing";
 
 type TaskExecutorParams = {
   creatorProfileId: bigint;
@@ -1175,19 +1184,44 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
           source: "mypage",
           requestedAt: new Date().toISOString(),
         };
-      const [summary, credibility] = await Promise.all([
+      const [summary, credibility, approvalHistoryRaw] = await Promise.all([
         params.projectId
           ? getProjectSummaryView(params.projectId)
           : Promise.resolve(null),
         getCreatorActivityCredibility(params.creatorProfileId),
+        prisma.agentTask.groupBy({
+          by: ["taskType", "status"],
+          where: {
+            creatorProfileId: params.creatorProfileId,
+            status: { in: ["APPROVED", "REJECTED"] },
+          },
+          _count: { id: true },
+        }),
       ]);
       const stageResult = deriveCreatorStage(credibility);
+
+      // Aggregate per taskType
+      const approvalMap = new Map<string, { approved: number; rejected: number }>();
+      for (const row of approvalHistoryRaw) {
+        const entry = approvalMap.get(row.taskType) ?? { approved: 0, rejected: 0 };
+        if (row.status === "APPROVED") entry.approved += row._count.id;
+        else if (row.status === "REJECTED") entry.rejected += row._count.id;
+        approvalMap.set(row.taskType, entry);
+      }
+      const approvalHistory = Array.from(approvalMap.entries()).map(
+        ([taskType, counts]) => ({
+          taskType,
+          approvedCount: counts.approved,
+          rejectedCount: counts.rejected,
+        })
+      );
 
       return buildManagerAgentTaskOutput({
         summary,
         input: normalizedInput,
         isOwner: true,
         stageResult,
+        approvalHistory,
       });
     },
   },
@@ -1808,6 +1842,26 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
         input: params.input,
       }),
   },
+  MEETING_FOLLOWUP_DRAFT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "MEETING_FOLLOWUP_DRAFT",
+      fields: {
+        summary: { type: "string", required: true, description: "会議フォローアップサマリー" },
+        actionItems: { type: "array", required: true, description: "アクション項目一覧" },
+        decisions: { type: "array", required: true, description: "決定事項一覧" },
+        nextMeetingTopics: { type: "array", required: true, description: "次回議題候補" },
+        shareableSummary: { type: "string", required: true, description: "参加者共有用サマリー" },
+        context: { type: "object", required: true, description: "元会議コンテキスト" },
+        basedOn: { type: "unknown", required: true, description: "正規化済み入力" },
+      },
+    },
+    execute: async (params) =>
+      buildMeetingFollowupDraftOutput({
+        creatorProfileId: params.creatorProfileId,
+        input: params.input,
+      }),
+  },
   CONTACT_OUTREACH_DRAFT: {
     validateInput: validateGenericJsonInput,
     outputSchema: {
@@ -2007,6 +2061,36 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
     },
     execute: async (params) => buildMonthlyCashflowReportOutput(params),
   },
+  STAGE_PROGRESS_REPORT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "STAGE_PROGRESS_REPORT",
+      fields: {
+        summary: { type: "string", required: true, description: "診断サマリー" },
+        currentStageLabel: { type: "string", required: true, description: "現在ステージ名" },
+        strengths: { type: "array", required: true, description: "強い点" },
+        gaps: { type: "array", required: true, description: "伸ばすべき点" },
+        nextMilestone: { type: "string", required: false, description: "次のマイルストーン" },
+        focusAdvice: { type: "string", required: true, description: "今すぐ取り組むべきアクション" },
+        maturity: { type: "object", required: true, description: "成熟度スコア（8軸）" },
+      },
+    },
+    execute: async (params) => buildStageProgressReportOutput(params),
+  },
+  CONTRACT_RENEWAL_ALERT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "CONTRACT_RENEWAL_ALERT",
+      fields: {
+        summary: { type: "string", required: true, description: "更新アラートサマリー" },
+        renewalAlerts: { type: "array", required: true, description: "更新が必要な接点一覧" },
+        stats: { type: "object", required: true, description: "集計（total / highCount / mediumCount）" },
+        generatedAt: { type: "string", required: true, description: "生成日時" },
+        basedOn: { type: "unknown", required: true, description: "正規化済み入力" },
+      },
+    },
+    execute: async (params) => buildContractRenewalAlertOutput(params),
+  },
 };
 
 export function validateTaskInput(
@@ -2154,6 +2238,7 @@ export async function createAgentTask(params: {
   autoPost: boolean;
   requestedBy: string;
   roleId: CreatorAiAgentRole | null;
+  aiManagerBilling: PreparedAiManagerTaskBilling;
 }) {
   const outputJson = await buildTaskOutput({
     creatorProfileId: params.creatorProfileId,
@@ -2163,65 +2248,87 @@ export async function createAgentTask(params: {
   });
   const now = new Date();
 
-  return prisma.$transaction(async (tx) => {
-    const created = await tx.agentTask.create({
-      data: {
-        creatorProfileId: params.creatorProfileId,
-        projectId: params.projectId,
-        taskType: params.taskType,
-        status: params.requiresApproval ? "WAITING_APPROVAL" : "DONE",
-        inputJson: params.inputJson,
-        outputJson,
-        requestedBy: params.requestedBy,
-        approvedBy: params.requiresApproval ? null : params.requestedBy,
-        approvedAt: params.requiresApproval ? null : now,
-        createdAt: now,
-        updatedAt: now,
-      },
-      select: {
-        id: true,
-        projectId: true,
-        taskType: true,
-        status: true,
-        requestedBy: true,
-        approvedBy: true,
-        approvedAt: true,
-        inputJson: true,
-        outputJson: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    await tx.agentTaskAuditLog.create({
-      data: {
-        agentTaskId: created.id,
-        creatorProfileId: params.creatorProfileId,
-        projectId: params.projectId,
-        action: getCreateAuditAction(params.requiresApproval),
-        actorAddress: params.requestedBy,
-        metaJson: buildCreateAuditMeta({
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const created = await tx.agentTask.create({
+        data: {
+          creatorProfileId: params.creatorProfileId,
+          projectId: params.projectId,
           taskType: params.taskType,
-          requiresApproval: params.requiresApproval,
-          roleId: params.roleId,
-        }),
-        createdAt: now,
-      },
-    });
+          status: params.requiresApproval ? "WAITING_APPROVAL" : "DONE",
+          inputJson: params.inputJson,
+          outputJson,
+          requestedBy: params.requestedBy,
+          approvedBy: params.requiresApproval ? null : params.requestedBy,
+          approvedAt: params.requiresApproval ? null : now,
+          createdAt: now,
+          updatedAt: now,
+        },
+        select: {
+          id: true,
+          projectId: true,
+          taskType: true,
+          status: true,
+          requestedBy: true,
+          approvedBy: true,
+          approvedAt: true,
+          inputJson: true,
+          outputJson: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
 
-    // Auto-post when no approval is needed and the creator opted in
-    if (!params.requiresApproval && params.autoPost) {
-      await createAutoPost(tx, {
+      await tx.agentTaskAuditLog.create({
+        data: {
+          agentTaskId: created.id,
+          creatorProfileId: params.creatorProfileId,
+          projectId: params.projectId,
+          action: getCreateAuditAction(params.requiresApproval),
+          actorAddress: params.requestedBy,
+          metaJson: buildCreateAuditMeta({
+            taskType: params.taskType,
+            requiresApproval: params.requiresApproval,
+            roleId: params.roleId,
+          }),
+          createdAt: now,
+        },
+      });
+
+      await applyAiManagerTaskBilling({
+        db: tx,
+        billing: params.aiManagerBilling,
         creatorProfileId: params.creatorProfileId,
         projectId: params.projectId,
         taskType: params.taskType,
-        outputJson,
-        now,
+        agentTaskId: created.id,
+      });
+
+      // Auto-post when no approval is needed and the creator opted in
+      if (!params.requiresApproval && params.autoPost) {
+        await createAutoPost(tx, {
+          creatorProfileId: params.creatorProfileId,
+          projectId: params.projectId,
+          taskType: params.taskType,
+          outputJson,
+          now,
+        });
+      }
+
+      return created;
+    });
+  } catch (error) {
+    if (!(error instanceof AiManagerTaskBillingError)) {
+      await pauseAiManagerBillingAfterUnexpectedFailure({
+        billing: params.aiManagerBilling,
+        reason:
+          error instanceof Error
+            ? error.message
+            : "AI manager billing failed unexpectedly.",
       });
     }
-
-    return created;
-  });
+    throw error;
+  }
 }
 
 export async function rejectWaitingTasks(params: {

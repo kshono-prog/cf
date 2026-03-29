@@ -192,6 +192,24 @@ export const AI_OFFICE_TASK_CHOICES: readonly AiOfficeTaskChoice[] = [
     whenToUse: "今月の収入・支出を集計してAIに収支サマリーとアドバイスを作ってもらいたいとき",
     tier: "MVP",
   },
+  {
+    taskType: "STAGE_PROGRESS_REPORT",
+    eyebrow: "ステージ診断レポート",
+    whenToUse: "現在の成熟度8軸を診断し、強みとギャップ・次に取り組むべきアクションを整理したいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "CONTRACT_RENEWAL_ALERT",
+    eyebrow: "契約更新アラート",
+    whenToUse: "接点の契約更新時期・ステータスを確認し、更新対応が必要な接点を一覧で把握したいとき",
+    tier: "MVP",
+  },
+  {
+    taskType: "MEETING_FOLLOWUP_DRAFT",
+    eyebrow: "会議フォローアップ",
+    whenToUse: "完了した会議の議事メモからアクション項目・決定事項・次回議題・共有サマリーを整理したいとき",
+    tier: "MVP",
+  },
 ] as const;
 
 export const AI_OFFICE_TASK_TIER_HELPER: Record<ProductTier, string> = {

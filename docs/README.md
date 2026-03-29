@@ -21,6 +21,7 @@ Creator Founding の方向性・責任境界・実装優先順位をそろえる
 
 - [Creator Home 再設計案](/Users/shounokazuaki/cf/docs/specs/ux/creator-home-redesign.md)
 - [Creator Workspace Information Architecture](/Users/shounokazuaki/cf/docs/specs/ux/creator-workspace-information-architecture.md)
+- [AI Manager Account 構想書](/Users/shounokazuaki/cf/docs/specs/creator-ai-office/ai-manager-account.md)
 - [Manager Desk 要件定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/requirements.md)
 - [Manager Desk データモデル定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/data-models.md)
 - [Manager Core Schema Proposal](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
@@ -41,7 +42,10 @@ Creator Founding の方向性・責任境界・実装優先順位をそろえる
 
 ## Runtime And AI Specs
 
+- [Public API Index](/Users/shounokazuaki/cf/docs/specs/operations/public-api-index.md)
 - [AI Office Task Output Contracts](/Users/shounokazuaki/cf/docs/specs/creator-ai-office/task-output-contracts.md)
+- [Public Creator API Contract](/Users/shounokazuaki/cf/docs/specs/operations/public-creator-api-contract.md)
+- [Public Viewer API Contract](/Users/shounokazuaki/cf/docs/specs/operations/public-viewer-api-contract.md)
 - [Settlement Flow](/Users/shounokazuaki/cf/docs/specs/settlement/settlement-flow.md)
 - [AI Providers](/Users/shounokazuaki/cf/docs/ai-providers.md)
 

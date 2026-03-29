@@ -7,6 +7,7 @@ import type {
 } from "@/lib/managerDesk/server";
 import type { PlannerTimelineData } from "@/lib/operations/plannerTypes";
 import type { CreatorStageResult } from "@/lib/creatorStage";
+import type { SerializedManagerDeskAiManagerSummary } from "@/lib/serializers/aiManager";
 
 export type ManagerDeskProjectSummary = {
   projectId: string;
@@ -212,15 +213,25 @@ export type ManagerDeskExpenseSummaryItem = {
   note: string | null;
 };
 
+export type ManagerDeskExpenseCategoryTotal = {
+  category: string;
+  total: string;
+  currency: string;
+};
+
 export type ManagerDeskExpenseSummary = {
   recentExpenses: ManagerDeskExpenseSummaryItem[];
   totalCount: number;
-  totalAmountByCategory: { category: string; total: string; currency: string }[];
+  totalAmountByCategory: ManagerDeskExpenseCategoryTotal[];
+  thisMonthAmountByCategory: ManagerDeskExpenseCategoryTotal[];
+  prevMonthAmountByCategory: ManagerDeskExpenseCategoryTotal[];
 };
 
 export type ManagerDeskCreatorDetailData = {
   creator: ManagerDeskCreatorIdentity;
+  viewerRole: "CREATOR_OWNER" | "MANAGER";
   assignment: SerializedManagerAssignment | null;
+  aiManager: SerializedManagerDeskAiManagerSummary | null;
   stage: CreatorStageResult | null;
   activeProject: ManagerDeskProjectSummary | null;
   planner: PlannerTimelineData;

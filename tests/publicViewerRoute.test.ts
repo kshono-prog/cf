@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {
+  PUBLIC_VIEWER_CONNECTED_EXAMPLE,
+  PUBLIC_VIEWER_EMPTY_EXAMPLE,
+} from "../lib/publicApiExamples";
 import { fetchPublicViewerByAddress } from "../lib/publicViewerApi";
 
 test("fetchPublicViewerByAddress returns an empty payload when address is missing", async () => {
@@ -11,18 +15,7 @@ test("fetchPublicViewerByAddress returns an empty payload when address is missin
   });
 
   assert.equal(response.status, 200);
-  assert.deepEqual(response.body, {
-    ok: true,
-    hasUser: false,
-    hasCreator: false,
-    user: null,
-    creator: null,
-    projectId: null,
-    projectIdsByCurrency: {
-      JPYC: null,
-      USDC: null,
-    },
-  });
+  assert.deepEqual(response.body, PUBLIC_VIEWER_EMPTY_EXAMPLE);
 });
 
 test("fetchPublicViewerByAddress normalizes the mypage me payload", async () => {
@@ -57,31 +50,7 @@ test("fetchPublicViewerByAddress normalizes the mypage me payload", async () => 
   });
 
   assert.equal(response.status, 200);
-  assert.deepEqual(response.body, {
-    ok: true,
-    hasUser: true,
-    hasCreator: true,
-    user: {
-      username: "kazu",
-      displayName: "Kazu",
-      profile: "profile",
-    },
-    creator: {
-      username: "kazu",
-      displayName: "Kazu",
-      profile: "creator profile",
-      avatarUrl: "/avatars/kazu.jpg",
-      qrcode: null,
-      url: "https://example.com",
-      themeColor: "#005bbb",
-      creatorType: "MUSICIAN",
-    },
-    projectId: "project-1",
-    projectIdsByCurrency: {
-      JPYC: "project-1",
-      USDC: null,
-    },
-  });
+  assert.deepEqual(response.body, PUBLIC_VIEWER_CONNECTED_EXAMPLE);
 });
 
 test("fetchPublicViewerByAddress returns 500 when the lookup fails", async () => {

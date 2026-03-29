@@ -8,6 +8,7 @@ import { AiConciergeGuideCard } from "@/components/mypage/AiConciergeGuideCard";
 import { CreatorReadyAiManagerSection } from "@/components/mypage/CreatorReadyAiManagerSection";
 import { CreatorReadyDailyBriefingHero } from "@/components/mypage/CreatorReadyDailyBriefingHero";
 import { CreatorReadyGrowthReflectionSection } from "@/components/mypage/CreatorReadyGrowthReflectionSection";
+import { GrowthCoachCard } from "@/components/mypage/GrowthCoachCard";
 import { CreatorReadyManagerFeedSection } from "@/components/mypage/CreatorReadyManagerFeedSection";
 import { CreatorReadyUpcomingPlannerSection } from "@/components/mypage/CreatorReadyUpcomingPlannerSection";
 import { CreatorReadyProjectHealthSection } from "@/components/mypage/CreatorReadyProjectHealthSection";
@@ -23,6 +24,7 @@ import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorksp
 import { useCreatorReadyHomeAiOfficeSummary } from "@/components/mypage/useCreatorReadyHomeAiOfficeSummary";
 import { useCreatorReadyDailyBriefing } from "@/components/mypage/useCreatorReadyDailyBriefing";
 import { useCreatorReadyGrowthReflection } from "@/components/mypage/useCreatorReadyGrowthReflection";
+import { useCreatorGrowthOverview } from "@/components/mypage/useCreatorGrowthOverview";
 import { useCreatorReadyManagerFeed } from "@/components/mypage/useCreatorReadyManagerFeed";
 import { useCreatorReadyStage } from "@/components/mypage/useCreatorReadyStage";
 import { useCreatorReadySupporterOverview } from "@/components/mypage/useCreatorReadySupporterOverview";
@@ -40,13 +42,17 @@ import { useMonthlyCashflowReportAutoTrigger } from "@/components/mypage/useMont
 import { useCreatorReadyPlannerTimeline } from "@/components/mypage/useCreatorReadyPlannerTimeline";
 import { useCreatorReadyHomeStats } from "@/components/mypage/useCreatorReadyHomeStats";
 import { useCreatorReadyWorkspaceProjectDashboards } from "@/components/mypage/useCreatorReadyWorkspaceProjectDashboards";
+import { useCreatorAiManagerAccount } from "@/components/mypage/useCreatorAiManagerAccount";
 import { useDailyActionPlanAutoTrigger } from "@/components/mypage/useDailyActionPlanAutoTrigger";
 import { useStageGrowthPlanAutoTrigger } from "@/components/mypage/useStageGrowthPlanAutoTrigger";
 import { hasProjectSummary } from "@/lib/mypage/dashboardTypes";
+import { buildGrowthCoachCard } from "@/lib/growth/coach";
 import {
   buildAiOfficePanelHref,
   type AiOfficePanelUrlState,
 } from "@/components/mypage/aiOfficePanelUrlState";
+import { buildBasicProfileCompletion } from "@/lib/growth/setup";
+import { withBaseUrl } from "@/utils/baseUrl";
 
 const CreatorWorkspaceAiOfficePanel = dynamic(
   () =>
@@ -122,6 +128,10 @@ export function CreatorReadyHomeRoute(props: Props) {
     projectId: localProjectId,
     isConnected: backgroundInsightsEnabled,
   });
+  const aiManagerAccount = useCreatorAiManagerAccount({
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
+  });
   const dailyBriefing = useCreatorReadyDailyBriefing({
     address: backgroundInsightsEnabled ? workspace.address : undefined,
     isConnected: backgroundInsightsEnabled,
@@ -139,6 +149,11 @@ export function CreatorReadyHomeRoute(props: Props) {
   const growthReflection = useCreatorReadyGrowthReflection({
     address: backgroundInsightsEnabled ? workspace.address : undefined,
     isConnected: backgroundInsightsEnabled,
+  });
+  const growthOverview = useCreatorGrowthOverview({
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
+    enabled: backgroundInsightsEnabled,
   });
   const stageData = useCreatorReadyStage({
     address: backgroundInsightsEnabled ? workspace.address : undefined,
@@ -311,6 +326,24 @@ export function CreatorReadyHomeRoute(props: Props) {
             body: "最初の投稿があるだけで、活動が止まっていないことが伝わりやすくなります。",
           },
         ];
+  const basicProfileState = buildBasicProfileCompletion({
+    displayName: workspace.displayName,
+    profile: workspace.profile,
+    avatarUrl: workspace.avatarUrl,
+    socials: workspace.socials,
+  });
+  const growthCoach = buildGrowthCoachCard({
+    workspaceBasePath: props.workspaceBasePath,
+    publicProfileUrl: withBaseUrl(workspace.meCreatorUsername),
+    basicProfileCompleted: basicProfileState.complete,
+    projectCreated: activeDashboards.length > 0,
+    goalSaved: !goalMissing,
+    publicPageViewedByOwner:
+      workspace.localGrowthMilestones.publicPageViewedByOwner,
+    shareDraftsGenerated: workspace.localGrowthMilestones.shareDraftsGenerated,
+    growthOverview: growthOverview.data,
+    goalHref: "#goal-input-jpyc",
+  });
 
   return (
     <div className="space-y-4">
@@ -354,6 +387,7 @@ export function CreatorReadyHomeRoute(props: Props) {
         dailyBriefing={dailyBriefing.data}
         onOpenSettings={props.onOpenSettings}
       />
+      <GrowthCoachCard coach={growthCoach} />
       <CreatorReadyProjectHealthSection
         projectDashboardsByCurrency={projectDashboardsByCurrency}
         onOpenSettings={props.onOpenSettings}
@@ -361,6 +395,9 @@ export function CreatorReadyHomeRoute(props: Props) {
       <CreatorReadyAiManagerSection
         loading={aiOfficeSummary.loading}
         cards={aiManagerCards}
+        account={aiManagerAccount.account}
+        accountLoading={aiManagerAccount.loading}
+        accountError={aiManagerAccount.error}
         onOpenSettings={props.onOpenSettings}
       />
       <CreatorReadyTodayThisWeekSection

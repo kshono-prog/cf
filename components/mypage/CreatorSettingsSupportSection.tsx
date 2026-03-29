@@ -37,9 +37,11 @@ export function CreatorSettingsSupportSection(props: Props) {
     <section id="public-page" className="surface-card p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-[var(--text)]">応援の設定</h2>
+          <h2 className="text-lg font-semibold text-[var(--text)]">
+            公開ページの見え方
+          </h2>
           <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-            支援者に何を伝えたいか、目標金額や外部リンクを設定できます。
+            支援者が最初に受け取る印象を確認しながら、活動内容と目標が伝わる形に整えます。
           </p>
         </div>
         <button

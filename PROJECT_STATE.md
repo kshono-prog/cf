@@ -1,6 +1,6 @@
 # Project State
 
-最終更新: 2026-03-27（Phase 27 完了）
+最終更新: 2026-03-29（AI Manager x402 connector polling check-in を event ledger に追加）
 
 ## Project Name
 
@@ -9,6 +9,9 @@ Creator Founding
 ## Current Product Definition
 
 Creator Founding is evolving from a tipping / project support app into a **Creator・Manager・AI Office** based operating system for creative activity.
+
+Current near-term product focus is also shifting from “add more internal functions” toward
+“increase registration, public page completion, and first support conversion.”
 
 It is no longer defined as only:
 
@@ -21,6 +24,7 @@ It is now defined as:
 - a creator operating hub
 - a manager support desk
 - an AI office layer for planning, summarization, drafting, and coordination
+- a growth onboarding layer that gets creators from wallet connect to public launch faster
 - a trust / activity based foundation for future opportunity and ecosystem expansion
 
 ## Motto
@@ -37,6 +41,7 @@ It is now defined as:
 - [Execution Plan](/Users/shounokazuaki/cf/docs/roadmap/execution-plan.md)
 - [責任境界](/Users/shounokazuaki/cf/docs/creator-manager-ai-office-responsibility-boundaries.md)
 - [Creator Home 再設計案](/Users/shounokazuaki/cf/docs/specs/ux/creator-home-redesign.md)
+- [AI Manager Account 構想書](/Users/shounokazuaki/cf/docs/specs/creator-ai-office/ai-manager-account.md)
 - [Manager Desk 要件定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/requirements.md)
 - [Manager Desk データモデル定義](/Users/shounokazuaki/cf/docs/specs/manager-desk/data-models.md)
 - [Manager Core Schema Proposal](/Users/shounokazuaki/cf/docs/specs/manager-desk/schema-proposal.md)
@@ -78,6 +83,35 @@ The current implementation already includes several building blocks that support
 - creator home routing that prioritizes daily work over advanced surfaces
 - `Creator Home` first slice now starts with a `Daily Briefing Hero` and `Project Progress` view ahead of settings-heavy editing
 - `Creator Home` also shows `AI Manager` cards and `Today / This Week` derived tasks from existing AI Office and progress signals
+- `AI Manager Account` additive foundation now exists with schema / migration / owner-auth API / settings UI / Creator Home summary / AI Office Overview boundary summary
+- `AI Manager` usage ledger / payment attempt ledger / pause-on-failure groundwork now exists for AgentTask creation, with free-tier waiver vs billable deduction boundary
+- `AI Manager` budget transaction ledger and owner-operated budget top-up / deduction UI now exist, and usage settlement now writes debit entries into the same budget audit trail
+- `AI Manager` public badged surface now exists on the public profile page, with explicit AI disclosure and a safe public-only persona projection
+- `Manager Desk` Creator Detail now includes an `AI Manager` read-only section with safe visibility / operating-mode summary and owner / manager / AI responsibility boundary copy
+- `AI Manager` settings now expose real wallet top-up target, Platform Operations Wallet payee, Polygon / JPYC settlement boundary, and x402 readiness without changing fund movement behavior
+- `AI Manager` now records owner-reported real wallet top-up evidence and can match that evidence to owner-operated internal ledger credits without changing onchain fund movement behavior
+- `AI Manager` billable usage now chooses `x402` when ready, records pending x402 settlement separately from internal ledger consumption, and lets owner confirm or fail the settlement without adding automatic fund movement
+- `AI Manager` account payload now includes reconciliation summary (`pending x402 / failed x402 / unmatched top-up evidence / latest confirmed`) and surfaces it in Settings, Creator Home, and AI Office Overview
+- `AI Manager` funding instructions now include verified payee registry metadata (`payee id / label / verification status`), and x402 readiness is evaluated against that verified payee boundary before the rail turns active
+- `AI Manager` now has a server-only external x402 connector ingestion route that can confirm or fail pending settlement attempts through the same shared state machine used by owner manual confirmation
+- `AI Manager` is now explicitly positioned as a creator-scoped public operator rather than a general user account, and can be shown at `/<creator>/manager/<slug>` as a dedicated public showcase page
+- `AI Manager` public showcase now includes creator activity proof, current support project progress, and direct support CTA so visitors can see that the manager is actively supporting real creator work
+- `AI Manager` public showcase now also includes a public-safe recent support activity summary so visitors can quickly understand what kinds of creator support the manager has been handling recently
+- `AI Manager` x402 connector ingestion now treats matching duplicate confirmations/failures as idempotent replays and emits structured server logs for settlement observability
+- `AI Manager` reconciliation summary now includes pending x402 delivery health (`callback待ち / やや滞留 / 長時間滞留`) so owner can see when connector follow-up is needed
+- `AI Manager` Settings and AI Office now show a small pending x402 queue so owner can identify which recent billable tasks are still waiting on settlement callbacks
+- `AI Manager` Settings and AI Office now also show recent x402 activity so owner can review recent pending / confirmed / failed settlement events without opening raw ledgers
+- `AI Manager` Settings / Creator Home / AI Office now also derive an owner follow-up queue so stale pending x402, failed settlement, and unmatched top-up evidence become explicit next actions instead of passive ledger rows
+- `AI Manager` now records additive payment attempt events (`billing system / owner review / x402 connector`) so recent delivery events are visible in Settings and AI Office without depending only on heuristic pending age
+- `AI Manager` pending x402 queue now also shows the last recorded delivery event (`source / label / time`), so owner can tell whether a settlement is merely waiting or has already seen connector-side activity
+- `AI Manager` reconciliation summary now also carries the latest pending x402 event metadata, so Creator Home / Settings / AI Office can show event-aware summary cards without opening the full queue
+- `AI Manager` delivery-status heuristic itself now considers the latest pending x402 event, so recent connector-side activity can keep an older pending settlement in `ACTIVE / WATCH` instead of immediately reading as stale only by attempt age
+- `AI Manager` owner follow-up now also reflects the latest event source, so Home / Settings / AI Office can point owner toward `x402 connector / owner review / funding evidence` instead of showing only a generic stale warning
+- `AI Manager` failed x402 follow-up now also reflects the latest event source, so connector-side failure and owner-side failure no longer collapse into the same generic recovery instruction
+- `AI Manager` now also derives a small replay / recovery summary from payment attempt events, so owner can quickly see duplicate replay acceptance and failed-to-confirm recovery without opening the raw delivery event list
+- `AI Manager` reconciliation summary surface now also carries recent recovery context in Home / Settings / AI Office, so owner can judge unresolved risk and recent recovery in one place
+- `AI Manager` recovery summary now also shows a small source breakdown (`x402 connector / owner review`), so owner can see where recovery is actually happening without opening detailed timelines
+- `AI Manager` now also accepts server-only x402 connector polling check-ins for still-pending settlement attempts, records them as additive `PENDING_OBSERVED` events, and suppresses short duplicate polls so pending delivery freshness can improve without noisy ledgers
 - additive phase 1 manager core schema for `ManagerAssignment / ManagerNote / ExternalContact / ActionLog`
 - minimal manager-side APIs for assignments, notes, contacts, and action log reads
 - manager desk read model and API entrypoints for `dashboard / creator detail`
@@ -137,6 +171,16 @@ The current implementation already includes several building blocks that support
 - Phase 27-A: 月次収支レポート自動起票（`useMonthlyCashflowReportAutoTrigger` — 3日以降・月1回・FINANCE agent）
 - Phase 27-B: Creator Home 収支ヘルスカード（`CreatorReadyCashflowHealthCard` — 当月収支グリッド + 先月比 + AI分析リンク）
 - Phase 27-C: Creator Home 月次収支レポート inline 表示（`CreatorReadyCashflowReportSection` — 当月承認済みレポートを inline 描画）
+- Growth Onboarding Phase: `GrowthEvent` schema + `/api/growth/events` + sendBeacon/fetch keepalive tracking
+- Growth Onboarding Phase: mypage `SetupProgressCard / NextBestActionCard` による公開セットアップ導線
+- Growth Onboarding Phase: AIプロフィール下書き（`/api/ai/profile-draft`）を propose-first で追加
+- Growth Onboarding Phase: AI拡散文面生成（`/api/ai/share-drafts`）を追加
+- Growth Onboarding Phase: owner が公開ページを確認した導線と SNS 拡散導線を追加
+- Growth Onboarding Phase 2: confirmed contribution path から `first_tip_received` を記録
+- Growth Onboarding Phase 2: mypage settings に `GrowthOverviewCard` と owner-auth growth overview read model を追加
+- Growth Onboarding Phase 3: home / settings に `GrowthCoachCard` を追加し、次の growth action を即時提示
+- Growth Onboarding Phase 3: settings の setup progress / next action が growth overview の server-side facts と同期
+- Growth Onboarding Phase 4: settings に manual share execution log を追加し、`share_post_logged` で実投稿まで追跡
 
 ### Current constraints
 
@@ -164,6 +208,9 @@ The current product still has several structural limitations:
 
 The product direction is now:
 **“an operating environment where creators do not have to carry creative activity alone.”**
+
+For the current phase, this also means:
+**“reduce the time from wallet connection to a complete public page and first support.”**
 
 This means the product must support:
 
@@ -251,6 +298,14 @@ Target top-level structure:
 
 This is a restructuring of the current [`AccountPageClient.tsx`](/Users/shounokazuaki/cf/app/[username]/mypage/AccountPageClient.tsx) rather than a completely separate new domain.
 
+In the current growth phase, the same mypage must also behave like a **public setup guide** for first-time creators:
+
+- show setup completion clearly
+- suggest one next best action
+- help draft profile / project / goal inputs
+- help generate share-ready public messaging
+- keep advanced financial and settlement controls available but secondary
+
 ### Manager Desk
 
 A new manager-facing operating hub is now part of the core roadmap.
@@ -274,6 +329,12 @@ The public profile page remains:
 - the public creator activity surface
 
 It should not become the main internal operations dashboard.
+
+At the same time, when the owner views the page, it should lightly confirm:
+
+- the page has been reviewed
+- the next action is to return to mypage and generate share drafts
+- growth actions stay separate from supporter-facing contribution flows
 
 ## New Core Data Directions
 
@@ -370,6 +431,35 @@ This means the current high-leverage priorities are not “full autonomy,” but
 - manager workflows
 - contact / follow-up management
 - trust / stage groundwork
+- creator onboarding completion
+- public launch conversion
+- first support conversion
+
+## Current Growth Onboarding Capability
+
+### What creators can do now
+
+- connect wallet and register from mypage
+- see setup progress toward public launch
+- follow a next-best-action card instead of reading a generic settings screen
+- generate an AI profile draft from natural language
+- apply the draft into existing profile / project / goal inputs and then review manually
+- generate AI share drafts that include the public page URL
+- copy platform-specific share text with one click
+- confirm the public page as the owner and continue setup from there
+- accumulate growth events without blocking core UI or financial actions
+
+### What is intentionally not automated yet
+
+- external SNS auto posting
+- reaction analysis with automatic optimization loops
+- full growth ops dashboard
+
+### Current principle
+
+- AI is propose-first
+- growth actions are additive
+- financial / contribution / goal / summary flows keep their existing meaning
 
 ## Recommended Next Execution Order
 
@@ -387,6 +477,8 @@ This means the current high-leverage priorities are not “full autonomy,” but
 
 ### Priority A
 
+- improve onboarding completion from wallet connection to public launch
+- improve share generation and first support conversion
 - extend `Manager Desk` with `Activity Timeline`
 - keep `AI Daily Briefing` and manager-side attention cards grounded in structured context
 - preserve approval boundaries for schema and high-risk flow changes

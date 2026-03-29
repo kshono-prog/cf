@@ -186,10 +186,10 @@ function AnalyzeOutputCard(props: { output: AnalyzeOutputView }) {
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
       {output.totals ? (
         <div className="grid grid-cols-2 gap-1">
-          <div>views: {output.totals.views}</div>
-          <div>likes: {output.totals.likes}</div>
-          <div>comments: {output.totals.comments}</div>
-          <div>shares: {output.totals.shares}</div>
+          <div><span className="text-[var(--text-subtle)]">再生数</span> {output.totals.views.toLocaleString()}</div>
+          <div><span className="text-[var(--text-subtle)]">いいね</span> {output.totals.likes.toLocaleString()}</div>
+          <div><span className="text-[var(--text-subtle)]">コメント</span> {output.totals.comments.toLocaleString()}</div>
+          <div><span className="text-[var(--text-subtle)]">シェア</span> {output.totals.shares.toLocaleString()}</div>
         </div>
       ) : null}
       {output.topPlatform ? (
@@ -367,6 +367,7 @@ type ManagerSuggestedActionView = {
 type ManagerNextActionsOutputView = {
   summary: string;
   suggestedActions: ManagerSuggestedActionView[];
+  approvalInsight: string | null;
   evidence: {
     projectStatus: string | null;
     confirmedAmount: number;
@@ -487,6 +488,7 @@ function parseManagerNextActionsOutput(
   return {
     summary,
     suggestedActions,
+    approvalInsight: asStringOrNull(v.approvalInsight),
     evidence,
     projectSnapshot,
   };
@@ -511,6 +513,11 @@ function ManagerNextActionsOutputCard(props: {
   return (
     <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      {output.approvalInsight ? (
+        <div className="rounded border border-blue-100 bg-blue-50 px-2.5 py-2 text-[11px] text-blue-800">
+          {output.approvalInsight}
+        </div>
+      ) : null}
       {output.projectSnapshot ? (
         <div className="rounded border bg-white p-2 text-[var(--text)]">
           <div className="font-medium text-[var(--text)]">
@@ -1454,6 +1461,11 @@ function DailyActionPlanOutputCard(props: {
   return (
     <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      {output.actions.length === 0 ? (
+        <div className="text-[10px] text-[var(--text-subtle)]">
+          現時点で優先アクションはありません。
+        </div>
+      ) : (
       <div className="grid gap-1">
         {output.actions.map((action) => (
           <div
@@ -1472,6 +1484,7 @@ function DailyActionPlanOutputCard(props: {
           </div>
         ))}
       </div>
+      )}
       {output.context.daysSinceLastPost !== null && output.context.daysSinceLastPost >= 3 ? (
         <div className="text-[10px] text-[var(--text-subtle)]">
           最終投稿から {output.context.daysSinceLastPost.toString()}日 / 承認待ち{" "}
@@ -1916,8 +1929,8 @@ function GrowthOpportunityAlertOutputCard({
   output: GrowthOpportunityAlertOutputView;
 }) {
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-[var(--text)]">{output.summary}</p>
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
 
       {output.metricsContext && output.metricsContext.snapshotCount > 0 && (
         <div className="flex flex-wrap gap-2 text-[11px] text-[var(--muted)]">
@@ -2492,6 +2505,7 @@ type CashflowCategoryGroup = { category: string; amount: number; label: string }
 
 type MonthlyCashflowReportOutputView = {
   summary: string;
+  keyInsight: string | null;
   advice: string;
   period: string;
   totalRevenue: number;
@@ -2546,6 +2560,7 @@ function parseMonthlyCashflowReportOutput(
 
   return {
     summary,
+    keyInsight: asStringOrNull(v.keyInsight),
     advice,
     period,
     totalRevenue,
@@ -2587,6 +2602,11 @@ function MonthlyCashflowReportOutputCard(props: {
     <div className="mt-1 space-y-2 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px]">
       <div className="text-[10px] font-medium text-[var(--text-subtle)]">{output.period}</div>
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      {output.keyInsight ? (
+        <div className="rounded-lg border border-blue-100 bg-blue-50 px-2 py-1.5 text-[10px] text-blue-800">
+          {output.keyInsight}
+        </div>
+      ) : null}
 
       {/* Net cashflow highlight */}
       <div className="flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
@@ -2657,6 +2677,84 @@ function MonthlyCashflowReportOutputCard(props: {
       {output.advice ? (
         <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1.5 text-[10px] text-indigo-800">
           {output.advice}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ── STAGE_PROGRESS_REPORT ──────────────────────────────────────────────────
+
+type StageProgressReportOutputView = {
+  summary: string;
+  currentStageLabel: string;
+  strengths: string[];
+  gaps: string[];
+  nextMilestone: string | null;
+  focusAdvice: string;
+};
+
+function parseStageProgressReportOutput(
+  v: unknown
+): StageProgressReportOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  const currentStageLabel = asStringOrNull(v.currentStageLabel);
+  if (!summary || !currentStageLabel) return null;
+  const strengths = asArray(v.strengths)
+    .map((s) => (typeof s === "string" ? s : null))
+    .filter((s): s is string => s !== null);
+  const gaps = asArray(v.gaps)
+    .map((s) => (typeof s === "string" ? s : null))
+    .filter((s): s is string => s !== null);
+  return {
+    summary,
+    currentStageLabel,
+    strengths,
+    gaps,
+    nextMilestone: asStringOrNull(v.nextMilestone),
+    focusAdvice: asStringOrNull(v.focusAdvice) ?? "",
+  };
+}
+
+function StageProgressReportOutputCard(props: {
+  output: StageProgressReportOutputView;
+}) {
+  const { output } = props;
+  return (
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="font-semibold text-[var(--text)]">{output.summary}</div>
+        <span className="status-badge status-badge-neutral">{output.currentStageLabel}</span>
+      </div>
+      {output.strengths.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">強い軸</div>
+          {output.strengths.map((s, i) => (
+            <div key={i} className="rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-1 text-emerald-800">
+              {s}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {output.gaps.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">伸ばすべき軸</div>
+          {output.gaps.map((g, i) => (
+            <div key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-2 py-1 text-amber-800">
+              {g}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {output.focusAdvice ? (
+        <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1.5 text-[10px] text-indigo-800">
+          今すぐ: {output.focusAdvice}
+        </div>
+      ) : null}
+      {output.nextMilestone ? (
+        <div className="text-[10px] font-medium text-[var(--text)]">
+          → {output.nextMilestone}
         </div>
       ) : null}
     </div>
@@ -2763,6 +2861,249 @@ function ContactIntelligenceAlertOutputCard(props: {
       ) : (
         <p className="text-[11px] text-[var(--text-subtle)]">
           現在リスクの高い接点はありません。
+        </p>
+      )}
+    </div>
+  );
+}
+
+type MeetingFollowupActionItem = {
+  id: string;
+  title: string;
+  owner: string | null;
+  dueDate: string | null;
+  priority: "high" | "medium" | "low";
+};
+
+type MeetingFollowupDraftOutputView = {
+  summary: string;
+  actionItems: MeetingFollowupActionItem[];
+  decisions: string[];
+  nextMeetingTopics: string[];
+  shareableSummary: string;
+  context: {
+    meetingId: string | null;
+    meetingTitle: string | null;
+    scheduledAt: string | null;
+  };
+};
+
+function parseMeetingFollowupDraftOutput(
+  v: unknown
+): MeetingFollowupDraftOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+  const actionItems = Array.isArray(v.actionItems)
+    ? (v.actionItems as MeetingFollowupActionItem[])
+    : [];
+  const decisions = Array.isArray(v.decisions)
+    ? (v.decisions as string[])
+    : [];
+  const nextMeetingTopics = Array.isArray(v.nextMeetingTopics)
+    ? (v.nextMeetingTopics as string[])
+    : [];
+  const shareableSummary = asStringOrNull(v.shareableSummary) ?? summary;
+  const contextRaw = isRecord(v.context) ? v.context : null;
+  return {
+    summary,
+    actionItems,
+    decisions,
+    nextMeetingTopics,
+    shareableSummary,
+    context: {
+      meetingId: contextRaw ? asStringOrNull(contextRaw.meetingId) : null,
+      meetingTitle: contextRaw ? asStringOrNull(contextRaw.meetingTitle) : null,
+      scheduledAt: contextRaw ? asStringOrNull(contextRaw.scheduledAt) : null,
+    },
+  };
+}
+
+const ACTION_PRIORITY_BADGE: Record<MeetingFollowupActionItem["priority"], string> = {
+  high: "inline-flex items-center rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-medium text-rose-700",
+  medium: "inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-700",
+  low: "inline-flex items-center rounded-full bg-[var(--surface-muted)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]",
+};
+
+function MeetingFollowupDraftOutputCard(props: {
+  output: MeetingFollowupDraftOutputView;
+}) {
+  const { output } = props;
+  return (
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-3">
+      {output.context.meetingTitle ? (
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+          {output.context.meetingTitle}
+          {output.context.scheduledAt
+            ? ` · ${new Date(output.context.scheduledAt).toLocaleDateString("ja-JP")}`
+            : ""}
+        </div>
+      ) : null}
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+
+      {output.actionItems.length > 0 ? (
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">アクション項目</div>
+          {output.actionItems.map((item, i) => (
+            <div
+              key={item.id || i}
+              className="flex items-start gap-1.5 rounded-lg border border-[var(--line)] bg-white px-2.5 py-2"
+            >
+              <span className={ACTION_PRIORITY_BADGE[item.priority]} style={{ marginTop: 2 }}>
+                {item.priority === "high" ? "高" : item.priority === "medium" ? "中" : "低"}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-medium text-[var(--text)]">{item.title}</div>
+                {(item.owner || item.dueDate) ? (
+                  <div className="mt-0.5 text-[10px] text-[var(--text-subtle)]">
+                    {item.owner ? `担当: ${item.owner}` : ""}
+                    {item.owner && item.dueDate ? " · " : ""}
+                    {item.dueDate ? `期限: ${item.dueDate}` : ""}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {output.decisions.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">決定事項</div>
+          {output.decisions.map((d, i) => (
+            <div key={i} className="text-[11px] text-[var(--text)]">
+              · {d}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {output.nextMeetingTopics.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">次回議題</div>
+          {output.nextMeetingTopics.map((t, i) => (
+            <div key={i} className="text-[11px] text-[var(--text-subtle)]">
+              · {t}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {output.shareableSummary && output.shareableSummary !== output.summary ? (
+        <div className="rounded-lg border border-[var(--line)] bg-white p-2.5 space-y-1">
+          <div className="text-[10px] font-medium text-[var(--text-subtle)]">共有用サマリー</div>
+          <div className="text-[11px] text-[var(--text)] leading-5">{output.shareableSummary}</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+type ContractRenewalAlertItem = {
+  contactId: string;
+  organizationName: string;
+  contactType: string;
+  contractStatus: string | null;
+  contractStartAt: string | null;
+  ageMonths: number | null;
+  urgency: "high" | "medium" | "low";
+  reason: string;
+  recommendation: string;
+};
+
+type ContractRenewalAlertOutputView = {
+  summary: string;
+  renewalAlerts: ContractRenewalAlertItem[];
+  stats: {
+    total: number;
+    highCount: number;
+    mediumCount: number;
+  };
+};
+
+function parseContractRenewalAlertOutput(
+  v: unknown
+): ContractRenewalAlertOutputView | null {
+  if (!isRecord(v)) return null;
+  const summary = asStringOrNull(v.summary);
+  if (!summary) return null;
+  const renewalAlerts = Array.isArray(v.renewalAlerts)
+    ? (v.renewalAlerts as ContractRenewalAlertItem[])
+    : [];
+  const stats =
+    isRecord(v.stats) &&
+    typeof v.stats.total === "number" &&
+    typeof v.stats.highCount === "number" &&
+    typeof v.stats.mediumCount === "number"
+      ? (v.stats as ContractRenewalAlertOutputView["stats"])
+      : { total: 0, highCount: 0, mediumCount: 0 };
+  return { summary, renewalAlerts, stats };
+}
+
+const RENEWAL_URGENCY_BADGE: Record<ContractRenewalAlertItem["urgency"], string> = {
+  high: "inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-700",
+  medium: "inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700",
+  low: "inline-flex items-center rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-subtle)]",
+};
+
+const RENEWAL_URGENCY_LABEL: Record<ContractRenewalAlertItem["urgency"], string> = {
+  high: "要更新",
+  medium: "準備開始",
+  low: "確認",
+};
+
+function ContractRenewalAlertOutputCard(props: {
+  output: ContractRenewalAlertOutputView;
+}) {
+  const { output } = props;
+  const { stats } = output;
+  return (
+    <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-3">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-center">
+          <div className="text-[10px] text-[var(--text-subtle)]">契約接点数</div>
+          <div className="mt-0.5 text-xl font-semibold text-[var(--text)]">{stats.total}</div>
+        </div>
+        <div className={`rounded-xl border px-3 py-2 text-center ${stats.highCount > 0 ? "border-rose-200 bg-rose-50" : "border-[var(--line)] bg-white"}`}>
+          <div className={`text-[10px] ${stats.highCount > 0 ? "text-rose-700" : "text-[var(--text-subtle)]"}`}>要更新</div>
+          <div className={`mt-0.5 text-xl font-semibold ${stats.highCount > 0 ? "text-rose-700" : "text-[var(--text)]"}`}>{stats.highCount}</div>
+        </div>
+        <div className={`rounded-xl border px-3 py-2 text-center ${stats.mediumCount > 0 ? "border-amber-200 bg-amber-50" : "border-[var(--line)] bg-white"}`}>
+          <div className={`text-[10px] ${stats.mediumCount > 0 ? "text-amber-700" : "text-[var(--text-subtle)]"}`}>準備開始</div>
+          <div className={`mt-0.5 text-xl font-semibold ${stats.mediumCount > 0 ? "text-amber-700" : "text-[var(--text)]"}`}>{stats.mediumCount}</div>
+        </div>
+      </div>
+      {output.renewalAlerts.length > 0 ? (
+        <div className="space-y-2">
+          {output.renewalAlerts.map((alert, i) => (
+            <div
+              key={alert.contactId || i}
+              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 space-y-1"
+            >
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={RENEWAL_URGENCY_BADGE[alert.urgency]}>
+                  {RENEWAL_URGENCY_LABEL[alert.urgency]}
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--text)]">
+                  {alert.organizationName}
+                </span>
+                {alert.ageMonths !== null ? (
+                  <span className="text-[10px] text-[var(--text-subtle)]">
+                    {alert.ageMonths}ヶ月経過
+                  </span>
+                ) : null}
+              </div>
+              <div className="text-[11px] text-[var(--text-subtle)]">{alert.reason}</div>
+              <div className="text-[11px] font-medium text-[var(--text)]">
+                → {alert.recommendation}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[11px] text-[var(--text-subtle)]">
+          現在、更新アクションが必要な契約はありません。
         </p>
       )}
     </div>
@@ -2933,6 +3274,24 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
     render: (output) => {
       const parsed = parseMonthlyCashflowReportOutput(output);
       return parsed ? <MonthlyCashflowReportOutputCard output={parsed} /> : null;
+    },
+  },
+  STAGE_PROGRESS_REPORT: {
+    render: (output) => {
+      const parsed = parseStageProgressReportOutput(output);
+      return parsed ? <StageProgressReportOutputCard output={parsed} /> : null;
+    },
+  },
+  CONTRACT_RENEWAL_ALERT: {
+    render: (output) => {
+      const parsed = parseContractRenewalAlertOutput(output);
+      return parsed ? <ContractRenewalAlertOutputCard output={parsed} /> : null;
+    },
+  },
+  MEETING_FOLLOWUP_DRAFT: {
+    render: (output) => {
+      const parsed = parseMeetingFollowupDraftOutput(output);
+      return parsed ? <MeetingFollowupDraftOutputCard output={parsed} /> : null;
     },
   },
 };
