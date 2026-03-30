@@ -111,7 +111,34 @@ Track 8-J — AI Manager Account rollout
 - 完了: `AM-28` recovery summary を reconciliation card に統合し、上位サマリーから recent recovery を把握できるようにした
 - 完了: `AM-29` recovery summary に source 別 breakdown を追加し、connector / owner review の回復線を上位サマリーで比較できるようにした
 - 完了: `AM-30` external x402 connector の pending polling check-in route を追加し、`PENDING_OBSERVED` event と短時間重複 suppress で pending delivery の鮮度を上げた
-- next: connector polling の event を owner-facing recent timeline / copy にさらに馴染ませるか、recovery summary を時系列 trend に発展させるか整理する
+
+### Track 8-J Q2 2026 ロードマップ（AM-31〜AM-39）
+
+#### 4月 — 運用可視化の仕上げ
+
+- 完了: `AM-31` Pending Timeline Card（owner-facing）— PENDING_OBSERVED を含む pending イベントを時系列カード化。`lib/aiManager/pendingTimeline.ts` + `AiManagerPendingTimelineCard` を新設し、Settings / AI Office 共通で使用。pending age と event freshness を同一カードで把握できる。
+
+#### 5月 — 運用アクション接続
+
+- 完了: `AM-34` One-click Reconciliation Actions — `AiManagerPendingTimelineCard` にインライン confirm / mark-failed フォームを追加。カードから 2 クリック以内で操作完了。Settings に `handleCardConfirm` / `handleCardMarkFailed` を追加し paymentAttemptId を直接受け取る。
+
+- 完了: `AM-35` Connector Health Digest — `lib/aiManager/connectorHealthDigest.ts` + `AiManagerConnectorHealthDigest` コンポーネントを新設。callback待ち / やや滞留 / 長時間滞留の件数グリッド・最終 check-in・重複 replay 件数を Settings / AI Office に追加。
+
+#### 6月 — Manager 統合・信頼表面化
+
+- 完了: `AM-36` Manager Desk AI Manager 専用タブ — Creator Detail に [概要 | AI Manager] タブバーを追加。AI Manager タブに `ManagerDeskAiManagerReadOnlySection` を移動。概要タブにはコンパクトなステータスサマリーと「詳細を見る」ボタンを追加。
+
+- 完了: `AM-38` Opportunity / Contact へのリスク連携
+  - `lib/aiManager/financialOpsRisk.ts` で `FinancialOpsRiskLevel` (NONE/WARNING/ALERT) と `deriveFinancialOpsRisk()` を定義
+  - `ManagerDeskContactPipelineItem` に `financialOpsRisk` フィールドを追加
+  - `lib/managerDesk/readModel.ts` に `fetchAiManagerRisksByCreatorId()` ヘルパーを追加し Contact Pipeline / Opportunity CRM 両方で呼び出し
+  - Contact Pipeline・Opportunity CRM カードのバッジ行に ALERT=赤 / WARNING=黄 バッジを表示
+
+- 完了: `AM-39` Public-safe Trust Signal（限定公開）
+  - `docs/specs/creator-ai-office/public-safe-trust-signal.md` で公開可能・不可情報を定義
+  - `PublicAiManagerProfilePageBody` に Trust Signal セクションを追加（disclosurePolicy + updatedAt + 「公開しない情報」説明）
+  - `PublicProfileAiManagerCard` に disclosurePolicy バッジを追加
+  - 決済・財務・ウォレット情報は一切追加せず、`SerializedPublicAiManagerProfile` 既存フィールドのみ使用
 
 ## Phase 2 UX（完了済み）
 

@@ -27,6 +27,8 @@ import type {
   ManagerDeskProjectSummary,
   ManagerDeskOpportunityCrmData,
 } from "@/lib/managerDesk/readModelTypes";
+import { deriveFinancialOpsRisk, FINANCIAL_OPS_RISK_NONE } from "@/lib/aiManager/financialOpsRisk";
+import type { SerializedFinancialOpsRisk } from "@/lib/aiManager/financialOpsRisk";
 import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
 import { deriveCreatorStage } from "@/lib/creatorStage";
 import { getPlannerTimeline } from "@/lib/operations/plannerTimeline";
@@ -342,6 +344,31 @@ async function fetchLatestNotesByContactId(
       .filter((r) => r.externalContactId != null)
       .map((r) => [r.externalContactId!, { id: r.id, title: r.title, body: r.body, createdAt: r.createdAt }])
   );
+}
+
+async function fetchAiManagerRisksByCreatorId(
+  targetCreatorIds: bigint[]
+): Promise<Map<string, SerializedFinancialOpsRisk>> {
+  if (targetCreatorIds.length === 0) return new Map();
+  const accounts = await prisma.aiManagerAccount.findMany({
+    where: { creatorProfileId: { in: targetCreatorIds } },
+    select: {
+      creatorProfileId: true,
+      status: true,
+      billingPolicy: { select: { status: true } },
+    },
+  });
+  const map = new Map<string, SerializedFinancialOpsRisk>();
+  for (const account of accounts) {
+    map.set(
+      account.creatorProfileId.toString(),
+      deriveFinancialOpsRisk({
+        aiManagerStatus: account.status,
+        billingPolicyStatus: account.billingPolicy?.status ?? null,
+      })
+    );
+  }
+  return map;
 }
 
 function compareContactPipelineItems(
@@ -801,7 +828,10 @@ export async function getManagerDeskContactPipeline(args: {
   });
 
   const contactIds = contacts.map((c) => c.id);
-  const latestNoteByContactId = await fetchLatestNotesByContactId(contactIds);
+  const [latestNoteByContactId, financialOpsRiskByCreatorId] = await Promise.all([
+    fetchLatestNotesByContactId(contactIds),
+    fetchAiManagerRisksByCreatorId(targetCreatorIds),
+  ]);
 
   const items = contacts
     .map((contact) => {
@@ -820,6 +850,7 @@ export async function getManagerDeskContactPipeline(args: {
         contact: serializeExternalContact(contact),
         dueState: toContactPipelineDueState(contact.nextActionDueAt, now),
         staleDays: toStaleDays(latestSignalAt, now),
+        financialOpsRisk: financialOpsRiskByCreatorId.get(creatorId) ?? FINANCIAL_OPS_RISK_NONE,
         latestNote: noteRow
           ? {
               id: noteRow.id,
@@ -946,7 +977,10 @@ export async function getManagerDeskOpportunityPipeline(args: {
   });
 
   const contactIds = contacts.map((c) => c.id);
-  const latestNoteByContactId = await fetchLatestNotesByContactId(contactIds);
+  const [latestNoteByContactId, financialOpsRiskByCreatorId] = await Promise.all([
+    fetchLatestNotesByContactId(contactIds),
+    fetchAiManagerRisksByCreatorId(targetCreatorIds),
+  ]);
 
   const allItems: ManagerDeskContactPipelineItem[] = contacts
     .map((contact) => {
@@ -963,6 +997,7 @@ export async function getManagerDeskOpportunityPipeline(args: {
         contact: serializeExternalContact(contact),
         dueState: toContactPipelineDueState(contact.nextActionDueAt, now),
         staleDays: toStaleDays(latestSignalAt, now),
+        financialOpsRisk: financialOpsRiskByCreatorId.get(creatorId) ?? FINANCIAL_OPS_RISK_NONE,
         latestNote: noteRow
           ? {
               id: noteRow.id,

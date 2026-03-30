@@ -9,7 +9,10 @@ import type {
 import { getAiOfficeRoleChoices } from "@/components/mypage/aiOfficeTaskConfig";
 import { AGENT_TASK_AUDIT_ACTION } from "@/lib/agentTaskAudit";
 import { deriveAiManagerX402DeliveryEvents } from "@/lib/aiManager/x402DeliveryEvents";
-import { deriveAiManagerPendingX402Queue } from "@/lib/aiManager/pendingQueue";
+import { deriveAiManagerPendingTimeline } from "@/lib/aiManager/pendingTimeline";
+import { AiManagerPendingTimelineCard } from "@/components/mypage/AiManagerPendingTimelineCard";
+import { AiManagerConnectorHealthDigest } from "@/components/mypage/AiManagerConnectorHealthDigest";
+import { deriveConnectorHealthDigest } from "@/lib/aiManager/connectorHealthDigest";
 import { deriveAiManagerX402FollowUps } from "@/lib/aiManager/x402FollowUps";
 import { deriveAiManagerX402RecoveryItems } from "@/lib/aiManager/x402Recovery";
 import { deriveAiManagerX402ActivityTimeline } from "@/lib/aiManager/x402Timeline";
@@ -258,9 +261,8 @@ export function AiOfficeOverviewSection(props: Props) {
         usage.latestPaymentAttempt?.rail === "X402" &&
         usage.latestPaymentAttempt.status === "PENDING"
     ) ?? [];
-  const pendingX402Queue = deriveAiManagerPendingX402Queue(
-    props.aiManagerAccount
-  );
+  const pendingTimeline = deriveAiManagerPendingTimeline(props.aiManagerAccount);
+  const connectorHealthDigest = deriveConnectorHealthDigest(props.aiManagerAccount);
   const x402FollowUps = deriveAiManagerX402FollowUps(props.aiManagerAccount);
   const x402RecoveryItems = deriveAiManagerX402RecoveryItems(
     props.aiManagerAccount
@@ -479,31 +481,13 @@ export function AiOfficeOverviewSection(props: Props) {
                   {props.aiManagerAccount.billingPolicy?.pauseReason ??
                     "Settings で pause reason を確認し、再開条件を整えてください。"}
                 </div>
-                {pendingX402Queue.length > 0 ? (
+                {pendingTimeline.length > 0 ? (
                   <div className="mt-3 grid gap-2">
-                    {pendingX402Queue.slice(0, 3).map((entry) => (
-                      <div
-                        key={entry.paymentAttemptId}
-                        className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
-                      >
-                        <div className="font-semibold text-[var(--text)]">
-                          {entry.taskLabel ?? entry.capabilityLabel}
-                        </div>
-                        <div>
-                          {formatJpycAmount(entry.amount)} /{" "}
-                          {X402_DELIVERY_STATUS_LABELS[entry.deliveryStatus]}
-                        </div>
-                        <div>created: {formatOverviewDate(entry.createdAt)}</div>
-                        {entry.lastEventLabel && entry.lastEventSourceLabel ? (
-                          <div>
-                            last event: {entry.lastEventSourceLabel} /{" "}
-                            {entry.lastEventLabel}
-                          </div>
-                        ) : null}
-                        {entry.lastEventAt ? (
-                          <div>event at: {formatOverviewDate(entry.lastEventAt)}</div>
-                        ) : null}
-                      </div>
+                    {pendingTimeline.slice(0, 3).map((item) => (
+                      <AiManagerPendingTimelineCard
+                        key={item.paymentAttemptId}
+                        item={item}
+                      />
                     ))}
                   </div>
                 ) : null}
@@ -764,6 +748,8 @@ export function AiOfficeOverviewSection(props: Props) {
                 </div>
               </div>
             ) : null}
+
+            <AiManagerConnectorHealthDigest digest={connectorHealthDigest} />
 
             <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">

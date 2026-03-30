@@ -8,6 +8,7 @@ import type {
 import type { PlannerTimelineData } from "@/lib/operations/plannerTypes";
 import type { CreatorStageResult } from "@/lib/creatorStage";
 import type { SerializedManagerDeskAiManagerSummary } from "@/lib/serializers/aiManager";
+import type { SerializedFinancialOpsRisk } from "@/lib/aiManager/financialOpsRisk";
 
 export type ManagerDeskProjectSummary = {
   projectId: string;
@@ -86,6 +87,7 @@ export type ManagerDeskContactPipelineItem = {
   contact: SerializedExternalContact;
   dueState: ManagerDeskContactPipelineDueState;
   staleDays: number | null;
+  financialOpsRisk: SerializedFinancialOpsRisk;
   latestNote: ManagerDeskContactLatestNote | null;
 };
 

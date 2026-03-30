@@ -527,6 +527,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
   });
 
   const [completedFromCopilot, setCompletedFromCopilot] = useState<Set<string>>(new Set());
+  const [activeDetailTab, setActiveDetailTab] = useState<"overview" | "ai-manager">("overview");
 
   const nextActions = data ? buildNextActions(data) : [];
   const operatingSummary = data ? buildOperatingSummary(data) : [];
@@ -613,6 +614,42 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
           {data ? (
             <div className="space-y-4">
+              {/* タブバー */}
+              <div className="flex gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-1">
+                {(
+                  [
+                    { key: "overview", label: "概要" },
+                    { key: "ai-manager", label: "AI Manager" },
+                  ] as const
+                ).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setActiveDetailTab(key)}
+                    className={[
+                      "flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                      activeDetailTab === key
+                        ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
+                        : "text-[var(--text-subtle)] hover:text-[var(--text)]",
+                    ].join(" ")}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* AI Manager タブ */}
+              {activeDetailTab === "ai-manager" ? (
+                <ManagerDeskAiManagerReadOnlySection
+                  creatorDisplayName={data.creator.displayName || data.creator.username}
+                  viewerRole={data.viewerRole}
+                  aiManager={data.aiManager}
+                />
+              ) : null}
+
+              {/* 概要タブ */}
+              {activeDetailTab === "overview" ? (
+              <>
               <div className="grid gap-3 md:grid-cols-[1.2fr,0.8fr]">
                 <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
                   <div className="flex flex-wrap items-center gap-2">
@@ -658,11 +695,37 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                 </div>
               </div>
 
-              <ManagerDeskAiManagerReadOnlySection
-                creatorDisplayName={data.creator.displayName || data.creator.username}
-                viewerRole={data.viewerRole}
-                aiManager={data.aiManager}
-              />
+              {/* AI Manager コンパクトサマリー（概要タブ用） */}
+              {data.aiManager ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="font-medium text-[var(--text)]">
+                      {data.aiManager.displayName}
+                    </span>
+                    <span className="status-badge status-badge-neutral text-[11px]">
+                      {data.aiManager.status === "ACTIVE"
+                        ? "稼働中"
+                        : data.aiManager.status === "PAUSED"
+                          ? "停止中"
+                          : data.aiManager.status}
+                    </span>
+                    <span className="status-badge status-badge-neutral text-[11px]">
+                      {data.aiManager.operatingMode === "BILLABLE_ACTIVE"
+                        ? "billable active"
+                        : data.aiManager.operatingMode === "FREE_ONLY"
+                          ? "free only"
+                          : "inactive"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary text-xs py-1 px-3"
+                    onClick={() => setActiveDetailTab("ai-manager")}
+                  >
+                    詳細を見る
+                  </button>
+                </div>
+              ) : null}
 
               {data.stage ? (
                 <>
@@ -1259,6 +1322,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   </div>
                 </section>
               ) : null}
+              </>) : null}
             </div>
           ) : null}
         </section>

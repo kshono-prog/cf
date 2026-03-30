@@ -150,6 +150,11 @@ function OpportunityCard(props: {
             <span className="status-badge status-badge-neutral">
               温度感 {TEMPERATURE_LABELS[item.contact.temperature] ?? item.contact.temperature}
             </span>
+            {item.financialOpsRisk.level === "ALERT" ? (
+              <span className="status-badge status-badge-error">決済停止</span>
+            ) : item.financialOpsRisk.level === "WARNING" ? (
+              <span className="status-badge status-badge-warn">AI Manager 停止中</span>
+            ) : null}
           </div>
           <h3 className="text-lg font-semibold text-[var(--text)]">
             {item.contact.organizationName}

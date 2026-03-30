@@ -24,7 +24,13 @@ import {
   type AiManagerSupportStyle,
   type AiManagerTone,
 } from "@/lib/aiManager/config";
-import { deriveAiManagerPendingX402Queue } from "@/lib/aiManager/pendingQueue";
+import { deriveAiManagerPendingTimeline } from "@/lib/aiManager/pendingTimeline";
+import {
+  AiManagerPendingTimelineCard,
+  type AiManagerPendingTimelineCardActions,
+} from "@/components/mypage/AiManagerPendingTimelineCard";
+import { AiManagerConnectorHealthDigest } from "@/components/mypage/AiManagerConnectorHealthDigest";
+import { deriveConnectorHealthDigest } from "@/lib/aiManager/connectorHealthDigest";
 import { deriveAiManagerX402DeliveryEvents } from "@/lib/aiManager/x402DeliveryEvents";
 import { deriveAiManagerX402FollowUps } from "@/lib/aiManager/x402FollowUps";
 import { deriveAiManagerX402RecoveryItems } from "@/lib/aiManager/x402Recovery";
@@ -289,8 +295,12 @@ export function CreatorSettingsAiManagerAccountSection() {
         : [],
     [account]
   );
-  const pendingX402Queue = React.useMemo(
-    () => deriveAiManagerPendingX402Queue(account),
+  const pendingTimeline = React.useMemo(
+    () => deriveAiManagerPendingTimeline(account),
+    [account]
+  );
+  const connectorHealthDigest = React.useMemo(
+    () => deriveConnectorHealthDigest(account),
     [account]
   );
   const x402FollowUps = React.useMemo(
@@ -485,6 +495,39 @@ export function CreatorSettingsAiManagerAccountSection() {
         : "x402 settlement を失敗として記録し、billable capability を一時停止しました。"
     );
   }
+
+  async function handleCardConfirm(
+    paymentAttemptId: string,
+    txHash: string,
+    note?: string
+  ) {
+    const updated = await aiManager.updatePaymentAttempt({
+      paymentAttemptId,
+      action: "CONFIRM_X402",
+      txHash: txHash.trim(),
+      note: note?.trim() || undefined,
+    });
+    if (updated) {
+      setNotice("x402 settlement を確認済みに更新しました。");
+    }
+  }
+
+  async function handleCardMarkFailed(paymentAttemptId: string, note?: string) {
+    const updated = await aiManager.updatePaymentAttempt({
+      paymentAttemptId,
+      action: "MARK_FAILED",
+      note: note?.trim() || undefined,
+    });
+    if (updated) {
+      setNotice("x402 settlement を失敗として記録しました。");
+    }
+  }
+
+  const cardActions: AiManagerPendingTimelineCardActions = {
+    onConfirm: handleCardConfirm,
+    onMarkFailed: handleCardMarkFailed,
+    updating: aiManager.updatingPaymentAttempt,
+  };
 
   return (
     <section id="ai-manager-account" className="surface-card p-5 sm:p-6">
@@ -1380,45 +1423,15 @@ export function CreatorSettingsAiManagerAccountSection() {
                           </div>
                         </div>
                       ) : null}
-                      {pendingX402Queue.length > 0 ? (
-                        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
-                          <div className="font-semibold text-[var(--text)]">
-                            pending queue
-                          </div>
-                          <div className="mt-2 space-y-2">
-                            {pendingX402Queue.slice(0, 4).map((entry) => (
-                              <div
-                                key={entry.paymentAttemptId}
-                                className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3"
-                              >
-                                <div className="font-semibold text-[var(--text)]">
-                                  {entry.taskLabel ?? entry.capabilityLabel}
-                                </div>
-                                <div>
-                                  {formatJpycAmount(entry.amount)} /{" "}
-                                  {
-                                    X402_DELIVERY_STATUS_LABELS[
-                                      entry.deliveryStatus
-                                    ]
-                                  }
-                                </div>
-                                <div>created: {formatUpdatedAt(entry.createdAt)}</div>
-                                {entry.lastEventLabel && entry.lastEventSourceLabel ? (
-                                  <div>
-                                    last event: {entry.lastEventSourceLabel} /{" "}
-                                    {entry.lastEventLabel}
-                                    {entry.lastEventAt
-                                      ? ` / ${formatUpdatedAt(entry.lastEventAt)}`
-                                      : ""}
-                                  </div>
-                                ) : null}
-                                {entry.lastEventDetail ? (
-                                  <div>{entry.lastEventDetail}</div>
-                                ) : null}
-                                {entry.deliveryHint ? <div>{entry.deliveryHint}</div> : null}
-                              </div>
-                            ))}
-                          </div>
+                      {pendingTimeline.length > 0 ? (
+                        <div className="space-y-2">
+                          {pendingTimeline.slice(0, 4).map((item) => (
+                            <AiManagerPendingTimelineCard
+                              key={item.paymentAttemptId}
+                              item={item}
+                              actions={cardActions}
+                            />
+                          ))}
                         </div>
                       ) : null}
                       <label className="grid gap-1 text-xs text-[var(--text)]">
@@ -1514,6 +1527,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   )}
                 </div>
+                <AiManagerConnectorHealthDigest digest={connectorHealthDigest} />
                 <div className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     delivery events

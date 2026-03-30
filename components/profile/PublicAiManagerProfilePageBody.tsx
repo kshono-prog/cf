@@ -52,6 +52,24 @@ const SUPPORT_STYLE_LABELS: Record<
   PROMOTIONAL: "広報寄り",
 };
 
+const DISCLOSURE_POLICY_LABELS: Record<
+  SerializedPublicAiManagerProfile["disclosurePolicy"],
+  string
+> = {
+  ALWAYS_DISCLOSE_AI: "常に AI であることを明示",
+  DISCLOSE_ON_PUBLIC_ACTION: "公開行動時に AI を明示",
+};
+
+const DISCLOSURE_POLICY_DESCRIPTIONS: Record<
+  SerializedPublicAiManagerProfile["disclosurePolicy"],
+  string
+> = {
+  ALWAYS_DISCLOSE_AI:
+    "すべての公開発信で AI であることを自動的に明記します。",
+  DISCLOSE_ON_PUBLIC_ACTION:
+    "公開への直接的なアクション時に AI であることを明記します。",
+};
+
 function getFallbackInitial(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return "A";
@@ -451,6 +469,57 @@ export function PublicAiManagerProfilePageBody({
           </div>
         </section>
       ) : null}
+
+      <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+        <div className="text-sm font-semibold text-[var(--text)]">Trust Signal</div>
+        <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
+          この AI マネージャーの透明性ポリシーと運用スタイルを確認できます。
+          決済・財務の内部情報はいかなる場合も公開されません。
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
+                透明性ポリシー
+              </div>
+            </div>
+            <div className="mt-2 text-sm font-semibold text-emerald-900">
+              {DISCLOSURE_POLICY_LABELS[aiManager.disclosurePolicy]}
+            </div>
+            <p className="mt-1 text-xs leading-5 text-emerald-700">
+              {DISCLOSURE_POLICY_DESCRIPTIONS[aiManager.disclosurePolicy]}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+              プロフィール最終更新
+            </div>
+            <div className="mt-2 text-sm font-semibold text-[var(--text)]">
+              {new Date(aiManager.updatedAt).toLocaleDateString("ja-JP", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </div>
+            <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
+              owner によって設定が最近メンテされていることを示します。
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+            公開しない情報
+          </div>
+          <p className="mt-1.5 text-xs leading-5 text-[var(--text-subtle)]">
+            決済状態・予算・ウォレットアドレス・タスク件数などの内部情報はこのページに表示されません。
+            公開されているのは owner が意図して設定した人格・スタイル・透明性ポリシーのみです。
+          </p>
+        </div>
+      </section>
 
       <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
         <div className="text-sm font-semibold text-[var(--text)]">

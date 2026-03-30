@@ -441,6 +441,15 @@ export function ManagerDeskContactPipelineClient() {
                             <span className={dueStateBadgeClass(item.dueState)}>
                               {dueStateLabel(item.dueState)}
                             </span>
+                            {item.financialOpsRisk.level === "ALERT" ? (
+                              <span className="status-badge status-badge-error">
+                                決済停止
+                              </span>
+                            ) : item.financialOpsRisk.level === "WARNING" ? (
+                              <span className="status-badge status-badge-warn">
+                                AI Manager 停止中
+                              </span>
+                            ) : null}
                             <select
                               value={currentStatus}
                               disabled={isUpdating}

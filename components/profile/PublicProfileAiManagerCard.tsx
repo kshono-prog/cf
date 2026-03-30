@@ -38,6 +38,14 @@ const SUPPORT_STYLE_LABELS: Record<
   PROMOTIONAL: "広報寄り",
 };
 
+const DISCLOSURE_POLICY_LABELS: Record<
+  SerializedPublicAiManagerProfile["disclosurePolicy"],
+  string
+> = {
+  ALWAYS_DISCLOSE_AI: "常に AI と明示",
+  DISCLOSE_ON_PUBLIC_ACTION: "公開行動時に AI と明示",
+};
+
 function getFallbackInitial(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return "A";
@@ -176,6 +184,13 @@ export function PublicProfileAiManagerCard({
                 {formatUpdatedAt(aiManager.updatedAt)}
               </div>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              {DISCLOSURE_POLICY_LABELS[aiManager.disclosurePolicy]}
+            </span>
           </div>
 
           <div className="flex flex-wrap gap-3">
