@@ -3294,6 +3294,12 @@ const TASK_OUTPUT_RENDERERS: Partial<Record<TaskType, OutputRenderer>> = {
       return parsed ? <MeetingFollowupDraftOutputCard output={parsed} /> : null;
     },
   },
+  OPPORTUNITY_APPLICATION_DRAFT: {
+    render: (output) => {
+      const parsed = parseOpportunityApplicationDraftOutput(output);
+      return parsed ? <OpportunityApplicationDraftOutputCard output={parsed} /> : null;
+    },
+  },
 };
 
 export function AgentTaskOutput(props: {
@@ -3417,6 +3423,94 @@ function SupporterMessageDraftOutputCard(props: {
           }}
         >
           {copied ? "本文をコピー済み" : "本文をコピー"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── OPPORTUNITY_APPLICATION_DRAFT ──────────────────────────────────────────────
+
+type OpportunityApplicationDraftOutputView = {
+  summary: string;
+  draftMessage: string;
+  tone: string;
+  strengths: string[];
+  followUpSuggestion: string;
+};
+
+function parseOpportunityApplicationDraftOutput(
+  output: unknown
+): OpportunityApplicationDraftOutputView | null {
+  if (!isRecord(output)) return null;
+  const summary = asStringOrNull(output.summary);
+  const draftMessage = asStringOrNull(output.draftMessage);
+  const tone = asStringOrNull(output.tone) ?? "professional";
+  if (!summary || !draftMessage) return null;
+  return {
+    summary,
+    draftMessage,
+    tone,
+    strengths: asArray(output.strengths)
+      .filter((s): s is string => typeof s === "string")
+      .slice(0, 5),
+    followUpSuggestion: asStringOrNull(output.followUpSuggestion) ?? "",
+  };
+}
+
+function OpportunityApplicationDraftOutputCard(props: {
+  output: OpportunityApplicationDraftOutputView;
+}) {
+  const { output } = props;
+  const [copied, setCopied] = React.useState(false);
+
+  async function copyDraftText() {
+    try {
+      await navigator.clipboard.writeText(output.draftMessage);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore
+    }
+  }
+
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="font-medium text-[var(--text)]">{output.summary}</div>
+      {output.strengths.length > 0 ? (
+        <div>
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+            アピールポイント
+          </div>
+          <ul className="space-y-0.5 pl-4 text-xs">
+            {output.strengths.map((s, i) => (
+              <li key={`${s}:${i.toString()}`} className="list-disc text-[var(--text)]">
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <div>
+        <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+          応募文下書き
+        </div>
+        <div className="whitespace-pre-wrap rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2.5 text-xs leading-6 text-[var(--text)]">
+          {output.draftMessage}
+        </div>
+      </div>
+      {output.followUpSuggestion ? (
+        <div className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs text-blue-800">
+          フォローアップ: {output.followUpSuggestion}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn-secondary text-[11px]"
+          onClick={() => { void copyDraftText(); }}
+        >
+          {copied ? "コピー済み" : "本文をコピー"}
         </button>
       </div>
     </div>

@@ -33,6 +33,7 @@ import { buildStageProgressReportOutput } from "@/lib/creator-ai/stageProgressRe
 import { buildContactIntelligenceAlertOutput } from "@/lib/creator-ai/contactIntelligenceAlertTask";
 import { buildMonthlyCashflowReportOutput } from "@/lib/creator-ai/monthlyCashflowReportTask";
 import { buildContractRenewalAlertOutput } from "@/lib/creator-ai/contractRenewalAlertTask";
+import { buildOpportunityApplicationDraftOutput } from "@/lib/creator-ai/opportunityApplicationDraftTask";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import { getProjectSummaryView } from "@/lib/projectSummary";
 import { getProjectSettlementView } from "@/lib/projectSettlementView";
@@ -2090,6 +2091,26 @@ const TASK_DEFINITIONS: Record<TaskType, TaskDefinition> = {
       },
     },
     execute: async (params) => buildContractRenewalAlertOutput(params),
+  },
+  OPPORTUNITY_APPLICATION_DRAFT: {
+    validateInput: validateGenericJsonInput,
+    outputSchema: {
+      kind: "OPPORTUNITY_APPLICATION_DRAFT",
+      fields: {
+        summary: { type: "string", required: true, description: "応募の目的サマリー" },
+        draftMessage: { type: "string", required: true, description: "応募・問い合わせ本文" },
+        tone: { type: "string", required: true, description: "文体（formal / professional / friendly）" },
+        strengths: { type: "array", required: true, description: "アピールポイント一覧" },
+        followUpSuggestion: { type: "string", required: true, description: "フォローアップ提案" },
+        context: { type: "object", required: true, description: "生成コンテキスト" },
+        basedOn: { type: "unknown", required: true, description: "正規化済み入力" },
+      },
+    },
+    execute: async (params) =>
+      buildOpportunityApplicationDraftOutput({
+        creatorProfileId: params.creatorProfileId,
+        input: params.input,
+      }),
   },
 };
 

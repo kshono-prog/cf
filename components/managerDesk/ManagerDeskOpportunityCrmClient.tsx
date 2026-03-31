@@ -97,6 +97,10 @@ function OpportunityCard(props: {
     `/${item.creator.username}/mypage/ai-office/create` +
     `?role=MANAGER&taskType=CONTACT_OUTREACH_DRAFT` +
     `&contactId=${item.contact.id}`;
+  const applicationDraftHref =
+    `/${item.creator.username}/mypage/ai-office/create` +
+    `?role=MANAGER&taskType=OPPORTUNITY_APPLICATION_DRAFT` +
+    `&contactId=${item.contact.id}`;
 
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteForm, setNoteForm] = useState<InlineNoteFormState>({
@@ -268,6 +272,9 @@ function OpportunityCard(props: {
         </button>
         <Link href={outreachHref} className="btn-raised btn-raised-sm">
           連絡文を作る
+        </Link>
+        <Link href={applicationDraftHref} className="btn-raised btn-raised-sm">
+          応募文を作る
         </Link>
         <Link
           href={`/manager-desk/creators/${item.creator.id}`}

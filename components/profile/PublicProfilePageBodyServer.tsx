@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 import { CreatorActivityCredibilityBadge } from "@/components/profile/CreatorActivityCredibilityBadge";
+import { PublicTrustProfileSection } from "@/components/profile/PublicTrustProfileSection";
 import { PublicProfileAiManagerCard } from "@/components/profile/PublicProfileAiManagerCard";
 import { CreatorStageCard } from "@/components/profile/CreatorStageCard";
 import { PublicProfileAnchorNav } from "@/components/profile/PublicProfileAnchorNav";
@@ -190,6 +191,14 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
           {credibility.activeMonths > 0 || credibility.totalPostCount > 0 ? (
             <CreatorActivityCredibilityBadge credibility={credibility} />
           ) : null}
+          <PublicTrustProfileSection
+            displayName={creator.displayName || username}
+            username={username}
+            externalUrl={creator.url ?? null}
+            activityMonths={credibility.activeMonths}
+            contributionCount={credibility.totalContributorCount}
+            stageLabel={stageResult?.stageLabel ?? null}
+          />
         </div>
 
         <Suspense fallback={<DeferredSectionsFallback />}>

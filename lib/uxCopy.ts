@@ -125,6 +125,11 @@ const TASK_TYPE_COPY: Record<TaskType, Copy> = {
     helper:
       "完了した会議の議事メモをもとに、アクション項目・決定事項・次回議題・参加者共有用サマリーを構造化して整理します。",
   },
+  OPPORTUNITY_APPLICATION_DRAFT: {
+    label: "案件応募文を下書きする",
+    helper:
+      "実績・ステージエビデンス・活動概要をもとに、コラボ・仕事・出演依頼への応募・問い合わせ文を生成します。",
+  },
 };
 
 const TASK_STATUS_COPY: Record<TaskStatus, Copy> = {

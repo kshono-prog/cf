@@ -61,6 +61,7 @@ import { TodayAchievementCard } from "@/components/mypage/TodayAchievementCard";
 import { useCreatorReadyFanEngagement } from "@/components/mypage/useCreatorReadyFanEngagement";
 import { FanEngagementTimelineCard } from "@/components/mypage/FanEngagementTimelineCard";
 import { FanThankActionCard } from "@/components/mypage/FanThankActionCard";
+import { AchievementCard } from "@/components/mypage/AchievementCard";
 import { withBaseUrl } from "@/utils/baseUrl";
 
 const CreatorWorkspaceAiOfficePanel = dynamic(
@@ -451,6 +452,14 @@ export function CreatorReadyHomeRoute(props: Props) {
         displayName={workspace.displayName}
       />
       <GrowthMeterDisplay scores={growthMeterScores} />
+      <AchievementCard
+        displayName={workspace.displayName}
+        username={workspace.meCreatorUsername}
+        growthOverview={growthOverview.data}
+        approvedTaskCount={approvedTaskCount}
+        postCount={homeStats.postCount}
+        activityReportHref={`/${workspace.meCreatorUsername}/activity-report`}
+      />
       <CreatorReadyProjectHealthSection
         projectDashboardsByCurrency={projectDashboardsByCurrency}
         onOpenSettings={props.onOpenSettings}
@@ -493,6 +502,7 @@ export function CreatorReadyHomeRoute(props: Props) {
       />
       <FanEngagementTimelineCard
         loading={fanEngagement.loading}
+        error={fanEngagement.error}
         data={fanEngagement.data}
       />
       <FanThankActionCard

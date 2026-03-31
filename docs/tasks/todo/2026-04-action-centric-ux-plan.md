@@ -19,12 +19,12 @@
 
 | ID | タイトル | Phase | Status | 依存 |
 |---|---|---|---|---|
-| [UX-1](2026-04-ux1-ai-manager-top3-button.md) | AIマネージャー呼び出しボタン & Top3 タスク表示 | **MVP** | TODO | なし |
-| [UX-2](2026-04-ux2-inline-task-completion.md) | インライン実行 UI（その場完結） | **MVP** | TODO | UX-1 |
-| [UX-3](2026-04-ux3-gamification-growth-meter.md) | 完了演出・ゲーミフィケーション基盤 | Phase 2 | TODO | UX-1, UX-2 |
-| [UX-4](2026-04-ux4-fan-engagement-visualization.md) | ファン応援可視化 | Phase 2 | TODO | なし |
-| [UX-5](2026-04-ux5-settings-progressive-hide.md) | 設定画面の段階的非表示 | Phase 2 | TODO | UX-1, UX-2 |
-| [UX-6](2026-04-ux6-work-connection.md) | 仕事接続（実績カード・信頼プロフィール） | Phase 3 | TODO | UX-3, UX-4 |
+| [UX-1](2026-04-ux1-ai-manager-top3-button.md) | AIマネージャー呼び出しボタン & Top3 タスク表示 | **MVP** | ✅ 完了（2026-03-31） | なし |
+| [UX-2](2026-04-ux2-inline-task-completion.md) | インライン実行 UI（その場完結） | **MVP** | ✅ 完了（2026-03-31） | UX-1 |
+| [UX-3](2026-04-ux3-gamification-growth-meter.md) | 完了演出・ゲーミフィケーション基盤 | Phase 2 | ✅ 完了（2026-04-01） | UX-1, UX-2 |
+| [UX-4](2026-04-ux4-fan-engagement-visualization.md) | ファン応援可視化 | Phase 2 | ✅ 完了（2026-04-01） | なし |
+| [UX-5](2026-04-ux5-settings-progressive-hide.md) | 設定画面の段階的非表示 | Phase 2 | ✅ Phase 1 完了（2026-04-01） | UX-1, UX-2 |
+| [UX-6](2026-04-ux6-work-connection.md) | 仕事接続（実績カード・信頼プロフィール） | Phase 3 | ✅ 完了（2026-04-01） | UX-3, UX-4 |
 
 ---
 

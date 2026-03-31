@@ -4,6 +4,7 @@ import type { FanEngagementTimeline } from "@/lib/fanEngagement/engagementTimeli
 
 type Props = {
   loading: boolean;
+  error: string | null;
   data: FanEngagementTimeline | null;
 };
 
@@ -19,7 +20,7 @@ function relativeTime(isoString: string): string {
   return `${months}ヶ月前`;
 }
 
-export function FanEngagementTimelineCard({ loading, data }: Props) {
+export function FanEngagementTimelineCard({ loading, error, data }: Props) {
   if (loading) {
     return (
       <div className="animate-pulse rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
@@ -29,6 +30,15 @@ export function FanEngagementTimelineCard({ loading, data }: Props) {
             <div key={i} className="h-3 w-full rounded bg-[var(--surface-subtle)]" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
+        <div className="mb-2 text-sm font-semibold text-[var(--text)]">応援タイムライン</div>
+        <div className="text-xs text-[var(--text-subtle)]">読み込みに失敗しました。</div>
       </div>
     );
   }
