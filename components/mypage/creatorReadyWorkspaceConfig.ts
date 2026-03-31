@@ -10,7 +10,7 @@ export const CREATOR_READY_WORKSPACE_VIEWS: CreatorReadyWorkspaceConfig[] = [
   {
     id: "daily-work",
     label: "ホーム",
-    description: "AIアシスタントの受信トレイを確認し、下書きを依頼します。",
+    description: "AIマネージャーと今日の優先タスクを確認し、その場で完了します。",
   },
   {
     id: "settings",

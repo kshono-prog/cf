@@ -61,19 +61,32 @@ export function CreatorReadyWorkspaceHeader(props: Props) {
         </div>
       </div>
 
-      <div className="workspace-segment w-full overflow-x-auto">
-        {CREATOR_READY_WORKSPACE_VIEWS.map((view) => (
-          <button
-            key={view.id}
-            type="button"
-            className={`workspace-segment-btn${
-              props.activeView === view.id ? " workspace-segment-btn-active" : ""
-            }`}
-            onClick={() => props.onNavigateToView(view.id)}
-          >
-            {view.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-3">
+        <div className="workspace-segment flex-1 overflow-x-auto">
+          {CREATOR_READY_WORKSPACE_VIEWS.filter((v) => v.id !== "settings").map((view) => (
+            <button
+              key={view.id}
+              type="button"
+              className={`workspace-segment-btn${
+                props.activeView === view.id ? " workspace-segment-btn-active" : ""
+              }`}
+              onClick={() => props.onNavigateToView(view.id)}
+            >
+              {view.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className={`shrink-0 text-xs transition-colors ${
+            props.activeView === "settings"
+              ? "font-semibold text-[var(--text)]"
+              : "text-[var(--text-subtle)] hover:text-[var(--text)]"
+          }`}
+          onClick={() => props.onNavigateToView("settings")}
+        >
+          詳細設定
+        </button>
       </div>
     </div>
   );

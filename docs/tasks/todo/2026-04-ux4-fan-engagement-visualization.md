@@ -1,7 +1,7 @@
 # UX-4: ファン応援可視化
 
 **Phase**: Phase 2
-**Status**: TODO
+**Status**: 完了（2026-04-01）
 **依存**: 既存 Contribution / Post / Reply データ
 
 ---

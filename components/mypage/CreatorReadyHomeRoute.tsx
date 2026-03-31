@@ -54,6 +54,13 @@ import {
   type AiOfficePanelUrlState,
 } from "@/components/mypage/aiOfficePanelUrlState";
 import { buildBasicProfileCompletion } from "@/lib/growth/setup";
+import { deriveGrowthMeterScores } from "@/lib/gamification/growthMeter";
+import { calcXp, calcLevel } from "@/lib/gamification/levelSystem";
+import { GrowthMeterDisplay } from "@/components/mypage/GrowthMeterDisplay";
+import { TodayAchievementCard } from "@/components/mypage/TodayAchievementCard";
+import { useCreatorReadyFanEngagement } from "@/components/mypage/useCreatorReadyFanEngagement";
+import { FanEngagementTimelineCard } from "@/components/mypage/FanEngagementTimelineCard";
+import { FanThankActionCard } from "@/components/mypage/FanThankActionCard";
 import { withBaseUrl } from "@/utils/baseUrl";
 
 const CreatorWorkspaceAiOfficePanel = dynamic(
@@ -174,6 +181,10 @@ export function CreatorReadyHomeRoute(props: Props) {
     isConnected: backgroundInsightsEnabled,
   });
   const { revenueRecords, addRevenueRecord } = useCreatorReadyRevenueRecords({
+    address: backgroundInsightsEnabled ? workspace.address : undefined,
+    isConnected: backgroundInsightsEnabled,
+  });
+  const fanEngagement = useCreatorReadyFanEngagement({
     address: backgroundInsightsEnabled ? workspace.address : undefined,
     isConnected: backgroundInsightsEnabled,
   });
@@ -350,6 +361,18 @@ export function CreatorReadyHomeRoute(props: Props) {
     avatarUrl: workspace.avatarUrl,
     socials: workspace.socials,
   });
+  const approvedTaskCount = aiOfficeSummary.tasks.filter(
+    (t) => t.status === "APPROVED"
+  ).length;
+  const growthMeterScores = deriveGrowthMeterScores({
+    stageData: stageData.data,
+    basicProfileComplete: basicProfileState.complete,
+    hasProject: activeDashboards.length > 0,
+    hasGoal: !goalMissing,
+    approvedTaskCount,
+  });
+  const levelInfo = calcLevel(calcXp(growthMeterScores));
+
   const growthCoach = buildGrowthCoachCard({
     workspaceBasePath: props.workspaceBasePath,
     publicProfileUrl: withBaseUrl(workspace.meCreatorUsername),
@@ -385,8 +408,12 @@ export function CreatorReadyHomeRoute(props: Props) {
           <Link href={conciergeHref} className="btn">
             {conciergeCtaLabel}
           </Link>
-          <button type="button" className="btn-secondary" onClick={props.onOpenSettings}>
-            設定・準備を開く
+          <button
+            type="button"
+            className="text-xs text-[var(--text-subtle)] hover:text-[var(--text)] underline-offset-2 hover:underline transition-colors"
+            onClick={props.onOpenSettings}
+          >
+            詳細設定を開く
           </button>
         </AiConciergeGuideCard>
       ) : null}
@@ -419,6 +446,11 @@ export function CreatorReadyHomeRoute(props: Props) {
         onOpenSettings={props.onOpenSettings}
       />
       <GrowthCoachCard coach={growthCoach} />
+      <TodayAchievementCard
+        levelInfo={levelInfo}
+        displayName={workspace.displayName}
+      />
+      <GrowthMeterDisplay scores={growthMeterScores} />
       <CreatorReadyProjectHealthSection
         projectDashboardsByCurrency={projectDashboardsByCurrency}
         onOpenSettings={props.onOpenSettings}
@@ -458,6 +490,15 @@ export function CreatorReadyHomeRoute(props: Props) {
         error={supporterOverview.error}
         data={supporterOverview.data}
         aiOfficeCreateFanRelationHref={aiOfficeCreateFanRelationHref}
+      />
+      <FanEngagementTimelineCard
+        loading={fanEngagement.loading}
+        data={fanEngagement.data}
+      />
+      <FanThankActionCard
+        thankNeededCount={fanEngagement.data?.thankNeededCount ?? 0}
+        projectId={localProjectId}
+        workspaceBasePath={props.workspaceBasePath}
       />
       <CreatorReadySupporterCrmSection data={supporterCrm.data} />
       <CreatorReadyStageGrowthPlanSection
