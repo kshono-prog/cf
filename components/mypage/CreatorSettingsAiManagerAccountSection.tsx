@@ -30,6 +30,7 @@ import {
   type AiManagerPendingTimelineCardActions,
 } from "@/components/mypage/AiManagerPendingTimelineCard";
 import { AiManagerConnectorHealthDigest } from "@/components/mypage/AiManagerConnectorHealthDigest";
+import { AiManagerRecoveryTrendChart } from "@/components/mypage/AiManagerRecoveryTrendChart";
 import { deriveConnectorHealthDigest } from "@/lib/aiManager/connectorHealthDigest";
 import { deriveAiManagerX402DeliveryEvents } from "@/lib/aiManager/x402DeliveryEvents";
 import { deriveAiManagerX402FollowUps } from "@/lib/aiManager/x402FollowUps";
@@ -1509,6 +1510,14 @@ export function CreatorSettingsAiManagerAccountSection() {
                             <span className="status-badge status-badge-neutral">
                               {X402_FOLLOW_UP_PRIORITY_LABELS[entry.priority]}
                             </span>
+                            {entry.slaBreached ? (
+                              <span className="status-badge status-badge-error">
+                                SLA 超過
+                                {entry.slaAgeHours !== null
+                                  ? ` (${entry.slaAgeHours.toString()}h)`
+                                  : ""}
+                              </span>
+                            ) : null}
                             {entry.routeLabel ? (
                               <span className="status-badge status-badge-neutral">
                                 {entry.routeLabel}
@@ -1567,26 +1576,9 @@ export function CreatorSettingsAiManagerAccountSection() {
                   )}
                 </div>
                 <div className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
-                      recovery summary
-                    </div>
-                    {x402RecoverySummary.recentTrend === "increasing" ? (
-                      <span className="status-badge status-badge-warning">
-                        直近24h 増加中
-                      </span>
-                    ) : x402RecoverySummary.recentTrend === "stable" && x402RecoverySummary.last24hCount > 0 ? (
-                      <span className="status-badge status-badge-neutral">
-                        直近24h {x402RecoverySummary.last24hCount}件
-                      </span>
-                    ) : null}
-                  </div>
-                  {x402RecoveryItems.length === 0 ? (
-                    <div className="mt-2 text-xs leading-5 text-[var(--text-subtle)]">
-                      まだ replay / recovery の記録はありません。
-                    </div>
-                  ) : (
-                    <div className="mt-2 space-y-2">
+                  <AiManagerRecoveryTrendChart summary={x402RecoverySummary} />
+                  {x402RecoveryItems.length > 0 && (
+                    <div className="mt-3 space-y-2">
                       {x402RecoveryItems.map((entry) => (
                         <div
                           key={entry.id}

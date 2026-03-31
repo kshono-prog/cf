@@ -1,5 +1,21 @@
 import { deriveAiManagerPendingX402Queue } from "@/lib/aiManager/pendingQueue";
 import { deriveAiManagerX402ActivityTimeline } from "@/lib/aiManager/x402Timeline";
+import {
+  FAILED_DEFAULT_DETAIL,
+  STALE_PENDING_DEFAULT_DETAIL,
+  UNMATCHED_EVIDENCE_ACTION_LABEL,
+  UNMATCHED_EVIDENCE_ROUTE_LABEL,
+  UNMATCHED_EVIDENCE_TITLE,
+  WATCH_PENDING_DEFAULT_DETAIL,
+  getFailedFollowUpRouteCopy,
+  getFailedTitle,
+  getPendingFollowUpRouteCopy,
+  getStalePendingTitle,
+  getUnmatchedEvidenceDetail,
+  getWatchPendingTitle,
+  SLA_HIGH_HOURS,
+  SLA_MEDIUM_HOURS,
+} from "@/lib/aiManager/followUpCopy";
 import type { SerializedAiManagerAccount } from "@/lib/serializers/aiManager";
 
 export type SerializedAiManagerX402FollowUpPriority = "HIGH" | "MEDIUM";
@@ -22,6 +38,10 @@ export type SerializedAiManagerX402FollowUp = {
   paymentAttemptId: string | null;
   usageId: string | null;
   fundingEvidenceId: string | null;
+  /** SLA 超過かどうか（HIGH: 24h, MEDIUM: 72h）*/
+  slaBreached: boolean;
+  /** 経過時間（時間単位、null = 不明）*/
+  slaAgeHours: number | null;
 };
 
 function buildTaskLabel(taskLabel: string | null, capabilityLabel: string): string {
@@ -47,86 +67,17 @@ function findLatestPaymentAttemptEvent(args: {
   );
 }
 
-function buildPendingFollowUpRoute(args: {
-  lastEventSourceLabel: string | null;
-  deliveryStatus: "NONE" | "ACTIVE" | "WATCH" | "STALE";
-}): {
-  routeLabel: string;
-  actionLabel: string;
-  detail: string | null;
-} {
-  if (args.lastEventSourceLabel === "x402 connector") {
-    return {
-      routeLabel: "x402 connector",
-      actionLabel:
-        args.deliveryStatus === "STALE"
-          ? "connector callback と tx を確認"
-          : "connector callback の継続を確認",
-      detail:
-        args.deliveryStatus === "STALE"
-          ? "connector 側の event はありますが、その後の更新が止まっています。connector callback と settlement 状態を見直してください。"
-          : "connector 側の event は見えています。callback 更新が続くかを確認してください。",
-    };
-  }
-
-  if (args.lastEventSourceLabel === "owner review") {
-    return {
-      routeLabel: "owner review",
-      actionLabel:
-        args.deliveryStatus === "STALE"
-          ? "owner review を完了"
-          : "owner review の要否を確認",
-      detail:
-        args.deliveryStatus === "STALE"
-          ? "owner review 側の確認待ちで止まっている可能性があります。confirm か fail の判断を進めてください。"
-          : "owner review 側の確認が必要かを見直してください。",
-    };
-  }
-
-  return {
-    routeLabel: "billing system",
-    actionLabel:
-      args.deliveryStatus === "STALE"
-        ? "connector 受信状況を確認"
-        : "callback の到着を確認",
-    detail:
-      args.deliveryStatus === "STALE"
-        ? "billing system では開始済みですが、その後の connector activity が見えていません。delivery 経路を確認してください。"
-        : "billing system では開始済みです。connector callback の到着を確認してください。",
-  };
+function computeSlaAgeHours(createdAt: string | null): number | null {
+  if (!createdAt) return null;
+  const ms = Date.now() - new Date(createdAt).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return null;
+  return Math.floor(ms / (60 * 60 * 1000));
 }
 
-function buildFailedFollowUpRoute(args: {
-  latestEventSource: SerializedAiManagerAccount["recentPaymentAttemptEvents"][number]["source"] | null;
-}): {
-  routeLabel: string;
-  actionLabel: string;
-  detail: string | null;
-} {
-  if (args.latestEventSource === "X402_CONNECTOR") {
-    return {
-      routeLabel: "x402 connector",
-      actionLabel: "connector failure と pause を確認",
-      detail:
-        "connector から failed が返っています。connector failure と billing pause の両方を確認してください。",
-    };
-  }
-
-  if (args.latestEventSource === "OWNER_REVIEW") {
-    return {
-      routeLabel: "owner review",
-      actionLabel: "owner review と pause を確認",
-      detail:
-        "owner review で failed として記録されています。failure の妥当性と billing pause を確認してください。",
-    };
-  }
-
-  return {
-    routeLabel: "billing system",
-    actionLabel: "billing state と pause を確認",
-    detail:
-      "billing system 側で failed が記録されています。failure reason と billing pause を確認してください。",
-  };
+function isSlaBreached(priority: SerializedAiManagerX402FollowUpPriority, ageHours: number | null): boolean {
+  if (ageHours === null) return false;
+  const threshold = priority === "HIGH" ? SLA_HIGH_HOURS : SLA_MEDIUM_HOURS;
+  return ageHours >= threshold;
 }
 
 export function deriveAiManagerX402FollowUps(
@@ -142,18 +93,20 @@ export function deriveAiManagerX402FollowUps(
 
   for (const entry of pendingQueue.filter((item) => item.deliveryStatus === "STALE")) {
     const label = buildTaskLabel(entry.taskLabel, entry.capabilityLabel);
-    const route = buildPendingFollowUpRoute({
+    const route = getPendingFollowUpRouteCopy({
       lastEventSourceLabel: entry.lastEventSourceLabel,
-      deliveryStatus: entry.deliveryStatus,
+      isStale: true,
     });
+    const ageHours = computeSlaAgeHours(entry.createdAt);
+    const priority: SerializedAiManagerX402FollowUpPriority = "HIGH";
     followUps.push({
       id: `stale:${entry.paymentAttemptId}`,
       kind: "STALE_PENDING_X402",
-      priority: "HIGH",
-      title: `${label} の x402 が長時間滞留しています`,
+      priority,
+      title: getStalePendingTitle(label),
       detail: mergeFollowUpDetail(
         route.detail,
-        entry.deliveryHint ?? "connector callback と owner 確認の両方を見直してください。"
+        entry.deliveryHint ?? STALE_PENDING_DEFAULT_DETAIL
       ),
       actionLabel: route.actionLabel,
       routeLabel: route.routeLabel,
@@ -161,6 +114,8 @@ export function deriveAiManagerX402FollowUps(
       paymentAttemptId: entry.paymentAttemptId,
       usageId: entry.usageId,
       fundingEvidenceId: null,
+      slaBreached: isSlaBreached(priority, ageHours),
+      slaAgeHours: ageHours,
     });
   }
 
@@ -170,18 +125,19 @@ export function deriveAiManagerX402FollowUps(
       account,
       paymentAttemptId: entry.paymentAttemptId,
     });
-    const route = buildFailedFollowUpRoute({
+    const route = getFailedFollowUpRouteCopy({
       latestEventSource: latestEvent?.source ?? null,
     });
+    const ageHours = computeSlaAgeHours(entry.eventAt);
+    const priority: SerializedAiManagerX402FollowUpPriority = "HIGH";
     followUps.push({
       id: `failed:${entry.paymentAttemptId}`,
       kind: "FAILED_X402",
-      priority: "HIGH",
-      title: `${label} の x402 が失敗として記録されています`,
+      priority,
+      title: getFailedTitle(label),
       detail: mergeFollowUpDetail(
         route.detail,
-        entry.failureReason ??
-          "pause reason と settlement 状態を確認して、再開条件を整えてください。"
+        entry.failureReason ?? FAILED_DEFAULT_DETAIL
       ),
       actionLabel: route.actionLabel,
       routeLabel: route.routeLabel,
@@ -189,6 +145,8 @@ export function deriveAiManagerX402FollowUps(
       paymentAttemptId: entry.paymentAttemptId,
       usageId: entry.usageId,
       fundingEvidenceId: null,
+      slaBreached: isSlaBreached(priority, ageHours),
+      slaAgeHours: ageHours,
     });
   }
 
@@ -196,21 +154,22 @@ export function deriveAiManagerX402FollowUps(
     (item) =>
       item.matchedBudgetTransactionId == null && item.status !== "REJECTED"
   )) {
+    const ageHours = computeSlaAgeHours(entry.createdAt);
+    const priority: SerializedAiManagerX402FollowUpPriority = "MEDIUM";
     followUps.push({
       id: `evidence:${entry.id}`,
       kind: "UNMATCHED_FUNDING_EVIDENCE",
-      priority: "MEDIUM",
-      title: "top-up evidence が ledger に未照合です",
-      detail:
-        account.reconciliation.unmatchedFundingEvidenceCount > 1
-          ? `${account.reconciliation.unmatchedFundingEvidenceCount}件の evidence が未照合です。owner-operated top-up と紐づけてください。`
-          : "owner-operated top-up と紐づけて、budget 残高の監査線をそろえてください。",
-      actionLabel: "ledger top-up と照合",
-      routeLabel: "funding evidence",
+      priority,
+      title: UNMATCHED_EVIDENCE_TITLE,
+      detail: getUnmatchedEvidenceDetail(account.reconciliation.unmatchedFundingEvidenceCount),
+      actionLabel: UNMATCHED_EVIDENCE_ACTION_LABEL,
+      routeLabel: UNMATCHED_EVIDENCE_ROUTE_LABEL,
       createdAt: entry.createdAt,
       paymentAttemptId: null,
       usageId: null,
       fundingEvidenceId: entry.id,
+      slaBreached: isSlaBreached(priority, ageHours),
+      slaAgeHours: ageHours,
     });
   }
 
@@ -220,18 +179,20 @@ export function deriveAiManagerX402FollowUps(
   ) {
     for (const entry of pendingQueue.filter((item) => item.deliveryStatus === "WATCH")) {
       const label = buildTaskLabel(entry.taskLabel, entry.capabilityLabel);
-      const route = buildPendingFollowUpRoute({
+      const route = getPendingFollowUpRouteCopy({
         lastEventSourceLabel: entry.lastEventSourceLabel,
-        deliveryStatus: entry.deliveryStatus,
+        isStale: false,
       });
+      const ageHours = computeSlaAgeHours(entry.createdAt);
+      const priority: SerializedAiManagerX402FollowUpPriority = "MEDIUM";
       followUps.push({
         id: `watch:${entry.paymentAttemptId}`,
         kind: "WATCH_PENDING_X402",
-        priority: "MEDIUM",
-        title: `${label} の x402 がやや滞留しています`,
+        priority,
+        title: getWatchPendingTitle(label),
         detail: mergeFollowUpDetail(
           route.detail,
-          entry.deliveryHint ?? "callback 到着まで待つか、connector delivery を確認してください。"
+          entry.deliveryHint ?? WATCH_PENDING_DEFAULT_DETAIL
         ),
         actionLabel: route.actionLabel,
         routeLabel: route.routeLabel,
@@ -239,6 +200,8 @@ export function deriveAiManagerX402FollowUps(
         paymentAttemptId: entry.paymentAttemptId,
         usageId: entry.usageId,
         fundingEvidenceId: null,
+        slaBreached: isSlaBreached(priority, ageHours),
+        slaAgeHours: ageHours,
       });
     }
   }

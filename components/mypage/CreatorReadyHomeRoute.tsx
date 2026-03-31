@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { AiConciergeGuideCard } from "@/components/mypage/AiConciergeGuideCard";
+import { AiManagerTop3Section } from "@/components/mypage/AiManagerTop3Section";
+import { deriveTop3Tasks } from "@/lib/aiManager/top3Tasks";
 import { CreatorReadyAiManagerSection } from "@/components/mypage/CreatorReadyAiManagerSection";
 import { CreatorReadyDailyBriefingHero } from "@/components/mypage/CreatorReadyDailyBriefingHero";
 import { CreatorReadyGrowthReflectionSection } from "@/components/mypage/CreatorReadyGrowthReflectionSection";
@@ -326,6 +328,22 @@ export function CreatorReadyHomeRoute(props: Props) {
             body: "最初の投稿があるだけで、活動が止まっていないことが伝わりやすくなります。",
           },
         ];
+  const top3Tasks = deriveTop3Tasks({
+    profileMissing,
+    goalMissing,
+    settlementAttentionNeeded,
+    waitingApprovalCount: aiOfficeSummary.usefulness.waitingApprovalCount,
+    postCount: homeStats.postCount,
+    avgProgressPct: homeStats.avgProgressPct,
+    hrefs: {
+      settings: props.onOpenSettings,
+      aiOfficeInbox: aiOfficeInboxHref,
+      aiOfficeCreatePromotion: aiOfficeCreatePromotionHref,
+      aiOfficeCreateManager: aiOfficeCreateManagerHref,
+      publicProfile: withBaseUrl(workspace.meCreatorUsername),
+    },
+  });
+
   const basicProfileState = buildBasicProfileCompletion({
     displayName: workspace.displayName,
     profile: workspace.profile,
@@ -372,6 +390,19 @@ export function CreatorReadyHomeRoute(props: Props) {
           </button>
         </AiConciergeGuideCard>
       ) : null}
+      <AiManagerTop3Section
+        tasks={top3Tasks}
+        loading={aiOfficeSummary.loading || homeStats.loadingPosting}
+        onOpenSettings={props.onOpenSettings}
+        inlineContext={{
+          address: workspace.address,
+          username: workspace.meCreatorUsername,
+          displayName: workspace.displayName,
+          profile: workspace.profile,
+          projectId: localProjectId,
+          publicPageUrl: withBaseUrl(workspace.meCreatorUsername),
+        }}
+      />
       <CreatorReadyDailyBriefingHero
         creatorName={workspace.displayName || workspace.meCreatorUsername}
         aiOfficeHref={aiOfficeHref}

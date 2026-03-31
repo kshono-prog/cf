@@ -3,8 +3,9 @@
 ## Current Focus
 
 - **Direction Sync 完了**: Vision / Constitution / Roadmap / responsibility boundaries / Creator Home / Manager Desk / data models の文書化が揃った
-- **Next Build Phase**: 人間中心の運営OSの土台を実装へ移す — `Meeting / Planner / follow-up minimum` は実装済み。次は structured context を使う AI operational assistance
+- **Next Build Phase**: 行動中心 UX への移行フェーズ — 「AIマネージャーを呼ぶ」ボタン + インライン完結 UI の MVP 実装
 - **Planning Baseline**: 短期・中期・長期の実行計画は [Execution Plan](/Users/shounokazuaki/cf/docs/roadmap/execution-plan.md) を基準にする
+- **Action-Centric UX 計画**: [docs/tasks/todo/2026-04-action-centric-ux-plan.md](/Users/shounokazuaki/cf/docs/tasks/todo/2026-04-action-centric-ux-plan.md)
 
 ## Recommended Next Execution Order
 
@@ -13,6 +14,25 @@
 3. ~~Meeting 決定事項を structured task に落とす minimum flow~~ 完了
 4. ~~Trust / Stage / CRM groundwork~~ 完了
 5. ~~lightweight CRM polish over status / next action / temperature~~ 完了
+
+## Track 9 — Action-Centric UX（行動中心 UI への移行）
+
+コンセプト: [ai-manager-action-centric-ux.md](/Users/shounokazuaki/cf/docs/specs/ux/ai-manager-action-centric-ux.md)
+実行計画: [2026-04-action-centric-ux-plan.md](/Users/shounokazuaki/cf/docs/tasks/todo/2026-04-action-centric-ux-plan.md)
+
+#### MVP（4月）
+- 完了: `UX-1` AIマネージャー呼び出しボタン & Top3 タスク表示
+- TODO: `UX-2` インライン実行 UI（その場完結・最低 2 種類）
+
+#### Phase 2（5〜6月）
+- TODO: `UX-3` 完了演出・ゲーミフィケーション基盤（XP / ストリーク / 5軸成長メーター）
+- TODO: `UX-4` ファン応援可視化（タイムライン / ヒートマップ / ハイライト要約）
+- TODO: `UX-5` 設定画面の段階的非表示（Phase 1: 導線を弱める）
+
+#### Phase 3（7月以降）
+- TODO: `UX-6` 仕事接続（実績カード / 信頼プロフィール / 応募文下書き / 月次レポート）
+
+---
 
 ## Active Tracks
 
@@ -117,6 +137,12 @@ Track 8-J — AI Manager Account rollout
 #### 4月 — 運用可視化の仕上げ
 
 - 完了: `AM-31` Pending Timeline Card（owner-facing）— PENDING_OBSERVED を含む pending イベントを時系列カード化。`lib/aiManager/pendingTimeline.ts` + `AiManagerPendingTimelineCard` を新設し、Settings / AI Office 共通で使用。pending age と event freshness を同一カードで把握できる。
+
+- 完了: `AM-32` Recovery Trend Mini-Chart — recovery summary を 7日/30日の期間別に可視化。`x402RecoverySummary.ts` に `last7d` / `last30d` を追加し、`AiManagerRecoveryTrendChart` で期間切替 + source 別 CSS バーを表示。Settings / AI Office の recovery summary を置き換え。
+
+- 完了: `AM-33` Follow-up Copy Normalization — `lib/aiManager/followUpCopy.ts` に文言辞書を一元化。`x402FollowUps.ts` のインライン文言をすべて辞書参照に変更。source-aware guidance（connector / owner review / funding evidence）を維持しつつ Home / Settings / AI Office で統一。
+
+- 完了: `AM-36`（consol.txt）Owner Follow-up Queue SLA — `x402FollowUps.ts` に `slaBreached` / `slaAgeHours` を追加（HIGH=24h / MEDIUM=72h）。Settings / AI Office の follow-up カードに「SLA 超過 (Nh)」バッジを表示。`followUpCopy.ts` に定数として定義。
 
 #### 5月 — 運用アクション接続
 

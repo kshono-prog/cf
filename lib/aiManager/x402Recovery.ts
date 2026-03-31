@@ -51,13 +51,9 @@ function buildRecoveredAfterFailureItem(args: {
   };
 }
 
-export function deriveAiManagerX402RecoveryItems(
-  account: Pick<SerializedAiManagerAccount, "recentPaymentAttemptEvents"> | null
+function buildAllRecoveryItems(
+  account: Pick<SerializedAiManagerAccount, "recentPaymentAttemptEvents">
 ): SerializedAiManagerX402RecoveryItem[] {
-  if (!account) {
-    return [];
-  }
-
   const x402Events = account.recentPaymentAttemptEvents
     .filter((entry) => entry.rail === "X402")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -96,7 +92,23 @@ export function deriveAiManagerX402RecoveryItems(
     }
   }
 
-  return [...replayItems, ...recoveredItems]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 4);
+  return [...replayItems, ...recoveredItems].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
+}
+
+export function deriveAllAiManagerX402RecoveryItems(
+  account: Pick<SerializedAiManagerAccount, "recentPaymentAttemptEvents"> | null
+): SerializedAiManagerX402RecoveryItem[] {
+  if (!account) return [];
+  return buildAllRecoveryItems(account);
+}
+
+export function deriveAiManagerX402RecoveryItems(
+  account: Pick<SerializedAiManagerAccount, "recentPaymentAttemptEvents"> | null
+): SerializedAiManagerX402RecoveryItem[] {
+  if (!account) {
+    return [];
+  }
+  return buildAllRecoveryItems(account).slice(0, 4);
 }

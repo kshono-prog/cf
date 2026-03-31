@@ -130,7 +130,7 @@ export const AI_MANAGER_ACCOUNT_SELECT = {
     orderBy: {
       createdAt: "desc",
     },
-    take: 8,
+    take: 100,
     select: {
       id: true,
       source: true,

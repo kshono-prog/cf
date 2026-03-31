@@ -16,6 +16,8 @@ import { deriveConnectorHealthDigest } from "@/lib/aiManager/connectorHealthDige
 import { deriveAiManagerX402FollowUps } from "@/lib/aiManager/x402FollowUps";
 import { deriveAiManagerX402RecoveryItems } from "@/lib/aiManager/x402Recovery";
 import { deriveAiManagerX402ActivityTimeline } from "@/lib/aiManager/x402Timeline";
+import { AiManagerRecoveryTrendChart } from "@/components/mypage/AiManagerRecoveryTrendChart";
+import { deriveAiManagerX402RecoverySummary } from "@/lib/aiManager/x402RecoverySummary";
 import type { CreatorAiAgentRole } from "@/lib/creator-ai/agentRoleRegistry";
 import type { SerializedAiManagerAccount } from "@/lib/serializers/aiManager";
 import {
@@ -265,6 +267,9 @@ export function AiOfficeOverviewSection(props: Props) {
   const connectorHealthDigest = deriveConnectorHealthDigest(props.aiManagerAccount);
   const x402FollowUps = deriveAiManagerX402FollowUps(props.aiManagerAccount);
   const x402RecoveryItems = deriveAiManagerX402RecoveryItems(
+    props.aiManagerAccount
+  );
+  const x402RecoverySummary = deriveAiManagerX402RecoverySummary(
     props.aiManagerAccount
   );
   const recentX402DeliveryEvents = deriveAiManagerX402DeliveryEvents(
@@ -728,6 +733,14 @@ export function AiOfficeOverviewSection(props: Props) {
                         <span className="status-badge status-badge-neutral">
                           {X402_FOLLOW_UP_PRIORITY_LABELS[entry.priority]}
                         </span>
+                        {entry.slaBreached ? (
+                          <span className="status-badge status-badge-error">
+                            SLA 超過
+                            {entry.slaAgeHours !== null
+                              ? ` (${entry.slaAgeHours.toString()}h)`
+                              : ""}
+                          </span>
+                        ) : null}
                         {entry.routeLabel ? (
                           <span className="status-badge status-badge-neutral">
                             {entry.routeLabel}
@@ -876,14 +889,8 @@ export function AiOfficeOverviewSection(props: Props) {
             </div>
 
             <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-                recovery summary
-              </div>
-              {x402RecoveryItems.length === 0 ? (
-                <div className="mt-2 text-sm text-[var(--text-subtle)]">
-                  まだ replay / recovery はありません。
-                </div>
-              ) : (
+              <AiManagerRecoveryTrendChart summary={x402RecoverySummary} />
+              {x402RecoveryItems.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {x402RecoveryItems.slice(0, 3).map((entry) => (
                     <div
