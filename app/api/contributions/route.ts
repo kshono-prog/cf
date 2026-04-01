@@ -15,6 +15,7 @@ import {
   isUuidString,
 } from "@/lib/social";
 import { recordFirstTipReceivedIfNeeded } from "@/lib/growth/firstTip";
+import { awardExpFireAndForget } from "@/lib/rpg/awardExpHelper";
 import { getRpcUrl as getRpcUrlFromLib } from "../_lib/chain";
 import {
   createPublicClient,
@@ -598,6 +599,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       } catch (error) {
         console.warn("FIRST_TIP_RECEIVED_TRACK_FAILED", error);
       }
+      // RPG: award SUPPORT_CREATED EXP (fire-and-forget)
+      void (async () => {
+        try {
+          const supporterProfile = await prisma.creatorProfile.findUnique({
+            where: { walletAddress: parsed.from.toLowerCase() },
+            select: { id: true },
+          });
+          if (supporterProfile) {
+            const [totalCount, sameProjectCount] = await Promise.all([
+              prisma.contribution.count({
+                where: { fromAddress: parsed.from.toLowerCase(), status: "CONFIRMED" },
+              }),
+              prisma.contribution.count({
+                where: { fromAddress: parsed.from.toLowerCase(), projectId: result.row.projectId, status: "CONFIRMED" },
+              }),
+            ]);
+            const isFirstSupport = totalCount === 1;
+            awardExpFireAndForget({
+              creatorProfileId: supporterProfile.id,
+              eventType: "SUPPORT_CREATED",
+              occurredAt: now,
+              idempotencyKey: `support:${result.row.id}`,
+              payloadJson: { projectId: String(result.row.projectId), isFirstSupport },
+            });
+            const { evaluateBadgesAfterSupport } = await import("@/lib/rpg/badgeService");
+            void evaluateBadgesAfterSupport(supporterProfile.id, result.row.projectId, totalCount, sameProjectCount).catch(() => {});
+          }
+        } catch (e) {
+          console.warn("[RPG] support EXP award failed", e);
+        }
+      })();
     }
 
     return okJson({

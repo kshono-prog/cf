@@ -7,6 +7,7 @@ import {
   createOwnerSession,
   issueOwnerAuthNonce,
 } from "@/lib/ownerAuthSession";
+import { prisma } from "@/lib/prisma";
 
 export type OwnerAuthNonceRouteDeps = {
   issueOwnerAuthNonce?: typeof issueOwnerAuthNonce;
@@ -61,6 +62,29 @@ export async function handleOwnerAuthSessionPost(
       expiresAt: result.expiresAt.toISOString(),
     });
     (deps.applyOwnerSessionCookie ?? applyOwnerSessionCookie)(response, result);
+
+    // RPG: award LOGIN_DAILY EXP (fire-and-forget)
+    void (async () => {
+      try {
+        const profile = await prisma.creatorProfile.findUnique({
+          where: { walletAddress: result.address },
+          select: { id: true },
+        });
+        if (profile) {
+          const { awardExpFireAndForget } = await import("./rpg/awardExpHelper");
+          awardExpFireAndForget({
+            creatorProfileId: profile.id,
+            eventType: "LOGIN_DAILY",
+            occurredAt: new Date(),
+            idempotencyKey: `login:${profile.id}:${new Date().toISOString().slice(0, 10)}`,
+            payloadJson: {},
+          });
+        }
+      } catch (e) {
+        console.warn("[RPG] login EXP award failed", e);
+      }
+    })();
+
     return response;
   } catch (error) {
     console.error("OWNER_AUTH_SESSION_POST_FAILED", error);

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { errJson, okJson } from "@/lib/api/responses";
 import { findCreatorByWalletAddress, isUuidString } from "@/lib/social";
 import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
+import { awardExpFireAndForget } from "@/lib/rpg/awardExpHelper";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export async function POST(
         return {
           liked: true,
           likeCount: currentPost?.likeCount ?? 0,
+          isNew: false,
         };
       }
 
@@ -79,8 +81,19 @@ export async function POST(
       return {
         liked: true,
         likeCount: updatedPost.likeCount,
+        isNew: true,
       };
     });
+
+    if (result.isNew) {
+      awardExpFireAndForget({
+        creatorProfileId: creator.id,
+        eventType: "REACTION_ADDED",
+        occurredAt: now,
+        idempotencyKey: `like:${postId}:${creator.id}`,
+        payloadJson: { postId },
+      });
+    }
 
     return okJson({
       postId,

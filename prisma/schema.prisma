@@ -56,6 +56,12 @@ model CreatorProfile {
   followingRelations  CreatorFollow[]         @relation("CreatorFollowing")
   followerRelations   CreatorFollow[]         @relation("CreatorFollowers")
   projectMembers      ProjectMember[]
+  rpgProfile          UserRpgProfile?
+  rpgExpEvents        RpgExpEvent[]
+  rpgDailyExpSummaries RpgDailyExpSummary[]
+  rpgBadges           UserRpgBadge[]
+  rpgTitles           UserRpgTitle[]
+  rpgActivityLogs     RpgActivityLog[]
 }
 
 model CreatorFollow {
@@ -1205,6 +1211,126 @@ model BudgetItem {
   @@index([projectId, orderIndex])
 }
 
+// ===== RPG Profile =====
+
+model UserRpgProfile {
+  id                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId       BigInt         @unique
+  level                  Int            @default(1)
+  currentExp             Int            @default(0)
+  totalExp               Int            @default(0)
+  currentTitleCode       String?
+  showLevel              Boolean        @default(true)
+  showTotalSupportAmount Boolean        @default(false)
+  showActivityLog        Boolean        @default(true)
+  showBadges             Boolean        @default(true)
+  createdAt              DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime       @default(now()) @db.Timestamptz(6)
+  creatorProfile         CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([level], map: "UserRpgProfile_level_idx")
+}
+
+model RpgLevelRequirement {
+  level       Int      @id
+  requiredExp Int
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model RpgExpRule {
+  eventType       String   @id
+  baseExp         Int
+  dailyLimitCount Int?
+  enabled         Boolean  @default(true)
+  description     String
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model RpgExpEvent {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  eventType        String
+  awardedExp       Int
+  occurredAt       DateTime       @db.Timestamptz(6)
+  idempotencyKey   String         @unique
+  payloadJson      Json           @default("{}")
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([creatorProfileId, occurredAt(sort: Desc)], map: "RpgExpEvent_user_occurred_idx")
+}
+
+model RpgDailyExpSummary {
+  creatorProfileId BigInt
+  date             DateTime       @db.Date
+  awardedExp       Int            @default(0)
+  updatedAt        DateTime       @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([creatorProfileId, date])
+}
+
+model RpgBadge {
+  badgeCode       String         @id
+  nameJa          String
+  descriptionJa   String
+  conditionTextJa String
+  rarity          RpgBadgeRarity @default(COMMON)
+  sortOrder       Int            @default(0)
+  enabled         Boolean        @default(true)
+  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime       @default(now()) @db.Timestamptz(6)
+  userBadges      UserRpgBadge[]
+}
+
+model UserRpgBadge {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  badgeCode        String
+  earnedAt         DateTime       @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  badge            RpgBadge       @relation(fields: [badgeCode], references: [badgeCode], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([creatorProfileId, badgeCode], map: "UserRpgBadge_user_badge_key")
+  @@index([creatorProfileId, earnedAt(sort: Desc)], map: "UserRpgBadge_user_earned_idx")
+}
+
+model RpgTitle {
+  titleCode     String         @id
+  nameJa        String
+  descriptionJa String
+  unlockLevel   Int?
+  enabled       Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime       @default(now()) @db.Timestamptz(6)
+  userTitles    UserRpgTitle[]
+}
+
+model UserRpgTitle {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  titleCode        String
+  unlockedAt       DateTime       @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  title            RpgTitle       @relation(fields: [titleCode], references: [titleCode], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([creatorProfileId, titleCode], map: "UserRpgTitle_user_title_key")
+}
+
+model RpgActivityLog {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorProfileId BigInt
+  eventType        String
+  messageJa        String
+  metadataJson     Json           @default("{}")
+  occurredAt       DateTime       @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([creatorProfileId, occurredAt(sort: Desc)], map: "RpgActivityLog_user_occurred_idx")
+}
+
 enum ProjectSettlementStatus {
   NOT_READY
   BRIDGING
@@ -1510,4 +1636,23 @@ enum CctpBridgeJobStatus {
   MINT_SUBMITTED
   COMPLETED
   FAILED
+}
+
+enum RpgBadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum RpgEventType {
+  LOGIN_DAILY
+  PROJECT_VIEWED
+  SUPPORT_CREATED
+  COMMENT_CREATED
+  REACTION_ADDED
+  SUPPORT_STREAK_BONUS
+  SUPPORTED_PROJECT_GOAL_REACHED
+  LEVEL_UP
+  BADGE_EARNED
 }

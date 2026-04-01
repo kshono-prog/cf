@@ -12,6 +12,7 @@ import {
   toNullableUuidString,
 } from "@/lib/social";
 import { requireOwnerSessionFromBody } from "@/lib/ownerAuthSession";
+import { awardExpFireAndForget } from "@/lib/rpg/awardExpHelper";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -128,6 +129,14 @@ export async function POST(
         reply,
         replyCount: updatedPost.replyCount,
       };
+    });
+
+    awardExpFireAndForget({
+      creatorProfileId: creator.id,
+      eventType: "COMMENT_CREATED",
+      occurredAt: now,
+      idempotencyKey: `reply:${result.reply.id}`,
+      payloadJson: { postId, replyId: result.reply.id },
     });
 
     return okJson({
