@@ -18,7 +18,15 @@ function parseFanEngagementResponse(value: unknown): FanEngagementTimeline | nul
   if (!Array.isArray(value.recentContributions)) return null;
   if (typeof value.thankNeededCount !== "number") return null;
   if (value.weekHighlight !== null && typeof value.weekHighlight !== "string") return null;
-  return value as unknown as FanEngagementTimeline;
+  const heatmap =
+    Array.isArray(value.heatmap) ? (value.heatmap as FanEngagementTimeline["heatmap"]) : null;
+  const peakWeekday =
+    typeof value.peakWeekday === "number" ? value.peakWeekday : null;
+  return {
+    ...(value as unknown as FanEngagementTimeline),
+    heatmap,
+    peakWeekday,
+  };
 }
 
 export function useCreatorReadyFanEngagement(args: {

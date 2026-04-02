@@ -8,6 +8,7 @@ import {
 import { requireOwnerSessionFromSearchParams } from "@/lib/ownerAuthSession";
 import { prisma } from "@/lib/prisma";
 import type { FanEngagementTimeline } from "@/lib/fanEngagement/engagementTimeline";
+import { buildEngagementHeatmap } from "@/lib/fanEngagement/engagementHeatmap";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,6 +49,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         totalContributorCount: 0,
         weekHighlight: null,
         thankNeededCount: 0,
+        heatmap: null,
+        peakWeekday: null,
         generatedAt: new Date().toISOString(),
       };
       return okJson({ ...empty, ok: true });
@@ -105,11 +108,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       (c) => c.confirmedAt && c.confirmedAt >= thirtyDaysAgo
     ).length;
 
+    const allDates = (contributions as ContributionRow[])
+      .filter((c) => c.confirmedAt != null)
+      .map((c) => (c.confirmedAt as Date).toISOString());
+    const heatmapResult = buildEngagementHeatmap(allDates);
+
     const result: FanEngagementTimeline = {
       recentContributions,
       totalContributorCount,
       weekHighlight,
       thankNeededCount,
+      heatmap: heatmapResult.totalCount > 0 ? heatmapResult.weekdayData : null,
+      peakWeekday: heatmapResult.peakWeekday,
       generatedAt: new Date().toISOString(),
     };
 

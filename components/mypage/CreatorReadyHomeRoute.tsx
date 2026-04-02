@@ -56,10 +56,13 @@ import {
 import { buildBasicProfileCompletion } from "@/lib/growth/setup";
 import { deriveGrowthMeterScores } from "@/lib/gamification/growthMeter";
 import { calcXp, calcLevel } from "@/lib/gamification/levelSystem";
+import { calcDailyStreak } from "@/lib/gamification/streakCalc";
 import { GrowthMeterDisplay } from "@/components/mypage/GrowthMeterDisplay";
 import { TodayAchievementCard } from "@/components/mypage/TodayAchievementCard";
+import { AiManagerStreakCard } from "@/components/mypage/AiManagerStreakCard";
 import { useCreatorReadyFanEngagement } from "@/components/mypage/useCreatorReadyFanEngagement";
 import { FanEngagementTimelineCard } from "@/components/mypage/FanEngagementTimelineCard";
+import { FanEngagementHeatmapCard } from "@/components/mypage/FanEngagementHeatmapCard";
 import { FanThankActionCard } from "@/components/mypage/FanThankActionCard";
 import { AchievementCard } from "@/components/mypage/AchievementCard";
 import { withBaseUrl } from "@/utils/baseUrl";
@@ -373,6 +376,11 @@ export function CreatorReadyHomeRoute(props: Props) {
     approvedTaskCount,
   });
   const levelInfo = calcLevel(calcXp(growthMeterScores));
+  const streakInfo = calcDailyStreak(
+    aiOfficeSummary.tasks
+      .filter((t) => t.status === "APPROVED")
+      .map((t) => t.approvedAt)
+  );
 
   const growthCoach = buildGrowthCoachCard({
     workspaceBasePath: props.workspaceBasePath,
@@ -451,6 +459,7 @@ export function CreatorReadyHomeRoute(props: Props) {
         levelInfo={levelInfo}
         displayName={workspace.displayName}
       />
+      <AiManagerStreakCard streak={streakInfo} />
       <GrowthMeterDisplay scores={growthMeterScores} />
       <AchievementCard
         displayName={workspace.displayName}
@@ -504,6 +513,10 @@ export function CreatorReadyHomeRoute(props: Props) {
         loading={fanEngagement.loading}
         error={fanEngagement.error}
         data={fanEngagement.data}
+      />
+      <FanEngagementHeatmapCard
+        heatmap={fanEngagement.data?.heatmap ?? null}
+        peakWeekday={fanEngagement.data?.peakWeekday ?? null}
       />
       <FanThankActionCard
         thankNeededCount={fanEngagement.data?.thankNeededCount ?? 0}

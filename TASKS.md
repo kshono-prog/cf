@@ -3,7 +3,7 @@
 ## Current Focus
 
 - **Direction Sync 完了**: Vision / Constitution / Roadmap / responsibility boundaries / Creator Home / Manager Desk / data models の文書化が揃った
-- **Next Build Phase**: 行動中心 UX への移行フェーズ — 「AIマネージャーを呼ぶ」ボタン + インライン完結 UI の MVP 実装
+- **Track 9 完了**: Action-Centric UX（UX-1〜UX-6）すべて実装済み
 - **Planning Baseline**: 短期・中期・長期の実行計画は [Execution Plan](/Users/shounokazuaki/cf/docs/roadmap/execution-plan.md) を基準にする
 - **Action-Centric UX 計画**: [docs/tasks/todo/2026-04-action-centric-ux-plan.md](/Users/shounokazuaki/cf/docs/tasks/todo/2026-04-action-centric-ux-plan.md)
 
@@ -22,15 +22,15 @@
 
 #### MVP（4月）
 - 完了: `UX-1` AIマネージャー呼び出しボタン & Top3 タスク表示
-- TODO: `UX-2` インライン実行 UI（その場完結・最低 2 種類）
+- 完了: `UX-2` インライン実行 UI（その場完結・最低 2 種類）
 
 #### Phase 2（5〜6月）
-- TODO: `UX-3` 完了演出・ゲーミフィケーション基盤（XP / ストリーク / 5軸成長メーター）
-- TODO: `UX-4` ファン応援可視化（タイムライン / ヒートマップ / ハイライト要約）
-- TODO: `UX-5` 設定画面の段階的非表示（Phase 1: 導線を弱める）
+- 完了: `UX-3` 完了演出・ゲーミフィケーション基盤（XP / ストリーク / 5軸成長メーター）
+- 完了: `UX-4` ファン応援可視化（タイムライン / ヒートマップ / ハイライト要約）
+- 完了: `UX-5` 設定画面の段階的非表示（Phase 1: 導線を弱める）
 
 #### Phase 3（7月以降）
-- TODO: `UX-6` 仕事接続（実績カード / 信頼プロフィール / 応募文下書き / 月次レポート）
+- 完了: `UX-6` 仕事接続（実績カード / 信頼プロフィール / 応募文下書き / 月次レポート）
 
 ---
 
