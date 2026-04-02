@@ -58,7 +58,7 @@ export function CreatorStageCard({ credibility }: Props) {
               className={[
                 "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
                 isActive
-                  ? "bg-[var(--text)] text-[var(--surface)]"
+                  ? "bg-[var(--accent)] text-white"
                   : isPast
                     ? "bg-[var(--surface-muted)] text-[var(--text-subtle)] line-through"
                     : "border border-[var(--line)] bg-transparent text-[var(--text-subtle)]",

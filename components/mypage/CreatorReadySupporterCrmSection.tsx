@@ -128,9 +128,7 @@ export function CreatorReadySupporterCrmSection(props: Props) {
         <button
           type="button"
           className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-            sortKey === "recent"
-              ? "bg-[var(--text)] text-[var(--surface)]"
-              : "bg-[var(--surface-subtle)] text-[var(--text-subtle)]"
+            sortKey === "recent" ? "segment-active" : "segment-inactive"
           }`}
           onClick={() => setSortKey("recent")}
         >
@@ -139,9 +137,7 @@ export function CreatorReadySupporterCrmSection(props: Props) {
         <button
           type="button"
           className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-            sortKey === "count"
-              ? "bg-[var(--text)] text-[var(--surface)]"
-              : "bg-[var(--surface-subtle)] text-[var(--text-subtle)]"
+            sortKey === "count" ? "segment-active" : "segment-inactive"
           }`}
           onClick={() => setSortKey("count")}
         >
@@ -150,9 +146,7 @@ export function CreatorReadySupporterCrmSection(props: Props) {
         <button
           type="button"
           className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-            sortKey === "trust"
-              ? "bg-[var(--text)] text-[var(--surface)]"
-              : "bg-[var(--surface-subtle)] text-[var(--text-subtle)]"
+            sortKey === "trust" ? "segment-active" : "segment-inactive"
           }`}
           onClick={() => setSortKey("trust")}
         >

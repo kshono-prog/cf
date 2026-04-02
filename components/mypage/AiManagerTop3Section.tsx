@@ -73,8 +73,8 @@ export function AiManagerTop3Section({ tasks, loading, onOpenSettings, inlineCon
             onClick={() => setOpen((v) => !v)}
             className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
               open
-                ? "bg-[var(--line)] text-[var(--text-subtle)]"
-                : "bg-[var(--text)] text-[var(--bg)] hover:opacity-90"
+                ? "btn-secondary rounded-full"
+                : "btn rounded-full"
             }`}
           >
             {loading ? "読み込み中..." : open ? "閉じる" : "呼ぶ ✦"}
@@ -83,11 +83,11 @@ export function AiManagerTop3Section({ tasks, loading, onOpenSettings, inlineCon
 
         {/* 完了トースト */}
         {toast ? (
-          <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2.5 flex items-start gap-2">
-            <span className="text-emerald-500 text-sm mt-0.5">✓</span>
+          <div className="accent-surface-emerald mt-3 rounded-xl px-3 py-2.5 flex items-start gap-2">
+            <span className="accent-text-emerald text-sm mt-0.5">✓</span>
             <div>
-              <div className="text-xs font-semibold text-emerald-800">{toast.message}</div>
-              <div className="text-[11px] text-emerald-600 mt-0.5">{toast.growthLabel}</div>
+              <div className="text-xs font-semibold accent-text-emerald-strong">{toast.message}</div>
+              <div className="text-[11px] accent-text-emerald mt-0.5">{toast.growthLabel}</div>
             </div>
           </div>
         ) : null}

@@ -15,13 +15,13 @@ export function CreatorManagementStrip({ username }: Props) {
       <div className="flex items-center gap-2">
         <Link
           href={`/${username}/mypage/settings`}
-          className="rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--text)] transition hover:border-[var(--text-subtle)] hover:text-[var(--text)]"
+          className="btn-secondary btn-sm rounded-full"
         >
           設定・準備
         </Link>
         <Link
           href={`/${username}/mypage`}
-          className="rounded-full bg-[var(--text)] px-3 py-1 text-xs font-semibold text-[var(--bg)] transition hover:opacity-80"
+          className="btn btn-sm rounded-full"
         >
           管理に戻る →
         </Link>

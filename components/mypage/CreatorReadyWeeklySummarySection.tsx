@@ -84,7 +84,7 @@ export function CreatorReadyWeeklySummarySection(props: Props) {
                   className={[
                     "rounded-full px-2 py-0.5 text-[11px] font-semibold",
                     isActive
-                      ? "bg-[var(--text)] text-[var(--surface)]"
+                      ? "bg-[var(--accent)] text-white"
                       : isPast
                         ? "text-[var(--text-subtle)] line-through"
                         : "text-[var(--text-subtle)] opacity-40",

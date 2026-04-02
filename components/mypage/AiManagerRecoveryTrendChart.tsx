@@ -90,9 +90,7 @@ export function AiManagerRecoveryTrendChart({ summary }: Props) {
               type="button"
               onClick={() => setPeriod(p)}
               className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
-                period === p
-                  ? "bg-[var(--text)] text-[var(--bg)]"
-                  : "bg-[var(--line)] text-[var(--text-subtle)] hover:bg-[var(--surface-subtle)]"
+                period === p ? "segment-active" : "segment-inactive"
               }`}
             >
               {p}
