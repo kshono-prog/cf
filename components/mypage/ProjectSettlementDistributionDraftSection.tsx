@@ -190,7 +190,7 @@ export function ProjectSettlementDistributionDraftSection(
 
       <button
         type="button"
-        className="w-full rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40 sm:w-auto"
+        className="btn w-full disabled:opacity-40 sm:w-auto"
         onClick={() => {
           void props.saveDistributions();
         }}

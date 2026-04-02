@@ -14,22 +14,22 @@ function toneClasses(tone: GrowthCoachCardModel["tone"]): {
   switch (tone) {
     case "amber":
       return {
-        shell: "border-amber-200 bg-amber-50",
-        badge: "border-amber-200 bg-white text-amber-700",
-        button: "bg-amber-600 text-white hover:bg-amber-700",
+        shell: "accent-surface-amber",
+        badge: "border-[var(--warning)]/30 bg-[var(--warning)]/10 accent-text-amber",
+        button: "btn",
       };
     case "emerald":
       return {
-        shell: "border-emerald-200 bg-emerald-50",
-        badge: "border-emerald-200 bg-white text-emerald-700",
-        button: "bg-emerald-600 text-white hover:bg-emerald-700",
+        shell: "accent-surface-emerald",
+        badge: "border-[var(--support)]/30 bg-[var(--support)]/10 accent-text-emerald",
+        button: "btn",
       };
     case "sky":
     default:
       return {
-        shell: "border-sky-200 bg-sky-50",
-        badge: "border-sky-200 bg-white text-sky-700",
-        button: "bg-slate-900 text-white hover:bg-slate-800",
+        shell: "border border-[var(--accent)]/20 bg-[var(--accent)]/5",
+        badge: "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]",
+        button: "btn",
       };
   }
 }
@@ -38,7 +38,7 @@ export function GrowthCoachCard(props: Props) {
   const styles = toneClasses(props.coach.tone);
 
   return (
-    <section className={`rounded-3xl border p-5 sm:p-6 ${styles.shell}`}>
+    <section className={`rounded-3xl p-5 sm:p-6 ${styles.shell}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div
@@ -55,7 +55,7 @@ export function GrowthCoachCard(props: Props) {
         </div>
         <a
           href={props.coach.href}
-          className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition ${styles.button}`}
+          className={styles.button}
         >
           {props.coach.ctaLabel}
         </a>

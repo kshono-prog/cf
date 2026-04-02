@@ -14,32 +14,25 @@ function streakMessage(current: number): string {
   return `${current} 日連続！圧倒的な継続力です。`;
 }
 
-function flameEmoji(current: number): string {
-  if (current === 0) return "○";
-  if (current < 3) return "▲";
-  if (current < 7) return "★";
-  return "★★";
-}
-
 export function AiManagerStreakCard({ streak }: Props) {
   const { currentStreak, longestStreak } = streak;
 
   return (
-    <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 px-4 py-4 shadow-sm">
+    <div className="accent-surface-amber rounded-2xl px-4 py-4 shadow-sm">
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-400 text-lg font-bold text-white">
-          {flameEmoji(currentStreak)}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--warning)]/30 bg-[var(--warning)]/15 text-lg font-bold accent-text-amber">
+          {currentStreak > 0 ? currentStreak : "○"}
         </div>
         <div>
           <div className="text-sm font-semibold text-[var(--text)]">
             連続達成ストリーク
           </div>
           <div className="text-xs text-[var(--text-subtle)]">
-            今日のストリーク: {currentStreak} 日 / 最長: {longestStreak} 日
+            現在: {currentStreak} 日 / 最長: {longestStreak} 日
           </div>
         </div>
       </div>
-      <div className="text-xs text-orange-700">
+      <div className="text-xs accent-text-amber">
         {streakMessage(currentStreak)}
       </div>
     </div>

@@ -9,23 +9,23 @@ type Props = {
 type AxisConfig = {
   key: keyof GrowthMeterScores;
   label: string;
-  barClass: string;
+  barVar: string; // CSS variable or class
 };
 
 const AXES: AxisConfig[] = [
-  { key: "creatorSkill", label: "発信力",       barClass: "bg-violet-400" },
-  { key: "pageGrowth",   label: "ページ充実度",  barClass: "bg-blue-400"   },
-  { key: "trust",        label: "信頼",          barClass: "bg-emerald-400"},
-  { key: "fanEnergy",    label: "ファン熱量",    barClass: "bg-amber-400"  },
-  { key: "opportunity",  label: "チャンス",      barClass: "bg-rose-400"   },
+  { key: "creatorSkill", label: "発信力",      barVar: "bg-[var(--accent)]"  },
+  { key: "pageGrowth",   label: "ページ充実度", barVar: "bg-[var(--support)]" },
+  { key: "trust",        label: "信頼",         barVar: "bg-[var(--accent)]"  },
+  { key: "fanEnergy",    label: "ファン熱量",   barVar: "bg-[var(--warning)]" },
+  { key: "opportunity",  label: "チャンス",     barVar: "bg-[var(--support)]" },
 ];
 
 export function GrowthMeterDisplay({ scores }: Props) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
       <div className="mb-3 text-sm font-semibold text-[var(--text)]">成長メーター</div>
       <div className="space-y-2.5">
-        {AXES.map(({ key, label, barClass }) => {
+        {AXES.map(({ key, label, barVar }) => {
           const score = scores[key];
           return (
             <div key={key}>
@@ -35,9 +35,9 @@ export function GrowthMeterDisplay({ scores }: Props) {
                   {score}
                 </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-muted)]">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${barClass}`}
+                  className={`h-full rounded-full transition-all duration-700 ${barVar}`}
                   style={{ width: `${score}%` }}
                 />
               </div>

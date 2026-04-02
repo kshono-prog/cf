@@ -30,7 +30,7 @@ export function ProjectSettlementDistributionExecutionSection(
       <div className="grid gap-2 sm:grid-cols-2">
         <button
           type="button"
-          className="w-full rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40"
+          className="btn w-full disabled:opacity-40"
           onClick={() => void props.executeDistribution("ALL")}
           disabled={!props.canDistribute}
         >

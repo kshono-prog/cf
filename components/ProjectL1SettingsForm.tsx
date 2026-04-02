@@ -821,7 +821,7 @@ function L1Actions(props: {
           type="button"
           onClick={props.onSave}
           disabled={props.saving === true}
-          className="w-full rounded-xl bg-black text-white py-2.5 text-sm font-semibold disabled:opacity-60"
+          className="btn w-full disabled:opacity-60"
         >
           L1 設定を保存
         </button>
@@ -839,7 +839,7 @@ function L1Actions(props: {
           type="button"
           onClick={props.onRefreshAudit}
           disabled={props.loadingAudit === true}
-          className="w-full rounded-xl border border-black bg-white text-black py-2.5 text-sm font-semibold disabled:opacity-60"
+          className="btn-secondary w-full disabled:opacity-60"
         >
           /bridge を叩いて監査カード表示
         </button>

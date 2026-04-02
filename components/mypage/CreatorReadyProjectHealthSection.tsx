@@ -96,9 +96,9 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
         </span>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]">
         <div
-          className="h-full rounded-full bg-slate-900 transition-[width]"
+          className="h-full rounded-full bg-[var(--accent)] transition-[width]"
           style={{ width: `${progressPct}%` }}
         />
       </div>

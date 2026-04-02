@@ -63,7 +63,7 @@ export function AchievementCard({ displayName, username, growthOverview, approve
   const creatorName = displayName || username;
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <div>
           <div className="text-sm font-semibold text-[var(--text)]">
@@ -85,7 +85,7 @@ export function AchievementCard({ displayName, username, growthOverview, approve
         {metrics.map((m) => (
           <div
             key={m.label}
-            className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2.5"
+            className="data-tile rounded-xl px-3 py-2.5"
           >
             <div className="text-[11px] text-[var(--text-subtle)]">{m.label}</div>
             <div className="mt-0.5 text-base font-semibold tabular-nums text-[var(--text)]">

@@ -1220,6 +1220,9 @@ html[data-theme="dark"] .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
 .btn-raised-md { padding: 0.55rem 1.4rem;  font-size: 0.8125rem; }
 .btn-raised-lg { padding: 0.7rem  1.8rem;  font-size: 0.9rem; }
 
+/* btn size variants */
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.75rem; }
+
 /* ダークモード */
 html[data-theme="dark"] .btn-raised {
   background-image: linear-gradient(to top, #1e2a3d 0%, #2d3a50 100%);

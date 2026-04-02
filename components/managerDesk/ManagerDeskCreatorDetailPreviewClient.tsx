@@ -843,7 +843,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]">
                         <div
-                          className="h-full rounded-full bg-slate-900"
+                          className="h-full rounded-full bg-[var(--accent)]"
                           style={{
                             width: `${Math.max(
                               6,

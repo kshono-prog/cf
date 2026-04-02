@@ -33,10 +33,10 @@ export function TodayAchievementCard({ levelInfo, displayName }: Props) {
   const isMaxLevel = levelInfo.level >= 5;
 
   return (
-    <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50 px-4 py-4 shadow-sm">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
       {/* Header row */}
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-500 text-sm font-bold text-white">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-white">
           Lv.{levelInfo.level}
         </div>
         <div>
@@ -53,29 +53,29 @@ export function TodayAchievementCard({ levelInfo, displayName }: Props) {
       </div>
 
       {/* XP progress bar */}
-      <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white/60">
+      <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-muted)]">
         <div
-          className="h-full rounded-full bg-violet-400 transition-all duration-700"
+          className="h-full rounded-full bg-[var(--accent)] transition-all duration-700"
           style={{ width: `${levelInfo.progressPct}%` }}
         />
       </div>
 
       {/* Next unlock hint */}
       {levelInfo.nextUnlock ? (
-        <div className="mb-3 rounded-lg bg-violet-100 px-2.5 py-1.5 text-[11px] text-violet-700">
+        <div className="mb-3 rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/8 px-2.5 py-1.5 text-[11px] text-[var(--accent)]">
           次の解放: {levelInfo.nextUnlock}
         </div>
       ) : null}
 
       {/* SNS share row */}
       <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1 truncate rounded-lg border border-violet-200 bg-white/80 px-2.5 py-1.5 text-[11px] text-[var(--text-subtle)]">
+        <div className="min-w-0 flex-1 truncate rounded-lg border border-[var(--line)] bg-[var(--surface-subtle)] px-2.5 py-1.5 text-[11px] text-[var(--text-subtle)]">
           {shareText}
         </div>
         <button
           type="button"
           onClick={handleCopy}
-          className="shrink-0 rounded-lg bg-violet-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-violet-600"
+          className="btn btn-sm shrink-0"
         >
           {copied ? "コピー済み" : "コピー"}
         </button>

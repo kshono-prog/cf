@@ -15,7 +15,6 @@ type Props = {
 };
 
 function buildComposeHref(workspaceBasePath: string): string {
-  // workspaceBasePath is e.g. "/alice/mypage" — point to the posting compose section
   const base = workspaceBasePath.replace(/\/mypage.*$/, "/mypage");
   return `${base}#posting-compose`;
 }
@@ -42,11 +41,11 @@ export function FanThankActionCard({ thankNeededCount, projectId, workspaceBaseP
   const composeHref = buildComposeHref(workspaceBasePath);
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm">
-      <div className="mb-1 text-sm font-semibold text-amber-900">
+    <div className="accent-surface-amber rounded-2xl px-4 py-4 shadow-sm">
+      <div className="mb-1 text-sm font-semibold text-[var(--text)]">
         未返礼の応援があります
       </div>
-      <div className="mb-3 text-xs text-amber-700">
+      <div className="mb-3 text-xs accent-text-amber">
         直近 30 日間に {thankNeededCount} 件の支援があります。お礼メッセージを送りましょう。
       </div>
       <div className="flex flex-wrap gap-2">
@@ -54,20 +53,17 @@ export function FanThankActionCard({ thankNeededCount, projectId, workspaceBaseP
           <button
             type="button"
             onClick={handlePrepareThank}
-            className="rounded-full bg-amber-500 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
+            className="btn"
           >
             お礼文を下書き
           </button>
         ) : (
           <>
-            <div className="flex items-center gap-1 text-xs text-amber-800">
+            <div className="flex items-center gap-1 text-xs accent-text-amber">
               <span>✓</span>
               <span>下書きを準備しました</span>
             </div>
-            <Link
-              href={composeHref}
-              className="rounded-full border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100"
-            >
+            <Link href={composeHref} className="btn-secondary">
               投稿に進む →
             </Link>
           </>

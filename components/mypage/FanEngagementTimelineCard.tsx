@@ -23,11 +23,11 @@ function relativeTime(isoString: string): string {
 export function FanEngagementTimelineCard({ loading, error, data }: Props) {
   if (loading) {
     return (
-      <div className="animate-pulse rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
-        <div className="mb-3 h-4 w-32 rounded bg-[var(--surface-subtle)]" />
+      <div className="animate-pulse rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+        <div className="mb-3 h-4 w-32 rounded bg-[var(--surface-muted)]" />
         <div className="space-y-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-3 w-full rounded bg-[var(--surface-subtle)]" />
+            <div key={i} className="h-3 w-full rounded bg-[var(--surface-muted)]" />
           ))}
         </div>
       </div>
@@ -36,7 +36,7 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
         <div className="mb-2 text-sm font-semibold text-[var(--text)]">応援タイムライン</div>
         <div className="text-xs text-[var(--text-subtle)]">読み込みに失敗しました。</div>
       </div>
@@ -45,7 +45,7 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
 
   if (!data || data.recentContributions.length === 0) {
     return (
-      <div className="rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
         <div className="mb-2 text-sm font-semibold text-[var(--text)]">応援タイムライン</div>
         <div className="text-xs text-[var(--text-subtle)]">
           まだ応援者がいません。公開ページへの誘導を続けましょう。
@@ -55,7 +55,7 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-sm font-semibold text-[var(--text)]">応援タイムライン</div>
         <div className="text-[11px] text-[var(--text-subtle)]">
@@ -64,7 +64,7 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
       </div>
 
       {data.weekHighlight ? (
-        <div className="mb-3 rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700">
+        <div className="accent-surface-amber mb-3 rounded-lg px-2.5 py-1.5 text-xs accent-text-amber">
           {data.weekHighlight}
         </div>
       ) : null}
@@ -72,7 +72,7 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
       <div className="space-y-2.5">
         {data.recentContributions.map((entry) => (
           <div key={entry.id} className="flex items-start gap-2">
-            <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+            <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--warning)]" />
             <div className="text-xs text-[var(--text)]">
               <span className="font-medium">{entry.maskedAddress}</span>
               {" "}さんが応援

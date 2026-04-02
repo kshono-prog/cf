@@ -287,7 +287,7 @@ export function CurrencyGoalSettlementPanel(props: {
 
           <div className="flex items-center gap-2">
             <button
-              className="rounded-lg bg-black text-white px-4 py-2 text-sm disabled:opacity-40"
+              className="btn disabled:opacity-40"
               onClick={() => void handleSaveGoal()}
               disabled={!isConnected || !address || goalSaving}
               title={!isConnected ? "ウォレット接続が必要です" : ""}

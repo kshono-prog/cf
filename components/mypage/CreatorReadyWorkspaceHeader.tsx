@@ -20,8 +20,7 @@ export function CreatorReadyWorkspaceHeader(props: Props) {
   const workspace = useCreatorReadyWorkspace();
   const publicPageHref = `/${workspace.meCreatorUsername}`;
   const activeViewConfig = getCreatorReadyWorkspaceConfig(props.activeView);
-  const secondaryActionClassName =
-    "inline-flex min-h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
+  const secondaryActionClassName = "btn-secondary";
 
   return (
     <div className="flex flex-col gap-4 pb-1">
@@ -53,7 +52,7 @@ export function CreatorReadyWorkspaceHeader(props: Props) {
           </div>
           <button
             type="button"
-            className="inline-flex min-h-10 w-full items-center justify-center self-stretch rounded-full border border-slate-900 bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 sm:w-auto sm:self-auto lg:self-end"
+            className="btn w-full sm:w-auto"
             onClick={props.onOpenPostingComposer}
           >
             投稿する
@@ -78,10 +77,10 @@ export function CreatorReadyWorkspaceHeader(props: Props) {
         </div>
         <button
           type="button"
-          className={`shrink-0 text-xs transition-colors ${
+          className={`shrink-0 text-xs underline underline-offset-2 transition-colors ${
             props.activeView === "settings"
-              ? "font-semibold text-[var(--text)]"
-              : "text-[var(--text-subtle)] hover:text-[var(--text)]"
+              ? "font-semibold text-[var(--text)] decoration-[var(--text)]"
+              : "text-[var(--text-subtle)] decoration-[var(--text-subtle)] hover:text-[var(--text)]"
           }`}
           onClick={() => props.onNavigateToView("settings")}
         >

@@ -52,7 +52,7 @@ function BridgeCard(props: BridgeCardProps) {
       <div className="grid gap-2 sm:grid-cols-2">
         <button
           type="button"
-          className="w-full rounded bg-black px-3 py-2 text-sm text-white disabled:opacity-40 sm:py-1.5 sm:text-xs"
+          className="btn w-full disabled:opacity-40 sm:text-xs"
           onClick={props.onRecord}
           disabled={props.loading || !props.walletAddress}
         >
