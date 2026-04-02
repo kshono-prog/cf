@@ -236,10 +236,26 @@ select {
   transform: translateY(1px);
 }
 
-.btn-secondary,
+.btn-secondary {
+  padding: 0.52rem 0.96rem;
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: var(--accent);
+}
+
+.btn-secondary:active {
+  transform: translateY(1px);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
 .chip-button {
   padding: 0.52rem 0.96rem;
-  /* テキスト色の 8% をサーフェスに混ぜることで、白ではなくグレーの "物体" として見える */
   background: color-mix(in srgb, var(--text) 8%, var(--surface));
   border-color: color-mix(in srgb, var(--text) 24%, transparent);
   color: var(--text);
@@ -248,13 +264,11 @@ select {
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-.btn-secondary:hover,
 .chip-button:hover {
   background: color-mix(in srgb, var(--text) 13%, var(--surface));
   border-color: color-mix(in srgb, var(--text) 34%, transparent);
 }
 
-.btn-secondary:active,
 .chip-button:active {
   transform: translateY(1px);
   box-shadow: 0 0 0 rgba(15, 23, 42, 0.1);
@@ -494,7 +508,17 @@ html[data-theme="dark"] .btn:hover {
   background: #2563eb;
 }
 
-html[data-theme="dark"] .btn-secondary,
+html[data-theme="dark"] .btn-secondary {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .btn-secondary:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
 html[data-theme="dark"] .chip-button {
   /* ダークでも同じ mix 式が機能する: テキスト(明)8% + サーフェス(暗) = やや明るいグレー */
   background: color-mix(in srgb, var(--text) 9%, var(--surface));
@@ -503,7 +527,6 @@ html[data-theme="dark"] .chip-button {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
-html[data-theme="dark"] .btn-secondary:hover,
 html[data-theme="dark"] .chip-button:hover {
   background: color-mix(in srgb, var(--text) 15%, var(--surface));
   border-color: color-mix(in srgb, var(--text) 32%, transparent);
