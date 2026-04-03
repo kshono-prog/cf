@@ -1,6 +1,10 @@
 "use client";
 
 import {
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import {
   WorkspaceEmptyState,
   WorkspaceLoadingCard,
   WorkspaceStatusNotice,
@@ -141,14 +145,21 @@ export function ManagerDeskMissingItemsSection(props: Props) {
         </p>
       </div>
 
-      {props.loading ? (
+      {props.loading && !data ? (
         <WorkspaceLoadingCard
           title="記録の抜けを確認しています"
           description="Note・Contact・Meeting のシグナルを横断してギャップを検出しています。"
         />
       ) : null}
 
-      {!props.loading && props.error ? (
+      {props.loading && data ? (
+        <ManagerDeskRefreshingNotice
+          title="記録の抜けを更新しています"
+          description="前回の一覧を残したまま、最新の missing items を再確認しています。"
+        />
+      ) : null}
+
+      {props.error && !data ? (
         <WorkspaceStatusNotice
           tone="error"
           title="Missing Items の取得に失敗しました"
@@ -156,7 +167,14 @@ export function ManagerDeskMissingItemsSection(props: Props) {
         />
       ) : null}
 
-      {!props.loading && !props.error && data ? (
+      {props.error && data ? (
+        <ManagerDeskStaleDataNotice
+          title="最新の Missing Items を更新できませんでした"
+          description="前回の一覧を表示しています。時間をおいて再読み込みしてください。"
+        />
+      ) : null}
+
+      {data ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <SummaryChip

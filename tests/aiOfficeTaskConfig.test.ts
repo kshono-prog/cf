@@ -343,7 +343,7 @@ test("translate draft requires non-empty text", () => {
     supporterMessagePurpose: "THANK_YOU",
   });
 
-  assert.equal(error, "TRANSLATE タスクには翻訳テキストが必要です。");
+  assert.equal(error, "TRANSLATION_INPUT_REQUIRED");
 });
 
 test("task input builder uses normalized task settings", () => {

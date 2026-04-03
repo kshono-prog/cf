@@ -2,6 +2,8 @@
 
 import React from "react";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+
 type DistributionEntry = {
   status: "DRAFT" | "QUEUED" | "SENT" | "FAILED" | "CANCELLED";
 };
@@ -18,6 +20,7 @@ export function ProjectSettlementDistributionExecutionSection(
   props: ProjectSettlementDistributionExecutionSectionProps
 ) {
   const { entries } = props;
+  const hasFailedEntries = entries.some((entry) => entry.status === "FAILED");
 
   return (
     <div className="rounded-lg border p-3 space-y-3">
@@ -27,6 +30,25 @@ export function ProjectSettlementDistributionExecutionSection(
           送金は接続ウォレットの署名で1件ずつ実行されます
         </div>
       </div>
+      {!props.hasCheckedPreflight ? (
+        <WorkspaceStatusNotice
+          tone="attention"
+          title="先に手順3の送信前確認を実行してください。"
+          description="この手順ではまだ送金できません。残高と設定不足を確認できてから、実際の配分へ進みます。"
+        />
+      ) : props.canDistribute ? (
+        <WorkspaceStatusNotice
+          tone="attention"
+          title="ここから先はウォレットで実際の送金を行います。"
+          description="各行の宛先と金額を最終確認し、署名ごとに送信内容を確認しながら進めてください。"
+        />
+      ) : hasFailedEntries ? (
+        <WorkspaceStatusNotice
+          tone="info"
+          title="失敗した行だけを再送できます。"
+          description="Review step で失敗理由を確認したあと、必要な行だけ再送してください。"
+        />
+      ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
         <button
           type="button"

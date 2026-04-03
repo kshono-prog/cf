@@ -60,28 +60,37 @@ export function useCurrencyGoalSettlementPanel(
     applyGoalDraftsFromSummary(nextSummary, setTargetInput, setDeadlineInput);
   }, []);
 
-  const refreshSummary = useCallback(async () => {
+  const refreshSummary = useCallback(async (options?: {
+    clearMessage?: boolean;
+  }): Promise<boolean> => {
+    const clearMessage = options?.clearMessage ?? true;
     if (!projectId) {
       applySummary(null);
-      setMsg(null);
-      return;
+      if (clearMessage) {
+        setMsg(null);
+      }
+      return false;
     }
 
     setSummaryLoading(true);
-    setMsg(null);
+    if (clearMessage) {
+      setMsg(null);
+    }
 
     try {
       const result = await fetchProjectSummary({ projectId });
       if (!result.ok) {
         applySummary(null);
         setMsg(result.error);
-        return;
+        return false;
       }
 
       applySummary(result.data);
+      return true;
     } catch {
       applySummary(null);
       setMsg("SUMMARY_FETCH_FAILED");
+      return false;
     } finally {
       setSummaryLoading(false);
     }
@@ -164,8 +173,10 @@ export function useCurrencyGoalSettlementPanel(
         return false;
       }
 
-      setMsg("GOAL_SAVED");
-      await refreshSummary();
+      const refreshed = await refreshSummary({ clearMessage: false });
+      if (refreshed) {
+        setMsg("GOAL_SAVED");
+      }
       return true;
     } catch {
       setMsg("GOAL_SAVE_FAILED");
@@ -195,8 +206,10 @@ export function useCurrencyGoalSettlementPanel(
         return;
       }
 
-      setMsg("GOAL_ACHIEVED_SET");
-      await refreshSummary();
+      const refreshed = await refreshSummary({ clearMessage: false });
+      if (refreshed) {
+        setMsg("GOAL_ACHIEVED_SET");
+      }
     } catch {
       setMsg("GOAL_ACHIEVE_FAILED");
     } finally {

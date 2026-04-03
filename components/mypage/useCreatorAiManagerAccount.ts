@@ -16,6 +16,7 @@ import {
   type UpdateAiManagerPaymentAttemptInput,
   type UpdateAiManagerAccountInput,
 } from "@/lib/mypage/aiManagerAccountApi";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import type {
   SerializedAiManagerAccount,
   SerializedAiManagerFundingInstructions,
@@ -102,7 +103,10 @@ function toAiManagerErrorMessage(error: unknown, fallback: string): string {
     case "AI_MANAGER_FUNDING_FETCH_RESPONSE_INVALID":
       return "実ウォレット top-up 情報を正しく受け取れませんでした。";
     default:
-      return fallback;
+      return mapWorkspaceActionError(
+        code ?? fallback,
+        fallback
+      ).title;
   }
 }
 

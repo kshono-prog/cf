@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  WorkspaceStatusNotice,
+} from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import type { SupporterOverviewData } from "@/lib/operations/supporterOverviewTypes";
 
 function abbreviateAddress(address: string): string {
@@ -29,7 +33,14 @@ function StatCard(props: { label: string; value: string; sub?: string }) {
 }
 
 export function CreatorReadySupporterOverviewSection(props: Props) {
-  if (!props.loading && !props.data) return null;
+  const errorNotice = props.error
+    ? mapWorkspaceActionError(
+        props.error,
+        "サポーター概要の取得に失敗しました。"
+      )
+    : null;
+
+  if (!props.loading && !props.data && !errorNotice) return null;
 
   return (
     <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
@@ -45,6 +56,12 @@ export function CreatorReadySupporterOverviewSection(props: Props) {
 
       {props.loading ? (
         <div className="py-4 text-center text-xs text-[var(--text-subtle)]">読み込み中…</div>
+      ) : errorNotice ? (
+        <WorkspaceStatusNotice
+          tone={errorNotice.tone}
+          title={errorNotice.title}
+          description={errorNotice.description}
+        />
       ) : props.data ? (
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">

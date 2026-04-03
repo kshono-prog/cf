@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { startTransition, useState } from "react";
+import { useState, useTransition } from "react";
 
 import { useAccount } from "wagmi";
 
+import { ManagerDeskAuthRequiredNotice } from "@/components/managerDesk/ManagerDeskAuthRequiredNotice";
+import {
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import { useManagerDeskAccessState } from "@/components/managerDesk/useManagerDeskAccessState";
 import { useManagerDeskContactPipeline } from "@/components/managerDesk/useManagerDeskContactPipeline";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
@@ -97,9 +103,11 @@ function isContractRenewalNeeded(contractStartAt: string | null): boolean {
 
 export function ManagerDeskContactPipelineClient() {
   const { address, isConnected } = useAccount();
+  const access = useManagerDeskAccessState({ isConnected });
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isFilterPending, startFilterTransition] = useTransition();
 
   const [localOverrides, setLocalOverrides] = useState<Record<string, ContactLocalOverride>>({});
   const [updatingContact, setUpdatingContact] = useState<Record<string, boolean>>({});
@@ -113,7 +121,7 @@ export function ManagerDeskContactPipelineClient() {
 
   const { loading, error, data, reload } = useManagerDeskContactPipeline({
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
     creatorProfileId,
     status,
     overdueOnly,
@@ -151,10 +159,16 @@ export function ManagerDeskContactPipelineClient() {
     }
 
     const nextUrl = params.toString().length > 0 ? `${pathname}?${params}` : pathname;
-    startTransition(() => {
+    startFilterTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
   }
+
+  const isInitialLoading = access.authChecking || (loading && !data);
+  const isRefreshing =
+    !access.authChecking && Boolean(data) && (loading || isFilterPending);
+  const hasBlockingError = Boolean(error && !data);
+  const hasStaleError = Boolean(error && data);
 
   function toggleSelected(contactId: string) {
     setSelectedIds((prev) => {
@@ -268,18 +282,42 @@ export function ManagerDeskContactPipelineClient() {
             />
           ) : null}
 
-          {loading ? (
-            <WorkspaceLoadingCard
-              title="Contact Pipeline を読み込んでいます"
-              description="対外接点、期限、温度感を整理しています。"
+          {access.authRequired ? (
+            <ManagerDeskAuthRequiredNotice
+              authenticating={access.authChecking}
+              onAuthenticate={access.authenticate}
             />
           ) : null}
 
-          {error ? (
+          {isInitialLoading ? (
+            <WorkspaceLoadingCard
+              title="Contact Pipeline を読み込んでいます"
+              description="対外接点、期限、温度感、認証状態を整理しています。"
+            />
+          ) : null}
+
+          {isRefreshing ? (
+            <ManagerDeskRefreshingNotice
+              title="フィルタ条件を反映しています"
+              description="前回の一覧を残したまま、Creator・status・期限条件を更新しています。"
+            />
+          ) : null}
+
+          {hasBlockingError ? (
             <WorkspaceStatusNotice
               tone="error"
               title="Contact Pipeline の取得に失敗しました"
               description="接続状態を確認してから、もう一度試してください。"
+              onRetry={() => {
+                void reload();
+              }}
+            />
+          ) : null}
+
+          {hasStaleError ? (
+            <ManagerDeskStaleDataNotice
+              title="最新の Contact Pipeline を更新できませんでした"
+              description="前回の一覧を表示しています。時間をおいて再読み込みしてください。"
               onRetry={() => {
                 void reload();
               }}

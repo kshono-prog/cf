@@ -2,6 +2,7 @@
 export const revalidate = 300;
 export const preferredRegion = "syd1";
 
+import { headers } from "next/headers";
 import AppKitProvider from "@/context/AppKitProvider";
 import { PublicBottomNavLoader } from "@/components/layout/PublicBottomNavLoader";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -14,9 +15,10 @@ type Props = {
 
 export default async function UsernameLayout({ children, params }: Props) {
   const { username } = await params;
+  const requestCookies = (await headers()).get("cookie");
 
   return (
-    <AppKitProvider>
+    <AppKitProvider cookies={requestCookies}>
       <ThemeProvider>
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
           <AppHeader username={username} avatarUrl={null} />

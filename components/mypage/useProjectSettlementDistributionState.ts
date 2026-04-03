@@ -173,7 +173,7 @@ export function useProjectSettlementDistributionState(
         return;
       }
 
-      setMessage("Distribution下書きを保存しました");
+      setMessage("DISTRIBUTION_DRAFT_SAVED");
       await refresh();
     } catch {
       setMessage("DISTRIBUTION_SAVE_FAILED");

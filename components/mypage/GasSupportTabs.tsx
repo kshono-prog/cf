@@ -19,6 +19,7 @@ type GasState = {
   claiming: boolean;
   txHash: string | null;
   error: string | null;
+  errorContext: "eligibility" | "claim" | null;
 };
 
 type ChainOption = {
@@ -36,6 +37,7 @@ const EMPTY_STATE: GasState = {
   claiming: false,
   txHash: null,
   error: null,
+  errorContext: null,
 };
 
 function buildChainOptions(): ChainOption[] {
@@ -89,14 +91,23 @@ export function GasSupportTabs() {
       try {
         const res = await fetchGasEligibility({ address: addr, chainId });
         if (res.ok) {
-          updateGasState(chainId, { data: res.data });
+          updateGasState(chainId, {
+            data: res.data,
+            error: null,
+            errorContext: null,
+          });
         } else {
-          updateGasState(chainId, { data: null, error: res.error });
+          updateGasState(chainId, {
+            data: null,
+            error: res.error,
+            errorContext: "eligibility",
+          });
         }
       } catch {
         updateGasState(chainId, {
           data: null,
-          error: "判定情報を取得できませんでした。",
+          error: "GAS_ELIGIBILITY_FETCH_FAILED",
+          errorContext: "eligibility",
         });
       } finally {
         updateGasState(chainId, { loading: false });
@@ -109,7 +120,12 @@ export function GasSupportTabs() {
     async (chainId: number) => {
       if (!address) return;
       const addr: Address = address;
-      updateGasState(chainId, { claiming: true, txHash: null, error: null });
+      updateGasState(chainId, {
+        claiming: true,
+        txHash: null,
+        error: null,
+        errorContext: null,
+      });
       try {
         const nonce = await fetchGasNonce({ address: addr, chainId });
         if (!nonce.ok) throw new Error(nonce.error);
@@ -130,8 +146,11 @@ export function GasSupportTabs() {
         await refreshEligibility(chainId);
       } catch (e: unknown) {
         const message =
-          e instanceof Error ? e.message : "ガス支援の実行に失敗しました。";
-        updateGasState(chainId, { error: message });
+          e instanceof Error ? e.message : "CLAIM_ERROR";
+        updateGasState(chainId, {
+          error: message,
+          errorContext: "claim",
+        });
       } finally {
         updateGasState(chainId, { claiming: false });
       }
@@ -184,15 +203,11 @@ export function GasSupportTabs() {
           gasLoading={activeState.loading}
           gasClaiming={activeState.claiming}
           gasTxHash={activeState.txHash}
+          error={activeState.error}
+          errorContext={activeState.errorContext}
           onClaim={() => void handleClaim(activeOption.chainId)}
           onRefresh={() => void refreshEligibility(activeOption.chainId)}
         />
-      )}
-
-      {activeState.error && (
-        <div className="alert-warn">
-          <p className="text-[11px]">{activeState.error}</p>
-        </div>
       )}
     </div>
   );

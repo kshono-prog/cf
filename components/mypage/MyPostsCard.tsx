@@ -12,6 +12,11 @@ import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 
 type Props = {
   address: Address | undefined;
@@ -54,7 +59,7 @@ export function MyPostsCard(props: Props) {
   const [nextCursor, setNextCursor] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [loadingMore, setLoadingMore] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [feedback, setFeedback] = React.useState<WorkspaceActionNotice | null>(null);
   const [pendingPostId, setPendingPostId] = React.useState<string | null>(null);
   const [totalCount, setTotalCount] = React.useState(0);
 
@@ -72,7 +77,7 @@ export function MyPostsCard(props: Props) {
         setLoadingMore(true);
       } else {
         setLoading(true);
-        setError(null);
+        setFeedback(null);
       }
 
       const result = await fetchMyPostingPosts({
@@ -82,7 +87,12 @@ export function MyPostsCard(props: Props) {
       });
 
       if (!result.ok) {
-        setError("投稿一覧の取得に失敗しました。");
+        setFeedback(
+          mapWorkspaceActionError(
+            result.error,
+            "投稿一覧の取得に失敗しました。"
+          )
+        );
         setLoading(false);
         setLoadingMore(false);
         return;
@@ -106,7 +116,7 @@ export function MyPostsCard(props: Props) {
   async function handleToggleArchive(post: PostingManagedPost): Promise<void> {
     if (!props.address) return;
     setPendingPostId(post.id);
-    setError(null);
+    setFeedback(null);
 
     const result = await updateMyPostingPostStatus({
       address: props.address,
@@ -115,13 +125,23 @@ export function MyPostsCard(props: Props) {
     });
 
     if (!result.ok) {
-      setError("投稿状態の更新に失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError(
+          result.error,
+          "投稿状態の更新に失敗しました。"
+        )
+      );
       setPendingPostId(null);
       return;
     }
 
     setPosts((current) =>
       current.map((item) => (item.id === result.post.id ? result.post : item))
+    );
+    setFeedback(
+      post.status === "ARCHIVED"
+        ? buildWorkspaceActionSuccessNotice("postRepublished")
+        : buildWorkspaceActionSuccessNotice("postArchived")
     );
     props.onPostsChanged();
     setPendingPostId(null);
@@ -160,7 +180,15 @@ export function MyPostsCard(props: Props) {
         合計 {totalCount} 件の投稿があります。公開中のものは公開ページの feed に表示されます。
       </div>
 
-      {error ? <div className="mt-3"><WorkspaceStatusNotice tone="error" title={error} /></div> : null}
+      {feedback ? (
+        <div className="mt-3">
+          <WorkspaceStatusNotice
+            tone={feedback.tone}
+            title={feedback.title}
+            description={feedback.description}
+          />
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="mt-4 text-sm text-gray-500">投稿を読み込み中です...</div>

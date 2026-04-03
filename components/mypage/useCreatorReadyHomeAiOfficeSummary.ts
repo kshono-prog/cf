@@ -110,13 +110,17 @@ export function useCreatorReadyHomeAiOfficeSummary(args: {
               : null
           ),
         });
-      } catch {
+      } catch (error: unknown) {
         if (cancelled) {
           return;
         }
+        const code =
+          error instanceof Error && typeof error.message === "string"
+            ? error.message
+            : "AI_HOME_SUMMARY_UNAVAILABLE";
         setState({
           loading: false,
-          error: "AI_HOME_SUMMARY_UNAVAILABLE",
+          error: code,
           tasks: [],
           usefulness: getEmptyAiOfficeUsefulnessSummary(),
           contentSummary: EMPTY_CONTENT_SUMMARY,

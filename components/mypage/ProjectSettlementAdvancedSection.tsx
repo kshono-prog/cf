@@ -18,9 +18,12 @@ export function ProjectSettlementAdvancedSection(props: {
             <div className="mt-1 text-xs leading-5 text-gray-600">
               {props.description}
             </div>
+            <div className="mt-1 text-[11px] leading-5 text-gray-500">
+              通常フローで足りないときだけ開く、operator 向けの補助操作です。
+            </div>
           </div>
           <span className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700">
-            Advanced
+            必要時のみ
           </span>
         </div>
       </summary>

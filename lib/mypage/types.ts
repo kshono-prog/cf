@@ -18,6 +18,7 @@ export type MeStatus = {
 export type Status =
   | "loading"
   | "unconnected"
+  | "authRequired"
   | "noUser"
   | "userOnly"
   | "creatorReady";

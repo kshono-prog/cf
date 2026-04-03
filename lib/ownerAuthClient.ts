@@ -30,6 +30,21 @@ type OwnerSessionResponse = {
   expiresAt: string;
 };
 
+type OwnerSessionStatusResponse = {
+  ok: true;
+  authenticated: boolean;
+  address: string | null;
+  expiresAt: string | null;
+};
+
+export type OwnerSessionSnapshot = {
+  status: "idle" | "checking" | "authenticated" | "unauthenticated";
+  address: string | null;
+  expiresAtMs: number | null;
+};
+
+type OwnerAuthFetchMode = "session-only" | "auto-auth";
+
 const OWNER_SESSION_REFRESH_BUFFER_MS = 60_000;
 
 let registeredSignerAddress: string | null = null;
@@ -37,6 +52,9 @@ let registeredSigner: OwnerAuthSignMessage | null = null;
 let currentOwnerSession: OwnerSessionState | null = null;
 let pendingOwnerSessionPromise: Promise<void> | null = null;
 let currentDevOwnerOverrideAddress: string | null = null;
+const ownerSessionListeners = new Set<
+  (snapshot: OwnerSessionSnapshot) => void
+>();
 
 function parseNonceResponse(value: unknown): OwnerNonceResponse | null {
   if (!isRecord(value) || value.ok !== true) return null;
@@ -69,6 +87,79 @@ function parseSessionResponse(value: unknown): OwnerSessionResponse | null {
   };
 }
 
+function parseSessionStatusResponse(
+  value: unknown
+): OwnerSessionStatusResponse | null {
+  if (!isRecord(value) || value.ok !== true) return null;
+  if (
+    typeof value.authenticated !== "boolean" ||
+    (value.address !== null && typeof value.address !== "string") ||
+    (value.expiresAt !== null && typeof value.expiresAt !== "string")
+  ) {
+    return null;
+  }
+
+  return {
+    ok: true,
+    authenticated: value.authenticated,
+    address: value.address,
+    expiresAt: value.expiresAt,
+  };
+}
+
+function getOwnerSessionSnapshot(): OwnerSessionSnapshot {
+  if (!currentOwnerSession) {
+    return {
+      status: "unauthenticated",
+      address: registeredSignerAddress,
+      expiresAtMs: null,
+    };
+  }
+
+  return {
+    status: "authenticated",
+    address: currentOwnerSession.address,
+    expiresAtMs: currentOwnerSession.expiresAtMs,
+  };
+}
+
+function emitOwnerSessionSnapshot(snapshot: OwnerSessionSnapshot): void {
+  for (const listener of ownerSessionListeners) {
+    listener(snapshot);
+  }
+}
+
+function setCurrentOwnerSession(session: OwnerSessionState | null): void {
+  currentOwnerSession = session;
+  emitOwnerSessionSnapshot(getOwnerSessionSnapshot());
+}
+
+function setCheckingOwnerSession(address: string | null): void {
+  emitOwnerSessionSnapshot({
+    status: "checking",
+    address,
+    expiresAtMs: currentOwnerSession?.expiresAtMs ?? null,
+  });
+}
+
+function resolveOwnerAuthFetchMode(init?: RequestInit): OwnerAuthFetchMode {
+  const method = init?.method?.toUpperCase() ?? "GET";
+  return method === "GET" || method === "HEAD" ? "session-only" : "auto-auth";
+}
+
+export function subscribeOwnerSession(
+  listener: (snapshot: OwnerSessionSnapshot) => void
+): () => void {
+  ownerSessionListeners.add(listener);
+  return () => {
+    ownerSessionListeners.delete(listener);
+  };
+}
+
+export function readOwnerSessionSnapshot(): OwnerSessionSnapshot {
+  return getOwnerSessionSnapshot();
+}
+
 export function registerOwnerAuthSigner(
   address: string | null,
   signer: OwnerAuthSignMessage | null
@@ -83,9 +174,71 @@ export function registerOwnerAuthDevOverride(address: string | null): void {
 
 export function clearOwnerAuthSessionCache(): void {
   const address = currentOwnerSession?.address ?? registeredSignerAddress;
-  currentOwnerSession = null;
+  setCurrentOwnerSession(null);
   pendingOwnerSessionPromise = null;
   clearPublicViewerIdentityCache(address ?? undefined);
+}
+
+export async function fetchOwnerSessionState(args: {
+  address: string;
+  apiBase?: string;
+}): Promise<OwnerSessionSnapshot> {
+  const address = normalizeOwnerAddressOrNull(args.address);
+  if (!address) {
+    throw new Error("ADDRESS_REQUIRED");
+  }
+
+  const apiBase = args.apiBase ?? "";
+
+  if (currentDevOwnerOverrideAddress === address) {
+    const snapshot: OwnerSessionSnapshot = {
+      status: "authenticated",
+      address,
+      expiresAtMs: Date.now() + OWNER_SESSION_REFRESH_BUFFER_MS,
+    };
+    emitOwnerSessionSnapshot(snapshot);
+    return snapshot;
+  }
+
+  setCheckingOwnerSession(address);
+
+  const response = await fetch(
+    `${apiBase}/api/owner-auth/session?address=${encodeURIComponent(address)}`,
+    {
+      method: "GET",
+      cache: "no-store",
+      credentials: "include",
+    }
+  );
+  const payload = parseSessionStatusResponse(
+    await response.json().catch(() => null)
+  );
+
+  if (!response.ok || !payload) {
+    clearOwnerAuthSessionCache();
+    throw new Error("OWNER_AUTH_SESSION_STATUS_FAILED");
+  }
+
+  if (!payload.authenticated || payload.address !== address || !payload.expiresAt) {
+    clearOwnerAuthSessionCache();
+    return {
+      status: "unauthenticated",
+      address,
+      expiresAtMs: null,
+    };
+  }
+
+  const snapshot: OwnerSessionSnapshot = {
+    status: "authenticated",
+    address,
+    expiresAtMs: Date.parse(payload.expiresAt),
+  };
+  setCurrentOwnerSession({
+    address,
+    expiresAtMs: snapshot.expiresAtMs ?? Date.now(),
+  });
+  clearPublicViewerIdentityCache(address);
+  return snapshot;
 }
 
 export async function ensureOwnerSession(args: {
@@ -117,6 +270,8 @@ export async function ensureOwnerSession(args: {
   if (!registeredSigner || registeredSignerAddress !== address) {
     throw new Error("OWNER_SIGNER_NOT_READY");
   }
+
+  setCheckingOwnerSession(address);
 
   pendingOwnerSessionPromise = (async () => {
     try {
@@ -157,12 +312,13 @@ export async function ensureOwnerSession(args: {
         throw new Error("OWNER_AUTH_SESSION_FAILED");
       }
 
-      currentOwnerSession = {
+      setCurrentOwnerSession({
         address: normalizeOwnerAddressOrNull(sessionPayload.address) ?? address,
         expiresAtMs: Date.parse(sessionPayload.expiresAt),
-      };
-      clearPublicViewerIdentityCache(currentOwnerSession.address);
+      });
+      clearPublicViewerIdentityCache(address);
     } catch (error) {
+      setCurrentOwnerSession(null);
       clearPublicViewerIdentityCache(address);
       throw error;
     }
@@ -173,11 +329,28 @@ export async function ensureOwnerSession(args: {
   return pendingOwnerSessionPromise;
 }
 
+export async function logoutOwnerSession(args?: {
+  apiBase?: string;
+}): Promise<void> {
+  const apiBase = args?.apiBase ?? "";
+
+  try {
+    await fetch(`${apiBase}/api/owner-auth/session`, {
+      method: "DELETE",
+      cache: "no-store",
+      credentials: "include",
+    });
+  } finally {
+    clearOwnerAuthSessionCache();
+  }
+}
+
 export async function ownerAuthFetch(args: {
   address: string;
   url: string;
   apiBase?: string;
   init?: RequestInit;
+  authMode?: OwnerAuthFetchMode;
 }): Promise<Response> {
   const requestInit: RequestInit = {
     ...(args.init ?? {}),
@@ -194,6 +367,16 @@ export async function ownerAuthFetch(args: {
     headers.set(DEV_OWNER_AUTH_OVERRIDE_HEADER, address);
     requestInit.headers = headers;
     return fetch(args.url, requestInit);
+  }
+
+  const authMode = args.authMode ?? resolveOwnerAuthFetchMode(requestInit);
+
+  if (authMode === "session-only") {
+    const response = await fetch(args.url, requestInit);
+    if (response.status === 401) {
+      clearOwnerAuthSessionCache();
+    }
+    return response;
   }
 
   await ensureOwnerSession({ address, apiBase: args.apiBase });

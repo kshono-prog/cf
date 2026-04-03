@@ -3,6 +3,10 @@
 import React from "react";
 
 import {
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import {
   WorkspaceEmptyState,
   WorkspaceLoadingCard,
   WorkspaceStatusNotice,
@@ -75,17 +79,85 @@ export function ManagerDeskSupporterCrmSection(props: Props) {
   const { loading, error, data, onReload } = props;
   const [showAll, setShowAll] = React.useState(false);
 
-  if (loading) {
+  const renderContent = (currentData: SupporterCrmData) => {
+    const vipCount = currentData.items.filter((it) => it.totalCount >= 3).length;
+    const displayed = showAll ? currentData.items : currentData.items.slice(0, 5);
+
+    return (
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+              Supporter CRM
+            </div>
+            <div className="mt-0.5 text-sm text-[var(--text-subtle)]">
+              累計{currentData.totalSupporterCount}名
+              {vipCount > 0 ? ` / VIP（3回以上）${vipCount.toString()}名` : ""}
+            </div>
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="text-2xl font-semibold text-[var(--text)]">
+              {currentData.totalSupporterCount}
+            </div>
+            <div className="text-xs text-[var(--text-subtle)]">累計支援者</div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2">
+          {displayed.map((item, index) => (
+            <SupporterRow key={item.fromAddress} item={item} rank={index + 1} />
+          ))}
+        </div>
+
+        {!showAll && currentData.items.length > 5 ? (
+          <button
+            type="button"
+            className="btn-secondary w-full text-xs"
+            onClick={() => setShowAll(true)}
+          >
+            すべて表示（{currentData.items.length}件）
+          </button>
+        ) : null}
+      </section>
+    );
+  };
+
+  if (loading && !data) {
     return <WorkspaceLoadingCard title="Supporter CRM を読み込んでいます" />;
   }
 
-  if (error) {
+  if (error && !data) {
     return (
       <WorkspaceStatusNotice
         tone="error"
         title="Supporter CRM の取得に失敗しました"
         onRetry={onReload}
       />
+    );
+  }
+
+  if (loading && data) {
+    return (
+      <section className="space-y-3">
+        <ManagerDeskRefreshingNotice
+          title="Supporter CRM を更新しています"
+          description="前回の支援者一覧を残したまま、最新の supporter 集計を反映しています。"
+        />
+        {renderContent(data)}
+      </section>
+    );
+  }
+
+  if (error && data) {
+    return (
+      <section className="space-y-3">
+        <ManagerDeskStaleDataNotice
+          title="最新の Supporter CRM を更新できませんでした"
+          description="前回の支援者一覧を表示しています。時間をおいて再読み込みしてください。"
+          onRetry={onReload}
+        />
+        {renderContent(data)}
+      </section>
     );
   }
 
@@ -98,44 +170,5 @@ export function ManagerDeskSupporterCrmSection(props: Props) {
     );
   }
 
-  const vipCount = data.items.filter((it) => it.totalCount >= 3).length;
-  const displayed = showAll ? data.items : data.items.slice(0, 5);
-
-  return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-            Supporter CRM
-          </div>
-          <div className="mt-0.5 text-sm text-[var(--text-subtle)]">
-            累計{data.totalSupporterCount}名
-            {vipCount > 0 ? ` / VIP（3回以上）${vipCount.toString()}名` : ""}
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="text-2xl font-semibold text-[var(--text)]">
-            {data.totalSupporterCount}
-          </div>
-          <div className="text-xs text-[var(--text-subtle)]">累計支援者</div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2">
-        {displayed.map((item, index) => (
-          <SupporterRow key={item.fromAddress} item={item} rank={index + 1} />
-        ))}
-      </div>
-
-      {!showAll && data.items.length > 5 ? (
-        <button
-          type="button"
-          className="btn-secondary w-full text-xs"
-          onClick={() => setShowAll(true)}
-        >
-          すべて表示（{data.items.length}件）
-        </button>
-      ) : null}
-    </section>
-  );
+  return renderContent(data);
 }

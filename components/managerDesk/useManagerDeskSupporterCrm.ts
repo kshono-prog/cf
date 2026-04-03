@@ -41,7 +41,11 @@ export function useManagerDeskSupporterCrm(args: {
       if (!parsed) throw new Error("SUPPORTER_CRM_INVALID");
       setState({ loading: false, error: null, data: parsed });
     } catch {
-      setState({ loading: false, error: "SUPPORTER_CRM_FAILED", data: null });
+      setState((current) => ({
+        loading: false,
+        error: "SUPPORTER_CRM_FAILED",
+        data: current.data,
+      }));
     }
   }, [args.address, args.isConnected, args.creatorProfileId]);
 

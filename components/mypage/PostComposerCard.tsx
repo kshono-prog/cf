@@ -10,6 +10,11 @@ import {
   POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
 } from "@/components/mypage/postingComposeHandoff";
 import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 import { AI_OFFICE_LABEL } from "@/lib/uxCopy";
 
 type Props = {
@@ -35,8 +40,7 @@ export function PostComposerCard(props: Props) {
   const [mediaUrl, setMediaUrl] = React.useState("");
   const [projectId, setProjectId] = React.useState<string>("");
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState<string | null>(null);
+  const [feedback, setFeedback] = React.useState<WorkspaceActionNotice | null>(null);
   const [handoffNotice, setHandoffNotice] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -79,8 +83,7 @@ export function PostComposerCard(props: Props) {
     setHandoffNotice(
       `${AI_OFFICE_LABEL}の告知文案を投稿欄に反映しました。内容を確認してから投稿してください。`
     );
-    setError(null);
-    setSuccess(null);
+    setFeedback(null);
     window.localStorage.removeItem(POSTING_COMPOSE_HANDOFF_STORAGE_KEY);
   }, [props.projectOptions]);
 
@@ -89,36 +92,60 @@ export function PostComposerCard(props: Props) {
   ): Promise<void> {
     event.preventDefault();
     if (!props.address) {
-      setError("ウォレット接続を確認してから投稿してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "WALLET_NOT_CONNECTED",
+          "ウォレット接続を確認してから投稿してください。"
+        )
+      );
       return;
     }
 
     const trimmedBody = body.trim();
     const trimmedMediaUrl = mediaUrl.trim();
     if (!trimmedBody) {
-      setError("投稿本文を入力してください。");
+      setFeedback(mapWorkspaceActionError("BODY_REQUIRED", "投稿本文を入力してください。"));
       return;
     }
     if (trimmedBody.length > 2000) {
-      setError("投稿本文は 2000 文字以内で入力してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "BODY_TOO_LONG",
+          "投稿本文は 2000 文字以内で入力してください。"
+        )
+      );
       return;
     }
     if (mediaType && !trimmedMediaUrl) {
-      setError("メディア URL を入力してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "MEDIA_FIELDS_MISMATCH",
+          "メディア URL を入力してください。"
+        )
+      );
       return;
     }
     if (!mediaType && trimmedMediaUrl) {
-      setError("メディア種別を選んでください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "MEDIA_TYPE_INVALID",
+          "メディア種別を選んでください。"
+        )
+      );
       return;
     }
     if (trimmedMediaUrl && !isHttpUrl(trimmedMediaUrl)) {
-      setError("メディア URL は http(s) 形式で入力してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "MEDIA_URL_INVALID",
+          "メディア URL は http(s) 形式で入力してください。"
+        )
+      );
       return;
     }
 
     setSaving(true);
-    setError(null);
-    setSuccess(null);
+    setFeedback(null);
 
     const result = await createPostingPost({
       address: props.address,
@@ -129,12 +156,11 @@ export function PostComposerCard(props: Props) {
     });
 
     if (!result.ok) {
-      setError(
-        result.error === "PROJECT_NOT_FOUND_OR_FORBIDDEN"
-          ? "選んだ project を確認してください。"
-          : result.error === "MEDIA_FIELDS_MISMATCH"
-          ? "メディア種別と URL をそろえて入力してください。"
-          : "投稿の作成に失敗しました。"
+      setFeedback(
+        mapWorkspaceActionError(
+          result.error,
+          "投稿の作成に失敗しました。"
+        )
       );
       setSaving(false);
       return;
@@ -144,7 +170,7 @@ export function PostComposerCard(props: Props) {
     setMediaType("");
     setMediaUrl("");
     setHandoffNotice(null);
-    setSuccess("投稿を公開しました。公開ページのフィードにも反映されます。");
+    setFeedback(buildWorkspaceActionSuccessNotice("postPublished"));
     setSaving(false);
     props.onCreated();
   }
@@ -240,8 +266,13 @@ export function PostComposerCard(props: Props) {
         {handoffNotice ? (
           <WorkspaceStatusNotice tone="info" title={handoffNotice} />
         ) : null}
-        {error ? <WorkspaceStatusNotice tone="error" title={error} /> : null}
-        {success ? <WorkspaceStatusNotice tone="success" title={success} /> : null}
+        {feedback ? (
+          <WorkspaceStatusNotice
+            tone={feedback.tone}
+            title={feedback.title}
+            description={feedback.description}
+          />
+        ) : null}
 
         <div className="flex items-center justify-between gap-3">
           <div className="text-[11px] leading-5 text-gray-500">

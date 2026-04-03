@@ -86,11 +86,11 @@ export function useManagerDeskContactPipeline(args: {
         data: parsed,
       });
     } catch {
-      setState({
+      setState((current) => ({
         loading: false,
         error: "MANAGER_DESK_CONTACT_PIPELINE_FAILED",
-        data: null,
-      });
+        data: current.data,
+      }));
     }
   }, [args.address, args.creatorProfileId, args.isConnected, args.overdueOnly, args.status]);
 

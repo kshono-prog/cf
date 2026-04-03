@@ -6,6 +6,7 @@
 - **Track 9 完了**: Action-Centric UX（UX-1〜UX-6）すべて実装済み
 - **Planning Baseline**: 短期・中期・長期の実行計画は [Execution Plan](/Users/shounokazuaki/cf/docs/roadmap/execution-plan.md) を基準にする
 - **Action-Centric UX 計画**: [docs/tasks/todo/2026-04-action-centric-ux-plan.md](/Users/shounokazuaki/cf/docs/tasks/todo/2026-04-action-centric-ux-plan.md)
+- **App UX 改修計画**: [docs/tasks/todo/2026-04-app-ux-polish-plan.md](/Users/shounokazuaki/cf/docs/tasks/todo/2026-04-app-ux-polish-plan.md)
 
 ## Recommended Next Execution Order
 

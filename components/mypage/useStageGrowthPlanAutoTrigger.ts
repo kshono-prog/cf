@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Address } from "viem";
 
+import { useOwnerSession } from "@/context/OwnerSessionProvider";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 const STORAGE_KEY_PREFIX = "cf:stage-growth-plan-triggered";
@@ -51,10 +52,12 @@ export function useStageGrowthPlanAutoTrigger(params: {
   isConnected: boolean;
 }): void {
   const triggered = useRef(false);
+  const ownerSession = useOwnerSession();
 
   useEffect(() => {
     if (triggered.current) return;
     if (!params.isConnected || !params.address) return;
+    if (!ownerSession.isAuthenticated) return;
 
     const address = params.address;
 
@@ -114,5 +117,10 @@ export function useStageGrowthPlanAutoTrigger(params: {
       .catch(() => {
         // サイレント失敗 — 手動起票で補完できる
       });
-  }, [params.address, params.isConnected, params.projectId]);
+  }, [
+    ownerSession.isAuthenticated,
+    params.address,
+    params.isConnected,
+    params.projectId,
+  ]);
 }

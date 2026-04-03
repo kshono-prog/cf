@@ -4,7 +4,9 @@ import { errJson, okJson } from "@/lib/api/responses";
 import { isRecord } from "@/lib/api/guards";
 import {
   applyOwnerSessionCookie,
+  clearOwnerSessionCookie,
   createOwnerSession,
+  getOptionalOwnerSession,
   issueOwnerAuthNonce,
 } from "@/lib/ownerAuthSession";
 import { prisma } from "@/lib/prisma";
@@ -38,7 +40,32 @@ export async function handleOwnerAuthNonceGet(
 export type OwnerAuthSessionRouteDeps = {
   createOwnerSession?: typeof createOwnerSession;
   applyOwnerSessionCookie?: typeof applyOwnerSessionCookie;
+  getOptionalOwnerSession?: typeof getOptionalOwnerSession;
+  clearOwnerSessionCookie?: typeof clearOwnerSessionCookie;
 };
+
+export async function handleOwnerAuthSessionGet(
+  req: NextRequest,
+  deps: OwnerAuthSessionRouteDeps = {}
+): Promise<NextResponse> {
+  try {
+    const { searchParams } = new URL(req.url);
+    const expectedAddress = searchParams.get("address");
+    const session = await (deps.getOptionalOwnerSession ?? getOptionalOwnerSession)(
+      req,
+      expectedAddress
+    );
+
+    return okJson({
+      authenticated: Boolean(session),
+      address: session?.address ?? null,
+      expiresAt: session?.expiresAt.toISOString() ?? null,
+    });
+  } catch (error) {
+    console.error("OWNER_AUTH_SESSION_GET_FAILED", error);
+    return errJson("OWNER_AUTH_SESSION_GET_FAILED", 500);
+  }
+}
 
 export async function handleOwnerAuthSessionPost(
   req: NextRequest,
@@ -89,5 +116,19 @@ export async function handleOwnerAuthSessionPost(
   } catch (error) {
     console.error("OWNER_AUTH_SESSION_POST_FAILED", error);
     return errJson("OWNER_AUTH_SESSION_POST_FAILED", 500);
+  }
+}
+
+export async function handleOwnerAuthSessionDelete(
+  _req: NextRequest,
+  deps: OwnerAuthSessionRouteDeps = {}
+): Promise<NextResponse> {
+  try {
+    const response = okJson({ cleared: true });
+    (deps.clearOwnerSessionCookie ?? clearOwnerSessionCookie)(response);
+    return response;
+  } catch (error) {
+    console.error("OWNER_AUTH_SESSION_DELETE_FAILED", error);
+    return errJson("OWNER_AUTH_SESSION_DELETE_FAILED", 500);
   }
 }

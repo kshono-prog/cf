@@ -7,6 +7,7 @@ import {
   WorkspaceLoadingCard,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import type {
   PlannerTimelineData,
   PlannerTimelineItem,
@@ -76,6 +77,9 @@ function SummaryChip(props: { label: string; value: string }) {
 
 export function CreatorReadyUpcomingPlannerSection(props: Props) {
   const { agendaCreateHref } = props;
+  const errorNotice = props.error
+    ? mapWorkspaceActionError(props.error, "予定データの取得に失敗しました。")
+    : null;
   return (
     <section className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -115,15 +119,15 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
           />
         ) : null}
 
-        {!props.loading && props.error ? (
+        {!props.loading && errorNotice ? (
           <WorkspaceStatusNotice
-            tone="info"
-            title="Planner は次の読み込みで更新されます"
-            description="接続状態を確認すると、会議と期限の一覧をこの面に戻せます。"
+            tone={errorNotice.tone}
+            title={errorNotice.title}
+            description={errorNotice.description}
           />
         ) : null}
 
-        {!props.loading && !props.error && props.data?.items.length ? (
+        {!props.loading && !errorNotice && props.data?.items.length ? (
           <div className="grid gap-3 lg:grid-cols-2">
             {props.data.items.map((item) => (
               <article
@@ -165,7 +169,7 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
           </div>
         ) : null}
 
-        {!props.loading && !props.error && (!props.data || props.data.items.length === 0) ? (
+        {!props.loading && !errorNotice && (!props.data || props.data.items.length === 0) ? (
           <WorkspaceEmptyState
             title="直近の予定はまだありません"
             description="Meeting や共有 follow-up が記録されると、この面に時系列で並びます。"

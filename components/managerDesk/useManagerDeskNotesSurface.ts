@@ -94,11 +94,11 @@ export function useManagerDeskNotesSurface(args: {
         data: parsed,
       });
     } catch {
-      setState({
+      setState((current) => ({
         loading: false,
         error: "MANAGER_DESK_NOTES_FAILED",
-        data: null,
-      });
+        data: current.data,
+      }));
     }
   }, [
     args.address,

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, cookieToInitialState, type Config } from "wagmi";
 import { wagmiConfig } from "@/config/appkit";
 import { OwnerAuthProvider } from "@/context/OwnerAuthProvider";
+import { OwnerSessionProvider } from "@/context/OwnerSessionProvider";
 
 const queryClient = new QueryClient();
 
@@ -24,7 +25,9 @@ export default function AppKitProvider({
       reconnectOnMount
     >
       <QueryClientProvider client={queryClient}>
-        <OwnerAuthProvider>{children}</OwnerAuthProvider>
+        <OwnerAuthProvider>
+          <OwnerSessionProvider>{children}</OwnerSessionProvider>
+        </OwnerAuthProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

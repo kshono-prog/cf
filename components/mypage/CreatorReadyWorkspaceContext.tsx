@@ -21,6 +21,7 @@ import type {
   SetupLocalMilestoneKey,
   SetupLocalMilestones,
 } from "@/lib/growth/setup";
+import type { WorkspaceActionNotice } from "@/lib/mypage/workspaceActionCopy";
 
 export type SetupAiDraftState = {
   goalTitle: string | null;
@@ -81,6 +82,8 @@ export type CreatorReadyWorkspaceShellProps = {
   workspaceBasePath: string;
   themeColor: string;
   error: string | null;
+  errorDescription?: string | null;
+  notice?: WorkspaceActionNotice | null;
 };
 
 export type CreatorReadyAccountViewProps = CreatorReadyWorkspaceShellProps & {

@@ -67,11 +67,11 @@ export function useManagerDeskMissingItems(args: {
         setState({ loading: false, error: null, data: parsed });
       } catch {
         if (cancelled) return;
-        setState({
+        setState((current) => ({
           loading: false,
           error: "MANAGER_DESK_MISSING_ITEMS_FAILED",
-          data: null,
-        });
+          data: current.data,
+        }));
       }
     }
 

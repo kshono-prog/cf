@@ -552,7 +552,7 @@ export function validateAiOfficeTaskDraft(
   draft: AiOfficeTaskDraft
 ): string | null {
   if (draft.taskType === "TRANSLATE" && draft.translationInput.trim().length === 0) {
-    return "TRANSLATE タスクには翻訳テキストが必要です。";
+    return "TRANSLATION_INPUT_REQUIRED";
   }
 
   return null;

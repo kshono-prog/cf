@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useOwnerSession } from "@/context/OwnerSessionProvider";
 import {
   parseFollowSummaryResponse,
   type FollowSummary,
 } from "@/lib/communityApiParsers";
 import { isRecord } from "@/lib/api/guards";
-import { mapFollowActionError } from "@/lib/communityUiState";
+import {
+  getAppAuthenticationHint,
+  mapFollowActionError,
+} from "@/lib/communityUiState";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import type { PublicViewerState } from "@/lib/publicViewerState";
 
@@ -25,6 +29,7 @@ function countLabel(value: number): string {
 }
 
 export function CreatorCommunityCard(props: Props) {
+  const ownerSession = useOwnerSession();
   const [summary, setSummary] = useState<FollowSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
@@ -222,6 +227,20 @@ export function CreatorCommunityCard(props: Props) {
       {props.viewerState.mode === "unconnected" ? (
         <div className="text-xs leading-5 text-[var(--text-subtle)]">
           フォローするには、右上のウォレットから接続してください。
+        </div>
+      ) : null}
+
+      {props.viewerState.mode === "registered" &&
+      ownerSession.status === "checking" ? (
+        <div className="text-xs leading-5 text-[var(--text-subtle)]">
+          アプリ認証の状態を確認しています。
+        </div>
+      ) : null}
+
+      {props.viewerState.mode === "registered" &&
+      ownerSession.status === "unauthenticated" ? (
+        <div className="text-xs leading-5 text-[var(--text-subtle)]">
+          {getAppAuthenticationHint("フォロー")}
         </div>
       ) : null}
 

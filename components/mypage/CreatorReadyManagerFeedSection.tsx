@@ -5,6 +5,7 @@ import {
   WorkspaceLoadingCard,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import type {
   CreatorManagerFeedData,
   CreatorManagerFeedItem,
@@ -62,6 +63,10 @@ function SummaryChip(props: { label: string; value: string }) {
 }
 
 export function CreatorReadyManagerFeedSection(props: Props) {
+  const errorNotice = props.error
+    ? mapWorkspaceActionError(props.error, "Manager Feed の取得に失敗しました。")
+    : null;
+
   return (
     <section className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -98,15 +103,15 @@ export function CreatorReadyManagerFeedSection(props: Props) {
           />
         ) : null}
 
-        {!props.loading && props.error ? (
+        {!props.loading && errorNotice ? (
           <WorkspaceStatusNotice
-            tone="info"
-            title="Manager Feed は次の読み込みで更新されます"
-            description="接続状態を確認すると、共有可能な manager update をこの面に戻せます。"
+            tone={errorNotice.tone}
+            title={errorNotice.title}
+            description={errorNotice.description}
           />
         ) : null}
 
-        {!props.loading && !props.error && props.data?.items.length ? (
+        {!props.loading && !errorNotice && props.data?.items.length ? (
           <div className="grid gap-3 lg:grid-cols-2">
             {props.data.items.map((item) => (
               <article
@@ -146,7 +151,7 @@ export function CreatorReadyManagerFeedSection(props: Props) {
           </div>
         ) : null}
 
-        {!props.loading && !props.error && (!props.data || props.data.items.length === 0) ? (
+        {!props.loading && !errorNotice && (!props.data || props.data.items.length === 0) ? (
           <WorkspaceEmptyState
             title="共有可能な Manager update はまだありません"
             description="Manager が Creator に見せられる note を残すと、この面に共同運営の進捗が並びます。"

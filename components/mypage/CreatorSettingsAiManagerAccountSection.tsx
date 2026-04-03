@@ -38,6 +38,10 @@ import { deriveAiManagerX402RecoveryItems } from "@/lib/aiManager/x402Recovery";
 import { deriveAiManagerX402RecoverySummary } from "@/lib/aiManager/x402RecoverySummary";
 import { deriveAiManagerX402ActivityTimeline } from "@/lib/aiManager/x402Timeline";
 import type { UpdateAiManagerAccountInput } from "@/lib/mypage/aiManagerAccountApi";
+import {
+  buildWorkspaceActionSuccessNotice,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 import type { SerializedAiManagerAccount } from "@/lib/serializers/aiManager";
 
 type FormState = {
@@ -262,7 +266,7 @@ export function CreatorSettingsAiManagerAccountSection() {
   const balance = account?.budgetBalance ?? null;
   const funding = aiManager.funding;
   const [form, setForm] = React.useState<FormState | null>(null);
-  const [notice, setNotice] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<WorkspaceActionNotice | null>(null);
   const [budgetAmount, setBudgetAmount] = React.useState("100");
   const [budgetNote, setBudgetNote] = React.useState("");
   const [fundingEvidenceTxHash, setFundingEvidenceTxHash] = React.useState("");
@@ -383,7 +387,7 @@ export function CreatorSettingsAiManagerAccountSection() {
   async function handleCreate() {
     const created = await aiManager.create();
     if (!created) return;
-    setNotice("AIマネージャーを作成しました。次に役割と予算ルールを整えられます。");
+    setNotice(buildWorkspaceActionSuccessNotice("aiManagerCreated"));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -420,7 +424,7 @@ export function CreatorSettingsAiManagerAccountSection() {
 
     const saved = await aiManager.save(input);
     if (!saved) return;
-    setNotice("AIマネージャー設定を保存しました。");
+    setNotice(buildWorkspaceActionSuccessNotice("aiManagerSaved"));
   }
 
   async function handleBudgetOperation(action: "TOP_UP" | "DEDUCT") {
@@ -436,8 +440,16 @@ export function CreatorSettingsAiManagerAccountSection() {
     if (!operated) return;
     setNotice(
       action === "TOP_UP"
-        ? `${operated.amount} JPYC を AI予算に加算しました。`
-        : `${operated.amount} JPYC を AI予算から減算しました。`
+        ? {
+            tone: "success",
+            title: `${operated.amount} JPYC を AI予算に加算しました。`,
+            description: "最新の budget balance と使用可能額に反映しました。",
+          }
+        : {
+            tone: "attention",
+            title: `${operated.amount} JPYC を AI予算から減算しました。`,
+            description: "必要なら budget note で今回の調整理由を残してください。",
+          }
     );
     setBudgetAmount("100");
     setBudgetNote("");
@@ -458,9 +470,7 @@ export function CreatorSettingsAiManagerAccountSection() {
       (entry) => entry.status === "SELF_REPORTED"
     );
     setSelectedFundingEvidenceId(nextUnmatched?.id ?? "");
-    setNotice(
-      "top-up evidence を記録しました。必要なら次の ledger top-up に紐づけられます。"
-    );
+    setNotice(buildWorkspaceActionSuccessNotice("fundingEvidenceSaved"));
     setFundingEvidenceTxHash("");
     setFundingEvidenceAmount("100");
     setFundingEvidenceFromWallet("");
@@ -492,8 +502,8 @@ export function CreatorSettingsAiManagerAccountSection() {
     setPaymentAttemptNote("");
     setNotice(
       action === "CONFIRM_X402"
-        ? "x402 settlement を確認済みに更新しました。"
-        : "x402 settlement を失敗として記録し、billable capability を一時停止しました。"
+        ? buildWorkspaceActionSuccessNotice("x402Confirmed")
+        : buildWorkspaceActionSuccessNotice("x402MarkedFailed")
     );
   }
 
@@ -509,7 +519,7 @@ export function CreatorSettingsAiManagerAccountSection() {
       note: note?.trim() || undefined,
     });
     if (updated) {
-      setNotice("x402 settlement を確認済みに更新しました。");
+      setNotice(buildWorkspaceActionSuccessNotice("x402Confirmed"));
     }
   }
 
@@ -520,7 +530,7 @@ export function CreatorSettingsAiManagerAccountSection() {
       note: note?.trim() || undefined,
     });
     if (updated) {
-      setNotice("x402 settlement を失敗として記録しました。");
+      setNotice(buildWorkspaceActionSuccessNotice("x402MarkedFailed"));
     }
   }
 
@@ -575,7 +585,11 @@ export function CreatorSettingsAiManagerAccountSection() {
 
       {notice ? (
         <div className="mt-4">
-          <WorkspaceStatusNotice tone="success" title={notice} />
+          <WorkspaceStatusNotice
+            tone={notice.tone}
+            title={notice.title}
+            description={notice.description}
+          />
         </div>
       ) : null}
 

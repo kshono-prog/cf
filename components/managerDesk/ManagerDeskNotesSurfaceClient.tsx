@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { startTransition, useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { useAccount } from "wagmi";
 
+import { ManagerDeskAuthRequiredNotice } from "@/components/managerDesk/ManagerDeskAuthRequiredNotice";
+import {
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import { useManagerDeskAccessState } from "@/components/managerDesk/useManagerDeskAccessState";
 import { useManagerDeskNotesSurface } from "@/components/managerDesk/useManagerDeskNotesSurface";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
@@ -66,9 +72,11 @@ function SummaryMetric(props: { label: string; value: string }) {
 
 export function ManagerDeskNotesSurfaceClient() {
   const { address, isConnected } = useAccount();
+  const access = useManagerDeskAccessState({ isConnected });
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isFilterPending, startFilterTransition] = useTransition();
 
   const creatorProfileId = searchParams.get("creatorProfileId");
   const noteType = searchParams.get("noteType");
@@ -83,7 +91,7 @@ export function ManagerDeskNotesSurfaceClient() {
 
   const { loading, error, data, reload } = useManagerDeskNotesSurface({
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
     creatorProfileId,
     noteType,
     visibility,
@@ -140,10 +148,16 @@ export function ManagerDeskNotesSurfaceClient() {
     }
 
     const nextUrl = params.toString().length > 0 ? `${pathname}?${params}` : pathname;
-    startTransition(() => {
+    startFilterTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
   }
+
+  const isInitialLoading = access.authChecking || (loading && !data);
+  const isRefreshing =
+    !access.authChecking && Boolean(data) && (loading || isFilterPending);
+  const hasBlockingError = Boolean(error && !data);
+  const hasStaleError = Boolean(error && data);
 
   return (
     <MyPageShell headerColor="#0f172a" showPromo={false}>
@@ -180,18 +194,42 @@ export function ManagerDeskNotesSurfaceClient() {
             />
           ) : null}
 
-          {loading ? (
-            <WorkspaceLoadingCard
-              title="Notes Surface を読み込んでいます"
-              description="Manager Note の一覧とフィルタを準備しています。"
+          {access.authRequired ? (
+            <ManagerDeskAuthRequiredNotice
+              authenticating={access.authChecking}
+              onAuthenticate={access.authenticate}
             />
           ) : null}
 
-          {error ? (
+          {isInitialLoading ? (
+            <WorkspaceLoadingCard
+              title="Notes Surface を読み込んでいます"
+              description="Manager Note の一覧、フィルタ、認証状態を準備しています。"
+            />
+          ) : null}
+
+          {isRefreshing ? (
+            <ManagerDeskRefreshingNotice
+              title="フィルタ条件を反映しています"
+              description="前回の note 一覧を残したまま、Creator・種別・公開範囲・検索条件を更新しています。"
+            />
+          ) : null}
+
+          {hasBlockingError ? (
             <WorkspaceStatusNotice
               tone="error"
               title="Notes Surface の取得に失敗しました"
               description="接続状態を確認してから、もう一度試してください。"
+              onRetry={() => {
+                void reload();
+              }}
+            />
+          ) : null}
+
+          {hasStaleError ? (
+            <ManagerDeskStaleDataNotice
+              title="最新の Notes Surface を更新できませんでした"
+              description="前回の一覧を表示しています。検索条件を見直すか、時間をおいて再読み込みしてください。"
               onRetry={() => {
                 void reload();
               }}

@@ -2,7 +2,13 @@
 
 import { useState, type FormEvent } from "react";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import { postGrowthEvent } from "@/lib/growth/client";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 
 const CHANNEL_OPTIONS = [
   { value: "x", label: "X" },
@@ -30,13 +36,11 @@ export function ShareExecutionLogCard(props: Props) {
   const [postedUrl, setPostedUrl] = useState("");
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<WorkspaceActionNotice | null>(null);
 
   async function handleSubmit(): Promise<void> {
     setSaving(true);
-    setError(null);
-    setSuccess(null);
+    setFeedback(null);
 
     const result = await postGrowthEvent({
       event: "share_post_logged",
@@ -52,12 +56,14 @@ export function ShareExecutionLogCard(props: Props) {
 
     if (!result.ok) {
       setSaving(false);
-      setError("投稿記録の保存に失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError(result.error, "投稿記録の保存に失敗しました。")
+      );
       return;
     }
 
     setSaving(false);
-    setSuccess("投稿記録を保存しました。");
+    setFeedback(buildWorkspaceActionSuccessNotice("shareLogSaved"));
     setPostedUrl("");
     setMemo("");
     props.onLogged?.();
@@ -144,15 +150,13 @@ export function ShareExecutionLogCard(props: Props) {
           />
         </label>
 
-        {error ? (
-          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : null}
-
-        {success ? (
-          <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            {success}
+        {feedback ? (
+          <div className="mt-3">
+            <WorkspaceStatusNotice
+              tone={feedback.tone}
+              title={feedback.title}
+              description={feedback.description}
+            />
           </div>
         ) : null}
       </form>

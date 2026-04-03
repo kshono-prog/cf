@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useAccount } from "wagmi";
 
 import { ManagerDeskAiSuggestionsSection } from "@/components/managerDesk/ManagerDeskAiSuggestionsSection";
+import { ManagerDeskAuthRequiredNotice } from "@/components/managerDesk/ManagerDeskAuthRequiredNotice";
 import { ManagerDeskMissingItemsSection } from "@/components/managerDesk/ManagerDeskMissingItemsSection";
+import {
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import { useManagerDeskAccessState } from "@/components/managerDesk/useManagerDeskAccessState";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
   WorkspaceEmptyState,
@@ -282,13 +288,21 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
 
 export function ManagerDeskDashboardClient() {
   const { address, isConnected } = useAccount();
+  const access = useManagerDeskAccessState({ isConnected });
   const { loading, error, data, reload } = useManagerDeskDashboard({
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
   });
-  const missingItems = useManagerDeskMissingItems({ address, isConnected });
+  const missingItems = useManagerDeskMissingItems({
+    address,
+    isConnected: access.canReadProtectedData,
+  });
   const aiSummary = data ? buildManagerDeskDashboardAiSummary(data) : null;
   const aiSuggestions = data ? buildManagerDeskDashboardAiSuggestions(data) : [];
+  const isInitialLoading = access.authChecking || (loading && !data);
+  const isRefreshing = !access.authChecking && loading && Boolean(data);
+  const hasBlockingError = Boolean(error && !data);
+  const hasStaleError = Boolean(error && data);
 
   return (
     <MyPageShell headerColor="#0f172a" showPromo={false}>
@@ -341,14 +355,28 @@ export function ManagerDeskDashboardClient() {
             />
           ) : null}
 
-          {loading ? (
-            <WorkspaceLoadingCard
-              title="Manager Desk を読み込んでいます"
-              description="担当 Creator の進捗とフォロー状況を集約しています。"
+          {access.authRequired ? (
+            <ManagerDeskAuthRequiredNotice
+              authenticating={access.authChecking}
+              onAuthenticate={access.authenticate}
             />
           ) : null}
 
-          {error ? (
+          {isInitialLoading ? (
+            <WorkspaceLoadingCard
+              title="Manager Desk を読み込んでいます"
+              description="担当 Creator の進捗とフォロー状況、認証状態を集約しています。"
+            />
+          ) : null}
+
+          {isRefreshing ? (
+            <ManagerDeskRefreshingNotice
+              title="最新の担当状況を反映しています"
+              description="前回の dashboard を表示したまま、priority と follow-up を更新しています。"
+            />
+          ) : null}
+
+          {hasBlockingError ? (
             <WorkspaceStatusNotice
               tone="error"
               title="Manager Desk の取得に失敗しました"
@@ -359,11 +387,23 @@ export function ManagerDeskDashboardClient() {
             />
           ) : null}
 
-          <ManagerDeskMissingItemsSection
-            loading={missingItems.loading}
-            error={missingItems.error}
-            data={missingItems.data}
-          />
+          {hasStaleError ? (
+            <ManagerDeskStaleDataNotice
+              title="最新の Manager Desk を更新できませんでした"
+              description="前回の dashboard を表示しています。接続状態を確認してから再読み込みしてください。"
+              onRetry={() => {
+                void reload();
+              }}
+            />
+          ) : null}
+
+          {access.canReadProtectedData ? (
+            <ManagerDeskMissingItemsSection
+              loading={missingItems.loading}
+              error={missingItems.error}
+              data={missingItems.data}
+            />
+          ) : null}
 
           {data ? (
             <div className="space-y-4">

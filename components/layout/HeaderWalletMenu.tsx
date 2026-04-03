@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { useAccount, useChainId, useDisconnect } from "wagmi";
 import type { Address } from "viem";
 
+import { useOwnerSession } from "@/context/OwnerSessionProvider";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { getChainConfig, getDefaultChainId, isSupportedChainId } from "@/lib/chainConfig";
 import { formatReadableNumber } from "@/lib/numberFormat";
+import { logoutOwnerSession } from "@/lib/ownerAuthClient";
 import { clearPublicViewerIdentityCache } from "@/lib/publicViewerIdentityClient";
 import {
   getSystemTheme,
@@ -36,6 +38,26 @@ function MenuCaret(props: { open: boolean }) {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+function StatusChip(props: {
+  tone: "muted" | "success" | "attention";
+  children: string;
+}) {
+  const toneClass =
+    props.tone === "success"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : props.tone === "attention"
+      ? "border-amber-200 bg-amber-50 text-amber-700"
+      : "border-[var(--line)] bg-[var(--surface)] text-[var(--text-subtle)]";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${toneClass}`}
+    >
+      {props.children}
+    </span>
   );
 }
 
@@ -83,6 +105,7 @@ export function HeaderWalletMenu({ username }: { username: string }) {
   const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
   const { disconnectAsync } = useDisconnect();
+  const ownerSession = useOwnerSession();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [balances, setBalances] = useState<WalletBalances | null>(null);
@@ -154,6 +177,7 @@ export function HeaderWalletMenu({ username }: { username: string }) {
 
   async function handleDisconnect(): Promise<void> {
     const connectedAddress = address ?? null;
+    await logoutOwnerSession().catch(() => undefined);
     try {
       await disconnectAsync();
     } catch {
@@ -187,10 +211,29 @@ export function HeaderWalletMenu({ username }: { username: string }) {
     setOpen(false);
   }
 
+  async function handleAuthenticate(): Promise<void> {
+    try {
+      await ownerSession.authenticate();
+    } finally {
+      setOpen(false);
+    }
+  }
+
+  async function handleAppLogout(): Promise<void> {
+    try {
+      await ownerSession.logout();
+    } finally {
+      setOpen(false);
+    }
+  }
+
   const chainName =
     chainId && isSupportedChainId(chainId)
       ? getChainConfig(chainId)?.name ?? `Chain ${chainId}`
       : "未接続";
+  const walletBusy = status === "connecting" || status === "reconnecting";
+  const authChecking = ownerSession.status === "checking";
+  const authReady = ownerSession.status === "authenticated";
 
   return (
     <div ref={rootRef} className="relative">
@@ -230,11 +273,9 @@ export function HeaderWalletMenu({ username }: { username: string }) {
                 type="button"
                 className="btn w-full"
                 onClick={() => void handleConnect()}
-                disabled={status === "connecting" || status === "reconnecting"}
+                disabled={walletBusy}
               >
-                {status === "connecting" || status === "reconnecting"
-                  ? "接続中です"
-                  : "ウォレット接続"}
+                {walletBusy ? "接続中です" : "ウォレット接続"}
               </button>
               <ThemeModeSection />
               <Link
@@ -247,6 +288,17 @@ export function HeaderWalletMenu({ username }: { username: string }) {
             </div>
           ) : (
             <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <StatusChip tone="success">接続済み</StatusChip>
+                {authReady ? (
+                  <StatusChip tone="success">認証済み</StatusChip>
+                ) : authChecking ? (
+                  <StatusChip tone="muted">認証確認中</StatusChip>
+                ) : (
+                  <StatusChip tone="attention">認証が必要</StatusChip>
+                )}
+              </div>
+
               <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
                 <div className="text-[11px] font-semibold tracking-[0.16em] text-[var(--text-subtle)]">
                   接続中アドレス
@@ -295,7 +347,38 @@ export function HeaderWalletMenu({ username }: { username: string }) {
                 ) : null}
               </div>
 
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+                <div className="text-[11px] font-semibold tracking-[0.16em] text-[var(--text-subtle)]">
+                  アプリ認証
+                </div>
+                <div className="mt-1 text-sm text-[var(--text)]">
+                  {authReady
+                    ? "署名検証済みセッションで保護機能を利用できます。"
+                    : "署名はログインや保護操作が必要な時だけ求められます。"}
+                </div>
+              </div>
+
               <ThemeModeSection />
+
+              {!authReady ? (
+                <button
+                  type="button"
+                  className="btn w-full"
+                  onClick={() => void handleAuthenticate()}
+                  disabled={authChecking || walletBusy}
+                >
+                  {authChecking ? "認証を確認中です" : "アプリ認証"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-secondary w-full"
+                  onClick={() => void handleAppLogout()}
+                  disabled={authChecking}
+                >
+                  アプリからログアウト
+                </button>
+              )}
 
               <button
                 type="button"

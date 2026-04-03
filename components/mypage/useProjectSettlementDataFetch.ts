@@ -148,7 +148,7 @@ export function useProjectSettlementDataFetch(
       }
 
       await callRefresh();
-      setMessage("settlement status を再計算しました");
+      setMessage("SETTLEMENT_STATUS_RECOMPUTED");
     } catch {
       setMessage("SETTLEMENT_RECOMPUTE_FAILED");
     } finally {

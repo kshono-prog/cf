@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 
+import {
+  ManagerDeskMutationNotice,
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import {
+  WorkspaceEmptyState,
+  WorkspaceLoadingCard,
+} from "@/components/mypage/WorkspaceFeedback";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import type { StageEvidenceItem } from "@/components/managerDesk/useManagerDeskStageEvidence";
 
@@ -57,6 +66,8 @@ type Props = {
   currentStage: StageId | null;
   items: StageEvidenceItem[];
   loading: boolean;
+  error: string | null;
+  onReload: () => void;
   onItemAdded: (item: StageEvidenceItem) => void;
 };
 
@@ -66,6 +77,8 @@ export function ManagerDeskStageEvidenceSection({
   currentStage,
   items,
   loading,
+  error,
+  onReload,
   onItemAdded,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -224,16 +237,52 @@ export function ManagerDeskStageEvidenceSection({
             >
               {saveState === "saving" ? "保存中..." : "記録する"}
             </button>
-            {saveState === "error" ? (
-              <span className="text-xs text-rose-600">保存に失敗しました</span>
-            ) : null}
           </div>
+          {saveState === "saved" ? (
+            <ManagerDeskMutationNotice
+              tone="success"
+              title="Stage Evidence を記録しました"
+              description="一覧に追加された内容を確認し、必要なら続けて次のエビデンスも記録できます。"
+            />
+          ) : null}
+          {saveState === "error" ? (
+            <ManagerDeskMutationNotice
+              tone="error"
+              title="Stage Evidence の保存に失敗しました"
+              description="入力内容と接続状態を確認してから、もう一度試してください。"
+            />
+          ) : null}
         </form>
       ) : null}
 
-      {loading ? (
-        <p className="text-xs text-[var(--text-subtle)]">読み込み中...</p>
-      ) : grouped.length > 0 ? (
+      {loading && items.length === 0 ? (
+        <WorkspaceLoadingCard title="Stage Evidence を読み込んでいます" />
+      ) : null}
+
+      {loading && items.length > 0 ? (
+        <ManagerDeskRefreshingNotice
+          title="Stage Evidence を更新しています"
+          description="前回のエビデンス一覧を残したまま、最新の記録を反映しています。"
+        />
+      ) : null}
+
+      {error && items.length > 0 ? (
+        <ManagerDeskStaleDataNotice
+          title="最新の Stage Evidence を更新できませんでした"
+          description="前回のエビデンス一覧を表示しています。時間をおいて再読み込みしてください。"
+          onRetry={onReload}
+        />
+      ) : null}
+
+      {error && items.length === 0 ? (
+        <ManagerDeskStaleDataNotice
+          title="Stage Evidence の取得に失敗しました"
+          description="接続状態を確認してから、もう一度試してください。"
+          onRetry={onReload}
+        />
+      ) : null}
+
+      {grouped.length > 0 ? (
         <div className="space-y-3">
           {grouped.map((group) => (
             <div key={group.stageId}>
@@ -270,11 +319,15 @@ export function ManagerDeskStageEvidenceSection({
             </div>
           ))}
         </div>
-      ) : (
-        <p className="text-xs text-[var(--text-subtle)]">
-          まだエビデンスが記録されていません。ライブ実績・受賞・契約などを記録できます。
-        </p>
-      )}
+      ) : null}
+
+      {!loading && !error && grouped.length === 0 ? (
+        <WorkspaceEmptyState
+          compact
+          title="エビデンスはまだ記録されていません"
+          description="ライブ実績、受賞、契約などを記録すると、ここに stage 根拠が積み上がります。"
+        />
+      ) : null}
     </section>
   );
 }

@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { isRecord } from "@/lib/api/guards";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 
 const EXPENSE_CATEGORIES = [
@@ -49,6 +56,33 @@ type MonthlySummary = {
   totals: { currency: string; total: number }[];
   byCategory: { category: ExpenseCategory | string; total: number; currency: string }[];
 };
+
+function parseExpenseItem(value: unknown): ExpenseItem | null {
+  if (!isRecord(value)) return null;
+  if (
+    typeof value.id !== "string" ||
+    typeof value.category !== "string" ||
+    typeof value.amountDecimal !== "string" ||
+    typeof value.currency !== "string" ||
+    typeof value.occurredAt !== "string" ||
+    typeof value.title !== "string"
+  ) {
+    return null;
+  }
+
+  const note =
+    value.note === null ? null : typeof value.note === "string" ? value.note : null;
+
+  return {
+    id: value.id,
+    category: value.category,
+    amountDecimal: value.amountDecimal,
+    currency: value.currency,
+    occurredAt: value.occurredAt,
+    title: value.title,
+    note,
+  };
+}
 
 function buildMonthlySummary(expenses: ExpenseItem[]): MonthlySummary | null {
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -112,11 +146,13 @@ export function CreatorReadyExpenseInputSection({
   );
   const [note, setNote] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [feedback, setFeedback] = useState<WorkspaceActionNotice | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!address || !title.trim() || !amount.trim()) return;
     setSaveState("saving");
+    setFeedback(null);
     try {
       const res = await ownerAuthFetch({
         address,
@@ -135,16 +171,31 @@ export function CreatorReadyExpenseInputSection({
           }),
         },
       });
-      if (!res.ok) throw new Error("FAILED");
-      const json = (await res.json()) as { expense: ExpenseItem };
-      onExpenseAdded(json.expense);
+      const json: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const errorCode =
+          isRecord(json) && typeof json.error === "string" ? json.error : "";
+        throw new Error(errorCode);
+      }
+      const expense = isRecord(json) ? parseExpenseItem(json.expense) : null;
+      if (!expense) {
+        throw new Error("EXPENSES_POST_FAILED");
+      }
+      onExpenseAdded(expense);
       setSaveState("saved");
+      setFeedback(buildWorkspaceActionSuccessNotice("expenseSaved"));
       setTitle("");
       setAmount("");
       setNote("");
       setOpen(false);
-    } catch {
+    } catch (error) {
       setSaveState("error");
+      setFeedback(
+        mapWorkspaceActionError(
+          error instanceof Error ? error.message : "",
+          "経費の保存に失敗しました。"
+        )
+      );
     }
   }
 
@@ -260,11 +311,16 @@ export function CreatorReadyExpenseInputSection({
             >
               {saveState === "saving" ? "保存中..." : "保存"}
             </button>
-            {saveState === "error" ? (
-              <span className="text-xs text-rose-600">保存に失敗しました</span>
-            ) : null}
           </div>
         </form>
+      ) : null}
+
+      {feedback ? (
+        <WorkspaceStatusNotice
+          tone={feedback.tone}
+          title={feedback.title}
+          description={feedback.description}
+        />
       ) : null}
 
       {summary ? (

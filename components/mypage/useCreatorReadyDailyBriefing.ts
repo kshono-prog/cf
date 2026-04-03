@@ -83,11 +83,15 @@ export function useCreatorReadyDailyBriefing(args: {
           error: null,
           data: parsed,
         });
-      } catch {
+      } catch (error: unknown) {
         if (cancelled) return;
+        const code =
+          error instanceof Error && typeof error.message === "string"
+            ? error.message
+            : "MYPAGE_DAILY_BRIEFING_FAILED";
         setState({
           loading: false,
-          error: "MYPAGE_DAILY_BRIEFING_FAILED",
+          error: code,
           data: null,
         });
       }

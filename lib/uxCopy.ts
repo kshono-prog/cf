@@ -229,6 +229,12 @@ const CCTP_STATUS_COPY: Record<
 };
 
 const AI_OFFICE_MESSAGE_COPY: Record<string, MessageState> = {
+  AI_OFFICE_DASHBOARD_FAILED:
+    {
+      tone: "error",
+      title: "AIの提案状況を取得できませんでした。",
+      description: "少し待ってから再読み込みしてください。",
+    },
   METRICS_COLLECT_FAILED:
     {
       tone: "error",
@@ -259,6 +265,10 @@ const AI_OFFICE_MESSAGE_COPY: Record<string, MessageState> = {
       title: "翻訳結果を正しく受け取れませんでした。",
       description: "もう一度お試しください。",
     },
+  TRANSLATION_INPUT_REQUIRED: {
+    tone: "info",
+    title: "翻訳するテキストを入力してください。",
+  },
   TASK_INPUT_INVALID: {
     tone: "info",
     title: "入力内容を確認してください。",
@@ -336,6 +346,10 @@ const AI_OFFICE_MESSAGE_COPY: Record<string, MessageState> = {
       title: "この AI タスクは承認待ちではありません。",
       description: "すでに処理済みの可能性があるため、一覧を更新してご確認ください。",
     },
+  TASK_SELECTION_REQUIRED: {
+    tone: "info",
+    title: "処理する提案を選択してください。",
+  },
 };
 
 const SETTLEMENT_MESSAGE_COPY: Record<string, string> = {
@@ -399,6 +413,18 @@ const SETTLEMENT_MESSAGE_COPY: Record<string, string> = {
     "配分対象がありません。下書きを作成して保存してから実行してください。",
   SETTLEMENT_RESPONSE_INVALID:
     "精算データの形式を正しく受け取れませんでした。画面を更新してご確認ください。",
+  BALANCE_CHECK_OK:
+    "送信前の確認が完了しました。",
+  SETTLEMENT_STATUS_RECOMPUTED:
+    "精算ステータスを再計算しました。",
+  DISTRIBUTION_DRAFT_SAVED:
+    "配分下書きを保存しました。",
+  DISTRIBUTION_EXECUTION_STARTED:
+    "配分実行を開始しました。",
+  DISTRIBUTION_RESULT_MARKED_SENT:
+    "送信済みに更新しました。",
+  DISTRIBUTION_RESULT_MARKED_FAILED:
+    "失敗として更新しました。",
 };
 
 function looksLikeCode(input: string): boolean {
@@ -510,8 +536,80 @@ export function getAiOfficeMessage(message: string | null): string | null {
 export function getSettlementMessageState(
   message: string | null
 ): MessageState | null {
+  if (message === "BALANCE_CHECK_OK") {
+    return {
+      tone: "success",
+      title: "送信前の確認が完了しました。",
+      description:
+        "この段階ではまだ送金されません。内容を確認できたら次の手順で配分を実行できます。",
+    };
+  }
+  if (message === "SETTLEMENT_STATUS_RECOMPUTED") {
+    return {
+      tone: "success",
+      title: "精算ステータスを再計算しました。",
+      description:
+        "ブリッジ・配分・実行結果の最新状態を反映しました。",
+    };
+  }
+  if (message === "DISTRIBUTION_DRAFT_SAVED") {
+    return {
+      tone: "success",
+      title: "配分下書きを保存しました。",
+      description:
+        "次は送信前確認を実行して、残高と設定不足を確認できます。",
+    };
+  }
+  if (message === "DISTRIBUTION_EXECUTION_STARTED") {
+    return {
+      tone: "info",
+      title: "配分実行を開始しました。",
+      description:
+        "ここから先は接続ウォレットで1件ずつ署名が必要です。内容を確認しながら進めてください。",
+    };
+  }
+  if (message === "DISTRIBUTION_RESULT_MARKED_SENT") {
+    return {
+      tone: "success",
+      title: "送信済みに更新しました。",
+      description:
+        "Review step の実行ログと結果確認に反映されます。",
+    };
+  }
+  if (message === "DISTRIBUTION_RESULT_MARKED_FAILED") {
+    return {
+      tone: "info",
+      title: "失敗として更新しました。",
+      description:
+        "Review step で失敗理由を確認し、必要なら再送や手動記録を続けてください。",
+    };
+  }
   const resolved = getSettlementMessage(message);
   if (!resolved) return null;
+  if (resolved.startsWith("Distribute開始")) {
+    return {
+      tone: "info",
+      title: resolved,
+      description:
+        "ここから先は接続ウォレットで1件ずつ送金します。署名ごとに内容を確認してください。",
+    };
+  }
+  if (resolved.startsWith("Distribute一部完了")) {
+    return {
+      tone: "info",
+      title: resolved,
+      description:
+        "Review step で実行ログと失敗行を確認し、必要な再送だけ進めてください。",
+    };
+  }
+  if (resolved.startsWith("Distribute完了")) {
+    return {
+      tone: "success",
+      title: resolved,
+      description:
+        "Review step で実行ログを確認し、記録漏れがないことを確かめて締めます。",
+    };
+  }
   if (/(更新しました|保存しました|記録しました|完了しました)/.test(resolved)) {
     return {
       tone: "success",
@@ -538,6 +636,12 @@ export function getSettlementMessage(message: string | null): string | null {
   if (!message) return null;
   if (SETTLEMENT_MESSAGE_COPY[message]) {
     return SETTLEMENT_MESSAGE_COPY[message];
+  }
+  const icttConfigMatch = message.match(/^ICTT_CONFIG_NOT_READY(?::\s*(.+))?$/);
+  if (icttConfigMatch) {
+    return icttConfigMatch[1]
+      ? `ブリッジ設定がまだ揃っていません（不足: ${icttConfigMatch[1]}）。`
+      : "ブリッジ設定がまだ揃っていません。";
   }
   const tokenAddressMatch = message.match(/^TOKEN_ADDRESS_NOT_CONFIGURED_(JPYC|USDC)$/);
   if (tokenAddressMatch) {

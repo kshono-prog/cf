@@ -1,10 +1,15 @@
 "use client";
 
 import React from "react";
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import {
   POSTING_COMPOSE_HANDOFF_STORAGE_KEY,
   buildProposePostingComposeHandoff,
 } from "@/components/mypage/postingComposeHandoff";
+import {
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 
 type Props = {
   projectId: string | null;
@@ -33,11 +38,11 @@ export function AiManagerInlinePostingPanel({
 }: Props) {
   const [draftText, setDraftText] = React.useState("");
   const [aiLoading, setAiLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [feedback, setFeedback] = React.useState<WorkspaceActionNotice | null>(null);
 
   async function handleAiDraft() {
     setAiLoading(true);
-    setError(null);
+    setFeedback(null);
     try {
       const res = await fetch("/api/ai/share-drafts", {
         method: "POST",
@@ -67,10 +72,20 @@ export function AiManagerInlinePostingPanel({
       ) {
         setDraftText(json.drafts.progressUpdateMessage);
       } else {
-        setError("AI 下書きを取得できませんでした。手動で入力してください。");
+        setFeedback(
+          mapWorkspaceActionError(
+            "SHARE_DRAFT_REQUEST_FAILED",
+            "AI 下書きを取得できませんでした。手動で入力してください。"
+          )
+        );
       }
     } catch {
-      setError("AI 下書きを取得できませんでした。手動で入力してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "SHARE_DRAFT_REQUEST_FAILED",
+          "AI 下書きを取得できませんでした。手動で入力してください。"
+        )
+      );
     } finally {
       setAiLoading(false);
     }
@@ -82,7 +97,12 @@ export function AiManagerInlinePostingPanel({
 
   function handleSendToCompose() {
     if (!draftText.trim()) {
-      setError("投稿文を入力してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "POST_DRAFT_REQUIRED",
+          "投稿文を入力してください。"
+        )
+      );
       return;
     }
     const handoff = buildProposePostingComposeHandoff({
@@ -92,7 +112,12 @@ export function AiManagerInlinePostingPanel({
     try {
       localStorage.setItem(POSTING_COMPOSE_HANDOFF_STORAGE_KEY, JSON.stringify(handoff));
     } catch {
-      setError("Compose への引き渡しに失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "COMPOSE_HANDOFF_FAILED",
+          "Compose への引き渡しに失敗しました。"
+        )
+      );
       return;
     }
     onComplete({ message: "Compose に下書きを送りました", growthLabel: "成長 +3%" });
@@ -112,10 +137,12 @@ export function AiManagerInlinePostingPanel({
         className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--text)] resize-none"
       />
 
-      {error ? (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-          {error}
-        </div>
+      {feedback ? (
+        <WorkspaceStatusNotice
+          tone={feedback.tone}
+          title={feedback.title}
+          description={feedback.description}
+        />
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">

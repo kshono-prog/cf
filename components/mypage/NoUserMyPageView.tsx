@@ -7,10 +7,13 @@ import { MyPageOnboardingProgress } from "@/components/mypage/MyPageOnboardingPr
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import { UserRegistrationForm } from "@/components/mypage/UserRegistrationForm";
 import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import type { WorkspaceActionNotice } from "@/lib/mypage/workspaceActionCopy";
 
 type Props = {
   headerColor: string;
   error: string | null;
+  errorDescription?: string | null;
+  notice?: WorkspaceActionNotice | null;
   assistantSection?: React.ReactNode;
   usernameInput: string;
   displayName: string;
@@ -56,8 +59,20 @@ export function NoUserMyPageView(props: Props) {
         />
 
         {props.error && (
-          <WorkspaceStatusNotice tone="error" title={props.error} />
+          <WorkspaceStatusNotice
+            tone="error"
+            title={props.error}
+            description={props.errorDescription ?? undefined}
+          />
         )}
+
+        {props.notice ? (
+          <WorkspaceStatusNotice
+            tone={props.notice.tone}
+            title={props.notice.title}
+            description={props.notice.description}
+          />
+        ) : null}
 
         {props.assistantSection}
 

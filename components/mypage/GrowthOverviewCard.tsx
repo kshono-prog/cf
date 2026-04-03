@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import type { GrowthOverviewData } from "@/lib/growth/overview";
 
 type Props = {
@@ -47,6 +49,10 @@ function StatCard(props: {
 }
 
 export function GrowthOverviewCard(props: Props) {
+  const errorNotice = props.error
+    ? mapWorkspaceActionError(props.error, "成長データの取得に失敗しました。")
+    : null;
+
   return (
     <section className="surface-card p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -70,9 +76,13 @@ export function GrowthOverviewCard(props: Props) {
         <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--text-subtle)]">
           成長データを読み込んでいます...
         </div>
-      ) : props.error ? (
-        <div className="alert-warn mt-4">
-          成長データの取得に失敗しました。少し時間をおいて再読み込みしてください。
+      ) : errorNotice ? (
+        <div className="mt-4">
+          <WorkspaceStatusNotice
+            tone={errorNotice.tone}
+            title={errorNotice.title}
+            description={errorNotice.description}
+          />
         </div>
       ) : props.data ? (
         <>

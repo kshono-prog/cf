@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { isRecord } from "@/lib/api/guards";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import type { ExpenseItem } from "@/components/mypage/useCreatorReadyExpenses";
 import type { RevenueRecordItem } from "@/components/mypage/useCreatorReadyRevenueRecords";
@@ -49,6 +56,33 @@ type MonthlyCashflow = {
   currency: string;
 };
 
+function parseRevenueRecordItem(value: unknown): RevenueRecordItem | null {
+  if (!isRecord(value)) return null;
+  if (
+    typeof value.id !== "string" ||
+    typeof value.source !== "string" ||
+    typeof value.amountDecimal !== "string" ||
+    typeof value.currency !== "string" ||
+    typeof value.occurredAt !== "string" ||
+    typeof value.title !== "string"
+  ) {
+    return null;
+  }
+
+  const note =
+    value.note === null ? null : typeof value.note === "string" ? value.note : null;
+
+  return {
+    id: value.id,
+    source: value.source,
+    amountDecimal: value.amountDecimal,
+    currency: value.currency,
+    occurredAt: value.occurredAt,
+    title: value.title,
+    note,
+  };
+}
+
 function buildMonthlyCashflow(
   revenueRecords: RevenueRecordItem[],
   expenses: ExpenseItem[],
@@ -87,11 +121,13 @@ export function CreatorReadyRevenueSection({
   );
   const [note, setNote] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [feedback, setFeedback] = useState<WorkspaceActionNotice | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!address || !title.trim() || !amount.trim()) return;
     setSaveState("saving");
+    setFeedback(null);
     try {
       const res = await ownerAuthFetch({
         address,
@@ -110,16 +146,33 @@ export function CreatorReadyRevenueSection({
           }),
         },
       });
-      if (!res.ok) throw new Error("FAILED");
-      const json = (await res.json()) as { revenueRecord: RevenueRecordItem };
-      onRevenueAdded(json.revenueRecord);
+      const json: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const errorCode =
+          isRecord(json) && typeof json.error === "string" ? json.error : "";
+        throw new Error(errorCode);
+      }
+      const revenueRecord = isRecord(json)
+        ? parseRevenueRecordItem(json.revenueRecord)
+        : null;
+      if (!revenueRecord) {
+        throw new Error("REVENUE_RECORDS_POST_FAILED");
+      }
+      onRevenueAdded(revenueRecord);
       setSaveState("saved");
+      setFeedback(buildWorkspaceActionSuccessNotice("revenueSaved"));
       setTitle("");
       setAmount("");
       setNote("");
       setOpen(false);
-    } catch {
+    } catch (error) {
       setSaveState("error");
+      setFeedback(
+        mapWorkspaceActionError(
+          error instanceof Error ? error.message : "",
+          "収入の保存に失敗しました。"
+        )
+      );
     }
   }
 
@@ -277,11 +330,16 @@ export function CreatorReadyRevenueSection({
             >
               {saveState === "saving" ? "保存中..." : "保存"}
             </button>
-            {saveState === "error" ? (
-              <span className="text-xs text-rose-600">保存に失敗しました</span>
-            ) : null}
           </div>
         </form>
+      ) : null}
+
+      {feedback ? (
+        <WorkspaceStatusNotice
+          tone={feedback.tone}
+          title={feedback.title}
+          description={feedback.description}
+        />
       ) : null}
 
       {recentRevenue.length > 0 ? (

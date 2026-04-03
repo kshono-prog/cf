@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Address } from "viem";
 
+import { useOwnerSession } from "@/context/OwnerSessionProvider";
 import { FeedPostCard } from "@/components/feed/FeedPostCard";
 import { ReplyComposer } from "@/components/feed/ReplyComposer";
 import { ReplyList } from "@/components/feed/ReplyList";
@@ -19,6 +20,7 @@ import {
   type FeedReply,
   type SelectedPostTipContext,
 } from "@/components/feed/feedTypes";
+import { mapCommunityProtectedActionError } from "@/lib/communityUiState";
 import {
   deleteMyPostingPost,
   updateMyPostingPostContent,
@@ -88,10 +90,6 @@ function buildFeedActionErrorMessage(
   fallback: string
 ): string {
   switch (code) {
-    case "ADDRESS_REQUIRED":
-      return "続けるにはウォレットを接続してください。";
-    case "CREATOR_NOT_FOUND":
-      return "現在はクリエイター登録済みウォレットでのみ利用できます。";
     case "POST_NOT_FOUND":
     case "REPLY_NOT_FOUND":
       return "投稿情報を読み直してください。";
@@ -100,7 +98,7 @@ function buildFeedActionErrorMessage(
     case "BODY_TOO_LONG":
       return "返信は短めにまとめてください。";
     default:
-      return fallback;
+      return mapCommunityProtectedActionError(code ?? "", fallback);
   }
 }
 
@@ -135,6 +133,7 @@ function createEditDraft(post: FeedPost): PostEditDraft {
 }
 
 export function CreatorFeedSection(props: Props) {
+  const ownerSession = useOwnerSession();
   const {
     creatorUsername,
     viewerAddress,
@@ -190,6 +189,16 @@ export function CreatorFeedSection(props: Props) {
     [managedCreatorUsername]
   );
   const hasInitialFeed = initialFeed !== null;
+  const publicActionAuthHint = useMemo(() => {
+    if (!viewerAddress) return null;
+    if (ownerSession.status === "checking") {
+      return "アプリ認証の状態を確認しています。";
+    }
+    if (ownerSession.status === "unauthenticated") {
+      return "クリエイター登録済みウォレットでいいねや返信などを使う場合は、操作時にだけアプリ認証が必要です。初回のみログイン用の署名確認が表示され、認証後は通常の閲覧や移動で再署名は求められません。";
+    }
+    return null;
+  }, [ownerSession.status, viewerAddress]);
 
   function ensureDetailState(postId: string) {
     setDetailByPostId((current) => {
@@ -564,7 +573,10 @@ export function CreatorFeedSection(props: Props) {
     } catch (mutationError) {
       setReplyEditError(
         mutationError instanceof Error
-          ? mutationError.message
+          ? mapCommunityProtectedActionError(
+              mutationError.message,
+              "返信の更新に失敗しました。"
+            )
           : "返信の更新に失敗しました。"
       );
     } finally {
@@ -634,7 +646,10 @@ export function CreatorFeedSection(props: Props) {
     } catch (mutationError) {
       setNotice(
         mutationError instanceof Error
-          ? mutationError.message
+          ? mapCommunityProtectedActionError(
+              mutationError.message,
+              "返信の削除に失敗しました。"
+            )
           : "返信の削除に失敗しました。"
       );
     } finally {
@@ -741,7 +756,10 @@ export function CreatorFeedSection(props: Props) {
       }));
       setNotice(
         mutationError instanceof Error
-          ? mutationError.message
+          ? mapCommunityProtectedActionError(
+              mutationError.message,
+              "いいねの更新に失敗しました。"
+            )
           : "いいねの更新に失敗しました。"
       );
     } finally {
@@ -850,7 +868,10 @@ export function CreatorFeedSection(props: Props) {
       });
       setNotice(
         mutationError instanceof Error
-          ? mutationError.message
+          ? mapCommunityProtectedActionError(
+              mutationError.message,
+              "返信のいいね更新に失敗しました。"
+            )
           : "返信のいいね更新に失敗しました。"
       );
     } finally {
@@ -948,7 +969,10 @@ export function CreatorFeedSection(props: Props) {
       }));
       setNotice(
         mutationError instanceof Error
-          ? mutationError.message
+          ? mapCommunityProtectedActionError(
+              mutationError.message,
+              "返信の送信に失敗しました。"
+            )
           : "返信の送信に失敗しました。"
       );
     }
@@ -1009,6 +1033,12 @@ export function CreatorFeedSection(props: Props) {
       {notice ? (
         <div className="mt-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
           {notice}
+        </div>
+      ) : null}
+
+      {!notice && publicActionAuthHint ? (
+        <div className="mt-2.5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+          {publicActionAuthHint}
         </div>
       ) : null}
 

@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 
+import {
+  ManagerDeskMutationNotice,
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import {
+  WorkspaceEmptyState,
+  WorkspaceLoadingCard,
+} from "@/components/mypage/WorkspaceFeedback";
 import { ownerAuthFetch } from "@/lib/ownerAuthClient";
 import { isRecord } from "@/lib/api/guards";
 import type {
@@ -186,10 +195,21 @@ function AddMemberForm(props: {
         >
           キャンセル
         </button>
-        {formState === "error" ? (
-          <span className="text-xs text-rose-600">保存に失敗しました</span>
-        ) : null}
       </div>
+      {formState === "done" ? (
+        <ManagerDeskMutationNotice
+          tone="success"
+          title="プロジェクトメンバーを追加しました"
+          description="一覧に反映された role と share を確認し、必要なら続けて他のメンバーも追加できます。"
+        />
+      ) : null}
+      {formState === "error" ? (
+        <ManagerDeskMutationNotice
+          tone="error"
+          title="プロジェクトメンバーの保存に失敗しました"
+          description="入力内容と接続状態を確認してから、もう一度試してください。"
+        />
+      ) : null}
     </form>
   );
 }
@@ -200,6 +220,7 @@ export function ManagerDeskProjectMembersSection(props: {
   error: string | null;
   projectId: string | null;
   address: string | undefined;
+  onReload: () => void;
   onAdded: (item: ProjectMemberItem) => void;
 }) {
   const totalShare = props.items.reduce(
@@ -234,13 +255,42 @@ export function ManagerDeskProjectMembersSection(props: {
         ) : null}
       </div>
 
-      {props.loading ? (
-        <p className="text-xs text-[var(--text-subtle)]">読み込み中...</p>
-      ) : props.error ? (
-        <p className="text-xs text-rose-600">取得に失敗しました</p>
-      ) : props.items.length === 0 ? (
-        <p className="text-xs text-[var(--text-subtle)]">メンバーはまだ登録されていません。</p>
-      ) : (
+      {props.loading && props.items.length === 0 ? (
+        <WorkspaceLoadingCard title="プロジェクトメンバーを読み込んでいます" />
+      ) : null}
+
+      {props.loading && props.items.length > 0 ? (
+        <ManagerDeskRefreshingNotice
+          title="プロジェクトメンバーを更新しています"
+          description="前回のメンバー一覧を残したまま、最新の role と share を反映しています。"
+        />
+      ) : null}
+
+      {props.error && props.items.length > 0 ? (
+        <ManagerDeskStaleDataNotice
+          title="最新のプロジェクトメンバーを更新できませんでした"
+          description="前回のメンバー一覧を表示しています。時間をおいて再読み込みしてください。"
+          onRetry={props.onReload}
+        />
+      ) : null}
+
+      {props.error && props.items.length === 0 ? (
+        <ManagerDeskStaleDataNotice
+          title="プロジェクトメンバーの取得に失敗しました"
+          description="接続状態を確認してから、もう一度試してください。"
+          onRetry={props.onReload}
+        />
+      ) : null}
+
+      {!props.loading && !props.error && props.items.length === 0 ? (
+        <WorkspaceEmptyState
+          compact
+          title="メンバーはまだ登録されていません"
+          description="役割や分配シェアを整理したいメンバーを追加すると、ここに表示されます。"
+        />
+      ) : null}
+
+      {props.items.length > 0 ? (
         <div className="divide-y divide-[var(--line)]">
           {props.items.map((member) => (
             <div key={member.id} className="flex flex-wrap items-center gap-2 py-3">
@@ -264,7 +314,7 @@ export function ManagerDeskProjectMembersSection(props: {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       {props.projectId && props.address ? (
         <AddMemberForm

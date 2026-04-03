@@ -1,11 +1,24 @@
 "use client";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
+
 type Props = {
   error: string | null;
   dashboardError: string | null;
 };
 
 export function CreatorSettingsHeaderSection(props: Props) {
+  const errorNotice = props.error
+    ? mapWorkspaceActionError(props.error, props.error)
+    : null;
+  const dashboardErrorNotice = props.dashboardError
+    ? mapWorkspaceActionError(
+        props.dashboardError,
+        "運営データの取得に失敗しました。"
+      )
+    : null;
+
   return (
     <section id="settings-root" className="surface-card p-5 sm:p-6">
       <div>
@@ -16,9 +29,23 @@ export function CreatorSettingsHeaderSection(props: Props) {
           公開ページを整え、SNSで広げて、最初の支援につなげるまでの準備をここでまとめます。
         </p>
       </div>
-      {props.error ? <div className="alert-warn mt-4">{props.error}</div> : null}
-      {props.dashboardError ? (
-        <div className="alert-warn mt-4">{props.dashboardError}</div>
+      {errorNotice ? (
+        <div className="mt-4">
+          <WorkspaceStatusNotice
+            tone={errorNotice.tone}
+            title={errorNotice.title}
+            description={errorNotice.description}
+          />
+        </div>
+      ) : null}
+      {dashboardErrorNotice ? (
+        <div className="mt-4">
+          <WorkspaceStatusNotice
+            tone={dashboardErrorNotice.tone}
+            title={dashboardErrorNotice.title}
+            description={dashboardErrorNotice.description}
+          />
+        </div>
       ) : null}
     </section>
   );

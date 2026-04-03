@@ -55,7 +55,11 @@ export function useManagerDeskProjectMembers(args: {
         throw new Error("PROJECT_MEMBERS_INVALID");
       setState({ loading: false, error: null, items: json.projectMembers as ProjectMemberItem[] });
     } catch {
-      setState({ loading: false, error: "PROJECT_MEMBERS_FAILED", items: [] });
+      setState((current) => ({
+        loading: false,
+        error: "PROJECT_MEMBERS_FAILED",
+        items: current.items,
+      }));
     }
   }, [args.address, args.isConnected, args.creatorProfileId, args.projectId]);
 

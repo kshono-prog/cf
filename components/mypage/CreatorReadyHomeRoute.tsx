@@ -21,6 +21,7 @@ import {
   buildCreatorReadyTaskLists,
 } from "@/components/mypage/creatorReadyHomeAiHelpers";
 import { WorkspaceLoadingCard, WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import { hasCreatorReadySettlementAttention } from "@/components/mypage/creatorReadyWorkspaceOverviewHelpers";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 import { useCreatorReadyHomeAiOfficeSummary } from "@/components/mypage/useCreatorReadyHomeAiOfficeSummary";
@@ -394,11 +395,47 @@ export function CreatorReadyHomeRoute(props: Props) {
     growthOverview: growthOverview.data,
     goalHref: "#goal-input-jpyc",
   });
+  const dashboardErrorNotice = dashboardError
+    ? mapWorkspaceActionError(
+        dashboardError,
+        "運営データの取得に失敗しました。"
+      )
+    : null;
+  const aiOfficeSummaryNotice = aiOfficeSummary.error
+    ? mapWorkspaceActionError(
+        aiOfficeSummary.error,
+        "AIアシスタントの状況を取得できませんでした。"
+      )
+    : null;
+  const dailyBriefingNotice = dailyBriefing.error
+    ? mapWorkspaceActionError(
+        dailyBriefing.error,
+        "今日のまとめを取得できませんでした。"
+      )
+    : null;
 
   return (
     <div className="space-y-4">
-      {dashboardError ? (
-        <WorkspaceStatusNotice tone="error" title={dashboardError} />
+      {dashboardErrorNotice ? (
+        <WorkspaceStatusNotice
+          tone={dashboardErrorNotice.tone}
+          title={dashboardErrorNotice.title}
+          description={dashboardErrorNotice.description}
+        />
+      ) : null}
+      {aiOfficeSummaryNotice ? (
+        <WorkspaceStatusNotice
+          tone={aiOfficeSummaryNotice.tone}
+          title={aiOfficeSummaryNotice.title}
+          description={aiOfficeSummaryNotice.description}
+        />
+      ) : null}
+      {dailyBriefingNotice ? (
+        <WorkspaceStatusNotice
+          tone={dailyBriefingNotice.tone}
+          title={dailyBriefingNotice.title}
+          description={dailyBriefingNotice.description}
+        />
       ) : null}
       {(isNewCreator || needsSetup) ? (
         <AiConciergeGuideCard
@@ -517,13 +554,17 @@ export function CreatorReadyHomeRoute(props: Props) {
       <FanEngagementHeatmapCard
         heatmap={fanEngagement.data?.heatmap ?? null}
         peakWeekday={fanEngagement.data?.peakWeekday ?? null}
+        error={fanEngagement.error}
       />
       <FanThankActionCard
         thankNeededCount={fanEngagement.data?.thankNeededCount ?? 0}
         projectId={localProjectId}
         workspaceBasePath={props.workspaceBasePath}
       />
-      <CreatorReadySupporterCrmSection data={supporterCrm.data} />
+      <CreatorReadySupporterCrmSection
+        data={supporterCrm.data}
+        error={supporterCrm.error}
+      />
       <CreatorReadyStageGrowthPlanSection
         task={stageGrowthTask}
         address={workspace.address}

@@ -2,10 +2,15 @@
 
 import { useState } from "react";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import {
   parseProfileDraftResult,
   type ProfileDraftResult,
 } from "@/lib/ai/profileDraft";
+import {
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 import type { SocialLinks, YoutubeVideo } from "@/types/creator";
 
 type Props = {
@@ -32,17 +37,22 @@ export function AiProfileDraftCard(props: Props) {
   const [freeText, setFreeText] = useState("");
   const [draft, setDraft] = useState<ProfileDraftResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<WorkspaceActionNotice | null>(null);
 
   async function handleGenerate(): Promise<void> {
     const trimmed = freeText.trim();
     if (!trimmed) {
-      setError("活動内容を自由文で入力してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "PROFILE_FREE_TEXT_REQUIRED",
+          "活動内容を自由文で入力してください。"
+        )
+      );
       return;
     }
 
     setLoading(true);
-    setError(null);
+    setFeedback(null);
 
     try {
       const response = await fetch("/api/ai/profile-draft", {
@@ -78,10 +88,13 @@ export function AiProfileDraftCard(props: Props) {
       setDraft(parsed);
       props.onGenerated?.(parsed);
     } catch (nextError) {
-      setError(
-        nextError instanceof Error
-          ? nextError.message
-          : "プロフィール下書きの生成に失敗しました。"
+      setFeedback(
+        mapWorkspaceActionError(
+          nextError instanceof Error
+            ? nextError.message
+            : "PROFILE_DRAFT_REQUEST_FAILED",
+          "プロフィール下書きの生成に失敗しました。"
+        )
       );
     } finally {
       setLoading(false);
@@ -120,9 +133,13 @@ export function AiProfileDraftCard(props: Props) {
         disabled={loading}
       />
 
-      {error ? (
-        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          {error}
+      {feedback ? (
+        <div className="mt-3">
+          <WorkspaceStatusNotice
+            tone={feedback.tone}
+            title={feedback.title}
+            description={feedback.description}
+          />
         </div>
       ) : null}
 

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 
 import { ManagerDeskAiManagerReadOnlySection } from "@/components/managerDesk/ManagerDeskAiManagerReadOnlySection";
+import { ManagerDeskAuthRequiredNotice } from "@/components/managerDesk/ManagerDeskAuthRequiredNotice";
 import { ManagerDeskAiSuggestionsSection } from "@/components/managerDesk/ManagerDeskAiSuggestionsSection";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
@@ -20,6 +21,8 @@ import { useManagerDeskStageEvidence } from "@/components/managerDesk/useManager
 import { ManagerDeskStageEvidenceSection } from "@/components/managerDesk/ManagerDeskStageEvidenceSection";
 import { useManagerDeskProjectMembers } from "@/components/managerDesk/useManagerDeskProjectMembers";
 import { ManagerDeskProjectMembersSection } from "@/components/managerDesk/ManagerDeskProjectMembersSection";
+import { ManagerDeskMutationNotice } from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import { useManagerDeskAccessState } from "@/components/managerDesk/useManagerDeskAccessState";
 import type { ManagerDeskCreatorDetailData } from "@/lib/managerDesk/readModelTypes";
 import {
   buildManagerDeskCreatorDetailAiSuggestions,
@@ -272,11 +275,23 @@ function CompletedMeetingCard(props: {
             フォローアップNote作成
           </button>
         ) : noteState === "loading" ? (
-          <span className="text-xs text-[var(--text-subtle)]">作成中...</span>
+          <ManagerDeskMutationNotice
+            tone="info"
+            title="フォローアップNote を作成しています"
+            description="meeting の内容を引き継ぐための note を準備しています。"
+          />
         ) : noteState === "done" ? (
-          <span className="text-xs text-emerald-600">Noteを作成しました</span>
+          <ManagerDeskMutationNotice
+            tone="success"
+            title="フォローアップNote を作成しました"
+            description="次回確認や manager follow-up としてこのまま使えます。"
+          />
         ) : (
-          <span className="text-xs text-rose-600">作成に失敗しました</span>
+          <ManagerDeskMutationNotice
+            tone="error"
+            title="フォローアップNote の作成に失敗しました"
+            description="接続状態を確認してから、もう一度お試しください。"
+          />
         )}
       </div>
     </article>
@@ -459,18 +474,38 @@ function MeetingCopilotCard(props: {
             >
               {saveState === "completing" ? "完了中..." : "完了にして保存 →"}
             </button>
-            {saveState === "error" ? (
-              <span className="text-xs text-rose-600">保存に失敗しました</span>
-            ) : null}
           </div>
+          {saveState === "saved" ? (
+            <ManagerDeskMutationNotice
+              tone="success"
+              title="meeting メモを保存しました"
+              description="続けて追記するか、そのまま完了に進めます。"
+            />
+          ) : null}
+          {saveState === "error" ? (
+            <ManagerDeskMutationNotice
+              tone="error"
+              title="meeting の保存に失敗しました"
+              description="入力内容を確認してから、もう一度お試しください。"
+            />
+          ) : null}
           {(!decisions.trim() && !nextActions.trim()) ? (
-            <p className="text-[11px] text-[var(--text-subtle)]">決定事項または次のアクションを入力すると「完了にして保存」が使えます</p>
+            <ManagerDeskMutationNotice
+              tone="info"
+              title="完了前に決定事項か次のアクションを残してください"
+              description="どちらかを入力すると「完了にして保存」が使えます。"
+            />
           ) : null}
         </div>
       ) : null}
 
       {showFollowUp ? (
         <div className="accent-surface-emerald mt-3 rounded-xl px-3 py-2.5 space-y-2">
+          <ManagerDeskMutationNotice
+            tone="success"
+            title="meeting を完了にして保存しました"
+            description="必要ならこのあとフォローアップNote を作成できます。"
+          />
           <div className="accent-text-emerald-strong text-xs font-semibold">
             会議が完了しました。フォローアップNoteを作りますか？
           </div>
@@ -484,11 +519,23 @@ function MeetingCopilotCard(props: {
                 フォローアップNote作成
               </button>
             ) : followUpState === "loading" ? (
-              <span className="text-xs text-[var(--text-subtle)]">作成中...</span>
+              <ManagerDeskMutationNotice
+                tone="info"
+                title="フォローアップNote を作成しています"
+                description="meeting 完了後の引き継ぎ内容をまとめています。"
+              />
             ) : followUpState === "done" ? (
-              <span className="accent-text-emerald text-xs">✓ Noteを作成しました</span>
+              <ManagerDeskMutationNotice
+                tone="success"
+                title="フォローアップNote を作成しました"
+                description="manager note として次のアクション確認に使えます。"
+              />
             ) : (
-              <span className="text-xs text-rose-600">作成に失敗しました</span>
+              <ManagerDeskMutationNotice
+                tone="error"
+                title="フォローアップNote の作成に失敗しました"
+                description="接続状態を確認してから、もう一度お試しください。"
+              />
             )}
           </div>
         </div>
@@ -501,27 +548,28 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
   creatorProfileId: string;
 }) {
   const { address, isConnected } = useAccount();
+  const access = useManagerDeskAccessState({ isConnected });
   const { loading, error, data, reload } = useManagerDeskCreatorDetail({
     creatorProfileId: props.creatorProfileId,
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
   });
 
   const supporterCrm = useManagerDeskSupporterCrm({
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
     creatorProfileId: props.creatorProfileId,
   });
 
   const stageEvidence = useManagerDeskStageEvidence({
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
     creatorProfileId: props.creatorProfileId,
   });
 
   const projectMembers = useManagerDeskProjectMembers({
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
     creatorProfileId: props.creatorProfileId,
     projectId: data?.activeProject?.projectId ?? null,
   });
@@ -594,10 +642,17 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
             />
           ) : null}
 
-          {loading ? (
+          {access.authRequired ? (
+            <ManagerDeskAuthRequiredNotice
+              authenticating={access.authChecking}
+              onAuthenticate={access.authenticate}
+            />
+          ) : null}
+
+          {access.authChecking || loading ? (
             <WorkspaceLoadingCard
               title="Creator Detail を読み込んでいます"
-              description="最新の note、contact、action log を集約しています。"
+              description="最新の note、contact、action log、認証状態を集約しています。"
             />
           ) : null}
 
@@ -800,6 +855,10 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   currentStage={data.stage.stage}
                   items={stageEvidence.items}
                   loading={stageEvidence.loading}
+                  error={stageEvidence.error}
+                  onReload={() => {
+                    void stageEvidence.reload();
+                  }}
                   onItemAdded={stageEvidence.addItem}
                 />
                 <ManagerDeskProjectMembersSection
@@ -808,6 +867,9 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   error={projectMembers.error}
                   projectId={data.activeProject?.projectId ?? null}
                   address={address}
+                  onReload={() => {
+                    void projectMembers.reload();
+                  }}
                   onAdded={projectMembers.addItem}
                 />
                 </>

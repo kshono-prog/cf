@@ -5,6 +5,7 @@ import {
   WorkspaceLoadingCard,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import type {
   GrowthCompletedItem,
   GrowthImprovementItem,
@@ -86,6 +87,12 @@ function ImprovementRow(props: { item: GrowthImprovementItem }) {
 }
 
 export function CreatorReadyGrowthReflectionSection(props: Props) {
+  const errorNotice = props.error
+    ? mapWorkspaceActionError(
+        props.error,
+        "振り返りデータの取得に失敗しました。"
+      )
+    : null;
   const monthLabel = props.data?.month
     ? (() => {
         const [y, m] = props.data.month.split("-");
@@ -116,14 +123,15 @@ export function CreatorReadyGrowthReflectionSection(props: Props) {
         />
       ) : null}
 
-      {!props.loading && props.error ? (
+      {!props.loading && errorNotice ? (
         <WorkspaceStatusNotice
-          tone="info"
-          title="Growth / Reflection は次の読み込みで更新されます"
+          tone={errorNotice.tone}
+          title={errorNotice.title}
+          description={errorNotice.description}
         />
       ) : null}
 
-      {!props.loading && !props.error && props.data ? (
+      {!props.loading && !errorNotice && props.data ? (
         <div className="space-y-5">
           {/* ongoing */}
           {props.data.ongoing.length > 0 ? (
@@ -178,7 +186,7 @@ export function CreatorReadyGrowthReflectionSection(props: Props) {
         </div>
       ) : null}
 
-      {!props.loading && !props.error && !props.data ? (
+      {!props.loading && !errorNotice && !props.data ? (
         <WorkspaceEmptyState
           title="今月はまだ活動記録がありません"
           description="投稿・ミーティング・AI提案の採用などを記録すると、ここに振り返りが表示されます。"

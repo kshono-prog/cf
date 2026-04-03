@@ -51,7 +51,11 @@ export function useManagerDeskStageEvidence(args: {
         throw new Error("STAGE_EVIDENCE_INVALID");
       setState({ loading: false, error: null, items: json.stageEvidences as StageEvidenceItem[] });
     } catch {
-      setState({ loading: false, error: "STAGE_EVIDENCE_FAILED", items: [] });
+      setState((current) => ({
+        loading: false,
+        error: "STAGE_EVIDENCE_FAILED",
+        items: current.items,
+      }));
     }
   }, [args.address, args.isConnected, args.creatorProfileId]);
 

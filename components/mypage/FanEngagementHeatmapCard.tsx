@@ -7,9 +7,14 @@ const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"] as cons
 type Props = {
   heatmap: FanEngagementHeatmapCell[] | null;
   peakWeekday: number | null;
+  error?: string | null;
 };
 
-export function FanEngagementHeatmapCard({ heatmap, peakWeekday }: Props) {
+export function FanEngagementHeatmapCard({ heatmap, peakWeekday, error = null }: Props) {
+  if (error) {
+    return null;
+  }
+
   if (!heatmap) {
     return (
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">

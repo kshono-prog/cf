@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
+import { useOwnerSession } from "@/context/OwnerSessionProvider";
 import { Avatar } from "@/components/shared/Avatar";
 import { usePublicViewerIdentity } from "@/components/shared/usePublicViewerIdentity";
 import {
@@ -16,6 +17,7 @@ import {
   type NotificationKind,
 } from "@/lib/communityApiParsers";
 import {
+  mapCommunityProtectedActionError,
   resolveCommunityViewerLinks,
 } from "@/lib/communityUiState";
 import {
@@ -36,7 +38,9 @@ const FILTER_LABELS: Record<FilterKey, string> = {
 
 export function NotificationsPageClient({ username }: { username: string }) {
   const { address, isConnected } = useAccount();
+  const ownerSession = useOwnerSession();
   const [loading, setLoading] = useState(false);
+  const [authenticating, setAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState<FilterKey>("ALL");
@@ -48,7 +52,13 @@ export function NotificationsPageClient({ username }: { username: string }) {
     });
 
   useEffect(() => {
-    if (!address || !isConnected || !viewerIdentityResolved || !viewerIdentity?.hasCreator) {
+    if (
+      !address ||
+      !isConnected ||
+      !viewerIdentityResolved ||
+      !viewerIdentity?.hasCreator ||
+      !ownerSession.isAuthenticated
+    ) {
       setItems([]);
       setLoading(false);
       return;
@@ -94,7 +104,32 @@ export function NotificationsPageClient({ username }: { username: string }) {
     return () => {
       cancelled = true;
     };
-  }, [address, isConnected, viewerIdentity, viewerIdentityResolved]);
+  }, [
+    address,
+    isConnected,
+    ownerSession.isAuthenticated,
+    viewerIdentity,
+    viewerIdentityResolved,
+  ]);
+
+  async function handleAuthenticate(): Promise<void> {
+    setError(null);
+    setAuthenticating(true);
+    try {
+      await ownerSession.authenticate();
+    } catch (authError) {
+      setError(
+        authError instanceof Error
+          ? mapCommunityProtectedActionError(
+              authError.message,
+              "アプリ認証を完了できませんでした。ログイン用の署名を確認して、もう一度お試しください。"
+            )
+          : "アプリ認証を完了できませんでした。"
+      );
+    } finally {
+      setAuthenticating(false);
+    }
+  }
 
   const filteredItems = useMemo(() => {
     if (filter === "ALL") return items;
@@ -165,6 +200,40 @@ export function NotificationsPageClient({ username }: { username: string }) {
             </>
           }
         />
+      ) : ownerSession.status === "checking" ? (
+        <CommunityGuideLoadingCard
+          title="アプリ認証を確認しています"
+          body="接続済みウォレットのログイン状態を確認でき次第、通知を表示します。"
+          centered
+          maxWidthClassName="max-w-lg"
+        />
+      ) : !ownerSession.isAuthenticated ? (
+        <>
+          <CommunityGuideCard
+            title="通知を見るにはアプリ認証が必要です"
+            body="ウォレット接続は完了しています。通知は個人向けの情報なので、ここを開くときだけログイン用の署名で認証します。認証後は通常の閲覧や移動で毎回署名は求められません。"
+            centered
+            maxWidthClassName="max-w-lg"
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleAuthenticate();
+                  }}
+                  className="btn"
+                  disabled={authenticating}
+                >
+                  {authenticating ? "認証中です..." : "アプリ認証する"}
+                </button>
+                <Link href={`/${username}`} className="btn-secondary">
+                  プロフィールを見る
+                </Link>
+              </>
+            }
+          />
+          {error ? <div className="alert-warn mt-4">{error}</div> : null}
+        </>
       ) : (
         <>
           <section className="surface-card p-4">

@@ -60,7 +60,7 @@ export function useCreatorReadyProjectDashboards(args: {
     gcTime: 10 * 60_000,
     queryFn: async () => {
       if (!address) {
-        throw new Error("運営データの取得に失敗しました。");
+        throw new Error("MYPAGE_DASHBOARD_FETCH_FAILED");
       }
 
       const result = await fetchMyPageDashboard({
@@ -70,9 +70,7 @@ export function useCreatorReadyProjectDashboards(args: {
       });
 
       if (!result.ok) {
-        throw new Error(
-          "運営データの取得に失敗しました。時間をおいて再度お試しください。"
-        );
+        throw new Error("MYPAGE_DASHBOARD_FETCH_FAILED");
       }
 
       return result.data;

@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import type { FanEngagementTimeline } from "@/lib/fanEngagement/engagementTimeline";
 
 type Props = {
@@ -35,10 +37,18 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
   }
 
   if (error) {
+    const notice = mapWorkspaceActionError(
+      error,
+      "応援タイムラインの取得に失敗しました。"
+    );
     return (
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
         <div className="mb-2 text-sm font-semibold text-[var(--text)]">応援タイムライン</div>
-        <div className="text-xs text-[var(--text-subtle)]">読み込みに失敗しました。</div>
+        <WorkspaceStatusNotice
+          tone={notice.tone}
+          title={notice.title}
+          description={notice.description}
+        />
       </div>
     );
   }

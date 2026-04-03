@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { startTransition, useState } from "react";
+import { useState, useTransition } from "react";
 
 import { useAccount } from "wagmi";
 
+import { ManagerDeskAuthRequiredNotice } from "@/components/managerDesk/ManagerDeskAuthRequiredNotice";
+import {
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import { useManagerDeskAccessState } from "@/components/managerDesk/useManagerDeskAccessState";
 import { useManagerDeskOpportunityCrm } from "@/components/managerDesk/useManagerDeskOpportunityCrm";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
@@ -295,15 +301,17 @@ function OpportunityCard(props: {
 
 export function ManagerDeskOpportunityCrmClient() {
   const { address, isConnected } = useAccount();
+  const access = useManagerDeskAccessState({ isConnected });
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isFilterPending, startFilterTransition] = useTransition();
 
   const creatorProfileId = searchParams.get("creatorProfileId");
 
   const { loading, error, data, reload } = useManagerDeskOpportunityCrm({
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
     creatorProfileId,
   });
 
@@ -315,10 +323,17 @@ export function ManagerDeskOpportunityCrmClient() {
       params.delete("creatorProfileId");
     }
     const nextUrl = params.toString().length > 0 ? `${pathname}?${params}` : pathname;
-    startTransition(() => {
+    startFilterTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
   }
+
+  const hasActiveFilters = Boolean(creatorProfileId);
+  const isInitialLoading = access.authChecking || (loading && !data);
+  const isRefreshing =
+    !access.authChecking && Boolean(data) && (loading || isFilterPending);
+  const hasBlockingError = Boolean(error && !data);
+  const hasStaleError = Boolean(error && data);
 
   return (
     <MyPageShell headerColor="#0f172a" showPromo={false}>
@@ -353,18 +368,42 @@ export function ManagerDeskOpportunityCrmClient() {
             />
           ) : null}
 
-          {loading ? (
-            <WorkspaceLoadingCard
-              title="Opportunity CRM を読み込んでいます"
-              description="進行中・交渉中・成立の案件を整理しています。"
+          {access.authRequired ? (
+            <ManagerDeskAuthRequiredNotice
+              authenticating={access.authChecking}
+              onAuthenticate={access.authenticate}
             />
           ) : null}
 
-          {error ? (
+          {isInitialLoading ? (
+            <WorkspaceLoadingCard
+              title="Opportunity CRM を読み込んでいます"
+              description="進行中・交渉中・成立の案件と認証状態を整理しています。"
+            />
+          ) : null}
+
+          {isRefreshing ? (
+            <ManagerDeskRefreshingNotice
+              title="Creator 条件を反映しています"
+              description="前回の案件一覧を残したまま、選択中の Creator 条件で更新しています。"
+            />
+          ) : null}
+
+          {hasBlockingError ? (
             <WorkspaceStatusNotice
               tone="error"
               title="Opportunity CRM の取得に失敗しました"
               description="接続状態を確認してから、もう一度試してください。"
+              onRetry={() => {
+                void reload();
+              }}
+            />
+          ) : null}
+
+          {hasStaleError ? (
+            <ManagerDeskStaleDataNotice
+              title="最新の Opportunity CRM を更新できませんでした"
+              description="前回の一覧を表示しています。条件を見直すか、時間をおいて再読み込みしてください。"
               onRetry={() => {
                 void reload();
               }}
@@ -410,8 +449,16 @@ export function ManagerDeskOpportunityCrmClient() {
 
               {data.summary.totalCount === 0 ? (
                 <WorkspaceEmptyState
-                  title="該当する案件はまだありません"
-                  description="Contact Pipeline で status を IN_DISCUSSION / NEGOTIATING / WON / ONGOING に進めると、ここに表示されます。"
+                  title={
+                    hasActiveFilters
+                      ? "条件に合う案件はまだありません"
+                      : "該当する案件はまだありません"
+                  }
+                  description={
+                    hasActiveFilters
+                      ? "Creator 条件を見直すか、別の案件ステージが追加されるまで少し待ってから確認してください。"
+                      : "Contact Pipeline で status を IN_DISCUSSION / NEGOTIATING / WON / ONGOING に進めると、ここに表示されます。"
+                  }
                 />
               ) : (
                 data.stages.map((stage) =>

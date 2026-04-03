@@ -2,6 +2,8 @@
 
 import React from "react";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import { mapWorkspaceActionError } from "@/lib/mypage/workspaceActionCopy";
 import type { SupporterCrmItem } from "@/lib/operations/supporterCrmTypes";
 import type { SupporterCrmData } from "@/lib/operations/supporterCrmTypes";
 
@@ -76,11 +78,36 @@ function SupporterRow(props: { item: SupporterCrmItem; rank: number }) {
 
 type Props = {
   data: SupporterCrmData | null;
+  error?: string | null;
 };
 
 export function CreatorReadySupporterCrmSection(props: Props) {
-  const { data } = props;
+  const { data, error = null } = props;
   const [sortKey, setSortKey] = React.useState<SortKey>("recent");
+
+  if (!data && error) {
+    const notice = mapWorkspaceActionError(
+      error,
+      "支援者リストの取得に失敗しました。"
+    );
+    return (
+      <section className="surface-card space-y-4 p-5 sm:p-6">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">
+            Supporter CRM
+          </div>
+          <h2 className="mt-1 text-base font-semibold text-[var(--text)]">
+            支援者リスト
+          </h2>
+        </div>
+        <WorkspaceStatusNotice
+          tone={notice.tone}
+          title={notice.title}
+          description={notice.description}
+        />
+      </section>
+    );
+  }
 
   if (!data || data.items.length === 0) return null;
 

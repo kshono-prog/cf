@@ -309,7 +309,7 @@ export function ProjectSettlementPanel(props: Props) {
       helper:
         settlementStatus === "NOT_READY"
           ? "目標達成後に、必要な資金移動とブリッジ記録をここから始めます。"
-          : "必要な資金移動を記録し、Avalanche で配分できる状態に近づけます。",
+          : "必要な資金移動を確認し、Avalanche で配分できる状態へ近づけます。",
       status:
         settlementStatus === "NOT_READY"
           ? "blocked"
@@ -323,7 +323,7 @@ export function ProjectSettlementPanel(props: Props) {
       id: "DRAFT",
       stepNumber: 2,
       title: "配分計画",
-      helper: "送金先と金額を下書きし、配分計画を固めます。",
+      helper: "送金先と金額を下書きして保存します。この段階ではまだ送金されません。",
       status: draftCompleted
         ? "complete"
         : currentStep === "DRAFT"
@@ -334,7 +334,7 @@ export function ProjectSettlementPanel(props: Props) {
       id: "PREFLIGHT",
       stepNumber: 3,
       title: "送信前確認",
-      helper: "送信前に残高と設定不足を確認します。",
+      helper: "送信前に残高と設定不足を確認します。この段階ではまだ送金されません。",
       status: preflightCompleted
         ? "complete"
         : currentStep === "PREFLIGHT"
@@ -345,7 +345,7 @@ export function ProjectSettlementPanel(props: Props) {
       id: "EXECUTE",
       stepNumber: 4,
       title: "配分実行",
-      helper: "接続ウォレットの署名で配分を実行します。",
+      helper: "ここから先は接続ウォレットの署名で実際の配分を実行します。",
       status: executionCompleted
         ? "complete"
         : currentStep === "EXECUTE"
@@ -356,7 +356,7 @@ export function ProjectSettlementPanel(props: Props) {
       id: "REVIEW",
       stepNumber: 5,
       title: "結果確認",
-      helper: "実行結果、失敗分、履歴を確認して締めます。",
+      helper: "通常は実行ログを確認し、例外的な手動記録は必要なときだけ開きます。",
       status: currentStep === "REVIEW" ? "current" : "upcoming",
     },
   ];
@@ -377,31 +377,31 @@ export function ProjectSettlementPanel(props: Props) {
             tone: "attention",
             title: "手順1. 送金準備を進めます",
             description:
-              "必要なチェーンから Avalanche への移動を記録し、配分準備へ進みます。",
+              "実際のブリッジ送信か、すでに実行済みの完了記録をここで扱います。内容を確認しながら配分準備へ進みます。",
           },
     DRAFT: {
       tone: "attention",
       title: "手順2. 配分計画を整えます",
       description:
-        "送金先と金額を保存してから、送信前確認へ進みます。",
+        "ここでは送金先と金額を保存するだけで、まだ資金移動は起きません。保存後に送信前確認へ進みます。",
     },
     PREFLIGHT: {
       tone: "attention",
       title: "手順3. 送信前確認を実行します",
       description:
-        "残高と設定不足を確認し、問題がなければ配分実行に進みます。",
+        "この手順では送金せず、残高と設定不足だけを確認します。問題がなければ次の配分実行へ進みます。",
     },
     EXECUTE: {
       tone: "attention",
       title: "手順4. 配分を実行します",
       description:
-        "送信前確認完了後に、接続ウォレットの署名で配分を行います。",
+        "ここから先は接続ウォレットの署名で実際の送金を行います。各行の宛先と金額を最終確認して進めます。",
     },
     REVIEW: {
       tone: "info",
       title: "手順5. 実行結果を確認します",
       description:
-        "送信結果、失敗分、履歴を確認して必要があれば再送や記録を行います。",
+        "通常は実行ログの確認で十分です。手動結果の記録や高度な管理は必要な場合だけ進めます。",
     },
   };
 
@@ -490,6 +490,12 @@ export function ProjectSettlementPanel(props: Props) {
         {panel.settlement ? settlementStatusCopy.helper : emptyStatusCopy.helper}
       </div>
 
+      <WorkspaceStatusNotice
+        tone="info"
+        title="精算は上から順に確認して進めます。"
+        description="Bridge → Draft → Preflight → Execute → Review の順に進めると、実際の資金移動に入る前の確認を飛ばしにくくなります。"
+      />
+
       {visibleWalletNotice ? (
         <WorkspaceStatusNotice
           tone={panel.walletNotice ? "attention" : visibleWalletNotice.tone}
@@ -542,7 +548,7 @@ export function ProjectSettlementPanel(props: Props) {
             {executionSectionProps.cctp ? (
               <ProjectSettlementAdvancedSection
                 title="USDC ブリッジの高度な管理"
-                description="CCTP の手動同期や再試行は、通常フローで足りないときだけ開きます。"
+                description="CCTP の手動同期や再試行は、通常フローで足りないときだけ開きます。外部で Burn / Mint 結果を確認できた場合だけ記録を進めます。"
               >
                 <ProjectSettlementCctpSection {...executionSectionProps.cctp} />
               </ProjectSettlementAdvancedSection>
@@ -612,14 +618,14 @@ export function ProjectSettlementPanel(props: Props) {
             <WorkspaceStatusNotice
               tone="info"
               title="通常の確認は実行ログまでで十分です"
-              description="送信結果の手動記録や詳細な操作は、必要な場合だけ下の上級者向け設定を開いて使います。"
+              description="まず実行ログで結果と txHash を確認し、反映しきれない行だけ手動記録を使います。"
             />
             <ProjectSettlementExecutionLogsSection
               {...executionSectionProps.executionLogs}
             />
             <ProjectSettlementAdvancedSection
               title="送信結果の手動記録"
-              description="自動で反映できない結果を補完したいときだけ使います。通常は実行ログの確認だけで十分です。"
+              description="自動で反映できない結果を、外部で確認できたときだけ補完します。通常は実行ログの確認だけで十分です。"
             >
               <ProjectSettlementManualResultSection
                 {...executionSectionProps.manualResult}

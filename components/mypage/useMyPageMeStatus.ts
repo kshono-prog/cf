@@ -19,6 +19,7 @@ type Args = {
   address: Address | undefined;
   isConnected: boolean;
   connectionStatus: ConnectionStatus;
+  appAuthStatus: "authenticated" | "checking" | "unauthenticated";
   username: string;
   skipInitialRefresh?: boolean;
   initialProjectId?: string | null;
@@ -52,6 +53,7 @@ export function useMyPageMeStatus({
   address,
   isConnected,
   connectionStatus,
+  appAuthStatus,
   username,
   skipInitialRefresh = false,
   initialProjectId = null,
@@ -94,7 +96,12 @@ export function useMyPageMeStatus({
   const refreshMeStatus = useCallback(
     async (walletAddress: Address): Promise<MeStatus | null> => {
       const result = await fetchMe(walletAddress);
-      if (!result.ok) return null;
+      if (!result.ok) {
+        if (result.error === "HTTP 401") {
+          setStatus("authRequired");
+        }
+        return null;
+      }
 
       const meData = result.data;
       const nextProjectIds =
@@ -142,6 +149,21 @@ export function useMyPageMeStatus({
       return;
     }
 
+    if (appAuthStatus === "checking") {
+      setStatus("loading");
+      return;
+    }
+
+    if (appAuthStatus !== "authenticated") {
+      setStatus("authRequired");
+      setMe(null);
+      setLocalProjectId(null);
+      setProjectIdsByCurrency({ JPYC: null, USDC: null });
+      hydratedRef.current = false;
+      resetProfileState(username);
+      return;
+    }
+
     const connectedAddress = address;
     let cancelled = false;
 
@@ -181,6 +203,7 @@ export function useMyPageMeStatus({
     };
   }, [
     address,
+    appAuthStatus,
     connectionStatus,
     hydrateFormFromSummary,
     initialMeStatus,

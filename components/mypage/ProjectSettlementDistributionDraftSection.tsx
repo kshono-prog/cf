@@ -2,6 +2,7 @@
 
 import React from "react";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 import { formatBigIntGrouped } from "@/lib/numberFormat";
 
@@ -69,6 +70,12 @@ export function ProjectSettlementDistributionDraftSection(
 
   return (
     <div className="rounded-lg border p-3 space-y-3">
+      <WorkspaceStatusNotice
+        tone="info"
+        title="この段階ではまだ送金されません。"
+        description="ここでは送金先と金額を下書きして保存します。実際の送金は手順4で、送信前確認のあとに進めます。"
+      />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="text-sm font-medium">配分の下書き</div>
@@ -102,17 +109,10 @@ export function ProjectSettlementDistributionDraftSection(
       </div>
 
       {props.aiDraftMessage ? (
-        <div
-          className={`rounded-lg border px-3 py-2 text-[11px] leading-5 sm:text-xs ${
-            props.aiDraftMessage.tone === "error"
-              ? "border-rose-200 bg-rose-50 text-rose-800"
-              : props.aiDraftMessage.tone === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-slate-200 bg-slate-50 text-slate-700"
-          }`}
-        >
-          {props.aiDraftMessage.text}
-        </div>
+        <WorkspaceStatusNotice
+          tone={props.aiDraftMessage.tone}
+          title={props.aiDraftMessage.text}
+        />
       ) : null}
 
       <div className="space-y-1 text-[11px] leading-5 text-gray-600 sm:text-xs">

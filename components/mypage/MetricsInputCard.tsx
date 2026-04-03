@@ -6,7 +6,13 @@
 import React from "react";
 import type { Address } from "viem";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import type { PostingProjectOption } from "@/lib/mypage/postingApi";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 
 const PLATFORMS = ["YouTube", "Twitter/X", "Instagram", "TikTok", "CF", "その他"] as const;
 
@@ -28,6 +34,18 @@ type Props = {
   onAdded?: () => void;
 };
 
+function getErrorMessage(value: unknown): string | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  if (!("error" in value)) {
+    return null;
+  }
+
+  return typeof value.error === "string" ? value.error : null;
+}
+
 export function MetricsInputCard(props: Props) {
   const [platform, setPlatform] = React.useState<string>("YouTube");
   const [contentUrl, setContentUrl] = React.useState("");
@@ -37,8 +55,7 @@ export function MetricsInputCard(props: Props) {
   const [shares, setShares] = React.useState("");
   const [projectId, setProjectId] = React.useState<string>("");
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState(false);
+  const [feedback, setFeedback] = React.useState<WorkspaceActionNotice | null>(null);
   const [snapshots, setSnapshots] = React.useState<Snapshot[]>([]);
   const [loadingSnapshots, setLoadingSnapshots] = React.useState(false);
 
@@ -75,12 +92,13 @@ export function MetricsInputCard(props: Props) {
       e.preventDefault();
       if (!props.address) return;
       if (!contentUrl.trim()) {
-        setError("URL を入力してください。");
+        setFeedback(
+          mapWorkspaceActionError("CONTENT_URL_REQUIRED", "URL を入力してください。")
+        );
         return;
       }
       setSaving(true);
-      setError(null);
-      setSuccess(false);
+      setFeedback(null);
       try {
         const res = await fetch("/api/metrics/manual", {
           method: "POST",
@@ -97,11 +115,16 @@ export function MetricsInputCard(props: Props) {
           }),
         });
         if (!res.ok) {
-          const body = (await res.json()) as { error?: string };
-          setError(body.error ?? "保存に失敗しました。");
+          const body: unknown = await res.json().catch(() => null);
+          setFeedback(
+            mapWorkspaceActionError(
+              getErrorMessage(body) ?? "INTERNAL_ERROR",
+              "保存に失敗しました。"
+            )
+          );
           return;
         }
-        setSuccess(true);
+        setFeedback(buildWorkspaceActionSuccessNotice("metricsSaved"));
         setContentUrl("");
         setViews("");
         setLikes("");
@@ -110,7 +133,9 @@ export function MetricsInputCard(props: Props) {
         props.onAdded?.();
         void loadSnapshots();
       } catch {
-        setError("通信エラーが発生しました。");
+        setFeedback(
+          mapWorkspaceActionError("INTERNAL_ERROR", "通信エラーが発生しました。")
+        );
       } finally {
         setSaving(false);
       }
@@ -248,8 +273,13 @@ export function MetricsInputCard(props: Props) {
           </div>
         </div>
 
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        {success && <p className="text-xs text-emerald-600">指標を記録しました。</p>}
+        {feedback ? (
+          <WorkspaceStatusNotice
+            tone={feedback.tone}
+            title={feedback.title}
+            description={feedback.description}
+          />
+        ) : null}
 
         <button
           type="submit"

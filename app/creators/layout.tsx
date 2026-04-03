@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+
 import AppKitProvider from "@/context/AppKitProvider";
 import { PublicBottomNavLoader } from "@/components/layout/PublicBottomNavLoader";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -9,9 +11,11 @@ type Props = {
 
 export const preferredRegion = "syd1";
 
-export default function CreatorsLayout({ children }: Props) {
+export default async function CreatorsLayout({ children }: Props) {
+  const requestCookies = (await headers()).get("cookie");
+
   return (
-    <AppKitProvider>
+    <AppKitProvider cookies={requestCookies}>
       <ThemeProvider>
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
           <AppHeader username="" avatarUrl={null} />

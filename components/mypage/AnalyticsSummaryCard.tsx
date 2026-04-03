@@ -11,6 +11,10 @@ import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import {
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 import { AI_OFFICE_LABEL } from "@/lib/uxCopy";
 
 type Props = {
@@ -32,7 +36,7 @@ function formatDateTime(value: string | null): string {
 
 export function AnalyticsSummaryCard(props: Props) {
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [feedback, setFeedback] = React.useState<WorkspaceActionNotice | null>(null);
   const [summary, setSummary] = React.useState<PostingAnalyticsSummary | null>(null);
 
   const loadSummary = React.useCallback(async (): Promise<void> => {
@@ -43,11 +47,16 @@ export function AnalyticsSummaryCard(props: Props) {
     }
 
     setLoading(true);
-    setError(null);
+    setFeedback(null);
 
     const result = await fetchPostingAnalyticsSummary({ address: props.address });
     if (!result.ok) {
-      setError("分析サマリーの取得に失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError(
+          result.error,
+          "分析サマリーの取得に失敗しました。"
+        )
+      );
       setLoading(false);
       return;
     }
@@ -79,7 +88,15 @@ export function AnalyticsSummaryCard(props: Props) {
         </button>
       </div>
 
-      {error ? <div className="mt-4"><WorkspaceStatusNotice tone="error" title={error} /></div> : null}
+      {feedback ? (
+        <div className="mt-4">
+          <WorkspaceStatusNotice
+            tone={feedback.tone}
+            title={feedback.title}
+            description={feedback.description}
+          />
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="mt-4 text-sm text-gray-500">分析サマリーを読み込み中です...</div>

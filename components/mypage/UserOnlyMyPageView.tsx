@@ -13,10 +13,13 @@ import { MyPageOnboardingProgress } from "@/components/mypage/MyPageOnboardingPr
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import { UserUpdateForm } from "@/components/mypage/UserUpdateForm";
 import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
+import type { WorkspaceActionNotice } from "@/lib/mypage/workspaceActionCopy";
 
 type Props = {
   headerColor: string;
   error: string | null;
+  errorDescription?: string | null;
+  notice?: WorkspaceActionNotice | null;
   openSections: OpenSections;
   onToggleSection: (key: SectionKey) => void;
   userDisplayName: string | null | undefined;
@@ -64,8 +67,20 @@ export function UserOnlyMyPageView(props: Props) {
         />
 
         {props.error && (
-          <WorkspaceStatusNotice tone="error" title={props.error} />
+          <WorkspaceStatusNotice
+            tone="error"
+            title={props.error}
+            description={props.errorDescription ?? undefined}
+          />
         )}
+
+        {props.notice ? (
+          <WorkspaceStatusNotice
+            tone={props.notice.tone}
+            title={props.notice.title}
+            description={props.notice.description}
+          />
+        ) : null}
 
         <MyPageAccordion
           open={props.openSections}

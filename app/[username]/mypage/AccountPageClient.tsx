@@ -22,6 +22,7 @@ import { generateRandomId } from "@/lib/mypage/helpers";
 
 import { CreatorReadyAccountView } from "@/components/mypage/CreatorReadyAccountView";
 import { AiProfileDraftCard } from "@/components/mypage/AiProfileDraftCard";
+import { AuthRequiredMyPageView } from "@/components/mypage/AuthRequiredMyPageView";
 import type { AiOfficePanelUrlState } from "@/components/mypage/aiOfficePanelUrlState";
 import { LoadingMyPageView } from "@/components/mypage/LoadingMyPageView";
 import { NoUserMyPageView } from "@/components/mypage/NoUserMyPageView";
@@ -32,6 +33,7 @@ import { useMyPageShellState } from "@/components/mypage/useMyPageShellState";
 import { useMyPageMeStatus } from "@/components/mypage/useMyPageMeStatus";
 import { useAccountPageActions } from "@/components/mypage/useAccountPageActions";
 import { CreatorReadyWorkspaceProvider } from "@/components/mypage/CreatorReadyWorkspaceContext";
+import { useOwnerSession } from "@/context/OwnerSessionProvider";
 import { toAddressOrNull } from "@/lib/api/guards";
 import { registerOwnerAuthDevOverride } from "@/lib/ownerAuthClient";
 import type { MeStatus } from "@/lib/mypage/types";
@@ -59,6 +61,7 @@ export default function AccountPageClient({
 }: Props) {
   const publicEnv = getPublicEnv();
   const { address, isConnected, status: connectionStatus } = useAccount();
+  const ownerSession = useOwnerSession();
   const manualCheckOwnerAddress = useMemo(
     () => toAddressOrNull(manualCheckAddress),
     [manualCheckAddress]
@@ -68,6 +71,13 @@ export default function AccountPageClient({
   const effectiveConnectionStatus = manualCheckOwnerAddress
     ? "connected"
     : connectionStatus;
+  const effectiveAppAuthStatus = manualCheckOwnerAddress
+    ? "authenticated"
+    : ownerSession.status === "authenticated"
+    ? "authenticated"
+    : ownerSession.status === "checking"
+    ? "checking"
+    : "unauthenticated";
 
   const generatedUsername = useMemo(
     () => `user_${generateRandomId()}`,
@@ -131,6 +141,7 @@ export default function AccountPageClient({
     address: effectiveAddress,
     isConnected: effectiveIsConnected,
     connectionStatus: effectiveConnectionStatus,
+    appAuthStatus: effectiveAppAuthStatus,
     username,
     skipInitialRefresh: Boolean(manualCheckOwnerAddress && initialMeStatus),
     initialProjectId,
@@ -307,8 +318,16 @@ export default function AccountPageClient({
   ]);
 
   // ── P1-1: API handlers in useAccountPageActions ───────────────────────────
-  const { saving, error, handleSaveUser, handleApplyCreator, handleSaveCreatorProfile } =
-    useAccountPageActions({
+  const {
+    saving,
+    error,
+    errorDescription,
+    notice,
+    setNotice,
+    handleSaveUser,
+    handleApplyCreator,
+    handleSaveCreatorProfile,
+  } = useAccountPageActions({
       address,
       username,
       usernameInput,
@@ -352,6 +371,20 @@ export default function AccountPageClient({
       },
     });
 
+  useEffect(() => {
+    if (!notice) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setNotice(null);
+    }, 4500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [notice, setNotice]);
+
   // ==================================================
   // UI
   // ==================================================
@@ -372,11 +405,25 @@ export default function AccountPageClient({
     );
   }
 
+  if (status === "authRequired") {
+    return (
+      <AuthRequiredMyPageView
+        headerColor={promoHeaderColor}
+        authenticating={ownerSession.status === "checking"}
+        onAuthenticate={() => {
+          void ownerSession.authenticate();
+        }}
+      />
+    );
+  }
+
   if (status === "noUser") {
     return (
       <NoUserMyPageView
         headerColor={promoHeaderColor}
         error={error}
+        errorDescription={errorDescription}
+        notice={notice}
         assistantSection={
           <AiProfileDraftCard
             username={usernameInput || null}
@@ -417,6 +464,8 @@ export default function AccountPageClient({
       <UserOnlyMyPageView
         headerColor={promoHeaderColor}
         error={error}
+        errorDescription={errorDescription}
+        notice={notice}
         openSections={openSections}
         onToggleSection={toggleSection}
         userDisplayName={me?.user?.displayName}
@@ -490,6 +539,8 @@ export default function AccountPageClient({
         workspaceBasePath={workspaceBasePath}
         themeColor={themeColor}
         error={error}
+        errorDescription={errorDescription}
+        notice={notice}
       />
     </CreatorReadyWorkspaceProvider>
   );

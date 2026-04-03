@@ -2,11 +2,17 @@
 
 import { useMemo, useState } from "react";
 
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import {
   parseShareDraftResult,
   type ShareDraftProgressInput,
   type ShareDraftResult,
 } from "@/lib/ai/shareDraft";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 
 type Props = {
   displayName: string;
@@ -42,7 +48,7 @@ const DRAFT_FIELDS: Array<{
 export function ShareDraftCard(props: Props) {
   const [drafts, setDrafts] = useState<ShareDraftResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<WorkspaceActionNotice | null>(null);
   const [copiedKey, setCopiedKey] = useState<keyof ShareDraftResult | null>(null);
 
   const canGenerate = useMemo(
@@ -52,12 +58,17 @@ export function ShareDraftCard(props: Props) {
 
   async function handleGenerate(): Promise<void> {
     if (!canGenerate) {
-      setError("公開ページ URL と表示名が必要です。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "SHARE_DRAFT_MISSING_CONTEXT",
+          "公開ページ URL と表示名が必要です。"
+        )
+      );
       return;
     }
 
     setLoading(true);
-    setError(null);
+    setFeedback(null);
     setCopiedKey(null);
 
     try {
@@ -93,12 +104,16 @@ export function ShareDraftCard(props: Props) {
       }
 
       setDrafts(parsed);
+      setFeedback(buildWorkspaceActionSuccessNotice("shareDraftGenerated"));
       props.onGenerated?.(parsed);
     } catch (nextError) {
-      setError(
-        nextError instanceof Error
-          ? nextError.message
-          : "拡散文面の生成に失敗しました。"
+      setFeedback(
+        mapWorkspaceActionError(
+          nextError instanceof Error
+            ? nextError.message
+            : "SHARE_DRAFT_REQUEST_FAILED",
+          "拡散文面の生成に失敗しました。"
+        )
       );
     } finally {
       setLoading(false);
@@ -115,16 +130,28 @@ export function ShareDraftCard(props: Props) {
     }
 
     if (typeof window.navigator.clipboard?.writeText !== "function") {
-      setError("この環境ではコピーできません。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "CLIPBOARD_UNAVAILABLE",
+          "この環境ではコピーできません。"
+        )
+      );
       return;
     }
 
     try {
       await window.navigator.clipboard.writeText(drafts[key]);
       setCopiedKey(key);
+      setFeedback({
+        tone: "success",
+        title: `${DRAFT_FIELDS.find((field) => field.key === key)?.label ?? "文面"}をコピーしました。`,
+        description: "そのまま SNS 投稿やメモに貼り付けられます。",
+      });
       props.onCopied?.(key);
     } catch {
-      setError("コピーに失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError("COPY_FAILED", "コピーに失敗しました。")
+      );
     }
   }
 
@@ -167,9 +194,13 @@ export function ShareDraftCard(props: Props) {
         </a>
       </div>
 
-      {error ? (
-        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          {error}
+      {feedback ? (
+        <div className="mt-3">
+          <WorkspaceStatusNotice
+            tone={feedback.tone}
+            title={feedback.title}
+            description={feedback.description}
+          />
         </div>
       ) : null}
 

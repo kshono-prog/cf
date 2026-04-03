@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { startTransition } from "react";
+import { useTransition } from "react";
 
 import { useAccount } from "wagmi";
 
+import { ManagerDeskAuthRequiredNotice } from "@/components/managerDesk/ManagerDeskAuthRequiredNotice";
+import {
+  ManagerDeskRefreshingNotice,
+  ManagerDeskStaleDataNotice,
+} from "@/components/managerDesk/ManagerDeskQueryFeedback";
+import { useManagerDeskAccessState } from "@/components/managerDesk/useManagerDeskAccessState";
 import { useManagerDeskActivityTimeline } from "@/components/managerDesk/useManagerDeskActivityTimeline";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
@@ -66,9 +72,11 @@ function sourceBadgeClass(
 
 export function ManagerDeskActivityTimelineClient() {
   const { address, isConnected } = useAccount();
+  const access = useManagerDeskAccessState({ isConnected });
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isFilterPending, startFilterTransition] = useTransition();
 
   const creatorProfileId = searchParams.get("creatorProfileId");
   const sourceTypeParam = searchParams.get("sourceType");
@@ -81,7 +89,7 @@ export function ManagerDeskActivityTimelineClient() {
 
   const { loading, error, data, reload } = useManagerDeskActivityTimeline({
     address,
-    isConnected,
+    isConnected: access.canReadProtectedData,
     creatorProfileId,
     sourceType,
   });
@@ -110,10 +118,17 @@ export function ManagerDeskActivityTimelineClient() {
     }
 
     const nextUrl = params.toString().length > 0 ? `${pathname}?${params}` : pathname;
-    startTransition(() => {
+    startFilterTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
   }
+
+  const hasActiveFilters = Boolean(creatorProfileId || sourceType);
+  const isInitialLoading = access.authChecking || (loading && !data);
+  const isRefreshing =
+    !access.authChecking && Boolean(data) && (loading || isFilterPending);
+  const hasBlockingError = Boolean(error && !data);
+  const hasStaleError = Boolean(error && data);
 
   return (
     <MyPageShell headerColor="#0f172a" showPromo={false}>
@@ -150,18 +165,42 @@ export function ManagerDeskActivityTimelineClient() {
             />
           ) : null}
 
-          {loading ? (
-            <WorkspaceLoadingCard
-              title="Activity Timeline を読み込んでいます"
-              description="Action Log、Meeting、shareable note を時系列に整理しています。"
+          {access.authRequired ? (
+            <ManagerDeskAuthRequiredNotice
+              authenticating={access.authChecking}
+              onAuthenticate={access.authenticate}
             />
           ) : null}
 
-          {error ? (
+          {isInitialLoading ? (
+            <WorkspaceLoadingCard
+              title="Activity Timeline を読み込んでいます"
+              description="Action Log、Meeting、shareable note、認証状態を時系列に整理しています。"
+            />
+          ) : null}
+
+          {isRefreshing ? (
+            <ManagerDeskRefreshingNotice
+              title="フィルタ条件を反映しています"
+              description="前回の timeline を残したまま、Creator と source 条件を更新しています。"
+            />
+          ) : null}
+
+          {hasBlockingError ? (
             <WorkspaceStatusNotice
               tone="error"
               title="Activity Timeline の取得に失敗しました"
               description="接続状態を確認してから、もう一度試してください。"
+              onRetry={() => {
+                void reload();
+              }}
+            />
+          ) : null}
+
+          {hasStaleError ? (
+            <ManagerDeskStaleDataNotice
+              title="最新の Activity Timeline を更新できませんでした"
+              description="前回の一覧を表示しています。条件を見直すか、時間をおいて再読み込みしてください。"
               onRetry={() => {
                 void reload();
               }}
@@ -291,8 +330,16 @@ export function ManagerDeskActivityTimelineClient() {
                 </div>
               ) : (
                 <WorkspaceEmptyState
-                  title="まだ activity は積み上がっていません"
-                  description="Action Log、Meeting、shareable note が入ると、この面に時系列で並びます。"
+                  title={
+                    hasActiveFilters
+                      ? "条件に合う activity はまだありません"
+                      : "まだ activity は積み上がっていません"
+                  }
+                  description={
+                    hasActiveFilters
+                      ? "Creator や source の条件を見直すか、別の履歴が入るまで少し待ってから確認してください。"
+                      : "Action Log、Meeting、shareable note が入ると、この面に時系列で並びます。"
+                  }
                 />
               )}
             </div>

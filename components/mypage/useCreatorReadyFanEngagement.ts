@@ -64,9 +64,13 @@ export function useCreatorReadyFanEngagement(args: {
         if (!parsed) throw new Error("MYPAGE_FAN_ENGAGEMENT_INVALID");
         if (cancelled) return;
         setState({ loading: false, error: null, data: parsed });
-      } catch {
+      } catch (error: unknown) {
         if (cancelled) return;
-        setState({ loading: false, error: "MYPAGE_FAN_ENGAGEMENT_FAILED", data: null });
+        const code =
+          error instanceof Error && typeof error.message === "string"
+            ? error.message
+            : "MYPAGE_FAN_ENGAGEMENT_FAILED";
+        setState({ loading: false, error: code, data: null });
       }
     }
 

@@ -15,6 +15,11 @@ import {
   WorkspaceEmptyState,
   WorkspaceStatusNotice,
 } from "@/components/mypage/WorkspaceFeedback";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 import { AI_OFFICE_LABEL } from "@/lib/uxCopy";
 
 type Props = {
@@ -64,14 +69,13 @@ export function AiAgencyCard(props: Props) {
   const [agents, setAgents] = React.useState<PostingAiAgent[]>([]);
   const [jobs, setJobs] = React.useState<PostingAiJob[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [feedback, setFeedback] = React.useState<WorkspaceActionNotice | null>(null);
   const [agentName, setAgentName] = React.useState("");
   const [agentRole, setAgentRole] = React.useState<PostingAiAgent["role"]>("POSTER");
   const [jobType, setJobType] = React.useState<PostingAiJob["jobType"]>("ANALYZE");
   const [selectedAgentId, setSelectedAgentId] = React.useState<string>("");
   const [savingAgent, setSavingAgent] = React.useState(false);
   const [savingJob, setSavingJob] = React.useState(false);
-  const [notice, setNotice] = React.useState<string | null>(null);
 
   const loadData = React.useCallback(async (): Promise<void> => {
     if (!props.address) {
@@ -82,7 +86,7 @@ export function AiAgencyCard(props: Props) {
     }
 
     setLoading(true);
-    setError(null);
+    setFeedback(null);
 
     const [agentsResult, jobsResult] = await Promise.all([
       fetchPostingAiAgents({ address: props.address }),
@@ -90,12 +94,22 @@ export function AiAgencyCard(props: Props) {
     ]);
 
     if (!agentsResult.ok) {
-      setError("AI agent の取得に失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError(
+          agentsResult.error,
+          "AI agent の取得に失敗しました。"
+        )
+      );
       setLoading(false);
       return;
     }
     if (!jobsResult.ok) {
-      setError("AI job の取得に失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError(
+          jobsResult.error,
+          "AI job の取得に失敗しました。"
+        )
+      );
       setLoading(false);
       return;
     }
@@ -114,19 +128,25 @@ export function AiAgencyCard(props: Props) {
   ): Promise<void> {
     event.preventDefault();
     if (!props.address) {
-      setError("ウォレット接続を確認してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "WALLET_NOT_CONNECTED",
+          "ウォレット接続を確認してください。"
+        )
+      );
       return;
     }
 
     const trimmedName = agentName.trim();
     if (!trimmedName) {
-      setError("agent 名を入力してください。");
+      setFeedback(
+        mapWorkspaceActionError("AI_AGENT_NAME_REQUIRED", "agent 名を入力してください。")
+      );
       return;
     }
 
     setSavingAgent(true);
-    setError(null);
-    setNotice(null);
+    setFeedback(null);
 
     const result = await createPostingAiAgent({
       address: props.address,
@@ -135,13 +155,18 @@ export function AiAgencyCard(props: Props) {
     });
 
     if (!result.ok) {
-      setError("AI agent の作成に失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError(
+          result.error,
+          "AI agent の作成に失敗しました。"
+        )
+      );
       setSavingAgent(false);
       return;
     }
 
     setAgentName("");
-    setNotice("AI agent を追加しました。");
+    setFeedback(buildWorkspaceActionSuccessNotice("aiAgentCreated"));
     setSavingAgent(false);
     await loadData();
     props.onChanged();
@@ -152,13 +177,17 @@ export function AiAgencyCard(props: Props) {
   ): Promise<void> {
     event.preventDefault();
     if (!props.address) {
-      setError("ウォレット接続を確認してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "WALLET_NOT_CONNECTED",
+          "ウォレット接続を確認してください。"
+        )
+      );
       return;
     }
 
     setSavingJob(true);
-    setError(null);
-    setNotice(null);
+    setFeedback(null);
 
     const result = await createPostingAiJob({
       address: props.address,
@@ -167,12 +196,17 @@ export function AiAgencyCard(props: Props) {
     });
 
     if (!result.ok) {
-      setError("AI job のキュー登録に失敗しました。");
+      setFeedback(
+        mapWorkspaceActionError(
+          result.error,
+          "AI job のキュー登録に失敗しました。"
+        )
+      );
       setSavingJob(false);
       return;
     }
 
-    setNotice("AI job をキューに追加しました。");
+    setFeedback(buildWorkspaceActionSuccessNotice("aiJobQueued"));
     setSavingJob(false);
     await loadData();
     props.onChanged();
@@ -278,8 +312,13 @@ export function AiAgencyCard(props: Props) {
           </div>
         </form>
 
-        {error ? <WorkspaceStatusNotice tone="error" title={error} /> : null}
-        {notice ? <WorkspaceStatusNotice tone="success" title={notice} /> : null}
+        {feedback ? (
+          <WorkspaceStatusNotice
+            tone={feedback.tone}
+            title={feedback.title}
+            description={feedback.description}
+          />
+        ) : null}
 
         {loading ? (
           <div className="text-sm text-gray-500">AI agent と job を読み込み中です...</div>

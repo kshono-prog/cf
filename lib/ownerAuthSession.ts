@@ -27,6 +27,11 @@ type OwnerSessionRecord = {
   expiresAt: Date;
 };
 
+type ResolvedOwnerSession = {
+  address: string;
+  expiresAt: Date;
+};
+
 type IssueOwnerAuthNonceDeps = {
   now?: () => Date;
   randomHex?: (bytes: number) => string;
@@ -74,7 +79,9 @@ function buildInvalidResponse(error: string): NextResponse {
 
 export function buildOwnerAuthMessage(address: string, nonce: string): string {
   return [
-    "creator founding owner auth",
+    "Creator Founding app login",
+    "Sign this message to authenticate with the app.",
+    "This request will not trigger a blockchain transaction.",
     `address:${address}`,
     `nonce:${nonce}`,
   ].join("\n");
@@ -299,11 +306,11 @@ export function clearOwnerSessionCookie(response: NextResponse): void {
   });
 }
 
-async function resolveOwnerSessionAddress(
+async function resolveOwnerSession(
   req: NextRequest,
   expectedAddressRaw?: unknown,
   deps?: ResolveOwnerSessionDeps
-): Promise<string | null> {
+): Promise<ResolvedOwnerSession | null> {
   if (isDevRuntime()) {
     const requestUrl = new URL(req.url);
     const devOverrideAddress = resolveDevManualCheckAddress(
@@ -319,7 +326,10 @@ async function resolveOwnerSessionAddress(
       isLocalDevHost(requestUrl.host) &&
       (expectedAddressRaw === undefined || expectedAddress === devOverrideAddress)
     ) {
-      return devOverrideAddress;
+      return {
+        address: devOverrideAddress,
+        expiresAt: new Date(Date.now() + OWNER_AUTH_SESSION_TTL_MS),
+      };
     }
   }
 
@@ -373,7 +383,18 @@ async function resolveOwnerSessionAddress(
     return null;
   }
 
-  return cookieAddress;
+  return {
+    address: cookieAddress,
+    expiresAt: sessionRow.expiresAt,
+  };
+}
+
+export async function getOptionalOwnerSession(
+  req: NextRequest,
+  expectedAddressRaw?: unknown,
+  deps?: ResolveOwnerSessionDeps
+): Promise<ResolvedOwnerSession | null> {
+  return resolveOwnerSession(req, expectedAddressRaw, deps);
 }
 
 export async function getOptionalOwnerSessionAddress(
@@ -381,7 +402,8 @@ export async function getOptionalOwnerSessionAddress(
   expectedAddressRaw?: unknown,
   deps?: ResolveOwnerSessionDeps
 ): Promise<string | null> {
-  return resolveOwnerSessionAddress(req, expectedAddressRaw, deps);
+  const session = await resolveOwnerSession(req, expectedAddressRaw, deps);
+  return session?.address ?? null;
 }
 
 export async function requireOwnerSession(
@@ -392,15 +414,15 @@ export async function requireOwnerSession(
   | { ok: true; address: string }
   | { ok: false; response: NextResponse }
 > {
-  const address = await resolveOwnerSessionAddress(req, expectedAddressRaw, deps);
-  if (!address) {
+  const session = await resolveOwnerSession(req, expectedAddressRaw, deps);
+  if (!session) {
     return {
       ok: false,
       response: buildUnauthorizedResponse("OWNER_AUTH_REQUIRED"),
     };
   }
 
-  return { ok: true, address };
+  return { ok: true, address: session.address };
 }
 
 export async function requireOwnerSessionFromBody(

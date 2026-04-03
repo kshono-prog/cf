@@ -85,11 +85,11 @@ export function useManagerDeskActivityTimeline(args: {
         data: parsed,
       });
     } catch {
-      setState({
+      setState((current) => ({
         loading: false,
         error: "MANAGER_DESK_ACTIVITY_TIMELINE_FAILED",
-        data: null,
-      });
+        data: current.data,
+      }));
     }
   }, [args.address, args.creatorProfileId, args.isConnected, args.sourceType]);
 

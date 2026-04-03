@@ -278,7 +278,7 @@ export function AiOfficePanel(props: {
       const dashboardJson: unknown = await dashboardRes.json().catch(() => null);
 
       if (!dashboardRes.ok || !isRecord(dashboardJson)) {
-        setMessage("AIの提案状況を取得できませんでした。");
+        setMessage("AI_OFFICE_DASHBOARD_FAILED");
         return;
       }
 
@@ -287,7 +287,7 @@ export function AiOfficePanel(props: {
       setContentSummary(parseAiOfficeContentSummary(dashboardJson.content));
       setUsefulness(parseAiOfficeUsefulnessSummary(dashboardJson.usefulness));
     } catch {
-      setMessage("AIの提案状況を取得できませんでした。");
+      setMessage("AI_OFFICE_DASHBOARD_FAILED");
     } finally {
       setLoading(false);
     }
@@ -426,7 +426,7 @@ export function AiOfficePanel(props: {
       setMessage(`投稿の指標を ${collected} 件更新しました。`);
       await refresh();
     } catch {
-      setMessage("指標の取得に失敗しました。");
+      setMessage("METRICS_COLLECT_FAILED");
     } finally {
       setLoading(false);
     }
@@ -501,7 +501,7 @@ export function AiOfficePanel(props: {
   async function approveTasks(taskIds: string[], action: "APPROVE" | "REJECT", inlineNote?: string): Promise<void> {
     if (!walletAddress) return;
     if (taskIds.length === 0) {
-      setMessage("処理する提案を選択してください。");
+      setMessage("TASK_SELECTION_REQUIRED");
       return;
     }
     // bulk threshold confirmation
@@ -559,7 +559,7 @@ export function AiOfficePanel(props: {
       setSelectedTaskIds([]);
       await refresh();
     } catch {
-      setMessage("処理に失敗しました。");
+      setMessage("AGENT_TASK_APPROVAL_FAILED");
     } finally {
       setLoading(false);
     }
@@ -585,7 +585,7 @@ export function AiOfficePanel(props: {
     if (!walletAddress) return;
     const text = translationInput.trim();
     if (!text) {
-      setMessage("翻訳するテキストを入力してください。");
+      setMessage("TRANSLATION_INPUT_REQUIRED");
       return;
     }
 
@@ -628,7 +628,7 @@ export function AiOfficePanel(props: {
       }
       setTranslationResult(first.text);
     } catch {
-      setMessage("翻訳に失敗しました。");
+      setMessage("TRANSLATION_FAILED");
     } finally {
       setLoading(false);
     }

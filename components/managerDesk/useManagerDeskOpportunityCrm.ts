@@ -57,7 +57,11 @@ export function useManagerDeskOpportunityCrm(args: {
 
       setState({ loading: false, error: null, data: parsed });
     } catch {
-      setState({ loading: false, error: "MANAGER_DESK_OPPORTUNITY_CRM_FAILED", data: null });
+      setState((current) => ({
+        loading: false,
+        error: "MANAGER_DESK_OPPORTUNITY_CRM_FAILED",
+        data: current.data,
+      }));
     }
   }, [args.address, args.creatorProfileId, args.isConnected]);
 

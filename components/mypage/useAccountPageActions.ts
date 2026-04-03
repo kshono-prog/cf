@@ -10,6 +10,11 @@ import {
   requestCreatorApply,
   updateMyPageCreatorProfile,
 } from "@/lib/api/creator";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 
 type Args = {
   address: Address | undefined;
@@ -59,6 +64,8 @@ export function useAccountPageActions(args: Args) {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDescription, setErrorDescription] = useState<string | null>(null);
+  const [notice, setNotice] = useState<WorkspaceActionNotice | null>(null);
 
   async function handleSaveUser(e: React.FormEvent): Promise<void> {
     e.preventDefault();
@@ -66,6 +73,8 @@ export function useAccountPageActions(args: Args) {
 
     setSaving(true);
     setError(null);
+    setErrorDescription(null);
+    setNotice(null);
 
     try {
       const slug = usernameInput.trim() || username;
@@ -82,12 +91,14 @@ export function useAccountPageActions(args: Args) {
 
       await onSaved(address);
       onUserSavedSuccess?.(result.data);
+      setNotice(buildWorkspaceActionSuccessNotice("userSaved"));
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "ユーザー情報の保存に失敗しました。"
+      const nextError = mapWorkspaceActionError(
+        err instanceof Error ? err.message : "",
+        "ユーザー情報の保存に失敗しました。"
       );
+      setError(nextError.title);
+      setErrorDescription(nextError.description ?? null);
     } finally {
       setSaving(false);
     }
@@ -98,6 +109,8 @@ export function useAccountPageActions(args: Args) {
 
     setSaving(true);
     setError(null);
+    setErrorDescription(null);
+    setNotice(null);
 
     try {
       const result = await requestCreatorApply(address);
@@ -107,10 +120,14 @@ export function useAccountPageActions(args: Args) {
 
       await onSaved(address);
       onCreatorAppliedSuccess?.(result.data);
+      setNotice(buildWorkspaceActionSuccessNotice("creatorApplied"));
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "クリエイター申請に失敗しました。"
+      const nextError = mapWorkspaceActionError(
+        err instanceof Error ? err.message : "",
+        "クリエイター申請に失敗しました。"
       );
+      setError(nextError.title);
+      setErrorDescription(nextError.description ?? null);
     } finally {
       setSaving(false);
     }
@@ -122,6 +139,8 @@ export function useAccountPageActions(args: Args) {
 
     setSaving(true);
     setError(null);
+    setErrorDescription(null);
+    setNotice(null);
 
     try {
       const result = await updateMyPageCreatorProfile({
@@ -147,12 +166,14 @@ export function useAccountPageActions(args: Args) {
         me: result.data,
         creator: result.creator,
       });
+      setNotice(buildWorkspaceActionSuccessNotice("creatorProfileSaved"));
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "保存に失敗しました。入力内容を確認してください。"
+      const nextError = mapWorkspaceActionError(
+        err instanceof Error ? err.message : "",
+        "保存に失敗しました。入力内容を確認してください。"
       );
+      setError(nextError.title);
+      setErrorDescription(nextError.description ?? null);
     } finally {
       setSaving(false);
     }
@@ -161,7 +182,11 @@ export function useAccountPageActions(args: Args) {
   return {
     saving,
     error,
+    errorDescription,
     setError,
+    setErrorDescription,
+    notice,
+    setNotice,
     handleSaveUser,
     handleApplyCreator,
     handleSaveCreatorProfile,

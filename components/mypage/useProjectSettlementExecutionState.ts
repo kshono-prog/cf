@@ -245,7 +245,7 @@ export function useProjectSettlementExecutionState(
         if (!result.ok) {
           setMessage(result.reason ?? "PRECHECK_FAILED");
         } else {
-          setMessage("残高チェックOK");
+          setMessage("BALANCE_CHECK_OK");
         }
         return result;
       } catch {
@@ -334,7 +334,9 @@ export function useProjectSettlementExecutionState(
         }
 
         setMessage(
-          status === "SENT" ? "送信済みに更新しました" : "失敗として更新しました"
+          status === "SENT"
+            ? "DISTRIBUTION_RESULT_MARKED_SENT"
+            : "DISTRIBUTION_RESULT_MARKED_FAILED"
         );
         await refresh();
       } catch {
@@ -397,7 +399,7 @@ export function useProjectSettlementExecutionState(
 
       setIsDistributing(true);
       setLoading(true);
-      setMessage("Distribute開始: ウォレットで順次承認してください");
+      setMessage("DISTRIBUTION_EXECUTION_STARTED");
       setRuntimeRowStatus({});
 
       let executionId: string | null = null;

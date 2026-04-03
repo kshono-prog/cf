@@ -30,7 +30,19 @@ export function CreatorReadyAccountView(props: CreatorReadyAccountViewProps) {
         />
 
         {props.error ? (
-          <WorkspaceStatusNotice tone="error" title={props.error} />
+          <WorkspaceStatusNotice
+            tone="error"
+            title={props.error}
+            description={props.errorDescription ?? undefined}
+          />
+        ) : null}
+
+        {props.notice ? (
+          <WorkspaceStatusNotice
+            tone={props.notice.tone}
+            title={props.notice.title}
+            description={props.notice.description}
+          />
         ) : null}
 
         <CreatorReadyWorkspaceRouteContent

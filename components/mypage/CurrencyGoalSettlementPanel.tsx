@@ -5,11 +5,17 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { AiSuggestionsCard } from "@/components/mypage/AiSuggestionsCard";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import { useCurrencyGoalSettlementPanel } from "@/components/mypage/useCurrencyGoalSettlementPanel";
 import {
   getNextActionSuggestions,
   type NextActionSuggestion,
 } from "@/lib/creator-ai/nextActionSuggestions";
+import {
+  buildWorkspaceActionSuccessNotice,
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 import {
   formatAmountByCurrency,
   type SummaryViewData,
@@ -229,6 +235,25 @@ export function CurrencyGoalSettlementPanel(props: {
     });
   }, [currency, onSaveGoal, projectId, targetInput, workspace]);
 
+  const feedback = React.useMemo<WorkspaceActionNotice | null>(() => {
+    if (!msg) {
+      return null;
+    }
+
+    if (msg === "GOAL_SAVED") {
+      return buildWorkspaceActionSuccessNotice("goalSaved");
+    }
+
+    if (msg === "GOAL_ACHIEVED_SET") {
+      return buildWorkspaceActionSuccessNotice("goalAchieved");
+    }
+
+    return mapWorkspaceActionError(
+      msg,
+      "Goal の保存に失敗しました。入力内容を確認して、もう一度お試しください。"
+    );
+  }, [msg]);
+
   return (
     <div className="space-y-3">
       <div className="font-semibold">公開ページに載せる Goal（{currency}）</div>
@@ -293,7 +318,7 @@ export function CurrencyGoalSettlementPanel(props: {
               title={!isConnected ? "ウォレット接続が必要です" : ""}
               type="button"
             >
-              {goalSaving ? "Saving..." : "Goal を保存"}
+              {goalSaving ? "保存中..." : "Goal を保存"}
             </button>
 
             <button
@@ -302,11 +327,22 @@ export function CurrencyGoalSettlementPanel(props: {
               disabled={!projectId || summaryLoading}
               type="button"
             >
-              {summaryLoading ? "Loading..." : "Summary更新"}
+              {summaryLoading ? "読み込み中..." : "Summary更新"}
             </button>
-
-            {msg ? <span className="text-xs text-gray-600">{msg}</span> : null}
           </div>
+
+          {feedback ? (
+            <WorkspaceStatusNotice
+              tone={feedback.tone}
+              title={feedback.title}
+              description={feedback.description}
+              onRetry={
+                feedback.tone === "error" && msg !== "GOAL_SAVED" && msg !== "GOAL_ACHIEVED_SET"
+                  ? () => void refreshSummary()
+                  : undefined
+              }
+            />
+          ) : null}
 
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 space-y-2">
             <div

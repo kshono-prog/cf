@@ -2,8 +2,13 @@
 
 import React from "react";
 import type { Address } from "viem";
+import { WorkspaceStatusNotice } from "@/components/mypage/WorkspaceFeedback";
 import { saveMyPageUser } from "@/lib/mypage/profileApi";
 import { trackGrowthEvent } from "@/lib/growth/client";
+import {
+  mapWorkspaceActionError,
+  type WorkspaceActionNotice,
+} from "@/lib/mypage/workspaceActionCopy";
 
 type Props = {
   address: Address;
@@ -25,11 +30,11 @@ export function AiManagerInlineProfileEditPanel({
   const [bioText, setBioText] = React.useState(existingProfile);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [saveLoading, setSaveLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [feedback, setFeedback] = React.useState<WorkspaceActionNotice | null>(null);
 
   async function handleAiDraft() {
     setAiLoading(true);
-    setError(null);
+    setFeedback(null);
     try {
       const res = await fetch("/api/ai/profile-draft", {
         method: "POST",
@@ -58,10 +63,20 @@ export function AiManagerInlineProfileEditPanel({
       ) {
         setBioText(json.draft.profile);
       } else {
-        setError("AI 下書きの生成に失敗しました。手動で入力してください。");
+        setFeedback(
+          mapWorkspaceActionError(
+            "PROFILE_DRAFT_REQUEST_FAILED",
+            "AI 下書きの生成に失敗しました。手動で入力してください。"
+          )
+        );
       }
     } catch {
-      setError("AI 下書きの生成に失敗しました。手動で入力してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "PROFILE_DRAFT_REQUEST_FAILED",
+          "AI 下書きの生成に失敗しました。手動で入力してください。"
+        )
+      );
     } finally {
       setAiLoading(false);
     }
@@ -69,11 +84,16 @@ export function AiManagerInlineProfileEditPanel({
 
   async function handleSave() {
     if (!bioText.trim()) {
-      setError("紹介文を入力してください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "PROFILE_BIO_REQUIRED",
+          "紹介文を入力してください。"
+        )
+      );
       return;
     }
     setSaveLoading(true);
-    setError(null);
+    setFeedback(null);
     try {
       const result = await saveMyPageUser({
         apiBase: "",
@@ -83,13 +103,23 @@ export function AiManagerInlineProfileEditPanel({
         profile: bioText.trim(),
       });
       if (!result.ok) {
-        setError("保存に失敗しました。設定画面から再度お試しください。");
+        setFeedback(
+          mapWorkspaceActionError(
+            result.error,
+            "保存に失敗しました。設定画面から再度お試しください。"
+          )
+        );
         return;
       }
       trackGrowthEvent({ event: "profile_saved", username, walletAddress: address });
       onComplete({ message: "プロフィールを更新しました", growthLabel: "信頼度 +5%" });
     } catch {
-      setError("保存に失敗しました。設定画面から再度お試しください。");
+      setFeedback(
+        mapWorkspaceActionError(
+          "USER_SAVE_FAILED",
+          "保存に失敗しました。設定画面から再度お試しください。"
+        )
+      );
     } finally {
       setSaveLoading(false);
     }
@@ -109,10 +139,12 @@ export function AiManagerInlineProfileEditPanel({
         className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--text)] resize-none"
       />
 
-      {error ? (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-          {error}
-        </div>
+      {feedback ? (
+        <WorkspaceStatusNotice
+          tone={feedback.tone}
+          title={feedback.title}
+          description={feedback.description}
+        />
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
