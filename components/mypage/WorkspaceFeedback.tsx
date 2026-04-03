@@ -59,7 +59,7 @@ export function WorkspaceStatusNotice(props: {
 }) {
   const styles = NOTICE_STYLES[props.tone];
   return (
-    <div className={`rounded-2xl border px-4 py-3 ${styles.wrapper}`}>
+    <div className={`radius-static-lg border px-4 py-3 ${styles.wrapper}`}>
       <div
         className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${styles.eyebrow}`}
       >
@@ -99,7 +99,7 @@ export function WorkspaceEmptyState(props: {
 }) {
   return (
     <div
-      className={`rounded-2xl border border-dashed border-gray-200 bg-gray-50 ${
+      className={`radius-static-lg border border-dashed border-gray-200 bg-gray-50 ${
         props.compact ? "px-3 py-2" : "px-4 py-3"
       }`}
     >
@@ -121,7 +121,7 @@ export function WorkspaceLoadingCard(props: {
   description?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="radius-static-lg border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-sm font-semibold text-[var(--text)]">{props.title}</div>
       <div className="mt-2 text-xs text-[var(--text-subtle)]">
         {props.description ?? "必要な面だけを順番に読み込んでいます。"}

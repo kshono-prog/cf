@@ -19,6 +19,9 @@
   --radius-card: 16px;
   --radius-input: 10px;
   --radius-pill: 9999px;
+  --radius-static-sm: 6px;
+  --radius-static-md: 8px;
+  --radius-static-lg: 10px;
   /* shadow */
   --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
@@ -107,13 +110,13 @@ select {
 .surface-card {
   background: color-mix(in srgb, var(--surface) 96%, var(--surface-subtle) 4%);
   border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
-  border-radius: var(--radius);
+  border-radius: var(--radius-static-lg);
 }
 
 .panel-card {
   background: color-mix(in srgb, var(--surface) 96%, var(--surface-subtle) 4%);
   border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-static-lg);
   box-shadow: var(--shadow-card);
 }
 
@@ -121,27 +124,27 @@ select {
 .compact-info-card {
   background: color-mix(in srgb, var(--surface-muted) 78%, var(--surface) 22%);
   border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
-  border-radius: var(--radius);
+  border-radius: var(--radius-static-md);
 }
 
 .sheet-section {
   background: color-mix(in srgb, var(--surface) 96%, var(--surface-subtle) 4%);
   border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-static-lg);
   box-shadow: var(--shadow-card);
 }
 
 .data-tile {
   background: color-mix(in srgb, var(--surface-muted) 80%, var(--surface) 20%);
   border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
-  border-radius: var(--radius);
+  border-radius: var(--radius-static-md);
 }
 
 .surface-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-static-md);
   border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
   background: color-mix(in srgb, var(--surface-subtle) 76%, var(--surface) 24%);
   padding: 0.35rem 0.65rem;
@@ -422,7 +425,31 @@ select {
 .accent-surface-emerald {
   border-width: 1px;
   border-style: solid;
-  border-radius: var(--radius);
+  border-radius: var(--radius-static-md);
+}
+
+.radius-static-sm {
+  border-radius: var(--radius-static-sm);
+}
+
+.radius-static-md {
+  border-radius: var(--radius-static-md);
+}
+
+.radius-static-lg {
+  border-radius: var(--radius-static-lg);
+}
+
+:where(div, section, article, aside, details).rounded-xl {
+  border-radius: var(--radius-static-md);
+}
+
+:where(div, section, article, aside, details).rounded-2xl {
+  border-radius: var(--radius-static-lg);
+}
+
+:where(div, section, article, aside, details).rounded-3xl {
+  border-radius: calc(var(--radius-static-lg) + 2px);
 }
 
 .accent-surface-amber {
@@ -767,7 +794,7 @@ html[data-theme="dark"] .text-rose-700 {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-static-md);
   padding: 0.2rem 0.6rem;
   font-size: 0.6875rem;
   font-weight: 600;
