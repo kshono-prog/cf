@@ -219,131 +219,122 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
 
   return (
     <section className="sheet-section overflow-hidden bg-[linear-gradient(135deg,#f6f8fc_0%,#ffffff_52%,#f2f5f1_100%)]">
-      <div className="space-y-6 p-5 sm:p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="section-kicker">AI事務所ホーム</span>
-              <span className="surface-chip bg-white/85 text-slate-700">
-                {statusLabel}
+      <div className="space-y-5 p-5 sm:p-6">
+        {/* ── ヘッダー ── */}
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="section-kicker">今日の仕事場</span>
+            <span className="surface-chip bg-white/85 text-slate-700">
+              {statusLabel}
+            </span>
+          </div>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
+            {props.creatorName}さんの今日の仕事場
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            {structuredFocusTheme}
+          </p>
+          {!props.needsSetup && props.dailyBriefing?.summaryLine ? (
+            <p className="mt-0.5 text-xs leading-5 text-slate-500">
+              {props.dailyBriefing.summaryLine}
+            </p>
+          ) : null}
+        </div>
+
+        {/* ── プロジェクト進捗 ── */}
+        <div className="border-t border-slate-200/80 pt-4 space-y-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <div>
+              <div className="text-xs font-medium text-slate-500">現在の主プロジェクト</div>
+              <div className="mt-0.5 text-base font-semibold text-slate-950">
+                {primaryProjectTitle}
+              </div>
+              <div className="mt-0.5 text-xs leading-5 text-slate-600">
+                {hasPrimaryProject
+                  ? goal?.achievedAt
+                    ? "目標達成後の整理フェーズに入っています。"
+                    : targetAmount !== null
+                      ? `目標 ${targetLabel} に向けて進行中です。`
+                      : "Goal を設定すると、支援者に次の一歩が伝わりやすくなります。"
+                  : "Project / Goal を整えると、日々の運営拠点として機能し始めます。"}
+              </div>
+            </div>
+          </div>
+
+          {/* データタイル — 3列 */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 border-slate-900 bg-slate-950 text-white">
+              <div className="text-[11px] leading-4 text-slate-300">進捗</div>
+              <div className="mt-1 text-xl font-semibold sm:text-2xl">{progressPct}%</div>
+            </div>
+            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 text-slate-900">
+              <div className="text-[11px] leading-4 text-slate-500">支援額</div>
+              <div className="mt-1 text-sm font-semibold leading-5">{supportLabel}</div>
+            </div>
+            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 text-slate-900">
+              <div className="text-[11px] leading-4 text-slate-500">投稿数</div>
+              <div className="mt-1 text-sm font-semibold leading-5">
+                {props.postCount !== null ? `${props.postCount}件` : "—"}
+              </div>
+              <div className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                {props.publishedCount !== null
+                  ? `公開 ${props.publishedCount}件`
+                  : "公開数は取得中"}
+              </div>
+            </div>
+          </div>
+
+          {/* プログレスバー */}
+          <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-[width]"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+            <span>目標: {targetLabel}</span>
+            {remainingAmount !== null && remainingAmount > 0 ? (
+              <span>
+                あと {formatAmountByCurrency(remainingAmount, unitCurrency)}{" "}
+                {unitCurrency}
               </span>
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
-                {props.creatorName}さんの今日の仕事場
-              </h2>
-              <p className="text-sm leading-6 text-slate-600">
-                {structuredFocusTheme}
-              </p>
-              {!props.needsSetup && props.dailyBriefing?.summaryLine ? (
-                <p className="text-xs leading-5 text-slate-500">
-                  {props.dailyBriefing.summaryLine}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="border-t border-slate-200/80 pt-4">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] lg:items-end">
-                <div className="max-w-xl space-y-1">
-                  <div className="text-xs font-medium text-slate-500">
-                    現在の主プロジェクト
-                  </div>
-                  <div className="text-lg font-semibold text-slate-950">
-                    {primaryProjectTitle}
-                  </div>
-                  <div className="text-xs leading-5 text-slate-600">
-                    {hasPrimaryProject
-                      ? goal?.achievedAt
-                        ? "目標達成後の整理フェーズに入っています。"
-                        : targetAmount !== null
-                          ? `目標 ${targetLabel} に向けて進行中です。`
-                          : "Goal を設定すると、支援者に次の一歩が伝わりやすくなります。"
-                      : "Project / Goal / 公開導線を整えると、Creator Home が日々の運営拠点として機能し始めます。"}
-                  </div>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                  <div className="data-tile min-w-[8.5rem] border-slate-900 bg-slate-950 px-4 py-3 text-white">
-                    <div className="text-[11px] leading-4 text-slate-300">進捗</div>
-                    <div className="mt-1 text-2xl font-semibold">{progressPct}%</div>
-                  </div>
-                  <div className="data-tile min-w-[8.5rem] px-4 py-3 text-slate-900">
-                    <div className="text-[11px] leading-4 text-slate-500">現在の支援額</div>
-                    <div className="mt-1 text-sm font-semibold leading-5">
-                      {supportLabel}
-                    </div>
-                  </div>
-                  <div className="data-tile min-w-[8.5rem] px-4 py-3 text-slate-900">
-                    <div className="text-[11px] leading-4 text-slate-500">投稿数</div>
-                    <div className="mt-1 text-sm font-semibold leading-5">
-                      {props.postCount !== null ? `${props.postCount}件` : "—"}
-                    </div>
-                    <div className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                      {props.publishedCount !== null
-                        ? `公開 ${props.publishedCount}件`
-                        : "公開数は取得中"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]">
-                <div
-                  className="h-full rounded-full bg-[var(--accent)] transition-[width]"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                <span>目標: {targetLabel}</span>
-                {remainingAmount !== null && remainingAmount > 0 ? (
-                  <span>
-                    あと {formatAmountByCurrency(remainingAmount, unitCurrency)}{" "}
-                    {unitCurrency}
-                  </span>
-                ) : null}
-              </div>
-            </div>
+            ) : null}
           </div>
+        </div>
 
-          <div className="data-tile w-full max-w-md p-4">
-            <div className="section-kicker">
-              今日の優先項目
-            </div>
-            <div className="mt-3 divide-y divide-slate-200">
-              {structuredPriorityItems.map((item, index) => (
-                <div
-                  key={item.title}
-                  className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
-                >
-                  <span className="surface-chip h-7 w-7 shrink-0 justify-center px-0 text-slate-700">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <div className="text-sm font-semibold text-slate-900">
-                      {item.title}
-                    </div>
-                    <div className="mt-1 text-xs leading-5 text-slate-600">
-                      {item.body}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="btn min-h-10 px-5"
-                onClick={props.onOpenSettings}
+        {/* ── 今日の優先項目 ── */}
+        <div className="border-t border-slate-200/80 pt-4">
+          <div className="section-kicker mb-3">今日の優先項目</div>
+          <div className="divide-y divide-slate-200">
+            {structuredPriorityItems.map((item, index) => (
+              <div
+                key={item.title}
+                className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
               >
-                設定・準備を開く
-              </button>
-              <a href={props.aiOfficeHref} className="btn-secondary min-h-10 px-5">
-                {aiOfficeLabel}
-              </a>
-            </div>
+                <span className="surface-chip h-7 w-7 shrink-0 justify-center px-0 text-slate-700">
+                  {index + 1}
+                </span>
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">{item.title}</div>
+                  <div className="mt-0.5 text-xs leading-5 text-slate-600">{item.body}</div>
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+
+        {/* ── CTA ── */}
+        <div className="flex flex-wrap gap-2 border-t border-slate-200/80 pt-4">
+          <button
+            type="button"
+            className="btn min-h-10 px-5"
+            onClick={props.onOpenSettings}
+          >
+            設定・準備を開く
+          </button>
+          <a href={props.aiOfficeHref} className="btn-secondary min-h-10 px-5">
+            {aiOfficeLabel}
+          </a>
         </div>
       </div>
     </section>
