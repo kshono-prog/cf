@@ -440,6 +440,11 @@ select {
   border-radius: var(--radius-static-lg);
 }
 
+.avatar-circle {
+  border-radius: 9999px !important;
+  overflow: hidden;
+}
+
 :where(
   div,
   section,
@@ -599,6 +604,28 @@ select {
   figcaption
 )[class*="rounded-["] {
   border-radius: var(--radius-static-lg);
+}
+
+@media (max-width: 639px) {
+  body {
+    background: var(--bg);
+  }
+
+  .container-narrow {
+    padding-block: 12px;
+  }
+
+  :where(section, article).surface-card,
+  :where(section, article).panel-card,
+  :where(section, article).sheet-section {
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0 !important;
+    box-shadow: none;
+    background: var(--surface);
+  }
 }
 
 .accent-surface-amber {

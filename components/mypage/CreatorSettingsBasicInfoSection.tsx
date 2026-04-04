@@ -66,10 +66,10 @@ export function CreatorSettingsBasicInfoSection(props: Props) {
             height={64}
             quality={95}
             sizes="64px"
-            className="h-16 w-16 rounded-full border border-[var(--line)] object-cover"
+            className="avatar-circle h-16 w-16 rounded-full border border-[var(--line)] object-cover"
           />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface-subtle)] text-lg font-semibold text-[var(--text-subtle)]">
+          <div className="avatar-circle flex h-16 w-16 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface-subtle)] text-lg font-semibold text-[var(--text-subtle)]">
             {(workspace.displayName || workspace.meCreatorUsername).slice(0, 1)}
           </div>
         )}

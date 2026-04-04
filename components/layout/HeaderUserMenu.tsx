@@ -123,7 +123,7 @@ export function HeaderUserMenu() {
         aria-haspopup="menu"
         aria-label="自分のメニュー"
       >
-        <span className="overflow-hidden rounded-full border border-[var(--line)]">
+        <span className="avatar-circle overflow-hidden rounded-full border border-[var(--line)]">
           <Avatar
             src={avatarUrl}
             alt={`${displayName} のアイコン`}
@@ -175,7 +175,7 @@ export function HeaderUserMenu() {
                   onClick={() => setOpen(false)}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="overflow-hidden rounded-full border border-[var(--line)]">
+                    <span className="avatar-circle overflow-hidden rounded-full border border-[var(--line)]">
                       <Avatar
                         src={avatarUrl}
                         alt={`${displayName} のアイコン`}

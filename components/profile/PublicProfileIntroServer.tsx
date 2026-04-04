@@ -83,7 +83,7 @@ function StaticAvatar(props: {
     return (
       <div
         style={{ width: props.size, height: props.size }}
-        className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-sky-500 font-semibold text-white ring-2 ring-[var(--line)]"
+        className="avatar-circle flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-sky-500 font-semibold text-white ring-2 ring-[var(--line)]"
         aria-label={props.alt}
       >
         {props.fallbackText}
@@ -99,7 +99,7 @@ function StaticAvatar(props: {
       height={props.size}
       quality={95}
       sizes={`${props.size}px`}
-      className="shrink-0 rounded-full object-cover bg-[var(--surface-subtle)] ring-2 ring-[var(--line)]"
+      className="avatar-circle shrink-0 rounded-full object-cover bg-[var(--surface-subtle)] ring-2 ring-[var(--line)]"
     />
   );
 }

@@ -36,10 +36,10 @@ export function CreatorProfileViewCard({ missingSetupHints = [] }: Props) {
           <img
             src={workspace.avatarUrl}
             alt="avatar"
-            className="h-14 w-14 rounded-full border border-[var(--line)] object-cover"
+            className="avatar-circle h-14 w-14 rounded-full border border-[var(--line)] object-cover"
           />
         ) : (
-          <div className="h-14 w-14 rounded-full border border-[var(--line)] bg-[var(--surface-subtle)]" />
+          <div className="avatar-circle h-14 w-14 rounded-full border border-[var(--line)] bg-[var(--surface-subtle)]" />
         )}
 
         <div>

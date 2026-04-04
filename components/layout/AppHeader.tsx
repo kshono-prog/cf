@@ -23,7 +23,7 @@ export function AppHeader({
                 height={36}
                 quality={95}
                 sizes="36px"
-                className="h-9 w-9 rounded-full object-cover bg-[var(--surface-subtle)]"
+                className="avatar-circle h-9 w-9 rounded-full object-cover bg-[var(--surface-subtle)]"
               />
             ) : (
               <Image

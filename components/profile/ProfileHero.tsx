@@ -59,7 +59,7 @@ export function ProfileHero(props: ProfileHeroProps) {
       <div className="-mt-11 px-4 pb-3.5 sm:-mt-14 sm:px-5 sm:pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <div className="inline-flex rounded-full border-2 border-[var(--surface)] bg-[var(--surface)] p-1 shadow-sm">
+            <div className="avatar-circle inline-flex rounded-full border-2 border-[var(--surface)] bg-[var(--surface)] p-1 shadow-sm">
               <Avatar
                 src={props.avatarUrl}
                 alt={`${props.displayName} のアイコン`}
