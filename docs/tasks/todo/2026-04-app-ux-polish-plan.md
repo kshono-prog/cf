@@ -27,6 +27,7 @@ Creator Surface / Public Surface / Manager Surface の状態表示と導線を�
 | [UXM-3](2026-04-uxm3-manager-desk-detail-mutation-feedback.md) | Manager Desk Creator Detail の mutation feedback 整理 | manager-desk detail | ✅ 完了（2026-04-04） | UXM-2 |
 | [UXM-4](2026-04-uxm4-manager-desk-meeting-feedback-normalization.md) | Manager Desk Creator Detail の meeting feedback 整理 | manager-desk detail | ✅ 完了（2026-04-04） | UXM-3 |
 | [UXF-1](2026-04-uxf1-radius-semantics-clickable-vs-static.md) | clickable / static の radius semantic を分ける | 共通 UI foundation | ✅ 完了（2026-04-04） | なし |
+| [UXF-2](2026-04-uxf2-static-surfaces-square.md) | non-clickable surface を四角に統一する | 共通 UI foundation | ✅ 完了（2026-04-04） | UXF-1 |
 | [UXH-1](2026-04-uxh1-gas-support-safe-guidance.md) | GasSupport の safe guidance / state feedback 整理 | mypage advanced | ✅ 完了（2026-04-04） | UXC-1 |
 | [UXH-2](2026-04-uxh2-project-settlement-operator-guardrails.md) | ProjectSettlement の operator UX guardrails 整理 | mypage advanced | ✅ 完了（2026-04-04） | UXC-1 |
 | [UXH-3](2026-04-uxh3-project-settlement-review-surface-guidance.md) | ProjectSettlement の review / manual result / CCTP guidance 整理 | mypage advanced | ✅ 完了（2026-04-04） | UXH-2 |

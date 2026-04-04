@@ -19,9 +19,9 @@
   --radius-card: 16px;
   --radius-input: 10px;
   --radius-pill: 9999px;
-  --radius-static-sm: 6px;
-  --radius-static-md: 8px;
-  --radius-static-lg: 10px;
+  --radius-static-sm: 0px;
+  --radius-static-md: 0px;
+  --radius-static-lg: 0px;
   /* shadow */
   --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
@@ -440,16 +440,165 @@ select {
   border-radius: var(--radius-static-lg);
 }
 
-:where(div, section, article, aside, details).rounded-xl {
+:where(
+  div,
+  section,
+  article,
+  aside,
+  details,
+  span,
+  p,
+  ul,
+  ol,
+  li,
+  pre,
+  blockquote,
+  dl,
+  dt,
+  dd,
+  figure,
+  figcaption
+).rounded-sm,
+:where(
+  div,
+  section,
+  article,
+  aside,
+  details,
+  span,
+  p,
+  ul,
+  ol,
+  li,
+  pre,
+  blockquote,
+  dl,
+  dt,
+  dd,
+  figure,
+  figcaption
+).rounded-md,
+:where(
+  div,
+  section,
+  article,
+  aside,
+  details,
+  span,
+  p,
+  ul,
+  ol,
+  li,
+  pre,
+  blockquote,
+  dl,
+  dt,
+  dd,
+  figure,
+  figcaption
+).rounded-lg,
+:where(
+  div,
+  section,
+  article,
+  aside,
+  details,
+  span,
+  p,
+  ul,
+  ol,
+  li,
+  pre,
+  blockquote,
+  dl,
+  dt,
+  dd,
+  figure,
+  figcaption
+).rounded-xl {
   border-radius: var(--radius-static-md);
 }
 
-:where(div, section, article, aside, details).rounded-2xl {
+:where(
+  div,
+  section,
+  article,
+  aside,
+  details,
+  span,
+  p,
+  ul,
+  ol,
+  li,
+  pre,
+  blockquote,
+  dl,
+  dt,
+  dd,
+  figure,
+  figcaption
+).rounded-2xl {
   border-radius: var(--radius-static-lg);
 }
 
-:where(div, section, article, aside, details).rounded-3xl {
-  border-radius: calc(var(--radius-static-lg) + 2px);
+:where(
+  div,
+  section,
+  article,
+  aside,
+  details,
+  span,
+  p,
+  ul,
+  ol,
+  li,
+  pre,
+  blockquote,
+  dl,
+  dt,
+  dd,
+  figure,
+  figcaption
+).rounded-3xl,
+:where(
+  div,
+  section,
+  article,
+  aside,
+  details,
+  span,
+  p,
+  ul,
+  ol,
+  li,
+  pre,
+  blockquote,
+  dl,
+  dt,
+  dd,
+  figure,
+  figcaption
+).rounded-full,
+:where(
+  div,
+  section,
+  article,
+  aside,
+  details,
+  span,
+  p,
+  ul,
+  ol,
+  li,
+  pre,
+  blockquote,
+  dl,
+  dt,
+  dd,
+  figure,
+  figcaption
+)[class*="rounded-["] {
+  border-radius: var(--radius-static-lg);
 }
 
 .accent-surface-amber {
