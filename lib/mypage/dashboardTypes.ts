@@ -39,9 +39,14 @@ export function getMyPageDashboardLoadOptions(
 ): MyPageDashboardLoadOptions {
   switch (view) {
     case "daily-work":
-      return { includeSummary: true, includeSettlement: true };
+    case "project":
+    case "ai-office":
+    case "fans":
     case "settings":
+    case "manage":
       return { includeSummary: true, includeSettlement: true };
+    default:
+      return { includeSummary: true, includeSettlement: false };
   }
 }
 
@@ -50,9 +55,14 @@ export function getMyPageDashboardQueryMode(
 ): MyPageDashboardQueryMode {
   switch (view) {
     case "daily-work":
-      return "full";
+    case "project":
+    case "ai-office":
+    case "fans":
     case "settings":
+    case "manage":
       return "full";
+    default:
+      return "summary";
   }
 }
 

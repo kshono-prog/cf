@@ -3,8 +3,7 @@ import { renderMyPageWorkspace } from "../renderMyPageWorkspace";
 type Params = { username: string };
 type SearchParams = Record<string, string | string[] | undefined>;
 
-// 旧 /settings URL を manage ビューにリダイレクト（後方互換）
-export default async function MyPageSettings({
+export default async function MyPageFans({
   params,
   searchParams,
 }: {
@@ -15,7 +14,7 @@ export default async function MyPageSettings({
   const resolvedSearchParams = await searchParams;
   return renderMyPageWorkspace({
     username,
-    initialWorkspaceView: "manage",
+    initialWorkspaceView: "fans",
     searchParams: resolvedSearchParams,
   });
 }

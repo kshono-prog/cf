@@ -1,5 +1,10 @@
 export const WORKSPACE_VIEWS = [
   "daily-work",
+  "project",
+  "ai-office",
+  "fans",
+  "manage",
+  // backward compat — kept in union so existing URLs resolve without error
   "settings",
 ] as const;
 
@@ -13,9 +18,10 @@ export function isWorkspaceView(value: string): value is WorkspaceView {
 const LEGACY_VIEW_MAP: Record<string, WorkspaceView> = {
   home: "daily-work",
   supporters: "daily-work",
-  "support-page": "settings",
-  public: "settings",
-  advanced: "settings",
+  "support-page": "manage",
+  public: "manage",
+  advanced: "manage",
+  settings: "manage",
 };
 
 export function resolveWorkspaceView(
@@ -26,6 +32,10 @@ export function resolveWorkspaceView(
   }
 
   if (!value) return "daily-work";
-  if (isWorkspaceView(value)) return value;
+  if (isWorkspaceView(value)) {
+    // Treat legacy "settings" segment as "manage"
+    if (value === "settings") return "manage";
+    return value;
+  }
   return LEGACY_VIEW_MAP[value] ?? "daily-work";
 }

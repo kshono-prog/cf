@@ -700,29 +700,32 @@ export function AiOfficePanel(props: {
   );
 
   return (
-    <div className="card p-4 space-y-4" id="ai-office">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="section-title">{AI_OFFICE_LABEL}</h3>
-          <p className="caption-text mt-0.5">
-            告知・お礼・週報など、AIが下書きを作るのでホームで確認・承認するだけで使えます。
-          </p>
+    <div className="space-y-4" id="ai-office">
+      {/* ── ナビゲーションヘッダーカード ── */}
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
+          <div>
+            <h3 className="section-title">{AI_OFFICE_LABEL}</h3>
+            <p className="caption-text mt-0.5">
+              告知・お礼・週報など、AIが下書きを作るのでホームで確認・承認するだけで使えます。
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary shrink-0"
+            onClick={() => void refresh()}
+            disabled={loading || !canUse}
+          >
+            再読み込み
+          </button>
         </div>
-        <button
-          type="button"
-          className="btn-secondary shrink-0"
-          onClick={() => void refresh()}
-          disabled={loading || !canUse}
-        >
-          再読み込み
-        </button>
-      </div>
 
-      {!canUse ? (
-        <p className="body-text text-[var(--text-subtle)]">ウォレット接続後に利用できます。</p>
-      ) : (
-        <>
-          <div className="border-b border-[var(--line)]">
+        {!canUse ? (
+          <p className="px-4 pb-4 body-text text-[var(--text-subtle)]">
+            ウォレット接続後に利用できます。
+          </p>
+        ) : (
+          <div className="border-t border-[var(--line)]">
             <div className="flex overflow-x-auto">
               {aiOfficeViews.map((view) => (
                 <button
@@ -730,7 +733,7 @@ export function AiOfficePanel(props: {
                   type="button"
                   className={`flex shrink-0 items-center gap-2 border-b-2 px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors disabled:opacity-40 ${
                     activeView === view.id
-                      ? "border-[var(--text)] text-[var(--text)]"
+                      ? "border-[var(--accent)] text-[var(--accent)]"
                       : "border-transparent text-[var(--text-subtle)] hover:border-[var(--line)] hover:text-[var(--text)]"
                   }`}
                   onClick={() => setActiveView(view.id)}
@@ -746,7 +749,13 @@ export function AiOfficePanel(props: {
               ))}
             </div>
           </div>
-          <p className="caption-text mt-1">
+        )}
+      </div>
+
+      {/* ── コンテンツエリア ── */}
+      {canUse ? (
+        <>
+          <p className="caption-text px-1">
             {aiOfficeViews.find((v) => v.id === activeView)?.helper}
           </p>
 
@@ -897,7 +906,7 @@ export function AiOfficePanel(props: {
             />
           ) : null}
         </>
-      )}
+      ) : null}
     </div>
   );
 }

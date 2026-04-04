@@ -47,7 +47,7 @@ export function ProfileHeader({
       <div className="-mt-10 flex flex-col items-center px-6 pb-5 text-center sm:-mt-12">
         {/* Avatar */}
         <div className="relative">
-          <div className="rounded-full ring-4 ring-white bg-white p-1">
+          <div className="avatar-circle rounded-full ring-4 ring-white bg-white p-1">
             <Avatar
               src={creator.avatarUrl}
               alt={`${displayName} のアイコン / Avatar`}

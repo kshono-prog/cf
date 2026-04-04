@@ -11,9 +11,31 @@ const CreatorReadyHomeRoute = dynamic(
     import("@/components/mypage/CreatorReadyHomeRoute").then(
       (mod) => mod.CreatorReadyHomeRoute
     ),
-  {
-    loading: () => <WorkspaceLoadingCard title="読み込んでいます" />,
-  }
+  { loading: () => <WorkspaceLoadingCard title="読み込んでいます" /> }
+);
+
+const CreatorReadyProjectRoute = dynamic(
+  () =>
+    import("@/components/mypage/CreatorReadyProjectRoute").then(
+      (mod) => mod.CreatorReadyProjectRoute
+    ),
+  { loading: () => <WorkspaceLoadingCard title="プロジェクトを読み込んでいます" /> }
+);
+
+const CreatorReadyAiRoute = dynamic(
+  () =>
+    import("@/components/mypage/CreatorReadyAiRoute").then(
+      (mod) => mod.CreatorReadyAiRoute
+    ),
+  { loading: () => <WorkspaceLoadingCard title="AIアシスタントを読み込んでいます" /> }
+);
+
+const CreatorReadyFansRoute = dynamic(
+  () =>
+    import("@/components/mypage/CreatorReadyFansRoute").then(
+      (mod) => mod.CreatorReadyFansRoute
+    ),
+  { loading: () => <WorkspaceLoadingCard title="ファン情報を読み込んでいます" /> }
 );
 
 type Props = {
@@ -24,20 +46,42 @@ type Props = {
 };
 
 export function CreatorReadyWorkspaceRouteContent(props: Props) {
-  if (props.activeView === "settings") {
-    return (
-      <SettingsPageClient
-        workspaceBasePath={props.workspaceBasePath}
-        error={props.error}
-      />
-    );
-  }
+  switch (props.activeView) {
+    case "project":
+      return (
+        <CreatorReadyProjectRoute
+          onOpenSettings={() => props.onNavigateToView("manage")}
+        />
+      );
 
-  // daily-work (default)
-  return (
-    <CreatorReadyHomeRoute
-      onOpenSettings={() => props.onNavigateToView("settings")}
-      workspaceBasePath={props.workspaceBasePath}
-    />
-  );
+    case "ai-office":
+      return (
+        <CreatorReadyAiRoute
+          onOpenSettings={() => props.onNavigateToView("manage")}
+        />
+      );
+
+    case "fans":
+      return (
+        <CreatorReadyFansRoute workspaceBasePath={props.workspaceBasePath} />
+      );
+
+    case "settings":
+    case "manage":
+      return (
+        <SettingsPageClient
+          workspaceBasePath={props.workspaceBasePath}
+          error={props.error}
+        />
+      );
+
+    // daily-work (default)
+    default:
+      return (
+        <CreatorReadyHomeRoute
+          onOpenSettings={() => props.onNavigateToView("manage")}
+          workspaceBasePath={props.workspaceBasePath}
+        />
+      );
+  }
 }

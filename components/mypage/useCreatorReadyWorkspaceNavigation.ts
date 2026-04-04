@@ -15,7 +15,7 @@ export function useCreatorReadyWorkspaceNavigation(args: Args) {
   const workspace = useCreatorReadyWorkspace();
   const router = useRouter();
   const publicPageHref = `/${workspace.meCreatorUsername}`;
-  const postingHref = `${args.workspaceBasePath}/settings#posting-compose`;
+  const postingHref = `${args.workspaceBasePath}/manage#posting-compose`;
   const isPostingOpen = workspace.openSections.posting;
 
   const navigateToView = React.useCallback(
@@ -34,7 +34,7 @@ export function useCreatorReadyWorkspaceNavigation(args: Args) {
       workspace.onToggleSection("posting");
     }
 
-    if (args.activeView !== "settings") {
+    if (args.activeView !== "settings" && args.activeView !== "manage") {
       router.push(postingHref, { scroll: true });
       return;
     }

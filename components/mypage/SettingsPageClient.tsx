@@ -1,7 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
 import { AiProfileDraftCard } from "@/components/mypage/AiProfileDraftCard";
 import { CreatorPublicLinkSection } from "@/components/mypage/CreatorPublicLinkSection";
 import { GrowthCoachCard } from "@/components/mypage/GrowthCoachCard";
@@ -10,22 +8,17 @@ import {
   useCreatorReadyWorkspace,
   type CreatorReadyWorkspaceShellProps,
 } from "@/components/mypage/CreatorReadyWorkspaceContext";
-import { GrowthOverviewCard } from "@/components/mypage/GrowthOverviewCard";
 import { CreatorReadyPostingSection } from "@/components/mypage/CreatorReadyPostingSection";
 import { CreatorSettingsAiManagerAccountSection } from "@/components/mypage/CreatorSettingsAiManagerAccountSection";
 import { CreatorSettingsBasicInfoSection } from "@/components/mypage/CreatorSettingsBasicInfoSection";
 import { CreatorSettingsHeaderSection } from "@/components/mypage/CreatorSettingsHeaderSection";
 import { CreatorSettingsSupportSection } from "@/components/mypage/CreatorSettingsSupportSection";
 import { CreatorSettingsWalletSection } from "@/components/mypage/CreatorSettingsWalletSection";
-import { CreatorWorkspaceProjectManagementBlocks } from "@/components/mypage/CreatorWorkspaceProjectManagementBlocks";
-import { MyPageAccordion } from "@/components/mypage/MyPageAccordion";
 import { PublicReadinessPanel } from "@/components/mypage/PublicReadinessPanel";
 import { SetupProgressCard } from "@/components/mypage/SetupProgressCard";
 import { ShareDraftCard } from "@/components/mypage/ShareDraftCard";
 import { ShareExecutionLogCard } from "@/components/mypage/ShareExecutionLogCard";
 import { useCreatorGrowthOverview } from "@/components/mypage/useCreatorGrowthOverview";
-import { WorkspaceLoadingCard } from "@/components/mypage/WorkspaceFeedback";
-import { buildGrowthCoachCard } from "@/lib/growth/coach";
 import { useCreatorReadyPublicWorkspaceData } from "@/components/mypage/useCreatorReadyPublicWorkspaceData";
 import {
   buildBasicProfileCompletion,
@@ -34,19 +27,8 @@ import {
   buildSetupProgressState,
   mergeSetupProgressInputWithGrowthOverview,
 } from "@/lib/growth/setup";
+import { buildGrowthCoachCard } from "@/lib/growth/coach";
 import { withBaseUrl } from "@/utils/baseUrl";
-
-const CreatorAdvancedSettingsSection = dynamic(
-  () =>
-    import("@/components/mypage/CreatorAdvancedSettingsSection").then(
-      (mod) => mod.CreatorAdvancedSettingsSection
-    ),
-  {
-    loading: () => (
-      <WorkspaceLoadingCard title="精算・詳細設定を読み込んでいます" />
-    ),
-  }
-);
 
 type SettingsPageClientProps = Pick<
   CreatorReadyWorkspaceShellProps,
@@ -87,10 +69,8 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
     basicProfileCompleted: basicProfileState.complete,
     projectCreated: hasProject,
     goalSaved: hasGoal,
-    publicPageViewedByOwner:
-      workspace.localGrowthMilestones.publicPageViewedByOwner,
-    shareDraftsGenerated:
-      workspace.localGrowthMilestones.shareDraftsGenerated,
+    publicPageViewedByOwner: workspace.localGrowthMilestones.publicPageViewedByOwner,
+    shareDraftsGenerated: workspace.localGrowthMilestones.shareDraftsGenerated,
   };
   const syncedPublicSetupInput = mergeSetupProgressInputWithGrowthOverview({
     input: publicSetupInput,
@@ -171,44 +151,42 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
         dashboardError={dashboardError}
       />
 
-      <SetupProgressCard
-        steps={setupProgress.steps}
-        completedCount={setupProgress.completedCount}
-        totalCount={setupProgress.totalCount}
-        completionPercentage={setupProgress.completionPercentage}
-        primaryCtaLabel={nextBestAction.ctaLabel}
-        primaryCtaHref={progressPrimaryHref}
-        onPrimaryAction={
-          nextBestAction.kind === "profile"
-            ? workspace.onStartEditProfile
-            : undefined
-        }
-      />
+      {/* ── セットアップ進捗（完了まで表示） ── */}
+      {!syncedPublicSetupInput.shareDraftsGenerated ? (
+        <>
+          <SetupProgressCard
+            steps={setupProgress.steps}
+            completedCount={setupProgress.completedCount}
+            totalCount={setupProgress.totalCount}
+            completionPercentage={setupProgress.completionPercentage}
+            primaryCtaLabel={nextBestAction.ctaLabel}
+            primaryCtaHref={progressPrimaryHref}
+            onPrimaryAction={
+              nextBestAction.kind === "profile"
+                ? workspace.onStartEditProfile
+                : undefined
+            }
+          />
+          <NextBestActionCard
+            walletConnected={publicSetupInput.walletConnected}
+            userRegistered={syncedPublicSetupInput.userRegistered}
+            creatorApplied={syncedPublicSetupInput.creatorApplied}
+            basicProfileCompleted={syncedPublicSetupInput.basicProfileCompleted}
+            projectCreated={syncedPublicSetupInput.projectCreated}
+            goalSaved={syncedPublicSetupInput.goalSaved}
+            publicPageViewedByOwner={syncedPublicSetupInput.publicPageViewedByOwner}
+            shareDraftsGenerated={syncedPublicSetupInput.shareDraftsGenerated}
+            publicPageUrl={publicProfileUrl}
+            projectHref="#project-setup"
+            goalHref={goalHref}
+            shareHref="#growth-share"
+            onProfileAction={workspace.onStartEditProfile}
+          />
+          <GrowthCoachCard coach={growthCoach} />
+        </>
+      ) : null}
 
-      <NextBestActionCard
-        walletConnected={publicSetupInput.walletConnected}
-        userRegistered={syncedPublicSetupInput.userRegistered}
-        creatorApplied={syncedPublicSetupInput.creatorApplied}
-        basicProfileCompleted={syncedPublicSetupInput.basicProfileCompleted}
-        projectCreated={syncedPublicSetupInput.projectCreated}
-        goalSaved={syncedPublicSetupInput.goalSaved}
-        publicPageViewedByOwner={syncedPublicSetupInput.publicPageViewedByOwner}
-        shareDraftsGenerated={syncedPublicSetupInput.shareDraftsGenerated}
-        publicPageUrl={publicProfileUrl}
-        projectHref="#project-setup"
-        goalHref={goalHref}
-        shareHref="#growth-share"
-        onProfileAction={workspace.onStartEditProfile}
-      />
-
-      <GrowthCoachCard coach={growthCoach} />
-
-      <GrowthOverviewCard
-        loading={growthOverview.loading}
-        error={growthOverview.error}
-        data={growthOverview.data}
-      />
-
+      {/* ── プロフィール ── */}
       <CreatorPublicLinkSection
         username={workspace.meCreatorUsername}
         localProjectId={workspace.localProjectId}
@@ -219,28 +197,7 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
         missingSetupHints={basicInfoHints}
       />
 
-      <CreatorSettingsAiManagerAccountSection />
-
-      <CreatorSettingsSupportSection
-        projectDashboardsByCurrency={projectDashboardsByCurrency}
-      />
-
-      <section id="project-setup" className="surface-card p-5 sm:p-6">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--text)]">
-            公開ページに載せる Project と Goal
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-            何を支援してもらうのか、いくらを目標にするのかを順番に整えます。
-          </p>
-        </div>
-        <div className="mt-4">
-          <CreatorWorkspaceProjectManagementBlocks
-            projectDashboardsByCurrency={projectDashboardsByCurrency}
-          />
-        </div>
-      </section>
-
+      {/* ── 公開ページ・SNS拡散 ── */}
       <PublicReadinessPanel
         title="公開ページの準備状況"
         description="未設定の項目を埋めると、支援者に伝わりやすいページになります。"
@@ -282,17 +239,13 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
           workspace.markLocalGrowthMilestone("shareDraftsGenerated");
           workspace.reportGrowthEvent({
             event: "share_drafts_generated",
-            metadata: {
-              publicPageUrl: publicProfileUrl,
-            },
+            metadata: { publicPageUrl: publicProfileUrl },
           });
         }}
         onCopied={(channel) => {
           workspace.reportGrowthEvent({
             event: "share_copied",
-            metadata: {
-              channel,
-            },
+            metadata: { channel },
           });
         }}
       />
@@ -306,28 +259,16 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
         }}
       />
 
+      {/* ── AIマネージャー・ウォレット設定 ── */}
+      <CreatorSettingsAiManagerAccountSection />
+
+      <CreatorSettingsSupportSection
+        projectDashboardsByCurrency={projectDashboardsByCurrency}
+      />
+
       <CreatorSettingsWalletSection />
 
       <CreatorReadyPostingSection projectOptions={postingProjectOptions} />
-
-      <MyPageAccordion
-        open={workspace.openSections}
-        onToggle={workspace.onToggleSection}
-        sectionKey="flow"
-        title="詳細管理"
-      >
-        <div className="flex items-center gap-2 px-1">
-          <span className="text-sm font-semibold text-[var(--text)]">
-            Summary / Distribution / 精算
-          </span>
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-            試験中
-          </span>
-        </div>
-        <CreatorAdvancedSettingsSection
-          projectDashboardsByCurrency={projectDashboardsByCurrency}
-        />
-      </MyPageAccordion>
     </div>
   );
 }

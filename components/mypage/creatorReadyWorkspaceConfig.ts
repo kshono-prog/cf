@@ -9,13 +9,28 @@ export type CreatorReadyWorkspaceConfig = {
 export const CREATOR_READY_WORKSPACE_VIEWS: CreatorReadyWorkspaceConfig[] = [
   {
     id: "daily-work",
-    label: "ホーム",
-    description: "AIマネージャーと今日の優先タスクを確認し、その場で完了します。",
+    label: "今日",
+    description: "今日の状況・優先タスク・マネージャーからの連絡を確認します。",
   },
   {
-    id: "settings",
-    label: "設定",
-    description: "プロフィール・プロジェクト・ウォレット・精算を管理します。",
+    id: "project",
+    label: "プロジェクト",
+    description: "Goal・収益・収支・精算など資金まわりをまとめて管理します。",
+  },
+  {
+    id: "ai-office",
+    label: "AI",
+    description: "AIへの相談・承認待ちタスクの確認・AI利用状況を管理します。",
+  },
+  {
+    id: "fans",
+    label: "ファン",
+    description: "サポーター・ファンとのエンゲージメントを確認・管理します。",
+  },
+  {
+    id: "manage",
+    label: "管理",
+    description: "プロフィール・ウォレット・AIマネージャー設定を管理します。",
   },
 ];
 
