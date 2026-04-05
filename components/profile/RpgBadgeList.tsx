@@ -43,7 +43,7 @@ export function RpgBadgeList({ earnedCount, totalCount }: Props) {
     <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">バッジ</h3>
-        <span className="text-xs text-gray-400">{earnedCount} / {totalCount} 獲得</span>
+        <span className="text-xs text-[var(--muted)]">{earnedCount} / {totalCount} 獲得</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {badges.map((b) => (
@@ -54,7 +54,7 @@ export function RpgBadgeList({ earnedCount, totalCount }: Props) {
             <div className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${RARITY_COLOR[b.rarity] ?? ""}`}>
               {b.rarity}
             </div>
-            <div className="font-semibold text-gray-800 dark:text-gray-200">{b.name}</div>
+            <div className="font-semibold text-[var(--text)] dark:text-gray-200">{b.name}</div>
             <div className="text-gray-500">{b.earned ? b.description : b.conditionText}</div>
           </div>
         ))}

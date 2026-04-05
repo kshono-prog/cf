@@ -1055,7 +1055,7 @@ export function CreatorFeedSection(props: Props) {
           まだ公開されている投稿はありません。
         </div>
       ) : (
-        <div className="mt-2.5 divide-y divide-gray-200 bg-white">
+        <div className="mt-2.5 divide-y divide-gray-200 bg-[var(--surface)]">
           {posts.map((post) => {
             const detail = detailByPostId[post.id] ?? createEmptyDetailState();
             const cardPost = detail.post ?? post;
@@ -1134,7 +1134,7 @@ export function CreatorFeedSection(props: Props) {
                         </div>
                         <button
                           type="button"
-                          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:bg-gray-50"
+                          className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)] transition hover:bg-gray-50"
                           onClick={cancelEdit}
                           disabled={savingEdit}
                         >
@@ -1324,7 +1324,7 @@ export function CreatorFeedSection(props: Props) {
         <div className="mt-2.5 flex justify-center">
           <button
             type="button"
-            className="rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-gray-200 bg-[var(--surface)] px-3.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => {
               void fetchFeedPage({ cursor: nextCursor, append: true });
             }}

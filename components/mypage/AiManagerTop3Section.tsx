@@ -56,7 +56,7 @@ export function AiManagerTop3Section({ tasks, loading, onOpenSettings, inlineCon
 
   return (
     <>
-      <div className="rounded-2xl border border-[var(--line)] bg-white/90 px-4 py-4 shadow-sm">
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
         {/* CTA ボタン行 */}
         <div className="flex items-center justify-between gap-3">
           <div>

@@ -183,7 +183,7 @@ export function GasSupportTabs() {
               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
                 isActive
                   ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                  : "bg-[var(--surface)] text-gray-700 border-gray-200 hover:bg-gray-50"
               }`}
             >
               {option.tokenSymbol}

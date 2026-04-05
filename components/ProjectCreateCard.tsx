@@ -119,7 +119,7 @@ export function ProjectCreateCard({
   }, [description, normalizedOwner, onCreated, purposeMode, title]);
 
   return (
-    <div className="card p-4 bg-white space-y-3">
+    <div className="card p-4 bg-[var(--surface)] space-y-3">
       <div>
         <h2 className="text-sm font-semibold">Project 作成</h2>
         <p className="text-xs text-gray-500">

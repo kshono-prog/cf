@@ -426,7 +426,7 @@ export function PublicAiManagerProfilePageBody({
             ) : null}
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3">
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   現在の支援額
                 </div>
@@ -437,7 +437,7 @@ export function PublicAiManagerProfilePageBody({
                   )}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3">
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   目標
                 </div>
@@ -450,7 +450,7 @@ export function PublicAiManagerProfilePageBody({
                     : "設定なし"}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3">
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   進捗
                 </div>
@@ -460,7 +460,7 @@ export function PublicAiManagerProfilePageBody({
               </div>
             </div>
 
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/80">
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--surface)]">
               <div
                 className="h-full rounded-full bg-[linear-gradient(90deg,#0f766e,#22c55e)]"
                 style={{ width: `${Math.min(100, activeSupportProject.progressPct)}%` }}

@@ -59,7 +59,7 @@ export function PublicReadinessPanel(props: Props) {
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                   item.ready
                     ? "bg-emerald-100 text-emerald-800"
-                    : "bg-white text-gray-600"
+                    : "bg-[var(--surface)] text-gray-600"
                 }`}
               >
                 {item.ready ? "OK" : "未設定"}

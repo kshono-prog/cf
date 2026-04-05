@@ -88,7 +88,7 @@ export function CreatorProfileEditBasicInfoSection() {
         <div className="flex items-center gap-2">
           <input
             type="color"
-            className="h-11 w-14 rounded-xl border border-[var(--line)] bg-white"
+            className="h-11 w-14 rounded-xl border border-[var(--line)] bg-[var(--surface)]"
             value={workspace.themeColorValue || "#2563eb"}
             onChange={(e) => workspace.setThemeColor(e.target.value)}
             disabled={workspace.saving}

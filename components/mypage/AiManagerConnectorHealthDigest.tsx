@@ -52,7 +52,7 @@ export function AiManagerConnectorHealthDigest({
 
           {/* connector check-in & replay */}
           <div className="grid grid-cols-2 gap-2 text-xs text-[var(--text-subtle)]">
-            <div className="rounded-xl border border-[var(--line)] bg-white px-3 py-2">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
               <div className="font-medium text-[var(--text)]">最終 check-in</div>
               <div className="mt-0.5">
                 {formatCheckInAge(digest.minutesSinceLastCheckIn)}
@@ -61,7 +61,7 @@ export function AiManagerConnectorHealthDigest({
                 観測 {digest.pendingObservedTotalCount} 件
               </div>
             </div>
-            <div className="rounded-xl border border-[var(--line)] bg-white px-3 py-2">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
               <div className="font-medium text-[var(--text)]">重複 replay 受理</div>
               <div className="mt-0.5">{digest.duplicateReplayCount} 件</div>
               <div className="text-[10px]">直近イベント内</div>

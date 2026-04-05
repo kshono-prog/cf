@@ -66,7 +66,7 @@ export function RpgTitleSelector({ currentTitleCode, currentLevel, onChanged }: 
             }`}
           >
             <span className="font-medium">{t.nameJa}</span>
-            <span className="ml-2 text-xs text-gray-400">{t.descriptionJa}</span>
+            <span className="ml-2 text-xs text-[var(--muted)]">{t.descriptionJa}</span>
             {selected === t.titleCode && (
               <span className="ml-2 text-xs text-indigo-500">✓ 使用中</span>
             )}
@@ -75,7 +75,7 @@ export function RpgTitleSelector({ currentTitleCode, currentLevel, onChanged }: 
         {locked.map((t) => (
           <div
             key={t.titleCode}
-            className="w-full px-3 py-2 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-400 opacity-50"
+            className="w-full px-3 py-2 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-[var(--muted)] opacity-50"
           >
             <span>{t.nameJa}</span>
             <span className="ml-2 text-xs">Lv.{t.unlockLevel ?? "?"}で解放されます</span>

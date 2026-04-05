@@ -59,8 +59,8 @@ export function RpgProfileTab() {
 
   useEffect(() => { load(); }, []);
 
-  if (loading) return <div className="p-4 text-center text-sm text-gray-400">読み込み中...</div>;
-  if (!data) return <div className="p-4 text-center text-sm text-gray-400">データを取得できませんでした</div>;
+  if (loading) return <div className="p-4 text-center text-sm text-[var(--muted)]">読み込み中...</div>;
+  if (!data) return <div className="p-4 text-center text-sm text-[var(--muted)]">データを取得できませんでした</div>;
 
   return (
     <div className="flex flex-col gap-4 pb-8" id="rpg-profile">
@@ -76,8 +76,8 @@ export function RpgProfileTab() {
             onClick={() => setTab(t)}
             className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${
               tab === t
-                ? "bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow-sm"
-                : "text-gray-500 dark:text-gray-400"
+                ? "bg-[var(--surface)] dark:bg-gray-700 text-[var(--text)] dark:text-gray-200 shadow-sm"
+                : "text-gray-500 dark:text-[var(--muted)]"
             }`}
           >
             {t === "profile" ? "プロフィール" : "設定"}

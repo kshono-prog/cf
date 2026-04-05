@@ -18,7 +18,7 @@ export function PublicProfileRevenueProofCard({ data }: Props) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--line)] bg-white px-4 py-3">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
           <div className="text-[11px] text-[var(--text-subtle)]">収益活動月数</div>
           <div className="mt-1 text-2xl font-semibold text-[var(--text)]">
             {data.activeRevenueMonths}
@@ -45,7 +45,7 @@ export function PublicProfileRevenueProofCard({ data }: Props) {
             maxMonthlyTotal > 0 ? (
               <div
                 key={currency}
-                className="flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs"
+                className="flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs"
               >
                 <span className="text-[var(--text-subtle)]">最大単月</span>
                 <span className="font-semibold text-[var(--text)]">

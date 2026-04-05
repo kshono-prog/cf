@@ -285,7 +285,7 @@ export function ManagerDeskActivityTimelineClient() {
                   {data.items.map((item) => (
                     <article
                       key={item.id}
-                      className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                      className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">

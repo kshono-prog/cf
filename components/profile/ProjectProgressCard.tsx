@@ -191,7 +191,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
   return (
     <div
-      className={`overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm ${
+      className={`overflow-hidden rounded-3xl border border-gray-200/80 bg-[var(--surface)] shadow-sm ${
         embedded ? "" : "mt-4"
       }`}
     >
@@ -300,7 +300,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
                     : "-"}
                 </span>
               </span>
-              <span className="text-gray-400">|</span>
+              <span className="text-[var(--muted)]">|</span>
               <span>
                 状態: <span className="text-gray-900">{reachedText}</span>
               </span>
@@ -327,7 +327,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
           <div className="mt-2">
             {byChainJpyc.length > 0 ? (
-              <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
+              <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-[var(--surface)]">
                 {byChainJpyc.map((r) => (
                   <div
                     key={String(r.chainId)}
@@ -338,7 +338,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
                         className="inline-block h-2 w-2 rounded"
                         style={{ backgroundColor: chainColor(r.chainId) }}
                       />
-                      <span className="text-[12px] text-gray-800">
+                      <span className="text-[12px] text-[var(--text)]">
                         {chainLabel(r.chainId)}
                       </span>
                     </div>
@@ -457,7 +457,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //   } = props;
 
 //   return (
-//     <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 dark:border-gray-300 bg-white/95 dark:bg-white/95 shadow-sm">
+//     <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 dark:border-[var(--line)] bg-white/95 dark:bg-white/95 shadow-sm">
 //       <div className="p-4">
 //         <div className="flex justify-between items-start mb-2 gap-3">
 //           <div className="min-w-0">
@@ -471,7 +471,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //               </p>
 //             ) : null}
 
-//             <p className="text-sm font-medium text-gray-800 dark:text-gray-900">
+//             <p className="text-sm font-medium text-[var(--text)] dark:text-gray-900">
 //               {projectStatus ? `Status: ${projectStatus}` : "Status: -"}
 //             </p>
 
@@ -554,7 +554,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //                   </div>
 //                 </>
 //               ) : (
-//                 <div className="text-gray-400">対象チェーン: -</div>
+//                 <div className="text-[var(--muted)]">対象チェーン: -</div>
 //               )}
 //             </div>
 //           </div>
@@ -644,7 +644,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //             <div className="mt-2 space-y-1">
 //               <div className="text-[11px] text-gray-500">チェーン別内訳</div>
 
-//               <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
+//               <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-[var(--surface)]">
 //                 {byChainJpyc.map((r) => {
 //                   const cfg = getChainConfig(r.chainId as SupportedChainId);
 //                   const label = cfg?.shortName ?? `Chain(${r.chainId})`;
@@ -653,7 +653,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //                       key={String(r.chainId)}
 //                       className="flex items-center justify-between px-3 py-2"
 //                     >
-//                       <div className="text-[12px] text-gray-800">{label}</div>
+//                       <div className="text-[12px] text-[var(--text)]">{label}</div>
 //                       <div className="text-[12px] font-mono font-semibold text-gray-900">
 //                         {Number(r.confirmedAmountJpyc).toLocaleString()} JPYC
 //                       </div>

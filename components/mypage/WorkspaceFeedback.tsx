@@ -18,28 +18,28 @@ const NOTICE_STYLES: Record<
   }
 > = {
   success: {
-    wrapper: "border-emerald-300 bg-emerald-50/70",
-    eyebrow: "text-emerald-700",
-    title: "text-emerald-950",
-    description: "text-emerald-800",
+    wrapper: "border-[rgba(16,185,129,0.45)] bg-[rgba(16,185,129,0.07)]",
+    eyebrow: "text-emerald-600",
+    title: "text-[var(--text)]",
+    description: "text-[var(--text-subtle)]",
   },
   error: {
-    wrapper: "border-rose-300 bg-rose-50/70",
-    eyebrow: "text-rose-700",
-    title: "text-rose-950",
-    description: "text-rose-800",
+    wrapper: "border-[rgba(244,63,94,0.45)] bg-[rgba(244,63,94,0.07)]",
+    eyebrow: "text-rose-600",
+    title: "text-[var(--text)]",
+    description: "text-[var(--text-subtle)]",
   },
   info: {
-    wrapper: "border-slate-300 bg-slate-50/65",
-    eyebrow: "text-slate-600",
-    title: "text-slate-900",
-    description: "text-slate-700",
+    wrapper: "border-[var(--line)] bg-[var(--surface-subtle)]",
+    eyebrow: "text-[var(--muted)]",
+    title: "text-[var(--text)]",
+    description: "text-[var(--text-subtle)]",
   },
   attention: {
-    wrapper: "border-amber-300 bg-amber-50/72",
-    eyebrow: "text-amber-700",
-    title: "text-amber-950",
-    description: "text-amber-800",
+    wrapper: "border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.07)]",
+    eyebrow: "text-amber-600",
+    title: "text-[var(--text)]",
+    description: "text-[var(--text-subtle)]",
   },
 };
 
@@ -99,13 +99,13 @@ export function WorkspaceEmptyState(props: {
 }) {
   return (
     <div
-      className={`radius-static-lg border-l-2 border-r-0 border-y-0 border-dashed border-gray-300 bg-gray-50/65 ${
+      className={`radius-static-lg border-l-2 border-r-0 border-y-0 border-dashed border-[var(--line)] bg-[var(--surface-subtle)] ${
         props.compact ? "px-3 py-2" : "px-4 py-3"
       }`}
     >
-      <div className="text-xs font-medium text-gray-900">{props.title}</div>
+      <div className="text-xs font-medium text-[var(--text)]">{props.title}</div>
       <div
-        className={`mt-1 leading-5 text-gray-600 ${
+        className={`mt-1 leading-5 text-[var(--text-subtle)] ${
           props.compact ? "text-[11px]" : "text-sm"
         }`}
       >

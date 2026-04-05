@@ -13,7 +13,7 @@ export function PromoJpycEx({ headerColor }: Props) {
   return (
     <div className="mt-6 flex justify-center">
       <PromoCard headerColor={headerColor} center>
-        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+        <h3 className="text-sm font-semibold text-[var(--text)] mb-2">
           JPYCの購入はこちら
         </h3>
 

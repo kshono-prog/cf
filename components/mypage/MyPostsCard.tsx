@@ -148,7 +148,7 @@ export function MyPostsCard(props: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="text-sm font-semibold text-gray-900">自分の投稿</div>
@@ -161,13 +161,13 @@ export function MyPostsCard(props: Props) {
             href={`/${props.username}`}
             target="_blank"
             rel="noreferrer"
-            className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800"
+            className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)]"
           >
             公開ページを開く
           </a>
           <button
             type="button"
-            className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800"
+            className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)]"
             onClick={() => void loadPosts(null)}
             disabled={loading}
           >
@@ -204,7 +204,7 @@ export function MyPostsCard(props: Props) {
           {posts.map((post) => (
             <article
               key={post.id}
-              className="rounded-2xl border border-gray-200 bg-white p-4"
+              className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] text-gray-700">
@@ -228,7 +228,7 @@ export function MyPostsCard(props: Props) {
                 </span>
               </div>
 
-              <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-800">
+              <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--text)]">
                 {buildPreview(post.body)}
               </div>
 
@@ -251,7 +251,7 @@ export function MyPostsCard(props: Props) {
                 </div>
                 <button
                   type="button"
-                  className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800"
+                  className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)]"
                   onClick={() => void handleToggleArchive(post)}
                   disabled={pendingPostId === post.id}
                 >
@@ -271,7 +271,7 @@ export function MyPostsCard(props: Props) {
         <div className="mt-4 flex justify-center">
           <button
             type="button"
-            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-800"
+            className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-xs font-medium text-[var(--text)]"
             onClick={() => void loadPosts(nextCursor)}
             disabled={loadingMore}
           >

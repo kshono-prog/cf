@@ -153,7 +153,7 @@ export function GasSupportCard(props: {
   const notice = resolveGasSupportNotice({ error, errorContext });
 
   return (
-    <div className="card p-4 space-y-2 bg-white">
+    <div className="card p-4 space-y-2 bg-[var(--surface)]">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">{title}</h2>
         {gasLoading && (

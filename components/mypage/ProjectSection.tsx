@@ -64,7 +64,7 @@ export function ProjectSection(props: {
       : undefined;
 
   return (
-    <div className="card p-4 space-y-3 bg-white">
+    <div className="card p-4 space-y-3 bg-[var(--surface)]">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">公開向け Project</h2>
         {hasActive ? (

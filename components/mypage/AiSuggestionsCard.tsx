@@ -54,7 +54,7 @@ export function AiSuggestionsCard(props: Props) {
 
   return (
     <div
-      className="rounded-xl border border-gray-200 bg-white p-4 space-y-3"
+      className="rounded-xl border border-gray-200 bg-[var(--surface)] p-4 space-y-3"
       aria-busy={loading}
     >
       <div className="flex items-center justify-between gap-2">
@@ -93,10 +93,10 @@ export function AiSuggestionsCard(props: Props) {
               </div>
 
               <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
-                <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+                <span className="rounded-full border border-gray-200 bg-[var(--surface)] px-2 py-1">
                   target: {targetLabel(suggestion.recommendedUiTarget)}
                 </span>
-                <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+                <span className="rounded-full border border-gray-200 bg-[var(--surface)] px-2 py-1">
                   {suggestion.requiresHumanApproval
                     ? "human approval required"
                     : "approval optional"}
@@ -110,7 +110,7 @@ export function AiSuggestionsCard(props: Props) {
                 <div className="pt-1">
                   <button
                     type="button"
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-800 transition hover:border-gray-400"
+                    className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--text)] transition hover:border-[var(--line)]"
                     onClick={() => onSelectSuggestion(suggestion)}
                   >
                     {selectLabel}

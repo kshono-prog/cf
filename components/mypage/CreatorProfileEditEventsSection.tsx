@@ -7,7 +7,7 @@ export function CreatorProfileEditEventsSection() {
   const workspace = useCreatorReadyWorkspace();
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-base font-semibold text-[var(--text)]">
         イベント
       </div>

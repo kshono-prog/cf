@@ -23,7 +23,7 @@ export function YoutubeVideosEditor({
         {youtubeVideos.map((video, idx) => (
           <div
             key={idx}
-            className="border rounded-md p-2 space-y-2 text-xs bg-white"
+            className="border rounded-md p-2 space-y-2 text-xs bg-[var(--surface)]"
           >
             <div>
               <label className="block mb-1">動画URL</label>

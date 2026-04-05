@@ -77,7 +77,7 @@ export function AvatarUploader({
       />
       <label
         htmlFor={inputId}
-        className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+        className="inline-flex items-center justify-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
       >
         画像ファイルを選択
       </label>

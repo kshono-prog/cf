@@ -136,7 +136,7 @@ export function ReplyList(props: Props) {
                   <div className="mt-3 flex justify-end gap-2">
                     <button
                       type="button"
-                      className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:bg-gray-50"
+                      className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)] transition hover:bg-gray-50"
                       onClick={onCancelEdit}
                       disabled={savingReplyId === reply.id}
                     >

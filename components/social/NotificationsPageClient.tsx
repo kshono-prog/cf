@@ -276,7 +276,7 @@ export function NotificationsPageClient({ username }: { username: string }) {
                     <Link
                       key={item.id}
                       href={item.href}
-                      className="surface-subtle flex gap-3 px-4 py-4 transition hover:bg-white"
+                      className="surface-subtle flex gap-3 px-4 py-4 transition hover:bg-[var(--surface)]"
                     >
                       {item.actor ? (
                         <Avatar

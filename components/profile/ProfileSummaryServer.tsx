@@ -42,7 +42,7 @@ export function ProfileSummaryServer({
 
       <div className="px-6 pb-5 -mt-10 flex flex-col items-center text-center">
         <div className="relative">
-          <div className="rounded-full ring-4 ring-white bg-white p-1">
+          <div className="rounded-full ring-4 ring-white bg-[var(--surface)] p-1">
             {creator.avatarUrl ? (
               <Image
                 src={creator.avatarUrl}

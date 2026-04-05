@@ -83,7 +83,7 @@ export function SetupProgressCard(props: Props) {
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                   step.ready
                     ? "bg-emerald-100 text-emerald-800"
-                    : "bg-white text-slate-600"
+                    : "bg-[var(--surface)] text-slate-600"
                 }`}
               >
                 {step.ready ? "完了" : "未完了"}

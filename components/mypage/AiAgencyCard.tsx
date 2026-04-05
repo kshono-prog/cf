@@ -213,7 +213,7 @@ export function AiAgencyCard(props: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
       <div>
         <div className="text-sm font-semibold text-gray-900">{AI_OFFICE_LABEL}</div>
         <div className="mt-1 text-xs leading-5 text-gray-600">
@@ -338,7 +338,7 @@ export function AiAgencyCard(props: Props) {
                 agents.map((agent) => (
                   <div
                     key={agent.id}
-                    className="rounded-2xl border border-gray-200 bg-white p-3"
+                    className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -377,7 +377,7 @@ export function AiAgencyCard(props: Props) {
                 jobs.slice(0, 6).map((job) => (
                   <div
                     key={job.id}
-                    className="rounded-2xl border border-gray-200 bg-white p-3"
+                    className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>

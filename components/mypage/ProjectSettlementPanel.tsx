@@ -457,7 +457,7 @@ export function ProjectSettlementPanel(props: Props) {
   }
 
   return (
-    <div className="space-y-4 rounded-xl border bg-white p-4">
+    <div className="space-y-4 rounded-xl border bg-[var(--surface)] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <div className="font-semibold">
@@ -524,7 +524,7 @@ export function ProjectSettlementPanel(props: Props) {
       >
         <button
           type="button"
-          className="w-full rounded-full border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-900 disabled:opacity-40 sm:w-auto sm:py-1.5 sm:text-xs"
+          className="w-full rounded-full border border-amber-300 bg-[var(--surface)] px-3 py-2 text-sm font-medium text-amber-900 disabled:opacity-40 sm:w-auto sm:py-1.5 sm:text-xs"
           onClick={() => scrollToStep(currentStep)}
           disabled={panel.loading}
         >

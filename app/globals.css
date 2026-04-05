@@ -1671,3 +1671,182 @@ html[data-theme="dark"] .nav-tab-active {
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
+
+/* ============================================================
+ * DARK MODE — Tailwind semantic color overrides
+ *
+ * これより下は「再発防止」ブロック。
+ * コンポーネントで bg-sky-50 / text-amber-700 などの
+ * Tailwind セマンティックカラーを使っても、[data-theme="dark"]
+ * が付いた HTML 配下では自動的にダークモード向けの値に切り替わる。
+ *
+ * 新しい semantics を追加するときは以下に倣ってここに追記する。
+ * ============================================================ */
+
+/* ── Sky / Info ── */
+html[data-theme="dark"] :is(
+  .bg-sky-50, .bg-sky-50\/70, .bg-sky-50\/80,
+  .bg-sky-100, .bg-sky-100\/70
+) {
+  background-color: rgba(14, 165, 233, 0.10) !important;
+}
+html[data-theme="dark"] :is(
+  .border-sky-200, .border-sky-100
+) {
+  border-color: rgba(14, 165, 233, 0.30) !important;
+}
+html[data-theme="dark"] :is(
+  .text-sky-700, .text-sky-600, .text-sky-500
+) {
+  color: #38bdf8 !important;
+}
+html[data-theme="dark"] .text-sky-800 { color: #7dd3fc !important; }
+html[data-theme="dark"] .text-sky-900 { color: #bae6fd !important; }
+html[data-theme="dark"] :is(.bg-sky-500\/10) {
+  background-color: rgba(14, 165, 233, 0.15) !important;
+}
+html[data-theme="dark"] :is(.border-sky-500\/30) {
+  border-color: rgba(14, 165, 233, 0.35) !important;
+}
+
+/* ── Emerald / Success ── */
+html[data-theme="dark"] :is(
+  .bg-emerald-50, .bg-emerald-50\/80,
+  .bg-emerald-100
+) {
+  background-color: rgba(16, 185, 129, 0.10) !important;
+}
+html[data-theme="dark"] :is(
+  .border-emerald-200, .border-emerald-100
+) {
+  border-color: rgba(16, 185, 129, 0.30) !important;
+}
+html[data-theme="dark"] :is(
+  .text-emerald-700, .text-emerald-600
+) {
+  color: #34d399 !important;
+}
+html[data-theme="dark"] .text-emerald-800 { color: #6ee7b7 !important; }
+html[data-theme="dark"] .text-emerald-900 { color: #a7f3d0 !important; }
+
+/* ── Amber / Warning ── */
+html[data-theme="dark"] :is(
+  .bg-amber-50, .bg-amber-50\/80,
+  .bg-amber-100
+) {
+  background-color: rgba(245, 158, 11, 0.10) !important;
+}
+html[data-theme="dark"] :is(
+  .border-amber-200, .border-amber-300, .border-amber-100
+) {
+  border-color: rgba(245, 158, 11, 0.30) !important;
+}
+html[data-theme="dark"] :is(
+  .text-amber-700, .text-amber-600, .text-amber-500
+) {
+  color: #fcd34d !important;
+}
+html[data-theme="dark"] :is(
+  .text-amber-800, .text-amber-900, .text-amber-950
+) {
+  color: #fbbf24 !important;
+}
+
+/* ── Rose / Danger ── */
+html[data-theme="dark"] :is(
+  .bg-rose-50, .bg-rose-50\/80,
+  .bg-rose-100
+) {
+  background-color: rgba(244, 63, 94, 0.10) !important;
+}
+html[data-theme="dark"] :is(
+  .border-rose-200, .border-rose-100,
+  .border-rose-400
+) {
+  border-color: rgba(244, 63, 94, 0.30) !important;
+}
+html[data-theme="dark"] :is(
+  .text-rose-700, .text-rose-600, .text-rose-500
+) {
+  color: #fb7185 !important;
+}
+html[data-theme="dark"] :is(
+  .text-rose-800, .text-rose-900
+) {
+  color: #fda4af !important;
+}
+
+/* ── Red ── */
+html[data-theme="dark"] :is(
+  .text-red-700, .text-red-600, .text-red-500
+) {
+  color: #fca5a5 !important;
+}
+
+/* ── Blue ── */
+html[data-theme="dark"] :is(
+  .bg-blue-50, .bg-blue-100
+) {
+  background-color: rgba(59, 130, 246, 0.10) !important;
+}
+html[data-theme="dark"] :is(
+  .border-blue-200, .border-blue-100
+) {
+  border-color: rgba(59, 130, 246, 0.28) !important;
+}
+html[data-theme="dark"] :is(
+  .text-blue-600, .text-blue-500
+) {
+  color: #60a5fa !important;
+}
+html[data-theme="dark"] .text-blue-800 { color: #93c5fd !important; }
+
+/* ── accent-text-* dark overrides ── */
+html[data-theme="dark"] .accent-text-amber       { color: #fcd34d; }
+html[data-theme="dark"] .accent-text-amber-strong { color: #fbbf24; }
+html[data-theme="dark"] .accent-text-emerald      { color: #34d399; }
+html[data-theme="dark"] .accent-text-emerald-strong { color: #6ee7b7; }
+
+/* ── Slate / Gray — neutral surfaces (再発防止) ── */
+/* bg-slate-50/100 や bg-gray-50/100 はどこで使っても dark モードで surface-subtle に自動変換 */
+html[data-theme="dark"] :is(
+  .bg-slate-50, .bg-slate-50\/80, .bg-slate-50\/65, .bg-slate-50\/60,
+  .bg-slate-100, .bg-slate-100\/70,
+  .bg-gray-50, .bg-gray-50\/65, .bg-gray-50\/60, .bg-gray-50\/70,
+  .bg-gray-100, .bg-gray-100\/70
+) {
+  background-color: var(--surface-subtle) !important;
+}
+html[data-theme="dark"] :is(
+  .border-slate-100, .border-slate-200, .border-slate-300,
+  .border-gray-100, .border-gray-200, .border-gray-300
+) {
+  border-color: var(--line) !important;
+}
+html[data-theme="dark"] :is(
+  .text-slate-400, .text-slate-500,
+  .text-gray-400, .text-gray-500
+) {
+  color: var(--muted) !important;
+}
+html[data-theme="dark"] :is(
+  .text-slate-600, .text-slate-700,
+  .text-gray-600, .text-gray-700
+) {
+  color: var(--text-subtle) !important;
+}
+html[data-theme="dark"] :is(
+  .text-slate-800, .text-slate-900, .text-slate-950,
+  .text-gray-800, .text-gray-900
+) {
+  color: var(--text) !important;
+}
+/* hover states */
+html[data-theme="dark"] .hover\:bg-gray-50:hover,
+html[data-theme="dark"] .hover\:bg-slate-50:hover {
+  background-color: var(--surface-subtle) !important;
+}
+html[data-theme="dark"] .hover\:bg-gray-100:hover,
+html[data-theme="dark"] .hover\:bg-slate-100:hover {
+  background-color: var(--surface-muted) !important;
+}

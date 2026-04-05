@@ -330,7 +330,7 @@ export function CreatorReadyExpenseInputSection({
           </div>
           <div className="flex flex-wrap gap-3">
             {summary.totals.map(({ currency, total }) => (
-              <div key={currency} className="rounded-xl border border-[var(--line)] bg-white px-4 py-2">
+              <div key={currency} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2">
                 <div className="text-[11px] text-[var(--text-subtle)]">{currency} 合計</div>
                 <div className="mt-0.5 text-xl font-semibold text-[var(--text)]">
                   {total.toLocaleString("ja-JP")} {currency}

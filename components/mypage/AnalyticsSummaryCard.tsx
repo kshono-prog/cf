@@ -70,7 +70,7 @@ export function AnalyticsSummaryCard(props: Props) {
   }, [loadSummary, props.refreshToken]);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-gray-900">分析サマリー</div>
@@ -80,7 +80,7 @@ export function AnalyticsSummaryCard(props: Props) {
         </div>
         <button
           type="button"
-          className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800"
+          className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)]"
           onClick={() => void loadSummary()}
           disabled={loading}
         >
@@ -157,7 +157,7 @@ export function AnalyticsSummaryCard(props: Props) {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
                 Feed analytics
               </div>
@@ -189,7 +189,7 @@ export function AnalyticsSummaryCard(props: Props) {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
                 更新タイミング
               </div>

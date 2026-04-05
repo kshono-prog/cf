@@ -107,7 +107,7 @@ export function PublicProfileAiManagerCard({
     >
       <div className="border-b border-[var(--line)] bg-[linear-gradient(135deg,rgba(14,165,233,0.14),rgba(15,23,42,0.03))] px-5 py-4 sm:px-6">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">
+          <span className="inline-flex items-center rounded-full border border-sky-200 bg-[var(--surface)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">
             AI Manager
           </span>
           <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">

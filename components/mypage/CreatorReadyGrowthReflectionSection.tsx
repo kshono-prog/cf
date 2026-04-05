@@ -101,7 +101,7 @@ export function CreatorReadyGrowthReflectionSection(props: Props) {
     : null;
 
   return (
-    <section className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+    <section className="rounded-2xl border border-white/80 bg-[var(--surface)] p-4 shadow-sm">
       <div className="mb-4">
         <div className="text-sm font-semibold text-slate-950">
           Growth / Reflection

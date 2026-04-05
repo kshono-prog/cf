@@ -76,7 +76,7 @@ export function NoUserMyPageView(props: Props) {
 
         {props.assistantSection}
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border bg-[var(--surface)] p-4 shadow-sm">
           <div className="mb-3 space-y-1">
             <h2 className="text-sm font-semibold text-gray-900">
               ユーザー情報を整える

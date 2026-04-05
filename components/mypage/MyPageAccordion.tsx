@@ -35,7 +35,7 @@ export function MyPageAccordion({
   const isOpen = open[sectionKey];
 
   return (
-    <div className="card p-4 bg-white space-y-3">
+    <div className="card p-4 bg-[var(--surface)] space-y-3">
       <div className="flex items-center justify-between">
         <button
           type="button"

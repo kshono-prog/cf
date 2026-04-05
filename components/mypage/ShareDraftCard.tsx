@@ -209,7 +209,7 @@ export function ShareDraftCard(props: Props) {
           {DRAFT_FIELDS.map((field) => (
             <div
               key={field.key}
-              className="rounded-2xl border border-[var(--line)] bg-white p-4"
+              className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="text-base font-semibold text-[var(--text)]">

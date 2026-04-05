@@ -22,7 +22,7 @@ export function ProjectSettlementAdvancedSection(props: {
               通常フローで足りないときだけ開く、operator 向けの補助操作です。
             </div>
           </div>
-          <span className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700">
+          <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-[11px] font-medium text-gray-700">
             必要時のみ
           </span>
         </div>

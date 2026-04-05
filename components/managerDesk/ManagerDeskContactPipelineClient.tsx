@@ -410,7 +410,7 @@ export function ManagerDeskContactPipelineClient() {
                     type="checkbox"
                     checked={data.items.length > 0 && data.items.every((i) => selectedIds.has(i.contact.id))}
                     onChange={() => toggleSelectAll(data.items.map((i) => i.contact.id))}
-                    className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
+                    className="h-4 w-4 rounded border-[var(--line)] accent-[var(--accent)]"
                   />
                   <span>全選択</span>
                 </label>
@@ -473,7 +473,7 @@ export function ManagerDeskContactPipelineClient() {
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleSelected(item.contact.id)}
-                              className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
+                              className="h-4 w-4 rounded border-[var(--line)] accent-[var(--accent)]"
                               aria-label={`${item.contact.organizationName} を選択`}
                             />
                             <span className={dueStateBadgeClass(item.dueState)}>

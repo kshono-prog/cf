@@ -111,14 +111,14 @@ function NotificationRow({ item, isUnread }: { item: NotificationItem; isUnread:
           {isUnread ? (
             <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
           ) : null}
-          <span className="text-[10px] text-gray-400">{formatRelative(item.createdAt)}</span>
+          <span className="text-[10px] text-[var(--muted)]">{formatRelative(item.createdAt)}</span>
         </div>
         <div className="mt-0.5 truncate text-[12px] text-gray-700">{item.title}</div>
         {item.body ? (
           <div className="mt-0.5 truncate text-[11px] text-gray-500">{item.body}</div>
         ) : null}
         {item.meta ? (
-          <div className="mt-0.5 text-[11px] text-gray-400">{item.meta}</div>
+          <div className="mt-0.5 text-[11px] text-[var(--muted)]">{item.meta}</div>
         ) : null}
       </div>
     </a>
@@ -186,7 +186,7 @@ export function NotificationBell() {
     <div ref={panelRef} className="relative">
       <button
         type="button"
-        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition hover:border-gray-400 hover:text-gray-800"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-gray-600 transition hover:border-[var(--line)] hover:text-[var(--text)]"
         onClick={handleOpen}
         aria-label="通知"
       >
@@ -211,16 +211,16 @@ export function NotificationBell() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+        <div className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-2xl border border-gray-200 bg-[var(--surface)] shadow-lg overflow-hidden">
           <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
             <span className="text-[12px] font-semibold text-gray-700">通知</span>
             {loading ? (
-              <span className="text-[10px] text-gray-400">読み込み中…</span>
+              <span className="text-[10px] text-[var(--muted)]">読み込み中…</span>
             ) : null}
           </div>
           <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
             {items.length === 0 && !loading ? (
-              <div className="px-3 py-6 text-center text-[12px] text-gray-400">
+              <div className="px-3 py-6 text-center text-[12px] text-[var(--muted)]">
                 通知はありません
               </div>
             ) : (

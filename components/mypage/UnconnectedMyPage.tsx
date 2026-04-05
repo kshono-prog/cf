@@ -53,7 +53,7 @@ export function UnconnectedMyPage({
           <span className="text-[10px]">{open.wallet ? "▲" : "▼"}</span>
         </button>
         {open.wallet && (
-          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-1 bg-white">
+          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-1 bg-[var(--surface)]">
             <p>1. PCまたはスマートフォンにWeb3ウォレットを準備します。</p>
             <p className="text-[10px] text-gray-500">
               ※ MetaMask、hashport Walletなど複数のウォレットに対応
@@ -73,7 +73,7 @@ export function UnconnectedMyPage({
           <span className="text-[10px]">{open.jpyc ? "▲" : "▼"}</span>
         </button>
         {open.jpyc && (
-          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-2 bg-white">
+          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-2 bg-[var(--surface)]">
             <div className="space-y-1">
               <p>1. JPYC EX にアクセスし、アカウントを作成します。</p>
               <p>2. 本人確認（KYC）や必要な登録を完了しJPYCを購入します。</p>
@@ -99,7 +99,7 @@ export function UnconnectedMyPage({
           <span className="text-[10px]">{open.flow ? "▲" : "▼"}</span>
         </button>
         {open.flow && (
-          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-1 bg-white">
+          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-1 bg-[var(--surface)]">
             <p>1. 右上のウォレットから接続します。</p>
             <p>2. 他の人のページを開き、JPYC で応援を送ることができます。</p>
             <p>
@@ -111,7 +111,7 @@ export function UnconnectedMyPage({
       </div>
 
       {/* 利用規約カード */}
-      <div className="card p-4 bg-white shadow-sm border border-gray-200 text-[11px] leading-relaxed space-y-2">
+      <div className="card p-4 bg-[var(--surface)] shadow-sm border border-gray-200 text-[11px] leading-relaxed space-y-2">
         <p className="font-semibold text-xs mb-1">利用規約</p>
         <p>1. 本サービスは個人学習による無償提供のUIツールです。</p>
         <p>

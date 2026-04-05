@@ -272,7 +272,7 @@ export default function EventManager({
   }
 
   return (
-    <div className="card p-4 bg-white space-y-4">
+    <div className="card p-4 bg-[var(--surface)] space-y-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold">イベント / ライブ情報の管理</h2>
@@ -300,7 +300,7 @@ export default function EventManager({
       {/* =========================
           新規イベント作成フォーム
          ========================= */}
-      <div className="border rounded-md p-3 bg-white space-y-3">
+      <div className="border rounded-md p-3 bg-[var(--surface)] space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold">新規イベント登録</p>
           <span
@@ -364,7 +364,7 @@ export default function EventManager({
                   className={`rounded-full border px-3 py-1 text-xs transition ${
                     selected
                       ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-gray-300 bg-white text-gray-700"
+                      : "border-[var(--line)] bg-[var(--surface)] text-gray-700"
                   }`}
                   disabled={
                     creating || (!selected && createCategories.length >= 5)
@@ -452,7 +452,7 @@ export default function EventManager({
               return (
                 <div
                   key={ev.id}
-                  className={`border rounded-md p-3 bg-white ${
+                  className={`border rounded-md p-3 bg-[var(--surface)] ${
                     isPublished ? "" : "opacity-90"
                   }`}
                 >
@@ -507,7 +507,7 @@ export default function EventManager({
                             {ev.categories.map((category) => (
                               <span
                                 key={`${ev.id}-${category}`}
-                                className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-600"
+                                className="rounded-full border border-gray-200 bg-[var(--surface)] px-2 py-0.5 text-[10px] text-gray-600"
                               >
                                 {EVENT_CATEGORY_LABELS[category]}
                               </span>
@@ -527,7 +527,7 @@ export default function EventManager({
                           </p>
                         )}
 
-                        <p className="mt-1 text-[10px] text-gray-400">
+                        <p className="mt-1 text-[10px] text-[var(--muted)]">
                           公開状態：{isPublished ? "公開" : "非公開"}
                         </p>
                       </div>
@@ -560,7 +560,7 @@ export default function EventManager({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold">イベント編集</p>
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-[10px] text-[var(--muted)]">
                           ID: {ev.id}
                         </span>
                       </div>
@@ -615,7 +615,7 @@ export default function EventManager({
                                 className={`rounded-full border px-3 py-1 text-xs transition ${
                                   selected
                                     ? "border-slate-900 bg-slate-900 text-white"
-                                    : "border-gray-300 bg-white text-gray-700"
+                                    : "border-[var(--line)] bg-[var(--surface)] text-gray-700"
                                 }`}
                                 disabled={
                                   savingId === ev.id ||

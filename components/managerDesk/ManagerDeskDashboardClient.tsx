@@ -161,7 +161,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             対応シグナル
           </div>
@@ -185,7 +185,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             最新 Manager Note
           </div>
@@ -213,7 +213,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-white p-4">
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             次の外部連絡
           </div>

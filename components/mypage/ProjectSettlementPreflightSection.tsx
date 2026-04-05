@@ -53,7 +53,7 @@ export function ProjectSettlementPreflightSection(
           {props.preflight.map((item) => (
             <div
               key={item.token}
-              className="flex flex-col gap-1 rounded border border-gray-200 bg-white p-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
+              className="flex flex-col gap-1 rounded border border-gray-200 bg-[var(--surface)] p-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
             >
               <span className="font-semibold">{item.token}</span>
               <span>必要額: {item.requiredAtomic.toString()}</span>

@@ -142,7 +142,7 @@ export function ManualCheckPanel({ context }: Props) {
             {entries.map((entry, index) => (
               <div
                 key={index}
-                className="rounded border bg-white px-3 py-2 text-[11px] leading-5 sm:text-xs"
+                className="rounded border bg-[var(--surface)] px-3 py-2 text-[11px] leading-5 sm:text-xs"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 flex-1">

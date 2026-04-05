@@ -52,7 +52,7 @@ const CARD_BORDER: Record<
   SerializedAiManagerPendingTimelineItem["deliveryStatus"],
   string
 > = {
-  NONE: "border-[var(--line)] bg-white",
+  NONE: "border-[var(--line)] bg-[var(--surface)]",
   ACTIVE: "border-sky-200 bg-sky-50",
   WATCH: "border-amber-200 bg-amber-50",
   STALE: "border-red-200 bg-red-50",

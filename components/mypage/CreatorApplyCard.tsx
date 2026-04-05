@@ -11,7 +11,7 @@ type Props = {
 export function CreatorApplyCard({ saving, onApply }: Props) {
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-white/70 bg-white px-3 py-3">
+      <div className="rounded-xl border border-white/70 bg-[var(--surface)] px-3 py-3">
         <div className="text-xs font-semibold tracking-[0.12em] text-emerald-700">
           公開ページの準備
         </div>

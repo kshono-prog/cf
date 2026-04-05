@@ -201,7 +201,7 @@ export function WalletSection(props: WalletSectionProps) {
                 </div>
                 <button
                   type="button"
-                  className="chip-button border-emerald-200 bg-white text-emerald-700"
+                  className="chip-button border-emerald-200 bg-[var(--surface)] text-emerald-700"
                   onClick={props.onClearSelectedPost}
                 >
                   解除

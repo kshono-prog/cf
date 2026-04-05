@@ -236,7 +236,7 @@ export function SearchPageClient(props: SearchPageClientProps) {
                   <Link
                     key={creator.username}
                     href={`/${creator.username}`}
-                    className="surface-subtle flex items-start gap-3 px-4 py-4 transition hover:bg-white"
+                    className="surface-subtle flex items-start gap-3 px-4 py-4 transition hover:bg-[var(--surface)]"
                   >
                     <Avatar
                       src={creator.avatarUrl}
@@ -287,7 +287,7 @@ export function SearchPageClient(props: SearchPageClientProps) {
                   <Link
                     key={post.id}
                     href={`/${post.creator.username}#posts`}
-                    className="surface-subtle block px-4 py-4 transition hover:bg-white"
+                    className="surface-subtle block px-4 py-4 transition hover:bg-[var(--surface)]"
                   >
                     <div className="flex items-center gap-2 text-sm text-[var(--text-subtle)]">
                       <span className="font-semibold text-[var(--text)]">

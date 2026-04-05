@@ -106,7 +106,7 @@ export function PublicOwnerComposerCard(props: Props) {
   return (
     <section
       id="owner-composer"
-      className="mt-4 overflow-hidden bg-white"
+      className="mt-4 overflow-hidden bg-[var(--surface)]"
     >
       <div className="space-y-3.5 p-4 sm:p-5">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
@@ -123,7 +123,7 @@ export function PublicOwnerComposerCard(props: Props) {
           </div>
           <Link
             href={props.managementHref}
-            className="rounded-full border border-gray-300 bg-white px-3.5 py-1.5 text-[11px] font-medium text-gray-800 transition hover:border-gray-400"
+            className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:border-[var(--line)]"
           >
             設定を開く
           </Link>
@@ -167,7 +167,7 @@ export function PublicOwnerComposerCard(props: Props) {
             <div className="flex items-end">
               <button
                 type="button"
-                className="rounded-full border border-gray-300 bg-white px-3.5 py-1.5 text-[11px] font-medium text-gray-800 transition hover:border-gray-400"
+                className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:border-[var(--line)]"
                 onClick={() => setShowMediaFields((current) => !current)}
                 disabled={saving}
               >

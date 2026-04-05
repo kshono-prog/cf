@@ -48,18 +48,18 @@ export function RpgActivityLog() {
   return (
     <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">活動ログ</h3>
-      {loading && <div className="text-xs text-gray-400">読み込み中...</div>}
+      {loading && <div className="text-xs text-[var(--muted)]">読み込み中...</div>}
       <div className="space-y-2">
         {items.map((item) => (
           <div key={item.id} className="flex gap-3 text-xs">
-            <span className="text-gray-400 shrink-0">
+            <span className="text-[var(--muted)] shrink-0">
               {new Date(item.occurredAt).toLocaleDateString("ja-JP")}
             </span>
             <span className="text-gray-700 dark:text-gray-300">{item.message}</span>
           </div>
         ))}
         {items.length === 0 && !loading && (
-          <div className="text-xs text-gray-400">活動ログがありません</div>
+          <div className="text-xs text-[var(--muted)]">活動ログがありません</div>
         )}
       </div>
       {nextCursor && (

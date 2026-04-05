@@ -127,7 +127,7 @@ function SettlementWorkspaceCard(props: {
   };
 
   return (
-    <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="space-y-3 rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
       <div>
         <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
           {props.currency}
@@ -201,7 +201,7 @@ export function CreatorAdvancedSettingsSection(props: Props) {
         )}
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="space-y-3 rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
         <div>
           <div className="text-sm font-semibold text-gray-900">ガス代支援</div>
           <div className="mt-1 text-xs leading-5 text-gray-600">

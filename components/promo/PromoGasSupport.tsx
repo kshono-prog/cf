@@ -22,7 +22,7 @@ export function PromoGasSupport({ headerColor }: Props) {
         />
       </div>
 
-      <h3 className="text-sm font-semibold text-gray-800 mb-2 text-center">
+      <h3 className="text-sm font-semibold text-[var(--text)] mb-2 text-center">
         JPYCユーザーのガス代支援
       </h3>
 
@@ -43,7 +43,7 @@ export function PromoGasSupport({ headerColor }: Props) {
           💧 JPYCガス代支援サイトを開く
         </a>
 
-        <p className="text-[11px] text-gray-400 mt-3">
+        <p className="text-[11px] text-[var(--muted)] mt-3">
           提供：{" "}
           <a
             href="https://x.com/konaito_copilot"

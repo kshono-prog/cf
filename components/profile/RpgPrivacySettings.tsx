@@ -51,7 +51,7 @@ export function RpgPrivacySettings({ initial, onSaved }: Props) {
       <div className="space-y-2">
         {ITEMS.map(({ key, label }) => (
           <label key={key} className="flex items-center justify-between gap-3 cursor-pointer">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+            <span className="text-sm text-gray-600 dark:text-[var(--muted)]">{label}</span>
             <button
               type="button"
               role="switch"
@@ -62,7 +62,7 @@ export function RpgPrivacySettings({ initial, onSaved }: Props) {
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                className={`inline-block h-4 w-4 transform rounded-full bg-[var(--surface)] shadow transition-transform ${
                   privacy[key] ? "translate-x-4" : "translate-x-0.5"
                 }`}
               />

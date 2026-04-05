@@ -55,7 +55,7 @@ function badgeClass(state: "done" | "current" | "upcoming"): string {
   if (state === "current") {
     return "border-sky-200 bg-sky-50 text-sky-700";
   }
-  return "border-gray-200 bg-white text-gray-400";
+  return "border-gray-200 bg-[var(--surface)] text-[var(--muted)]";
 }
 
 type Props = {
@@ -81,7 +81,7 @@ export function MyPageOnboardingProgress(props: Props) {
             {props.description}
           </p>
         </div>
-        <div className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-medium text-sky-700">
+        <div className="rounded-full border border-sky-200 bg-[var(--surface)] px-3 py-1 text-xs font-medium text-sky-700">
           Step {currentIndex + 1} / {STEP_ITEMS.length}
         </div>
       </div>
