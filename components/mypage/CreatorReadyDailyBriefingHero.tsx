@@ -218,38 +218,38 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
     : "AI事務所を開く";
 
   return (
-    <section className="sheet-section overflow-hidden bg-[linear-gradient(135deg,#f6f8fc_0%,#ffffff_52%,#f2f5f1_100%)]">
+    <section className="sheet-section overflow-hidden bg-[linear-gradient(135deg,var(--surface-subtle)_0%,var(--surface)_52%,var(--surface-subtle)_100%)]">
       <div className="space-y-5 p-5 sm:p-6">
         {/* ── ヘッダー ── */}
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="section-kicker">今日の仕事場</span>
-            <span className="surface-chip bg-white/85 text-slate-700">
+            <span className="surface-chip bg-[var(--surface)] text-[var(--text-subtle)]">
               {statusLabel}
             </span>
           </div>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl">
             {props.creatorName}さんの今日の仕事場
           </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
+          <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
             {structuredFocusTheme}
           </p>
           {!props.needsSetup && props.dailyBriefing?.summaryLine ? (
-            <p className="mt-0.5 text-xs leading-5 text-slate-500">
+            <p className="mt-0.5 text-xs leading-5 text-[var(--muted)]">
               {props.dailyBriefing.summaryLine}
             </p>
           ) : null}
         </div>
 
         {/* ── プロジェクト進捗 ── */}
-        <div className="border-t border-slate-200/80 pt-4 space-y-3">
+        <div className="border-t border-[var(--line)] pt-4 space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <div>
-              <div className="text-xs font-medium text-slate-500">現在の主プロジェクト</div>
-              <div className="mt-0.5 text-base font-semibold text-slate-950">
+              <div className="text-xs font-medium text-[var(--muted)]">現在の主プロジェクト</div>
+              <div className="mt-0.5 text-base font-semibold text-[var(--text)]">
                 {primaryProjectTitle}
               </div>
-              <div className="mt-0.5 text-xs leading-5 text-slate-600">
+              <div className="mt-0.5 text-xs leading-5 text-[var(--text-subtle)]">
                 {hasPrimaryProject
                   ? goal?.achievedAt
                     ? "目標達成後の整理フェーズに入っています。"
@@ -263,20 +263,20 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
 
           {/* データタイル — 3列 */}
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 border-slate-900 bg-slate-950 text-white">
-              <div className="text-[11px] leading-4 text-slate-300">進捗</div>
+            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 border-[var(--text)] bg-[var(--text)] text-[var(--bg)]">
+              <div className="text-[11px] leading-4 text-[var(--muted)]">進捗</div>
               <div className="mt-1 text-xl font-semibold sm:text-2xl">{progressPct}%</div>
             </div>
-            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 text-slate-900">
-              <div className="text-[11px] leading-4 text-slate-500">支援額</div>
+            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 text-[var(--text)]">
+              <div className="text-[11px] leading-4 text-[var(--muted)]">支援額</div>
               <div className="mt-1 text-sm font-semibold leading-5">{supportLabel}</div>
             </div>
-            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 text-slate-900">
-              <div className="text-[11px] leading-4 text-slate-500">投稿数</div>
+            <div className="data-tile px-3 py-2.5 sm:px-4 sm:py-3 text-[var(--text)]">
+              <div className="text-[11px] leading-4 text-[var(--muted)]">投稿数</div>
               <div className="mt-1 text-sm font-semibold leading-5">
                 {props.postCount !== null ? `${props.postCount}件` : "—"}
               </div>
-              <div className="mt-0.5 text-[11px] leading-4 text-slate-500">
+              <div className="mt-0.5 text-[11px] leading-4 text-[var(--muted)]">
                 {props.publishedCount !== null
                   ? `公開 ${props.publishedCount}件`
                   : "公開数は取得中"}
@@ -291,7 +291,7 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-subtle)]">
             <span>目標: {targetLabel}</span>
             {remainingAmount !== null && remainingAmount > 0 ? (
               <span>
@@ -303,20 +303,20 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
         </div>
 
         {/* ── 今日の優先項目 ── */}
-        <div className="border-t border-slate-200/80 pt-4">
+        <div className="border-t border-[var(--line)] pt-4">
           <div className="section-kicker mb-3">今日の優先項目</div>
-          <div className="divide-y divide-slate-200">
+          <div className="divide-y divide-[var(--line)]">
             {structuredPriorityItems.map((item, index) => (
               <div
                 key={item.title}
                 className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
               >
-                <span className="surface-chip h-7 w-7 shrink-0 justify-center px-0 text-slate-700">
+                <span className="surface-chip h-7 w-7 shrink-0 justify-center px-0 text-[var(--text-subtle)]">
                   {index + 1}
                 </span>
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                  <div className="mt-0.5 text-xs leading-5 text-slate-600">{item.body}</div>
+                  <div className="text-sm font-semibold text-[var(--text)]">{item.title}</div>
+                  <div className="mt-0.5 text-xs leading-5 text-[var(--text-subtle)]">{item.body}</div>
                 </div>
               </div>
             ))}
@@ -324,7 +324,7 @@ export function CreatorReadyDailyBriefingHero(props: Props) {
         </div>
 
         {/* ── CTA ── */}
-        <div className="flex flex-wrap gap-2 border-t border-slate-200/80 pt-4">
+        <div className="flex flex-wrap gap-2 border-t border-[var(--line)] pt-4">
           <button
             type="button"
             className="btn min-h-10 px-5"

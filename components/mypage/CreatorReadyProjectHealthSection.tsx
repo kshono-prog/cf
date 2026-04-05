@@ -81,17 +81,17 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
     goal && total !== null ? Math.max(goal.targetAmount - total, 0) : null;
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[11px] font-semibold tracking-wide text-gray-500">
+          <div className="text-[11px] font-semibold tracking-wide text-[var(--muted)]">
             {props.currency}
           </div>
-          <div className="mt-1 text-sm font-semibold text-gray-900">
+          <div className="mt-1 text-sm font-semibold text-[var(--text)]">
             {project.title}
           </div>
         </div>
-        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-700">
+        <span className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-subtle)]">
           {progressLabel}
         </span>
       </div>
@@ -103,25 +103,25 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
         />
       </div>
 
-      <dl className="mt-4 space-y-2 text-xs text-gray-600">
+      <dl className="mt-4 space-y-2 text-xs text-[var(--text-subtle)]">
         <div className="flex items-center justify-between gap-4">
           <dt>現在の支援額</dt>
-          <dd className="font-medium text-gray-900">
+          <dd className="font-medium text-[var(--text)]">
             {formatAmountByCurrency(total, totalCurrency)} {totalCurrency}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-4">
           <dt>目標</dt>
-          <dd className="font-medium text-gray-900">{goalLabel}</dd>
+          <dd className="font-medium text-[var(--text)]">{goalLabel}</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
           <dt>精算状況</dt>
-          <dd className="font-medium text-gray-900">{settlementState}</dd>
+          <dd className="font-medium text-[var(--text)]">{settlementState}</dd>
         </div>
         {remainingAmount !== null && remainingAmount > 0 ? (
           <div className="flex items-center justify-between gap-4">
             <dt>達成まで</dt>
-            <dd className="font-medium text-gray-900">
+            <dd className="font-medium text-[var(--text)]">
               {formatAmountByCurrency(remainingAmount, totalCurrency)}{" "}
               {totalCurrency}
             </dd>
@@ -129,8 +129,8 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
         ) : null}
       </dl>
 
-      <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-3 text-xs leading-5 text-slate-600">
-        <div className="font-semibold text-slate-900">次に必要なこと</div>
+      <div className="mt-4 rounded-2xl bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+        <div className="font-semibold text-[var(--text)]">次に必要なこと</div>
         <div className="mt-1">{nextStep}</div>
       </div>
     </div>
@@ -144,11 +144,11 @@ type Props = {
 
 export function CreatorReadyProjectHealthSection(props: Props) {
   return (
-    <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
-      <div className="text-sm font-semibold text-slate-950">
+    <div className="card p-4">
+      <div className="text-sm font-semibold text-[var(--text)]">
         プロジェクトの進行状況
       </div>
-      <p className="mt-1 text-xs leading-5 text-slate-600">
+      <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
         Project / Goal / 精算の現在地をまとめて確認できます。
       </p>
       <div className="mt-4 grid gap-3">

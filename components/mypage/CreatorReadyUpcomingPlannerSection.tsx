@@ -66,11 +66,11 @@ function sourceLabel(source: PlannerTimelineItem["sourceType"]): string {
 
 function SummaryChip(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2">
+      <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
         {props.label}
       </div>
-      <div className="mt-1 text-sm font-semibold text-slate-950">{props.value}</div>
+      <div className="mt-1 text-sm font-semibold text-[var(--text)]">{props.value}</div>
     </div>
   );
 }
@@ -81,11 +81,11 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
     ? mapWorkspaceActionError(props.error, "予定データの取得に失敗しました。")
     : null;
   return (
-    <section className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+    <section className="card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-950">Upcoming / Planner</div>
-          <p className="mt-1 text-xs leading-5 text-slate-600">
+          <div className="text-sm font-semibold text-[var(--text)]">Upcoming / Planner</div>
+          <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             会議、goal 期限、共有フォローアップを時間軸で見て、次の準備へつなげます。
           </p>
         </div>
@@ -132,7 +132,7 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
             {props.data.items.map((item) => (
               <article
                 key={item.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+                className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={statusBadgeClass(item.status)}>
@@ -145,20 +145,20 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
                     {ownerLabel(item.owner)}
                   </span>
                 </div>
-                <div className="mt-3 text-sm font-semibold text-slate-950">
+                <div className="mt-3 text-sm font-semibold text-[var(--text)]">
                   {item.title}
                 </div>
-                <div className="mt-1 text-xs leading-5 text-slate-600">
+                <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
                   {item.description}
                 </div>
-                <div className="mt-3 text-xs text-slate-500">
+                <div className="mt-3 text-xs text-[var(--muted)]">
                   期限 {formatDateTime(item.dueAt)}
                 </div>
                 {item.sourceType === "MEETING" && agendaCreateHref ? (
                   <div className="mt-3">
                     <Link
                       href={agendaCreateHref}
-                      className="text-xs font-medium text-slate-700 underline underline-offset-2 hover:text-slate-950"
+                      className="text-xs font-medium text-[var(--text-subtle)] underline underline-offset-2 hover:text-[var(--text)]"
                     >
                       アジェンダを作る →
                     </Link>

@@ -19,7 +19,7 @@ function priorityBadgeClass(priority: CreatorReadyTaskItem["priority"]): string 
   if (priority === "medium") {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
-  return "border-slate-200 bg-slate-100 text-slate-700";
+  return "border-[var(--line)] bg-[var(--surface-muted)] text-[var(--text-subtle)]";
 }
 
 function ownerLabel(owner: CreatorReadyTaskItem["owner"]): string {
@@ -64,20 +64,20 @@ function TaskLane(props: {
   onOpenSettings: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-      <div className="text-sm font-semibold text-slate-950">{props.title}</div>
-      <p className="mt-1 text-xs leading-5 text-slate-600">{props.description}</p>
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)]/70 p-4">
+      <div className="text-sm font-semibold text-[var(--text)]">{props.title}</div>
+      <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">{props.description}</p>
 
       <div className="mt-4 space-y-3">
         {props.loading && props.items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-4 text-xs text-slate-500">
+          <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface)] px-4 py-4 text-xs text-[var(--muted)]">
             AI Office と現在の進捗から、行動候補を整理しています。
           </div>
         ) : null}
         {props.items.map((item) => (
           <div
             key={item.id}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+            className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm"
           >
             <div className="flex flex-wrap items-center gap-2">
               <span
@@ -85,14 +85,14 @@ function TaskLane(props: {
               >
                 {item.priority}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+              <span className="rounded-full border border-[var(--line)] bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-subtle)]">
                 {ownerLabel(item.owner)}
               </span>
             </div>
-            <div className="mt-3 text-sm font-semibold text-slate-950">
+            <div className="mt-3 text-sm font-semibold text-[var(--text)]">
               {item.title}
             </div>
-            <div className="mt-1 text-xs leading-5 text-slate-600">
+            <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
               {item.body}
             </div>
             <div className="mt-3">
@@ -110,10 +110,10 @@ function TaskLane(props: {
 
 export function CreatorReadyTodayThisWeekSection(props: Props) {
   return (
-    <section className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+    <section className="card p-4">
       <div>
-        <div className="text-sm font-semibold text-slate-950">Today / This Week</div>
-        <p className="mt-1 text-xs leading-5 text-slate-600">
+        <div className="text-sm font-semibold text-[var(--text)]">Today / This Week</div>
+        <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
           状態確認で止まらず、そのまま次の行動に進めるためのフォローアップです。
         </p>
       </div>

@@ -47,7 +47,7 @@ export function ProfileHeader({
       <div className="-mt-10 flex flex-col items-center px-6 pb-5 text-center sm:-mt-12">
         {/* Avatar */}
         <div className="relative">
-          <div className="avatar-circle rounded-full ring-4 ring-white bg-white p-1">
+          <div className="avatar-circle rounded-full ring-4 ring-[var(--surface)] bg-[var(--surface)] p-1">
             <Avatar
               src={creator.avatarUrl}
               alt={`${displayName} のアイコン / Avatar`}
@@ -58,13 +58,13 @@ export function ProfileHeader({
         </div>
 
         {/* 名前 */}
-        <h2 className="mt-3 text-lg font-semibold text-gray-900 sm:text-2xl">
+        <h2 className="mt-3 text-lg font-semibold text-[var(--text)] sm:text-2xl">
           {displayName}
         </h2>
 
         {/* プロフィール文 */}
         {creator.profile && (
-          <p className="mt-2 max-w-[32rem] text-sm leading-6 text-gray-600">
+          <p className="mt-2 max-w-[32rem] text-sm leading-6 text-[var(--text-subtle)]">
             {creator.profile}
           </p>
         )}
@@ -84,7 +84,7 @@ export function ProfileHeader({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="inline-flex h-9 w-9 items-center justify-center text-gray-600 transition hover:text-gray-900"
+                  className="inline-flex h-9 w-9 items-center justify-center text-[var(--text-subtle)] transition hover:text-[var(--text)]"
                 >
                   <Image
                     src={icon}

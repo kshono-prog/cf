@@ -36,7 +36,7 @@ function toneClass(tone: CreatorManagerFeedItem["tone"]): string {
     case "recommended":
       return "border-emerald-200 bg-emerald-50/80";
     default:
-      return "border-slate-200 bg-slate-50/80";
+      return "border-[var(--line)] bg-[var(--surface-subtle)]";
   }
 }
 
@@ -53,11 +53,11 @@ function toneLabel(tone: CreatorManagerFeedItem["tone"]): string {
 
 function SummaryChip(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2">
+      <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
         {props.label}
       </div>
-      <div className="mt-1 text-sm font-semibold text-slate-950">{props.value}</div>
+      <div className="mt-1 text-sm font-semibold text-[var(--text)]">{props.value}</div>
     </div>
   );
 }
@@ -68,11 +68,11 @@ export function CreatorReadyManagerFeedSection(props: Props) {
     : null;
 
   return (
-    <section className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+    <section className="card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-950">Manager Feed</div>
-          <p className="mt-1 text-xs leading-5 text-slate-600">
+          <div className="text-sm font-semibold text-[var(--text)]">Manager Feed</div>
+          <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             Manager が共有可能として残した現場メモや進行メモを、Creator 視点で短く確認できます。
           </p>
         </div>
@@ -129,18 +129,18 @@ export function CreatorReadyManagerFeedSection(props: Props) {
                     {item.noteType}
                   </span>
                 </div>
-                <div className="mt-3 text-sm font-semibold text-slate-950">
+                <div className="mt-3 text-sm font-semibold text-[var(--text)]">
                   {item.title}
                 </div>
-                <div className="mt-1 text-xs leading-5 text-slate-700">
+                <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
                   {item.summary}
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-600">
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--text-subtle)]">
                   {item.projectTitle ? <span>Project: {item.projectTitle}</span> : null}
                   {item.contactLabel ? <span>Contact: {item.contactLabel}</span> : null}
                   {item.meetingLabel ? <span>Meeting: {item.meetingLabel}</span> : null}
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
                   <span>更新 {formatDateTime(item.updatedAt)}</span>
                   {item.followUpNeeded ? (
                     <span>確認期限 {formatDateTime(item.followUpDueAt)}</span>

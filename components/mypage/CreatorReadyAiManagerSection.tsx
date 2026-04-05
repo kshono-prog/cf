@@ -32,17 +32,17 @@ function toneStyles(
     case "attention":
       return {
         wrapper: "border-amber-200 bg-amber-50/80",
-        badge: "border-amber-200 bg-white text-amber-800",
+        badge: "border-amber-200 bg-[var(--surface)] text-amber-800",
       };
     case "recommended":
       return {
         wrapper: "border-emerald-200 bg-emerald-50/80",
-        badge: "border-emerald-200 bg-white text-emerald-800",
+        badge: "border-emerald-200 bg-[var(--surface)] text-emerald-800",
       };
     default:
       return {
-        wrapper: "border-slate-200 bg-slate-50/80",
-        badge: "border-slate-200 bg-white text-slate-700",
+        wrapper: "border-[var(--line)] bg-[var(--surface-subtle)]",
+        badge: "border-[var(--line)] bg-[var(--surface)] text-[var(--text-subtle)]",
       };
   }
 }
@@ -157,15 +157,15 @@ export function CreatorReadyAiManagerSection(props: Props) {
         : "現在は無料範囲で稼働します。残高ゼロの間は内部ブリーフィングと軽い下書きだけを扱います。";
 
   return (
-    <section className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+    <section className="card p-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-sm font-semibold text-slate-950">AI Manager</div>
-          <p className="mt-1 text-xs leading-5 text-slate-600">
+          <div className="text-sm font-semibold text-[var(--text)]">AI Manager</div>
+          <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             AI Office の提案に加えて、人格アカウントの状態と予算ルールを Creator Home で確認できます。
           </p>
         </div>
-        <div className="text-[11px] text-slate-500">
+        <div className="text-[11px] text-[var(--muted)]">
           {props.loading ? "AI が状況を整理中です" : "いま実務につながる提案だけを表示"}
         </div>
       </div>
@@ -207,13 +207,13 @@ export function CreatorReadyAiManagerSection(props: Props) {
       ) : null}
 
       {props.account ? (
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="text-sm font-semibold text-slate-950">
+              <div className="text-sm font-semibold text-[var(--text)]">
                 {props.account.displayName}
               </div>
-              <div className="mt-1 text-xs leading-5 text-slate-600">
+              <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
                 {accountSummary}
               </div>
             </div>
@@ -227,35 +227,35 @@ export function CreatorReadyAiManagerSection(props: Props) {
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-              <div className="text-[11px] uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
                 status
               </div>
-              <div className="mt-1 text-sm font-semibold text-slate-950">
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                 {getStatusLabel(props.account.status)}
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-              <div className="text-[11px] uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
                 visibility
               </div>
-              <div className="mt-1 text-sm font-semibold text-slate-950">
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                 {getVisibilityLabel(props.account.publicVisibility)}
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-              <div className="text-[11px] uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
                 available
               </div>
-              <div className="mt-1 text-sm font-semibold text-slate-950">
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                 {formatJpycAmount(availableAmount)}
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-              <div className="text-[11px] uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
                 mode
               </div>
-              <div className="mt-1 text-sm font-semibold text-slate-950">
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                 {billingPaused
                   ? "billable 一時停止"
                   : props.account.billingPolicy?.autoPayEnabled
@@ -273,8 +273,8 @@ export function CreatorReadyAiManagerSection(props: Props) {
 
           {props.account.reconciliation.requiresAttention ? (
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-600">
-                <div className="font-semibold text-slate-950">pending x402</div>
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs leading-5 text-[var(--text-subtle)]">
+                <div className="font-semibold text-[var(--text)]">pending x402</div>
                 <div>
                   {props.account.reconciliation.pendingX402Count}件 /{" "}
                   {formatJpycAmount(props.account.reconciliation.pendingX402Amount)}
@@ -303,8 +303,8 @@ export function CreatorReadyAiManagerSection(props: Props) {
                   </div>
                 ) : null}
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-600">
-                <div className="font-semibold text-slate-950">
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs leading-5 text-[var(--text-subtle)]">
+                <div className="font-semibold text-[var(--text)]">
                   unmatched evidence
                 </div>
                 <div>
@@ -314,8 +314,8 @@ export function CreatorReadyAiManagerSection(props: Props) {
                   )}
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-600">
-                <div className="font-semibold text-slate-950">
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs leading-5 text-[var(--text-subtle)]">
+                <div className="font-semibold text-[var(--text)]">
                   latest confirmed
                 </div>
                 <div>
@@ -337,22 +337,22 @@ export function CreatorReadyAiManagerSection(props: Props) {
           ) : null}
 
           {x402FollowUps.length > 0 ? (
-            <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs leading-5 text-slate-600">
-              <div className="font-semibold text-slate-950">
+            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+              <div className="font-semibold text-[var(--text)]">
                 owner follow-up
               </div>
               <div className="mt-2 space-y-2">
                 {x402FollowUps.slice(0, 2).map((entry) => (
-                  <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div key={entry.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="font-semibold text-slate-950">
+                      <div className="font-semibold text-[var(--text)]">
                         {entry.title}
                       </div>
-                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600">
+                      <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text-subtle)]">
                         {X402_FOLLOW_UP_PRIORITY_LABELS[entry.priority]}
                       </span>
                       {entry.routeLabel ? (
-                        <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600">
+                        <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text-subtle)]">
                           {entry.routeLabel}
                         </span>
                       ) : null}
@@ -365,18 +365,18 @@ export function CreatorReadyAiManagerSection(props: Props) {
           ) : null}
 
           {x402RecoveryItems.length > 0 ? (
-            <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs leading-5 text-slate-600">
-              <div className="font-semibold text-slate-950">
+            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+              <div className="font-semibold text-[var(--text)]">
                 recent recovery
               </div>
               <div className="mt-2 space-y-2">
                 {x402RecoveryItems.slice(0, 2).map((entry) => (
-                  <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div key={entry.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="font-semibold text-slate-950">
+                      <div className="font-semibold text-[var(--text)]">
                         {entry.taskLabel ?? entry.capabilityLabel}
                       </div>
-                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600">
+                      <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text-subtle)]">
                         {entry.recoveryLabel}
                       </span>
                     </div>
@@ -408,10 +408,10 @@ export function CreatorReadyAiManagerSection(props: Props) {
                   </span>
                 ) : null}
               </div>
-              <div className="mt-3 text-sm font-semibold text-slate-950">
+              <div className="mt-3 text-sm font-semibold text-[var(--text)]">
                 {card.title}
               </div>
-              <div className="mt-2 text-xs leading-5 text-slate-700">
+              <div className="mt-2 text-xs leading-5 text-[var(--text-subtle)]">
                 {card.body}
               </div>
               <div className="mt-4">

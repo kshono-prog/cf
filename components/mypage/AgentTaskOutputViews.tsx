@@ -329,12 +329,12 @@ function ProposeOutputCard(props: {
         {output.proposals.slice(0, 3).map((proposal, idx) => (
           <div
             key={`${proposal}:${idx.toString()}`}
-            className="rounded border bg-white px-2 py-1 text-[var(--text)]"
+            className="rounded border bg-[var(--surface)] px-2 py-1 text-[var(--text)]"
           >
             <div>{idx + 1}. {proposal}</div>
             <button
               type="button"
-              className="mt-1 rounded-full border border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-[var(--text)]"
+              className="mt-1 rounded-full border border-[var(--line)] bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--text)]"
               onClick={() => {
                 openComposeWith(proposal, idx);
               }}
@@ -503,7 +503,7 @@ function managerPriorityBadgeClass(
   if (priority === "medium") {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
-  return "border-gray-200 bg-gray-100 text-[var(--text)]";
+  return "border-[var(--line)] bg-[var(--surface-muted)] text-[var(--text)]";
 }
 
 function ManagerNextActionsOutputCard(props: {
@@ -519,7 +519,7 @@ function ManagerNextActionsOutputCard(props: {
         </div>
       ) : null}
       {output.projectSnapshot ? (
-        <div className="rounded border bg-white p-2 text-[var(--text)]">
+        <div className="rounded border bg-[var(--surface)] p-2 text-[var(--text)]">
           <div className="font-medium text-[var(--text)]">
             {output.projectSnapshot.title}
           </div>
@@ -669,7 +669,7 @@ function TranslateOutputCard(props: {
               <div className="text-[10px] text-[var(--text-subtle)]">{item.lang}</div>
               <button
                 type="button"
-                className="shrink-0 rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--text)]"
+                className="shrink-0 rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--text)]"
                 onClick={() => openComposeWith(item.lang, item.text)}
               >
                 {sentLang === item.lang ? "送信済み" : "compose に送る"}
@@ -1022,17 +1022,17 @@ function DistributionPlanDraftTaskOutputCard(props: {
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
       {output.projectSnapshot ? (
         <div className="flex flex-wrap gap-2 text-[10px] text-[var(--text-subtle)]">
-          <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+          <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
             {output.projectSnapshot.title}
           </span>
-          <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+          <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
             {output.projectSnapshot.currency}
           </span>
-          <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+          <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
             status: {output.projectSnapshot.status}
           </span>
           {output.projectSnapshot.settlementStatus ? (
-            <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+            <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
               settlement: {output.projectSnapshot.settlementStatus}
             </span>
           ) : null}
@@ -1041,13 +1041,13 @@ function DistributionPlanDraftTaskOutputCard(props: {
       {output.draftPayload ? (
         <>
           <div className="flex flex-wrap gap-2 text-[10px] text-[var(--text-subtle)]">
-            <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+            <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
               source: {output.draftPayload.source}
             </span>
-            <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+            <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
               rows: {output.draftPayload.rows.length}
             </span>
-            <span className="rounded-full border border-gray-200 bg-white px-2 py-1">
+            <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
               currency: {output.draftPayload.currency}
             </span>
           </div>
@@ -1090,7 +1090,7 @@ function DistributionPlanDraftTaskOutputCard(props: {
           </div>
         </>
       ) : (
-        <div className="rounded border bg-white px-2 py-1 text-[var(--text)]">
+        <div className="rounded border bg-[var(--surface)] px-2 py-1 text-[var(--text)]">
           project 情報が不足しているため、Draft step に渡せる payload はまだありません。
         </div>
       )}
@@ -1226,7 +1226,7 @@ function AnnouncementDraftOutputCard(props: {
         </ul>
       ) : null}
       {output.callToAction ? (
-        <div className="rounded border bg-white px-2 py-1 text-[var(--text)]">
+        <div className="rounded border bg-[var(--surface)] px-2 py-1 text-[var(--text)]">
           CTA: {output.callToAction}
         </div>
       ) : null}
@@ -1318,7 +1318,7 @@ function profilePriorityBadgeClass(
 ): string {
   if (priority === "high") return "border-rose-200 bg-rose-50 text-rose-700";
   if (priority === "medium") return "border-amber-200 bg-amber-50 text-amber-800";
-  return "border-gray-200 bg-gray-100 text-[var(--text)]";
+  return "border-[var(--line)] bg-[var(--surface-muted)] text-[var(--text)]";
 }
 
 function ProfileUpdateProposalOutputCard(props: {
@@ -1345,7 +1345,7 @@ function ProfileUpdateProposalOutputCard(props: {
             className={`rounded-full border px-2 py-0.5 text-[10px] ${
               chip.ok
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-gray-200 bg-white text-[var(--text-subtle)]"
+                : "border-[var(--line)] bg-[var(--surface)] text-[var(--text-subtle)]"
             }`}
           >
             {chip.ok ? "✓" : "–"} {chip.label}
@@ -1573,7 +1573,7 @@ function ActivityRestartProposalOutputCard(props: {
           {output.successPatterns.slice(0, 3).map((pattern, idx) => (
             <div
               key={`${pattern}:${idx.toString()}`}
-              className="rounded border bg-white px-2 py-1 text-[10px] text-[var(--text)]"
+              className="rounded border bg-[var(--surface)] px-2 py-1 text-[10px] text-[var(--text)]"
             >
               {pattern}
             </div>
@@ -1691,7 +1691,7 @@ function SupportStoryDraftOutputCard(props: {
   return (
     <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
-      <div className="rounded border bg-white px-2 py-2 space-y-2">
+      <div className="rounded border bg-[var(--surface)] px-2 py-2 space-y-2">
         {output.sections.why ? (
           <div>
             <div className="text-[10px] font-medium text-[var(--text-subtle)]">
@@ -1809,10 +1809,10 @@ function SupporterResultReportOutputCard(props: {
     <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-2">
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
       <div className="flex flex-wrap gap-1 text-[10px] text-[var(--text-subtle)]">
-        <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5">
+        <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5">
           {output.goalLabel}
         </span>
-        <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5">
+        <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5">
           {output.currency}
         </span>
         {output.achievedAt ? (
@@ -2286,12 +2286,12 @@ function CareerPlanDraftOutputCard(props: {
           {output.milestones3mo.map((m, idx) => (
             <div
               key={`3mo:${idx.toString()}`}
-              className="flex items-start gap-1.5 rounded border bg-white px-2 py-1.5"
+              className="flex items-start gap-1.5 rounded border bg-[var(--surface)] px-2 py-1.5"
             >
               <span className="shrink-0 text-[10px] font-semibold text-indigo-500">
                 {(idx + 1).toString()}
               </span>
-              <span className="text-gray-800">{m}</span>
+              <span className="text-[var(--text)]">{m}</span>
             </div>
           ))}
         </div>
@@ -2302,12 +2302,12 @@ function CareerPlanDraftOutputCard(props: {
           {output.milestones6mo.map((m, idx) => (
             <div
               key={`6mo:${idx.toString()}`}
-              className="flex items-start gap-1.5 rounded border border-dashed bg-white px-2 py-1.5"
+              className="flex items-start gap-1.5 rounded border border-dashed bg-[var(--surface)] px-2 py-1.5"
             >
               <span className="shrink-0 text-[10px] font-semibold text-[var(--text-subtle)]">
                 {(idx + 1).toString()}
               </span>
-              <span className="text-gray-700">{m}</span>
+              <span className="text-[var(--text-subtle)]">{m}</span>
             </div>
           ))}
         </div>
@@ -2449,7 +2449,7 @@ function StageGrowthPlanOutputCard(props: { output: StageGrowthPlanOutputView })
           {output.growthSteps.map((step) => (
             <div
               key={step.step}
-              className="flex items-start gap-1.5 rounded border bg-white px-2 py-1.5"
+              className="flex items-start gap-1.5 rounded border bg-[var(--surface)] px-2 py-1.5"
             >
               <span
                 className={`shrink-0 text-[10px] font-semibold ${
@@ -2461,8 +2461,8 @@ function StageGrowthPlanOutputCard(props: { output: StageGrowthPlanOutputView })
                 {step.step}
               </span>
               <div>
-                <div className="font-medium text-gray-800">{step.title}</div>
-                <div className="mt-0.5 text-gray-600">{step.description}</div>
+                <div className="font-medium text-[var(--text)]">{step.title}</div>
+                <div className="mt-0.5 text-[var(--text-subtle)]">{step.description}</div>
               </div>
             </div>
           ))}
@@ -2818,15 +2818,15 @@ function ContactIntelligenceAlertOutputCard(props: {
     <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-3">
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-center">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-center">
           <div className="text-[10px] text-[var(--text-subtle)]">接点総数</div>
           <div className="mt-0.5 text-xl font-semibold text-[var(--text)]">{hs.totalContacts}</div>
         </div>
-        <div className={`rounded-xl border px-3 py-2 text-center ${hs.highRiskCount > 0 ? "border-rose-200 bg-rose-50" : "border-[var(--line)] bg-white"}`}>
+        <div className={`rounded-xl border px-3 py-2 text-center ${hs.highRiskCount > 0 ? "border-rose-200 bg-rose-50" : "border-[var(--line)] bg-[var(--surface)]"}`}>
           <div className={`text-[10px] ${hs.highRiskCount > 0 ? "text-rose-700" : "text-[var(--text-subtle)]"}`}>要対応</div>
           <div className={`mt-0.5 text-xl font-semibold ${hs.highRiskCount > 0 ? "text-rose-700" : "text-[var(--text)]"}`}>{hs.highRiskCount}</div>
         </div>
-        <div className={`rounded-xl border px-3 py-2 text-center ${hs.mediumRiskCount > 0 ? "border-amber-200 bg-amber-50" : "border-[var(--line)] bg-white"}`}>
+        <div className={`rounded-xl border px-3 py-2 text-center ${hs.mediumRiskCount > 0 ? "border-amber-200 bg-amber-50" : "border-[var(--line)] bg-[var(--surface)]"}`}>
           <div className={`text-[10px] ${hs.mediumRiskCount > 0 ? "text-amber-700" : "text-[var(--text-subtle)]"}`}>要確認</div>
           <div className={`mt-0.5 text-xl font-semibold ${hs.mediumRiskCount > 0 ? "text-amber-700" : "text-[var(--text)]"}`}>{hs.mediumRiskCount}</div>
         </div>
@@ -2836,7 +2836,7 @@ function ContactIntelligenceAlertOutputCard(props: {
           {output.riskContacts.map((contact, i) => (
             <div
               key={contact.contactId || i}
-              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 space-y-1"
+              className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 space-y-1"
             >
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={RISK_LEVEL_BADGE[contact.riskLevel]}>
@@ -2947,7 +2947,7 @@ function MeetingFollowupDraftOutputCard(props: {
           {output.actionItems.map((item, i) => (
             <div
               key={item.id || i}
-              className="flex items-start gap-1.5 rounded-lg border border-[var(--line)] bg-white px-2.5 py-2"
+              className="flex items-start gap-1.5 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2.5 py-2"
             >
               <span className={ACTION_PRIORITY_BADGE[item.priority]} style={{ marginTop: 2 }}>
                 {item.priority === "high" ? "高" : item.priority === "medium" ? "中" : "低"}
@@ -2990,7 +2990,7 @@ function MeetingFollowupDraftOutputCard(props: {
       ) : null}
 
       {output.shareableSummary && output.shareableSummary !== output.summary ? (
-        <div className="rounded-lg border border-[var(--line)] bg-white p-2.5 space-y-1">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-2.5 space-y-1">
           <div className="text-[10px] font-medium text-[var(--text-subtle)]">共有用サマリー</div>
           <div className="text-[11px] text-[var(--text)] leading-5">{output.shareableSummary}</div>
         </div>
@@ -3061,15 +3061,15 @@ function ContractRenewalAlertOutputCard(props: {
     <div className="mt-1 rounded-xl bg-[var(--surface-subtle)] p-3 text-[11px] space-y-3">
       <div className="font-medium text-[var(--text)]">{output.summary}</div>
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-center">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-center">
           <div className="text-[10px] text-[var(--text-subtle)]">契約接点数</div>
           <div className="mt-0.5 text-xl font-semibold text-[var(--text)]">{stats.total}</div>
         </div>
-        <div className={`rounded-xl border px-3 py-2 text-center ${stats.highCount > 0 ? "border-rose-200 bg-rose-50" : "border-[var(--line)] bg-white"}`}>
+        <div className={`rounded-xl border px-3 py-2 text-center ${stats.highCount > 0 ? "border-rose-200 bg-rose-50" : "border-[var(--line)] bg-[var(--surface)]"}`}>
           <div className={`text-[10px] ${stats.highCount > 0 ? "text-rose-700" : "text-[var(--text-subtle)]"}`}>要更新</div>
           <div className={`mt-0.5 text-xl font-semibold ${stats.highCount > 0 ? "text-rose-700" : "text-[var(--text)]"}`}>{stats.highCount}</div>
         </div>
-        <div className={`rounded-xl border px-3 py-2 text-center ${stats.mediumCount > 0 ? "border-amber-200 bg-amber-50" : "border-[var(--line)] bg-white"}`}>
+        <div className={`rounded-xl border px-3 py-2 text-center ${stats.mediumCount > 0 ? "border-amber-200 bg-amber-50" : "border-[var(--line)] bg-[var(--surface)]"}`}>
           <div className={`text-[10px] ${stats.mediumCount > 0 ? "text-amber-700" : "text-[var(--text-subtle)]"}`}>準備開始</div>
           <div className={`mt-0.5 text-xl font-semibold ${stats.mediumCount > 0 ? "text-amber-700" : "text-[var(--text)]"}`}>{stats.mediumCount}</div>
         </div>
@@ -3079,7 +3079,7 @@ function ContractRenewalAlertOutputCard(props: {
           {output.renewalAlerts.map((alert, i) => (
             <div
               key={alert.contactId || i}
-              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 space-y-1"
+              className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 space-y-1"
             >
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={RENEWAL_URGENCY_BADGE[alert.urgency]}>
@@ -3411,7 +3411,7 @@ function SupporterMessageDraftOutputCard(props: {
           ))}
         </ul>
       ) : null}
-      <div className="rounded border bg-white px-2 py-1 text-[var(--text)]">
+      <div className="rounded border bg-[var(--surface)] px-2 py-1 text-[var(--text)]">
         この下書きは支援者向けのため、public posting compose には直接渡しません。
       </div>
       <div className="flex flex-wrap gap-2">
