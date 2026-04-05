@@ -66,7 +66,7 @@ export function ProjectSettlementManualResultSection(
                 {entry.recipientAddressChecksum}
               </span>
               <span>{entry.amountAtomic}</span>
-              <span className="inline-flex rounded bg-gray-100 px-2 py-0.5">
+              <span className="inline-flex rounded bg-[var(--surface-muted)] px-2 py-0.5">
                 {getDistributionEntryStatusLabel(entry.status)}
               </span>
               {props.runtimeRowStatus[entry.id] ? (
@@ -100,7 +100,7 @@ export function ProjectSettlementManualResultSection(
                   失敗にする
                 </button>
               </div>
-              <div className="text-[11px] text-gray-500 sm:ml-auto">
+              <div className="text-[11px] text-[var(--muted)] sm:ml-auto">
                 送金結果を外部確認できたときだけ更新します
               </div>
             </div>

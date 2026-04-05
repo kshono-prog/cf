@@ -23,7 +23,7 @@ export function RpgLevelUpModal({ newLevel, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-[var(--surface)] dark:bg-gray-900 rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4 text-center">
+      <div className="bg-[var(--surface)] dark:bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4 text-center">
         <div className="text-4xl font-black text-indigo-600 dark:text-indigo-400">
           Lv.{newLevel}
         </div>
@@ -45,7 +45,7 @@ export function RpgLevelUpModal({ newLevel, onClose }: Props) {
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-[var(--muted)] hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="flex-1 py-2 rounded-lg border border-[var(--line)] dark:border-gray-700 text-sm text-[var(--text-subtle)] dark:text-[var(--muted)] hover:bg-[var(--surface-subtle)] dark:hover:bg-gray-800"
           >
             閉じる
           </button>

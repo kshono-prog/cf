@@ -68,15 +68,15 @@ export function ProjectSection(props: {
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">公開向け Project</h2>
         {hasActive ? (
-          <span className="text-[11px] text-gray-500">
+          <span className="text-[11px] text-[var(--muted)]">
             projectId: <span className="font-mono">{activeProjectId}</span>
           </span>
         ) : (
-          <span className="text-[11px] text-gray-500">Project 未作成</span>
+          <span className="text-[11px] text-[var(--muted)]">Project 未作成</span>
         )}
       </div>
 
-      {msg ? <div className="text-[11px] text-gray-700">{msg}</div> : null}
+      {msg ? <div className="text-[11px] text-[var(--text-subtle)]">{msg}</div> : null}
 
       {/* A) activeあり → VIEW/EDIT/CREATE切替 */}
       {hasActive ? (
@@ -84,22 +84,22 @@ export function ProjectSection(props: {
           {/* VIEW */}
           {mode === "VIEW" && (
             <>
-              <div className="rounded-xl border border-gray-200 p-3">
-                <div className="text-sm font-semibold text-gray-900">
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <div className="text-sm font-semibold text-[var(--text)]">
                   {project?.title ?? (loading ? "読み込み中…" : "(untitled)")}
                 </div>
 
                 {project?.description ? (
-                  <div className="mt-1 text-xs text-gray-600 whitespace-pre-wrap">
+                  <div className="mt-1 text-xs text-[var(--text-subtle)] whitespace-pre-wrap">
                     {project.description}
                   </div>
                 ) : null}
 
-                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-600">
-                  <span className="px-2 py-1 rounded bg-gray-100">
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-[var(--text-subtle)]">
+                  <span className="px-2 py-1 rounded bg-[var(--surface-muted)]">
                     purposeMode: {project?.purposeMode ?? "-"}
                   </span>
-                  <span className="px-2 py-1 rounded bg-gray-100">
+                  <span className="px-2 py-1 rounded bg-[var(--surface-muted)]">
                     status: {project?.status ?? "-"}
                   </span>
                 </div>
@@ -122,14 +122,14 @@ export function ProjectSection(props: {
                 </button>
               </div>
 
-              <p className="text-[11px] text-gray-500">
+              <p className="text-[11px] text-[var(--muted)]">
                 Project は分配・ブリッジ等の対象単位です。Goal は Project
                 ごとに設定されます。
               </p>
 
               {/* Summary / Actions（feature flagで非表示） */}
               {!featureHideSummaryActions ? (
-                <div className="rounded-xl border border-gray-200 p-3 text-[11px] text-gray-600">
+                <div className="rounded-xl border border-[var(--line)] p-3 text-[11px] text-[var(--text-subtle)]">
                   Summary / Actions（ここは featureHideSummaryActions
                   で消せます）
                 </div>
@@ -140,11 +140,11 @@ export function ProjectSection(props: {
           {/* EDIT */}
           {mode === "EDIT" && (
             <div className="space-y-2">
-              <div className="text-xs text-gray-600">
+              <div className="text-xs text-[var(--text-subtle)]">
                 編集対象：active の Project のみ
               </div>
 
-              <label className="block text-[11px] text-gray-600">
+              <label className="block text-[11px] text-[var(--text-subtle)]">
                 タイトル <span className="text-red-500">*</span>
               </label>
               <input
@@ -154,7 +154,7 @@ export function ProjectSection(props: {
                 disabled={editDraft.saving}
               />
 
-              <label className="block text-[11px] text-gray-600">説明</label>
+              <label className="block text-[11px] text-[var(--text-subtle)]">説明</label>
               <textarea
                 className="input min-h-[70px]"
                 value={editDraft.description}
@@ -162,7 +162,7 @@ export function ProjectSection(props: {
                 disabled={editDraft.saving}
               />
 
-              <label className="block text-[11px] text-gray-600">
+              <label className="block text-[11px] text-[var(--text-subtle)]">
                 purposeMode
               </label>
               <select
@@ -239,7 +239,7 @@ export function ProjectSection(props: {
       )}
 
       {integratedGoalPanel ? (
-        <div className="mt-2 border-t border-gray-200 pt-3">
+        <div className="mt-2 border-t border-[var(--line)] pt-3">
           {integratedGoalPanel}
         </div>
       ) : null}

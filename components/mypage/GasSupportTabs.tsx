@@ -182,8 +182,8 @@ export function GasSupportTabs() {
               onClick={() => setActiveChainId(option.chainId)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
                 isActive
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-[var(--surface)] text-gray-700 border-gray-200 hover:bg-gray-50"
+                  ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                  : "bg-[var(--surface)] text-[var(--text-subtle)] border-[var(--line)] hover:bg-[var(--surface-subtle)]"
               }`}
             >
               {option.tokenSymbol}

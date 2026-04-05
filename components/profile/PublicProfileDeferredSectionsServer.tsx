@@ -53,7 +53,7 @@ export async function PublicProfileDeferredSectionsServer({
       <GoalAchievementImpactSection impacts={data.impacts} />
 
       {data.reportSummary ? (
-        <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4">
+        <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4">
           <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             支援者へのご報告
           </div>

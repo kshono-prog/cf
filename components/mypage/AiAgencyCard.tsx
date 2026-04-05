@@ -213,22 +213,22 @@ export function AiAgencyCard(props: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div>
-        <div className="text-sm font-semibold text-gray-900">{AI_OFFICE_LABEL}</div>
-        <div className="mt-1 text-xs leading-5 text-gray-600">
+        <div className="text-sm font-semibold text-[var(--text)]">{AI_OFFICE_LABEL}</div>
+        <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
           投稿・分析・告知の担当AIを整理し、将来の自動化処理の土台をここで管理します。
         </div>
       </div>
 
       <div className="mt-4 space-y-4">
-        <form className="rounded-2xl border border-gray-200 bg-gray-50 p-4" onSubmit={handleCreateAgent}>
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+        <form className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4" onSubmit={handleCreateAgent}>
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             AIエージェント
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-gray-700">名前</label>
+              <label className="block text-xs font-medium text-[var(--text-subtle)]">名前</label>
               <input
                 type="text"
                 className="input mt-1"
@@ -239,7 +239,7 @@ export function AiAgencyCard(props: Props) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700">役割</label>
+              <label className="block text-xs font-medium text-[var(--text-subtle)]">役割</label>
               <select
                 className="input mt-1"
                 value={agentRole}
@@ -262,13 +262,13 @@ export function AiAgencyCard(props: Props) {
           </div>
         </form>
 
-        <form className="rounded-2xl border border-gray-200 bg-gray-50 p-4" onSubmit={handleQueueJob}>
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+        <form className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4" onSubmit={handleQueueJob}>
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Test Queue
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-gray-700">job 種別</label>
+              <label className="block text-xs font-medium text-[var(--text-subtle)]">job 種別</label>
               <select
                 className="input mt-1"
                 value={jobType}
@@ -284,7 +284,7 @@ export function AiAgencyCard(props: Props) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700">
+              <label className="block text-xs font-medium text-[var(--text-subtle)]">
                 担当 agent
               </label>
               <select
@@ -303,7 +303,7 @@ export function AiAgencyCard(props: Props) {
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-[11px] leading-5 text-gray-500">
+            <div className="text-[11px] leading-5 text-[var(--muted)]">
               実行や課金の本処理は後続フェーズです。ここでは queue 登録までを扱います。
             </div>
             <button type="submit" className="btn" disabled={savingJob || !props.address}>
@@ -321,11 +321,11 @@ export function AiAgencyCard(props: Props) {
         ) : null}
 
         {loading ? (
-          <div className="text-sm text-gray-500">AI agent と job を読み込み中です...</div>
+          <div className="text-sm text-[var(--muted)]">AI agent と job を読み込み中です...</div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 登録済み agent
               </div>
               {agents.length === 0 ? (
@@ -338,22 +338,22 @@ export function AiAgencyCard(props: Props) {
                 agents.map((agent) => (
                   <div
                     key={agent.id}
-                    className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-3"
+                    className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-[var(--text)]">
                           {agent.name}
                         </div>
-                        <div className="mt-1 text-xs text-gray-500">
+                        <div className="mt-1 text-xs text-[var(--muted)]">
                           {getRoleLabel(agent.role)} / {agent.status}
                         </div>
                       </div>
-                      <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] text-gray-700">
+                      <div className="rounded-full border border-[var(--line)] bg-[var(--surface-subtle)] px-2.5 py-1 text-[11px] text-[var(--text-subtle)]">
                         job {agent.counts.jobs}
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-gray-500">
+                    <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-[var(--muted)]">
                       <span>投稿 {agent.counts.posts}</span>
                       <span>返信 {agent.counts.replies}</span>
                       <span>更新 {formatDateTime(agent.updatedAt)}</span>
@@ -364,7 +364,7 @@ export function AiAgencyCard(props: Props) {
             </div>
 
             <div className="space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 最近の job
               </div>
               {jobs.length === 0 ? (
@@ -377,28 +377,28 @@ export function AiAgencyCard(props: Props) {
                 jobs.slice(0, 6).map((job) => (
                   <div
                     key={job.id}
-                    className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-3"
+                    className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-[var(--text)]">
                           {getJobTypeLabel(job.jobType)}
                         </div>
-                        <div className="mt-1 text-xs text-gray-500">
+                        <div className="mt-1 text-xs text-[var(--muted)]">
                           {job.status}
                           {job.aiAgent ? ` / ${job.aiAgent.name}` : ""}
                         </div>
                       </div>
-                      <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] text-gray-700">
+                      <div className="rounded-full border border-[var(--line)] bg-[var(--surface-subtle)] px-2.5 py-1 text-[11px] text-[var(--text-subtle)]">
                         {job.billingStatus}
                       </div>
                     </div>
                     {job.post ? (
-                      <div className="mt-2 text-xs leading-5 text-gray-600">
+                      <div className="mt-2 text-xs leading-5 text-[var(--text-subtle)]">
                         対象投稿: {job.post.preview}
                       </div>
                     ) : null}
-                    <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-gray-500">
+                    <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-[var(--muted)]">
                       <span>{formatDateTime(job.createdAt)}</span>
                       <span>
                         コスト {job.executionCostUsd ? `${job.executionCostUsd} USD` : "-"}

@@ -63,7 +63,7 @@ export function AchievementCard({ displayName, username, growthOverview, approve
   const creatorName = displayName || username;
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
           <div className="text-sm font-semibold text-[var(--text)]">

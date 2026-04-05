@@ -36,7 +36,7 @@ export function SocialLinksEditor({
 
           return (
             <div key={key}>
-              <label className="block text-[11px] text-gray-600 mb-1">
+              <label className="block text-[11px] text-[var(--text-subtle)] mb-1">
                 {SOCIAL_LABEL_MAP[key]}
               </label>
 
@@ -57,7 +57,7 @@ export function SocialLinksEditor({
               ) : (
                 <>
                   <div className="flex items-center gap-1">
-                    <span className="inline-flex items-center justify-center rounded border px-2 py-1 text-[11px] text-gray-600 bg-gray-50">
+                    <span className="inline-flex items-center justify-center rounded border px-2 py-1 text-[11px] text-[var(--text-subtle)] bg-[var(--surface-subtle)]">
                       @
                     </span>
                     <input
@@ -78,7 +78,7 @@ export function SocialLinksEditor({
                       }}
                     />
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-1">
+                  <p className="text-[10px] text-[var(--muted)] mt-1">
                     例）creatorfounding
                   </p>
                 </>

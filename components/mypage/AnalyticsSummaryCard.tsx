@@ -70,11 +70,11 @@ export function AnalyticsSummaryCard(props: Props) {
   }, [loadSummary, props.refreshToken]);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-gray-900">分析サマリー</div>
-          <div className="mt-1 text-xs leading-5 text-gray-600">
+          <div className="text-sm font-semibold text-[var(--text)]">分析サマリー</div>
+          <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             投稿、反応、支援、AI 運用の基本指標をまとめて見ます。
           </div>
         </div>
@@ -99,7 +99,7 @@ export function AnalyticsSummaryCard(props: Props) {
       ) : null}
 
       {loading ? (
-        <div className="mt-4 text-sm text-gray-500">分析サマリーを読み込み中です...</div>
+        <div className="mt-4 text-sm text-[var(--muted)]">分析サマリーを読み込み中です...</div>
       ) : !summary || summary.postCount === 0 ? (
         <div className="mt-4">
           <WorkspaceEmptyState
@@ -110,58 +110,58 @@ export function AnalyticsSummaryCard(props: Props) {
       ) : (
         <div className="mt-4 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
                 投稿
               </div>
-              <div className="mt-2 text-xl font-semibold text-gray-900">
+              <div className="mt-2 text-xl font-semibold text-[var(--text)]">
                 {summary.postCount}
               </div>
-              <div className="mt-1 text-[11px] text-gray-500">
+              <div className="mt-1 text-[11px] text-[var(--muted)]">
                 公開 {summary.publishedCount} / 下書き {summary.draftCount}
               </div>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
                 反応
               </div>
-              <div className="mt-2 text-xl font-semibold text-gray-900">
+              <div className="mt-2 text-xl font-semibold text-[var(--text)]">
                 {summary.totalLikes + summary.totalReplies}
               </div>
-              <div className="mt-1 text-[11px] text-gray-500">
+              <div className="mt-1 text-[11px] text-[var(--muted)]">
                 いいね {summary.totalLikes} / 返信 {summary.totalReplies}
               </div>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
                 投稿支援
               </div>
-              <div className="mt-2 text-xl font-semibold text-gray-900">
+              <div className="mt-2 text-xl font-semibold text-[var(--text)]">
                 {summary.totalTips}
               </div>
-              <div className="mt-1 text-[11px] text-gray-500">
+              <div className="mt-1 text-[11px] text-[var(--muted)]">
                 JPYC {summary.tipTotals.JPYC} / USDC {summary.tipTotals.USDC}
               </div>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
                 {AI_OFFICE_LABEL}
               </div>
-              <div className="mt-2 text-xl font-semibold text-gray-900">
+              <div className="mt-2 text-xl font-semibold text-[var(--text)]">
                 {summary.agents.total}
               </div>
-              <div className="mt-1 text-[11px] text-gray-500">
+              <div className="mt-1 text-[11px] text-[var(--muted)]">
                 active {summary.agents.active} / queued job {summary.jobs.queued}
               </div>
             </div>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
-                Feed analytics
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                フィード分析
               </div>
-              <div className="mt-3 space-y-2 text-sm text-gray-700">
+              <div className="mt-3 space-y-2 text-sm text-[var(--text-subtle)]">
                 <div className="flex items-center justify-between gap-3">
                   <span>計測対象投稿</span>
                   <span className="font-semibold">
@@ -189,11 +189,11 @@ export function AnalyticsSummaryCard(props: Props) {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 更新タイミング
               </div>
-              <div className="mt-3 space-y-2 text-sm text-gray-700">
+              <div className="mt-3 space-y-2 text-sm text-[var(--text-subtle)]">
                 <div className="flex items-center justify-between gap-3">
                   <span>最後の投稿</span>
                   <span className="font-semibold">

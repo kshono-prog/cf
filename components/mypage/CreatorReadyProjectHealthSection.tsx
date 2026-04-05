@@ -81,7 +81,7 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
     goal && total !== null ? Math.max(goal.targetAmount - total, 0) : null;
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold tracking-wide text-[var(--muted)]">
@@ -91,15 +91,18 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
             {project.title}
           </div>
         </div>
-        <span className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-subtle)]">
+        <span className="rounded-full bg-[var(--accent-subtle)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]">
           {progressLabel}
         </span>
       </div>
 
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]">
         <div
-          className="h-full rounded-full bg-[var(--accent)] transition-[width]"
-          style={{ width: `${progressPct}%` }}
+          className="h-full rounded-full transition-[width]"
+          style={{
+            width: `${progressPct}%`,
+            background: "linear-gradient(90deg, var(--accent), #60a5fa)",
+          }}
         />
       </div>
 
@@ -129,9 +132,15 @@ function ProjectHealthCard(props: ProjectHealthCardProps) {
         ) : null}
       </dl>
 
-      <div className="mt-4 rounded-2xl bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
-        <div className="font-semibold text-[var(--text)]">次に必要なこと</div>
-        <div className="mt-1">{nextStep}</div>
+      <div
+        className="mt-4 rounded-xl px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+        style={{
+          background: "var(--surface-subtle)",
+          borderLeft: "3px solid var(--accent-muted)",
+        }}
+      >
+        <p className="font-semibold text-[var(--text)]">次に必要なこと</p>
+        <p className="mt-1">{nextStep}</p>
       </div>
     </div>
   );
@@ -144,14 +153,14 @@ type Props = {
 
 export function CreatorReadyProjectHealthSection(props: Props) {
   return (
-    <div className="card p-4">
-      <div className="text-sm font-semibold text-[var(--text)]">
-        プロジェクトの進行状況
+    <div className="card p-0 overflow-hidden">
+      <div className="px-4 py-4 border-b border-[var(--line)]">
+        <p className="text-sm font-bold text-[var(--text)]">プロジェクトの進行状況</p>
+        <p className="mt-0.5 text-xs leading-5 text-[var(--text-subtle)]">
+          Project / Goal / 精算の現在地をまとめて確認できます。
+        </p>
       </div>
-      <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
-        Project / Goal / 精算の現在地をまとめて確認できます。
-      </p>
-      <div className="mt-4 grid gap-3">
+      <div className="p-4 grid gap-3">
         {(["JPYC", "USDC"] as const).map((currency) => (
           <ProjectHealthCard
             key={currency}

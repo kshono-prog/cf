@@ -117,7 +117,7 @@ export function ProjectSettlementCctpSection(
               <details key={job.id} className="rounded border p-2">
                 <summary className="cursor-pointer text-xs flex flex-wrap items-center gap-2">
                   <span className="font-mono">{job.id.slice(0, 10)}...</span>
-                  <span className="px-2 py-0.5 rounded bg-gray-100">
+                  <span className="px-2 py-0.5 rounded bg-[var(--surface-muted)]">
                     {getCctpStatusLabel(job.status)}
                   </span>
                   <span>

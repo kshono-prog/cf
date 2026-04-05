@@ -30,15 +30,15 @@ function actionClassName(tone: "primary" | "secondary"): string {
 
 export function PublicReadinessPanel(props: Props) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <div className="text-sm font-semibold text-gray-900">{props.title}</div>
-          <div className="mt-1 text-xs leading-5 text-gray-600">
+          <div className="text-sm font-semibold text-[var(--text)]">{props.title}</div>
+          <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             {props.description}
           </div>
         </div>
-        <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+        <div className="rounded-full border border-[var(--accent)]/20 bg-[var(--accent-subtle)] px-3 py-1 text-xs font-medium text-[var(--accent)]">
           公開準備 {props.readiness.completedCount} / {props.readiness.totalCount}
         </div>
       </div>
@@ -50,22 +50,22 @@ export function PublicReadinessPanel(props: Props) {
             className={`rounded-xl border px-3 py-3 ${
               item.ready
                 ? "border-emerald-200 bg-emerald-50"
-                : "border-gray-200 bg-gray-50"
+                : "border-[var(--line)] bg-[var(--surface-subtle)]"
             }`}
           >
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-medium text-gray-900">{item.label}</div>
+              <div className="text-sm font-medium text-[var(--text)]">{item.label}</div>
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                   item.ready
                     ? "bg-emerald-100 text-emerald-800"
-                    : "bg-[var(--surface)] text-gray-600"
+                    : "bg-[var(--surface)] text-[var(--text-subtle)]"
                 }`}
               >
                 {item.ready ? "OK" : "未設定"}
               </span>
             </div>
-            <div className="mt-1 text-xs leading-5 text-gray-600">
+            <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
               {item.detail}
             </div>
           </div>
@@ -74,14 +74,14 @@ export function PublicReadinessPanel(props: Props) {
 
       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
         <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
-          Next Action
+          次のアクション
         </div>
-        <div className="mt-1 text-sm font-medium text-gray-900">
+        <div className="mt-1 text-sm font-medium text-[var(--text)]">
           {props.readiness.isReady
             ? "公開ページを支援者目線で最終確認する"
             : `${props.readiness.firstMissingLabel ?? "未設定項目"}から整える`}
         </div>
-        <div className="mt-1 text-xs leading-5 text-gray-700">
+        <div className="mt-1 text-xs leading-5 text-amber-900">
           {props.readiness.isReady
             ? "必要な項目は揃っています。公開ページとイベントページの見え方を確認して仕上げます。"
             : "未設定の項目から順に埋めると、公開ページの理解しやすさと支援しやすさが上がります。"}

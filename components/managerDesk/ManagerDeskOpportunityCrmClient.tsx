@@ -49,7 +49,7 @@ const TEMPERATURE_LABELS: Record<string, string> = {
 
 const secondaryActionClassName = "btn-secondary justify-center text-sm";
 const fieldClassName =
-  "w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
+  "w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "未設定";
@@ -77,7 +77,7 @@ function dueStateLabel(value: ManagerDeskContactPipelineItem["dueState"]): strin
 
 function SummaryMetric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -183,7 +183,7 @@ function OpportunityCard(props: {
       </div>
 
       {item.contact.nextAction ? (
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             Next Action
           </div>
@@ -199,7 +199,7 @@ function OpportunityCard(props: {
       ) : null}
 
       {item.latestNote ? (
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
               最新ノート
@@ -220,7 +220,7 @@ function OpportunityCard(props: {
       ) : null}
 
       {noteOpen ? (
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 space-y-3">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 space-y-3">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             ノートを記録
           </div>
@@ -422,7 +422,7 @@ export function ManagerDeskOpportunityCrmClient() {
               </div>
 
               {data.availableCreators.length > 1 ? (
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
                   <label className="space-y-2 text-sm text-[var(--text-subtle)]">
                     <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
                       Creator

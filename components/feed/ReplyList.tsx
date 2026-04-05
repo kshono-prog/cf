@@ -52,7 +52,7 @@ export function ReplyList(props: Props) {
 
   if (replies.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--text-subtle)]">
+      <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--text-subtle)]">
         まだ返信はありません。最初のひとことを送れます。
       </div>
     );
@@ -63,7 +63,7 @@ export function ReplyList(props: Props) {
       {replies.map((reply) => (
         <div
           key={reply.id}
-          className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3"
+          className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3"
         >
           <div className="flex items-start gap-2.5">
             <Avatar
@@ -118,25 +118,25 @@ export function ReplyList(props: Props) {
               </div>
 
               {editingReplyId === reply.id ? (
-                <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
                   <textarea
                     className="input min-h-[96px] w-full"
                     value={editValue}
                     onChange={(event) => onEditValueChange(event.target.value)}
                     disabled={savingReplyId === reply.id}
                   />
-                  <div className="mt-1 text-[11px] text-gray-500">
+                  <div className="mt-1 text-[11px] text-[var(--muted)]">
                     {editValue.trim().length}/1200
                   </div>
                   {editError ? (
-                    <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
+                    <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
                       {editError}
                     </div>
                   ) : null}
                   <div className="mt-3 flex justify-end gap-2">
                     <button
                       type="button"
-                      className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)] transition hover:bg-gray-50"
+                      className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-subtle)]"
                       onClick={onCancelEdit}
                       disabled={savingReplyId === reply.id}
                     >
@@ -153,7 +153,7 @@ export function ReplyList(props: Props) {
                   </div>
                 </div>
               ) : (
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--text-subtle)]">
                   {reply.body}
                 </p>
               )}

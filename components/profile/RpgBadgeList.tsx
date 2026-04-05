@@ -12,7 +12,7 @@ type Badge = {
 };
 
 const RARITY_COLOR: Record<string, string> = {
-  COMMON: "text-gray-600 bg-gray-100",
+  COMMON: "text-[var(--text-subtle)] bg-[var(--surface-muted)]",
   RARE: "text-blue-600 bg-blue-100",
   EPIC: "text-purple-600 bg-purple-100",
   LEGENDARY: "text-yellow-600 bg-yellow-100",
@@ -40,9 +40,9 @@ export function RpgBadgeList({ earnedCount, totalCount }: Props) {
   }, []);
 
   return (
-    <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
+    <div className="rounded-xl border border-[var(--line)] dark:border-gray-800 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">バッジ</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-subtle)] dark:text-gray-300">バッジ</h3>
         <span className="text-xs text-[var(--muted)]">{earnedCount} / {totalCount} 獲得</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -55,7 +55,7 @@ export function RpgBadgeList({ earnedCount, totalCount }: Props) {
               {b.rarity}
             </div>
             <div className="font-semibold text-[var(--text)] dark:text-gray-200">{b.name}</div>
-            <div className="text-gray-500">{b.earned ? b.description : b.conditionText}</div>
+            <div className="text-[var(--muted)]">{b.earned ? b.description : b.conditionText}</div>
           </div>
         ))}
       </div>

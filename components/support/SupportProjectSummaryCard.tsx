@@ -85,7 +85,7 @@ export function SupportProjectSummaryCard(
 
   return (
     <div
-      className={`rounded-3xl border px-4 py-4 transition sm:px-5 ${
+      className={`rounded-2xl border px-4 py-4 transition sm:px-5 ${
         isSelected
           ? "border-[var(--support)] bg-[var(--surface-subtle)]"
           : "border-[var(--line)] bg-[var(--surface)]"

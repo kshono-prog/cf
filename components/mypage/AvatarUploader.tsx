@@ -52,7 +52,7 @@ export function AvatarUploader({
             className="h-12 w-12 rounded-full object-cover border"
           />
         )}
-        <div className="text-[11px] text-gray-500">
+        <div className="text-[11px] text-[var(--muted)]">
           <p>画像ファイル（正方形推奨）を選択してください。</p>
           <p>※ 1MB 前後のサイズを推奨します。</p>
         </div>
@@ -77,14 +77,14 @@ export function AvatarUploader({
       />
       <label
         htmlFor={inputId}
-        className="inline-flex items-center justify-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+        className="inline-flex items-center justify-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-subtle)] shadow-sm cursor-pointer hover:bg-[var(--surface-subtle)] active:bg-[var(--surface-muted)]"
       >
         画像ファイルを選択
       </label>
 
       {avatarFile && (
         <div className="mt-1 space-y-1">
-          <p className="text-[11px] text-gray-500 break-all">
+          <p className="text-[11px] text-[var(--muted)] break-all">
             選択中：{avatarFile.name}
           </p>
 

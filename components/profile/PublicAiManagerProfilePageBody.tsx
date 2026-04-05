@@ -177,7 +177,7 @@ export function PublicAiManagerProfilePageBody({
             <p className="text-sm leading-7 text-[var(--text)]">{intro}</p>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   所属 creator
                 </div>
@@ -185,7 +185,7 @@ export function PublicAiManagerProfilePageBody({
                   {creatorDisplayName}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   公開URL
                 </div>
@@ -193,7 +193,7 @@ export function PublicAiManagerProfilePageBody({
                   /{creatorUsername}/manager/{aiManager.slug}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   言語
                 </div>
@@ -204,7 +204,7 @@ export function PublicAiManagerProfilePageBody({
             </div>
 
             {hasActivityProof ? (
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                   Activity Proof
                 </div>
@@ -258,7 +258,7 @@ export function PublicAiManagerProfilePageBody({
             {recentSupportActivities.map((activity) => (
               <div
                 key={`${activity.taskType}-${activity.createdAt}`}
-                className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3"
+                className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-[var(--text)]">
@@ -289,7 +289,7 @@ export function PublicAiManagerProfilePageBody({
             この AIマネージャーが担うこと
           </div>
           <div className="mt-3 grid gap-3">
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-xs font-semibold text-[var(--text)]">
                 活動案内
               </div>
@@ -297,7 +297,7 @@ export function PublicAiManagerProfilePageBody({
                 creator の進捗や現在の挑戦を、外から来た人にも分かりやすく伝えます。
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-xs font-semibold text-[var(--text)]">
                 応援導線づくり
               </div>
@@ -305,7 +305,7 @@ export function PublicAiManagerProfilePageBody({
                 どんな支援が今うれしいか、どこに参加できるかを整理して届けます。
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-xs font-semibold text-[var(--text)]">
                 creator の継続支援
               </div>
@@ -336,7 +336,7 @@ export function PublicAiManagerProfilePageBody({
             </p>
           )}
 
-          <div className="mt-5 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+          <div className="mt-5 rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
             <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
               Why This Exists
             </div>
@@ -371,7 +371,7 @@ export function PublicAiManagerProfilePageBody({
             {recentSupportActivities.map((activity) => (
               <div
                 key={`${activity.taskType}-${activity.createdAt}`}
-                className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3"
+                className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-[var(--text)]">
@@ -415,7 +415,7 @@ export function PublicAiManagerProfilePageBody({
             </Link>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+          <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
             <div className="text-base font-semibold text-[var(--text)]">
               {activeSupportProject.title}
             </div>
@@ -426,7 +426,7 @@ export function PublicAiManagerProfilePageBody({
             ) : null}
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   現在の支援額
                 </div>
@@ -437,7 +437,7 @@ export function PublicAiManagerProfilePageBody({
                   )}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   目標
                 </div>
@@ -450,7 +450,7 @@ export function PublicAiManagerProfilePageBody({
                     : "設定なし"}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                   進捗
                 </div>
@@ -478,7 +478,7 @@ export function PublicAiManagerProfilePageBody({
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-emerald-500" />
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
@@ -493,7 +493,7 @@ export function PublicAiManagerProfilePageBody({
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
             <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
               プロフィール最終更新
             </div>
@@ -510,7 +510,7 @@ export function PublicAiManagerProfilePageBody({
           </div>
         </div>
 
-        <div className="mt-3 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+        <div className="mt-3 rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
           <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
             公開しない情報
           </div>

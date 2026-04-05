@@ -18,17 +18,17 @@ const LABELS: Array<{ key: keyof Stats; ja: string; hint: string }> = [
 
 export function RpgStatsRadar({ stats }: { stats: Stats }) {
   return (
-    <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">ステータス</h3>
+    <div className="rounded-xl border border-[var(--line)] dark:border-gray-800 p-4 space-y-3">
+      <h3 className="text-sm font-semibold text-[var(--text-subtle)] dark:text-gray-300">ステータス</h3>
       <p className="text-xs text-[var(--muted)]">この値は最近30日の活動をもとに算出しています</p>
       <div className="space-y-2">
         {LABELS.map(({ key, ja, hint }) => (
           <div key={key} className="space-y-0.5">
             <div className="flex justify-between text-xs">
-              <span className="text-gray-600 dark:text-[var(--muted)]">{ja}</span>
-              <span className="text-gray-500">{stats[key]}</span>
+              <span className="text-[var(--text-subtle)] dark:text-[var(--muted)]">{ja}</span>
+              <span className="text-[var(--muted)]">{stats[key]}</span>
             </div>
-            <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+            <div className="w-full bg-[var(--surface-muted)] dark:bg-gray-800 rounded-full h-2">
               <div
                 className="bg-purple-400 h-2 rounded-full"
                 style={{ width: `${stats[key]}%` }}

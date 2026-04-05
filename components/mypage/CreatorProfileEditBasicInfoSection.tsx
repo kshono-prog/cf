@@ -23,7 +23,7 @@ export function CreatorProfileEditBasicInfoSection() {
   };
 
   return (
-    <div className="space-y-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+    <div className="space-y-4 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
       <div>
         <div className="text-base font-semibold text-[var(--text)]">
           基本情報

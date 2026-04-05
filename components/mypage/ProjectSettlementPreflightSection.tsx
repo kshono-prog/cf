@@ -29,7 +29,7 @@ export function ProjectSettlementPreflightSection(
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
         <div>
           <div className="text-sm font-medium">送信前の確認</div>
-          <div className="mt-1 text-[11px] leading-5 text-gray-500 sm:text-xs">
+          <div className="mt-1 text-[11px] leading-5 text-[var(--muted)] sm:text-xs">
             必要な残高と承認設定を確認してから、配分実行へ進みます。
           </div>
         </div>
@@ -49,11 +49,11 @@ export function ProjectSettlementPreflightSection(
           description="配分計画を保存したあとで確認を実行すると、必要残高や設定不足をまとめて確認できます。"
         />
       ) : (
-        <div className="space-y-2 rounded border bg-gray-50 p-3 text-[11px] leading-5 sm:p-2 sm:text-xs">
+        <div className="space-y-2 rounded border bg-[var(--surface-subtle)] p-3 text-[11px] leading-5 sm:p-2 sm:text-xs">
           {props.preflight.map((item) => (
             <div
               key={item.token}
-              className="flex flex-col gap-1 rounded border border-gray-200 bg-[var(--surface)] p-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
+              className="flex flex-col gap-1 rounded border border-[var(--line)] bg-[var(--surface)] p-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
             >
               <span className="font-semibold">{item.token}</span>
               <span>必要額: {item.requiredAtomic.toString()}</span>

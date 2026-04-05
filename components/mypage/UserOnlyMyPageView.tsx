@@ -92,7 +92,7 @@ export function UserOnlyMyPageView(props: Props) {
             <p className="text-sm">
               表示名：{props.userDisplayName ?? "（未設定）"}
             </p>
-            <p className="text-xs text-gray-500 whitespace-pre-wrap">
+            <p className="text-xs text-[var(--muted)] whitespace-pre-wrap">
               プロフィール：{props.userProfile ?? "（未設定）"}
             </p>
           </div>
@@ -114,12 +114,12 @@ export function UserOnlyMyPageView(props: Props) {
           />
         </MyPageAccordion>
 
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
           <div className="mb-3">
-            <h2 className="text-sm font-semibold text-gray-900">
+            <h2 className="text-sm font-semibold text-[var(--text)]">
               クリエイターとして公開する
             </h2>
-            <p className="mt-1 text-xs leading-relaxed text-gray-700">
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-subtle)]">
               申請後は、公開ページの編集、応援の受け取り、投稿、詳細設定などのクリエイター向け機能が使えるようになります。
             </p>
           </div>

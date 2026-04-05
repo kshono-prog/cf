@@ -10,7 +10,7 @@ const ROLE_LABEL: Record<string, string> = {
 const ROLE_BADGE_CLASS: Record<string, string> = {
   OWNER: "bg-blue-100 text-blue-700",
   MANAGER: "bg-amber-100 text-amber-700",
-  COLLABORATOR: "bg-gray-100 text-gray-600",
+  COLLABORATOR: "bg-[var(--surface-muted)] text-[var(--text-subtle)]",
   ADVISOR: "bg-purple-100 text-purple-700",
 };
 
@@ -19,7 +19,7 @@ function roleLabel(role: string): string {
 }
 
 function roleBadgeClass(role: string): string {
-  return ROLE_BADGE_CLASS[role] ?? "bg-gray-100 text-gray-600";
+  return ROLE_BADGE_CLASS[role] ?? "bg-[var(--surface-muted)] text-[var(--text-subtle)]";
 }
 
 export function PublicProfileTeamSection({

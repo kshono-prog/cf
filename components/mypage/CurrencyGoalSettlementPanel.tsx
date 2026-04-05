@@ -260,7 +260,7 @@ export function CurrencyGoalSettlementPanel(props: {
 
       {!projectId ? (
         <>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-[var(--text-subtle)]">
             {currency} 用の Project がありません。上の Project で作成してください。
           </div>
           <AiSuggestionsCard
@@ -286,7 +286,7 @@ export function CurrencyGoalSettlementPanel(props: {
             className="grid grid-cols-1 gap-3 md:grid-cols-2 scroll-mt-24"
           >
             <div className="space-y-1">
-              <div className="text-xs text-gray-500">Target {currency}</div>
+              <div className="text-xs text-[var(--muted)]">Target {currency}</div>
               <input
                 ref={goalInputRef}
                 className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
@@ -299,7 +299,7 @@ export function CurrencyGoalSettlementPanel(props: {
             </div>
 
             <div className="space-y-1">
-              <div className="text-xs text-gray-500">Deadline (optional)</div>
+              <div className="text-xs text-[var(--muted)]">Deadline (optional)</div>
               <input
                 className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
                 type="date"
@@ -344,17 +344,17 @@ export function CurrencyGoalSettlementPanel(props: {
             />
           ) : null}
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 space-y-2">
+          <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 space-y-2">
             <div
               ref={summarySectionRef}
               id={summaryAnchorId}
               className="scroll-mt-24"
             />
             <div className="text-sm font-medium">目標達成確定（myPageオーナーのみ）</div>
-            <div className="text-xs text-gray-600">
+            <div className="text-xs text-[var(--text-subtle)]">
               目標に到達したあと、プロジェクトオーナー本人が「目標達成を確定」できます。
             </div>
-            <div className="text-xs text-gray-700">
+            <div className="text-xs text-[var(--text-subtle)]">
               進捗:{" "}
               {summary ? (
                 (() => {
@@ -371,13 +371,13 @@ export function CurrencyGoalSettlementPanel(props: {
                 "—"
               )}
             </div>
-            <div className="text-xs text-gray-700">
+            <div className="text-xs text-[var(--text-subtle)]">
               Goal状態:{" "}
               {goalAchieved
                 ? `達成確定済み (${summary?.goal?.achievedAt ?? "-"})`
                 : "未確定"}
             </div>
-            <div className="text-xs text-gray-700">
+            <div className="text-xs text-[var(--text-subtle)]">
               Project status: {summary?.project.status ?? "—"}
             </div>
             <AiSuggestionsCard

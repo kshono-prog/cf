@@ -401,7 +401,7 @@ export function AiOfficeInboxSection(props: Props) {
             </div>
           </div>
           <div className="grid min-w-[240px] gap-2 sm:grid-cols-2">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <div className="text-[11px] font-medium text-amber-800">
                 今すぐ確認する
               </div>
@@ -410,7 +410,7 @@ export function AiOfficeInboxSection(props: Props) {
               </div>
               <div className="text-[11px] text-amber-700">承認待ちのタスク</div>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-[11px] font-medium text-[var(--text)]">使われた結果</div>
               <div className="mt-1 text-2xl font-semibold text-[var(--text)]">
                 {usedCount}

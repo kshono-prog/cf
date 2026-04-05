@@ -37,7 +37,7 @@ export function AiManagerInlineTaskModal({ title, onClose, children }: Props) {
       />
 
       {/* Panel */}
-      <div className="relative z-10 w-full max-w-lg rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-xl">
+      <div className="relative z-10 w-full max-w-lg rounded-t-2xl sm:rounded-xl bg-[var(--surface)] shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
           <div className="text-sm font-semibold text-[var(--text)]">{title}</div>

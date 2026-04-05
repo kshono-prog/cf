@@ -16,7 +16,7 @@ export function GoalAchievementImpactCard({
   );
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 space-y-3">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -90,7 +90,7 @@ export function GoalAchievementImpactSection({
     <div className="space-y-3">
       <GoalAchievementImpactCard impact={latest} />
       {older.length > 0 ? (
-        <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-3">
+        <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-3">
           <div className="mb-2 text-[11px] font-medium text-[var(--muted)]">
             過去の達成ゴール
           </div>

@@ -2,17 +2,17 @@
 
 :root {
   color-scheme: light;
-  --bg: #f5f4fb;
+  --bg: #f4f7fb;
   --surface: #ffffff;
-  --surface-subtle: #f0eff8;
-  --surface-muted: #e8e6f4;
-  --line: #dddbe8;
-  --text: #1a1730;
-  --text-subtle: #6b6880;
-  --muted: #9b98ae;
-  --accent: #5b4ff5;
-  --accent-subtle: rgba(91, 79, 245, 0.08);
-  --accent-muted: rgba(91, 79, 245, 0.15);
+  --surface-subtle: #edf2f9;
+  --surface-muted: #e2eaf4;
+  --line: #d5dfe9;
+  --text: #0f1f35;
+  --text-subtle: #5a6e84;
+  --muted: #8fa3b8;
+  --accent: #2563eb;
+  --accent-subtle: rgba(37, 99, 235, 0.08);
+  --accent-muted: rgba(37, 99, 235, 0.15);
   --support: #16a34a;
   --danger: #e11d48;
   --warning: #d97706;
@@ -25,23 +25,23 @@
   --radius-static-md: 12px;
   --radius-static-lg: 16px;
   /* shadow */
-  --shadow-soft: 0 1px 3px rgba(26, 23, 48, 0.06);
-  --shadow-card: 0 2px 8px rgba(26, 23, 48, 0.07), 0 1px 2px rgba(26, 23, 48, 0.04);
+  --shadow-soft: 0 1px 3px rgba(15, 31, 53, 0.06);
+  --shadow-card: 0 2px 8px rgba(15, 31, 53, 0.07), 0 1px 2px rgba(15, 31, 53, 0.04);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0c0b18;
-  --surface: #13111f;
-  --surface-subtle: #1a1829;
-  --surface-muted: #141225;
-  --line: #2a2740;
-  --text: #e8e5ff;
-  --text-subtle: #9590b8;
-  --muted: #605d80;
-  --accent: #7b6ff8;
-  --accent-subtle: rgba(123, 111, 248, 0.12);
-  --accent-muted: rgba(123, 111, 248, 0.2);
+  --bg: #0a0f1a;
+  --surface: #111827;
+  --surface-subtle: #1a2333;
+  --surface-muted: #141e2e;
+  --line: #253044;
+  --text: #e2eaf4;
+  --text-subtle: #8fa3b8;
+  --muted: #4d6278;
+  --accent: #60a5fa;
+  --accent-subtle: rgba(96, 165, 250, 0.12);
+  --accent-muted: rgba(96, 165, 250, 0.2);
   --support: #22c55e;
   --danger: #fb7185;
   --warning: #fbbf24;
@@ -239,12 +239,12 @@ select {
   padding: 0.58rem 1.2rem;
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(91, 79, 245, 0.3);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
 }
 
 .btn:hover {
   background: color-mix(in srgb, var(--accent) 88%, black);
-  box-shadow: 0 2px 6px rgba(91, 79, 245, 0.4);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
 }
 
 .btn:active {
@@ -1849,4 +1849,330 @@ html[data-theme="dark"] .hover\:bg-slate-50:hover {
 html[data-theme="dark"] .hover\:bg-gray-100:hover,
 html[data-theme="dark"] .hover\:bg-slate-100:hover {
   background-color: var(--surface-muted) !important;
+}
+
+/* =========================================================
+   X スタイル ワークスペースレイアウト
+   ========================================================= */
+
+/* 3カラムラッパー */
+.workspace-layout {
+  display: flex;
+  min-height: 100vh;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+/* 左サイドバー */
+.workspace-sidebar {
+  width: 72px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  z-index: 30;
+  transition: width 0.2s ease;
+}
+
+.workspace-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .workspace-sidebar {
+    width: 220px;
+  }
+}
+
+/* サイドバー非表示（モバイル） */
+@media (max-width: 767px) {
+  .workspace-sidebar {
+    display: none;
+  }
+}
+
+/* 中央フィード */
+.workspace-feed {
+  flex: 1;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+}
+
+@media (max-width: 767px) {
+  .workspace-feed {
+    border-right: none;
+    /* ボトムナビ分の余白 */
+    padding-bottom: calc(58px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 右パネル */
+.workspace-right {
+  width: 300px;
+  flex-shrink: 0;
+  display: none;
+  padding: 20px 16px 80px;
+}
+
+@media (min-width: 1024px) {
+  .workspace-right {
+    display: block;
+  }
+}
+
+/* サイドバーナビアイテム */
+.ws-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 9999px;
+  color: var(--text-subtle);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  width: 100%;
+  transition: background-color 150ms ease, color 150ms ease;
+  min-height: 44px;
+}
+
+.ws-nav-item:hover {
+  background: var(--surface-subtle);
+  color: var(--text);
+}
+
+.ws-nav-item.active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.ws-nav-item .ws-nav-label {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .ws-nav-item .ws-nav-label {
+    display: block;
+  }
+}
+
+.ws-nav-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* サイドバー内ロゴ */
+.ws-logo-mark {
+  width: 34px;
+  height: 34px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.ws-logo-text {
+  display: none;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+@media (min-width: 1024px) {
+  .ws-logo-text {
+    display: block;
+  }
+}
+
+/* 投稿ボタン（サイドバー内） */
+.ws-post-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px;
+  cursor: pointer;
+  transition: opacity 150ms ease, transform 80ms ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  width: 100%;
+  min-height: 44px;
+}
+
+.ws-post-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.ws-post-btn:active {
+  transform: translateY(0);
+}
+
+.ws-post-btn .ws-post-label {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .ws-post-btn {
+    padding: 11px 20px;
+  }
+  .ws-post-btn .ws-post-label {
+    display: block;
+  }
+}
+
+/* モバイルボトムナビ */
+.ws-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  z-index: 50;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -2px 12px rgba(15, 31, 53, 0.06);
+}
+
+@media (max-width: 767px) {
+  .ws-bottom-nav {
+    display: flex;
+  }
+}
+
+.ws-bn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 48px;
+  padding: 4px 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: color 150ms ease;
+  min-height: 44px;
+  justify-content: center;
+}
+
+.ws-bn-item.active {
+  color: var(--accent);
+}
+
+.ws-bn-item.active::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 0 0 2px 2px;
+}
+
+.ws-bn-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.ws-bn-fab {
+  width: 46px;
+  height: 46px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+  margin-top: -16px;
+  transition: opacity 150ms ease;
+}
+
+.ws-bn-fab:hover {
+  opacity: 0.88;
+}
+
+/* 右パネル内カード */
+.ws-right-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.ws-right-card-header {
+  padding: 14px 16px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+}
+
+.ws-right-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  transition: background-color 150ms ease;
+  cursor: pointer;
+}
+
+.ws-right-row:last-child {
+  border-bottom: none;
+}
+
+.ws-right-row:hover {
+  background: var(--surface-subtle);
+}
+
+/* フィードヘッダー */
+.ws-feed-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 16px 0;
+}
+
+@media (min-width: 640px) {
+  .ws-feed-header {
+    padding: 16px 20px 0;
+  }
 }

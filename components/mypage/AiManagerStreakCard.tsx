@@ -18,7 +18,7 @@ export function AiManagerStreakCard({ streak }: Props) {
   const { currentStreak, longestStreak } = streak;
 
   return (
-    <div className="accent-surface-amber rounded-2xl px-4 py-4 shadow-sm">
+    <div className="accent-surface-amber rounded-xl px-4 py-4">
       <div className="mb-3 flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--warning)]/30 bg-[var(--warning)]/15 text-lg font-bold accent-text-amber">
           {currentStreak > 0 ? currentStreak : "○"}

@@ -204,7 +204,7 @@ export function CreatorCommunityCard(props: Props) {
         <div className="flex items-center gap-5">
           <Link
             href={`/${props.username}/follows?tab=followers`}
-            className="rounded-2xl px-2 py-1 transition hover:bg-[var(--surface-subtle)]"
+            className="rounded-xl px-2 py-1 transition hover:bg-[var(--surface-subtle)]"
           >
             <div className="text-[11px] text-[var(--text-subtle)]">フォロワー</div>
             <div className="mt-0.5 text-sm font-semibold text-[var(--text)]">
@@ -213,7 +213,7 @@ export function CreatorCommunityCard(props: Props) {
           </Link>
           <Link
             href={`/${props.username}/follows?tab=following`}
-            className="rounded-2xl px-2 py-1 transition hover:bg-[var(--surface-subtle)]"
+            className="rounded-xl px-2 py-1 transition hover:bg-[var(--surface-subtle)]"
           >
             <div className="text-[11px] text-[var(--text-subtle)]">フォロー中</div>
             <div className="mt-0.5 text-sm font-semibold text-[var(--text)]">

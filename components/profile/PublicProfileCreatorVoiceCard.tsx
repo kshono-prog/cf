@@ -39,7 +39,7 @@ export function PublicProfileCreatorVoiceCard({ displayName, supportProfileView,
   const appeal = ecosystemRole ? ROLE_APPEAL[ecosystemRole] : null;
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5 space-y-4">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5 space-y-4">
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {kicker}
       </div>

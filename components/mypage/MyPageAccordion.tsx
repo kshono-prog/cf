@@ -43,7 +43,7 @@ export function MyPageAccordion({
           onClick={() => onToggle(sectionKey)}
         >
           <span className="text-sm font-semibold">{title}</span>
-          <span className="text-[11px] text-gray-500">
+          <span className="text-[11px] text-[var(--muted)]">
             {isOpen ? "閉じる" : "開く"}
           </span>
         </button>

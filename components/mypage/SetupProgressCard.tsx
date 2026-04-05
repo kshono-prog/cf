@@ -69,7 +69,7 @@ export function SetupProgressCard(props: Props) {
         {props.steps.map((step) => (
           <div
             key={step.key}
-            className={`rounded-2xl border px-4 py-3 ${
+            className={`rounded-xl border px-4 py-3 ${
               step.ready
                 ? "border-emerald-200 bg-emerald-50"
                 : "border-slate-200 bg-slate-50"

@@ -26,7 +26,7 @@ export function PublicProfileActivityHeatmap({ data }: Props) {
   if (data.totalPosts === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5 space-y-4">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-subtle)]">

@@ -180,7 +180,7 @@ export function FeedPreviewSection({
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-2.5 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--text-subtle)]">
+        <div className="mt-2.5 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--text-subtle)]">
           投稿を読み込み中です…
         </div>
       ) : (

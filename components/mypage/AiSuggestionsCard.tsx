@@ -17,7 +17,7 @@ function priorityBadgeClass(priority: NextActionSuggestion["priority"]): string 
   if (priority === "medium") {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
-  return "border-gray-200 bg-gray-100 text-gray-700";
+  return "border-[var(--line)] bg-[var(--surface-muted)] text-[var(--text-subtle)]";
 }
 
 function targetLabel(
@@ -54,22 +54,22 @@ export function AiSuggestionsCard(props: Props) {
 
   return (
     <div
-      className="rounded-xl border border-gray-200 bg-[var(--surface)] p-4 space-y-3"
+      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-3"
       aria-busy={loading}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-semibold text-gray-900">
+        <div className="text-sm font-semibold text-[var(--text)]">
           AI Suggestions
         </div>
-        <div className="text-[11px] text-gray-500">approval-based</div>
+        <div className="text-[11px] text-[var(--muted)]">approval-based</div>
       </div>
 
       {loading ? (
-        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600">
+        <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-sm text-[var(--text-subtle)]">
           提案を読み込んでいます...
         </div>
       ) : suggestions.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600">
+        <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-sm text-[var(--text-subtle)]">
           {emptyLabel}
         </div>
       ) : (
@@ -77,10 +77,10 @@ export function AiSuggestionsCard(props: Props) {
           {suggestions.map((suggestion) => (
             <div
               key={suggestion.id}
-              className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 space-y-2"
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 space-y-2"
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-sm font-medium text-[var(--text)]">
                   {suggestion.title}
                 </div>
                 <span
@@ -92,18 +92,18 @@ export function AiSuggestionsCard(props: Props) {
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
-                <span className="rounded-full border border-gray-200 bg-[var(--surface)] px-2 py-1">
+              <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-subtle)]">
+                <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
                   target: {targetLabel(suggestion.recommendedUiTarget)}
                 </span>
-                <span className="rounded-full border border-gray-200 bg-[var(--surface)] px-2 py-1">
+                <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1">
                   {suggestion.requiresHumanApproval
                     ? "human approval required"
                     : "approval optional"}
                 </span>
               </div>
 
-              <div className="text-xs leading-5 text-gray-700">
+              <div className="text-xs leading-5 text-[var(--text-subtle)]">
                 {suggestion.reason}
               </div>
               {onSelectSuggestion ? (

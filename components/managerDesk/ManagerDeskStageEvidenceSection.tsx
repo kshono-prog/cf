@@ -132,7 +132,7 @@ export function ManagerDeskStageEvidenceSection({
   })).filter((g) => g.items.length > 0);
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-3">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -155,7 +155,7 @@ export function ManagerDeskStageEvidenceSection({
       {open ? (
         <form
           onSubmit={(e) => void handleSubmit(e)}
-          className="space-y-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4"
+          className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4"
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div>

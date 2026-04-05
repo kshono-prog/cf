@@ -28,11 +28,11 @@ function DeferredSectionsFallback() {
   return (
     <>
       <div id="supporters-section" className="space-y-4">
-        <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--text-subtle)]">
+        <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--text-subtle)]">
           支援者情報を読み込んでいます…
         </section>
       </div>
-      <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--text-subtle)]">
+      <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--text-subtle)]">
         実績と活動データを準備しています…
       </section>
     </>
@@ -95,7 +95,7 @@ function UnavailableBody({ username }: Props) {
           />
         }
       />
-      <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--text-subtle)]">
+      <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--text-subtle)]">
         公開プロフィールの詳細を一時的に読み込めないため、基本情報のみ先に表示しています。
       </section>
     </div>

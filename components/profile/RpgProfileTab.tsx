@@ -69,7 +69,7 @@ export function RpgProfileTab() {
       )}
 
       {/* Tab switcher */}
-      <div className="flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+      <div className="flex gap-1 rounded-lg bg-[var(--surface-muted)] dark:bg-gray-800 p-1">
         {(["profile", "settings"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -77,7 +77,7 @@ export function RpgProfileTab() {
             className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${
               tab === t
                 ? "bg-[var(--surface)] dark:bg-gray-700 text-[var(--text)] dark:text-gray-200 shadow-sm"
-                : "text-gray-500 dark:text-[var(--muted)]"
+                : "text-[var(--muted)] dark:text-[var(--muted)]"
             }`}
           >
             {t === "profile" ? "プロフィール" : "設定"}

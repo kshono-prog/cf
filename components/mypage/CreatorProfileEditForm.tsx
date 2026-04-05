@@ -38,7 +38,7 @@ export function CreatorProfileEditForm({
       <CreatorProfileEditEventsSection />
 
       {extraSections ? (
-        <div className="space-y-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+        <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="text-base font-semibold text-[var(--text)]">
             詳細な設定
           </div>

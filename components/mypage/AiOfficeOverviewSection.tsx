@@ -219,7 +219,7 @@ function RejectionPatternCard({ tasks }: { tasks: AgentTaskView[] }) {
             {rejectedTasks.slice(0, 3).map((t) => (
               <div
                 key={t.id}
-                className="rounded-2xl border border-rose-100 bg-rose-50 px-3 py-2"
+                className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2"
               >
                 <div className="text-[11px] font-semibold text-rose-700">
                   {getAgentTaskTypeCopy(t.taskType).label}
@@ -332,14 +332,14 @@ export function AiOfficeOverviewSection(props: Props) {
           </div>
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
             <div className="text-[11px] font-medium text-[var(--text)]">計測対象</div>
             <div className="mt-1 text-2xl font-semibold text-[var(--text)]">
               {props.usefulness.trackedReadyCount}
             </div>
             <div className="caption-text">compose / draft / copy に進める結果</div>
           </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
             <div className="text-[11px] font-medium text-emerald-800">使われた結果</div>
             <div className="mt-1 text-2xl font-semibold text-emerald-700">
               {props.usefulness.usedCount}
@@ -348,7 +348,7 @@ export function AiOfficeOverviewSection(props: Props) {
               handoff または copy に進んだ件数
             </div>
           </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
             <div className="text-[11px] font-medium text-[var(--text)]">活用率</div>
             <div className="mt-1 text-2xl font-semibold text-[var(--text)]">
               {(props.usefulness.usedRate * 100).toFixed(0)}%
@@ -357,7 +357,7 @@ export function AiOfficeOverviewSection(props: Props) {
           </div>
         </div>
         {props.usefulness.actionableCount > 0 ? (
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text-subtle)]">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text-subtle)]">
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">
               今月の承認実績
             </span>
@@ -409,13 +409,13 @@ export function AiOfficeOverviewSection(props: Props) {
         </div>
 
         {props.aiManagerLoading ? (
-          <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-5 text-sm text-[var(--text-subtle)]">
+          <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-5 text-sm text-[var(--text-subtle)]">
             AIマネージャーの状態を読み込んでいます。
           </div>
         ) : null}
 
         {!props.aiManagerLoading && props.aiManagerError ? (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
             <div className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
               案内
             </div>
@@ -429,7 +429,7 @@ export function AiOfficeOverviewSection(props: Props) {
         ) : null}
 
         {!props.aiManagerLoading && !props.aiManagerAccount ? (
-          <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] px-4 py-5">
+          <div className="mt-4 rounded-xl border border-dashed border-[var(--line)] px-4 py-5">
             <div className="text-sm font-semibold text-[var(--text)]">
               AIマネージャーはまだ作成されていません
             </div>
@@ -442,19 +442,19 @@ export function AiOfficeOverviewSection(props: Props) {
         {props.aiManagerAccount ? (
           <>
             <div className="mt-4 grid gap-2 sm:grid-cols-4">
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text)]">人格</div>
                 <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                   {props.aiManagerAccount.displayName}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text)]">状態</div>
                 <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                   {getAiManagerStatusLabel(props.aiManagerAccount.status)}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text)]">公開範囲</div>
                 <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                   {getAiManagerVisibilityLabel(
@@ -462,7 +462,7 @@ export function AiOfficeOverviewSection(props: Props) {
                   )}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                 <div className="text-[11px] font-medium text-[var(--text)]">利用モード</div>
                 <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                   {aiManagerBillingPaused
@@ -475,7 +475,7 @@ export function AiOfficeOverviewSection(props: Props) {
             </div>
 
             {aiManagerBillingPaused ? (
-              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
                   billable pause
                 </div>
@@ -500,7 +500,7 @@ export function AiOfficeOverviewSection(props: Props) {
             ) : null}
 
             {!aiManagerBillingPaused && pendingX402Settlements.length > 0 ? (
-              <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4">
+              <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">
                   x402 confirmation pending
                 </div>
@@ -516,18 +516,18 @@ export function AiOfficeOverviewSection(props: Props) {
             ) : null}
 
             <div className="mt-3 grid gap-2 lg:grid-cols-[1.2fr,0.8fr]">
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                   行動ルール
                 </div>
                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3">
+                  <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3">
                     <div className="text-[11px] text-[var(--text-subtle)]">無料範囲</div>
                     <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                       内部ブリーフィング + 軽い下書き
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3">
+                  <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3">
                     <div className="text-[11px] text-[var(--text-subtle)]">Web収集</div>
                     <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                       手動トリガーのみ
@@ -545,7 +545,7 @@ export function AiOfficeOverviewSection(props: Props) {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                   予算と cap
                 </div>
@@ -555,13 +555,13 @@ export function AiOfficeOverviewSection(props: Props) {
                     : "残高ゼロのため、現在は無料範囲で動作します。"}
                 </div>
                 <div className="mt-3 space-y-2">
-                  <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3">
+                  <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3">
                     <div className="text-[11px] text-[var(--text-subtle)]">available</div>
                     <div className="mt-1 text-base font-semibold text-[var(--text)]">
                       {formatJpycAmount(aiManagerAvailableAmount)}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-6 text-[var(--text-subtle)]">
+                  <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-6 text-[var(--text-subtle)]">
                     <div>
                       per action:{" "}
                       {props.aiManagerAccount.billingPolicy?.perActionJpycCap ?? 0} JPYC
@@ -575,7 +575,7 @@ export function AiOfficeOverviewSection(props: Props) {
                     </div>
                   </div>
                   {props.aiManagerAccount.recentBudgetTransactions[0] ? (
-                    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                       <div className="font-semibold text-[var(--text)]">
                         直近の予算操作
                       </div>
@@ -600,12 +600,12 @@ export function AiOfficeOverviewSection(props: Props) {
             </div>
 
             {props.aiManagerAccount.reconciliation.requiresAttention ? (
-              <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+              <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                   reconciliation summary
                 </div>
                 <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                  <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                     <div className="font-semibold text-[var(--text)]">
                       pending x402
                     </div>
@@ -662,7 +662,7 @@ export function AiOfficeOverviewSection(props: Props) {
                       </div>
                     ) : null}
                   </div>
-                  <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                  <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                     <div className="font-semibold text-[var(--text)]">
                       unmatched evidence
                     </div>
@@ -695,7 +695,7 @@ export function AiOfficeOverviewSection(props: Props) {
                       {props.aiManagerAccount.reconciliation.recoveryOwnerReviewCount}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                  <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                     <div className="font-semibold text-[var(--text)]">
                       failed x402
                     </div>
@@ -716,15 +716,15 @@ export function AiOfficeOverviewSection(props: Props) {
             ) : null}
 
             {x402FollowUps.length > 0 ? (
-              <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+              <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-                  owner follow-up
+                  オーナーフォローアップ
                 </div>
                 <div className="mt-3 space-y-2">
                   {x402FollowUps.slice(0, 3).map((entry) => (
                     <div
                       key={entry.id}
-                      className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
+                      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="text-sm font-semibold text-[var(--text)]">
@@ -764,7 +764,7 @@ export function AiOfficeOverviewSection(props: Props) {
 
             <AiManagerConnectorHealthDigest digest={connectorHealthDigest} />
 
-            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+            <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                 recent delivery events
               </div>
@@ -777,7 +777,7 @@ export function AiOfficeOverviewSection(props: Props) {
                   {recentX402DeliveryEvents.slice(0, 3).map((entry) => (
                     <div
                       key={entry.id}
-                      className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
+                      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="text-sm font-semibold text-[var(--text)]">
@@ -801,7 +801,7 @@ export function AiOfficeOverviewSection(props: Props) {
               )}
             </div>
 
-            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+            <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                 recent x402 activity
               </div>
@@ -814,7 +814,7 @@ export function AiOfficeOverviewSection(props: Props) {
                   {recentX402Activity.slice(0, 3).map((entry) => (
                     <div
                       key={entry.paymentAttemptId}
-                      className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
+                      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="text-sm font-semibold text-[var(--text)]">
@@ -838,7 +838,7 @@ export function AiOfficeOverviewSection(props: Props) {
               )}
             </div>
 
-            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+            <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                 直近の usage ledger
               </div>
@@ -851,7 +851,7 @@ export function AiOfficeOverviewSection(props: Props) {
                   {props.aiManagerAccount.recentUsageRecords.slice(0, 3).map((usage) => (
                     <div
                       key={usage.id}
-                      className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
+                      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="text-sm font-semibold text-[var(--text)]">
@@ -888,14 +888,14 @@ export function AiOfficeOverviewSection(props: Props) {
               )}
             </div>
 
-            <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+            <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
               <AiManagerRecoveryTrendChart summary={x402RecoverySummary} />
               {x402RecoveryItems.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {x402RecoveryItems.slice(0, 3).map((entry) => (
                     <div
                       key={entry.id}
-                      className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
+                      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="text-sm font-semibold text-[var(--text)]">

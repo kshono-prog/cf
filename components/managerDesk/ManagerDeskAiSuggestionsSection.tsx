@@ -76,7 +76,7 @@ export function ManagerDeskAiSuggestionsSection(props: {
   );
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -102,7 +102,7 @@ export function ManagerDeskAiSuggestionsSection(props: {
             return (
               <article
                 key={suggestion.id}
-                className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4"
+                className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={toneBadgeClass(suggestion.tone)}>

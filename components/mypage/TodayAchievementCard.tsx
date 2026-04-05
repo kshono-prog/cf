@@ -33,7 +33,7 @@ export function TodayAchievementCard({ levelInfo, displayName }: Props) {
   const isMaxLevel = levelInfo.level >= 5;
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
       {/* Header row */}
       <div className="mb-3 flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-white">

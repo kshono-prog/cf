@@ -43,7 +43,7 @@ export function CreatorReadyWeeklySummarySection(props: Props) {
   const currentStageIndex = stage ? STAGE_ORDER.indexOf(stage.stage) : -1;
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="mb-3 text-sm font-semibold text-[var(--text)]">
         活動サマリー
       </div>

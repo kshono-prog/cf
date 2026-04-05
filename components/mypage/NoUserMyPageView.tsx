@@ -76,12 +76,12 @@ export function NoUserMyPageView(props: Props) {
 
         {props.assistantSection}
 
-        <div className="rounded-2xl border bg-[var(--surface)] p-4 shadow-sm">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="mb-3 space-y-1">
-            <h2 className="text-sm font-semibold text-gray-900">
+            <h2 className="text-sm font-semibold text-[var(--text)]">
               ユーザー情報を整える
             </h2>
-            <p className="text-xs leading-relaxed text-gray-600">
+            <p className="text-xs leading-relaxed text-[var(--text-subtle)]">
               ここで登録した内容が、自分のページの最初の見え方になります。あとからいつでも直せます。
             </p>
           </div>

@@ -103,7 +103,7 @@ export function ManagerDeskSupporterCrmSection(props: Props) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2">
           {displayed.map((item, index) => (
             <SupporterRow key={item.fromAddress} item={item} rank={index + 1} />
           ))}

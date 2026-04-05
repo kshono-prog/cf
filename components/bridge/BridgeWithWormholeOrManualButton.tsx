@@ -446,13 +446,13 @@ export function BridgeWithWormholeOrManualButton(props: {
 
       {bridgeRunId ? (
         <div className="rounded-lg border p-3 space-y-2">
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-[var(--text-subtle)]">
             <div className="font-semibold">BridgeRunId</div>
             <div className="font-mono break-all">{bridgeRunId}</div>
           </div>
 
           {instruction ? (
-            <div className="text-xs text-gray-600">{instruction}</div>
+            <div className="text-xs text-[var(--text-subtle)]">{instruction}</div>
           ) : null}
 
           {wormholeUrl && provider === "WORMHOLE_UI" ? (
@@ -467,7 +467,7 @@ export function BridgeWithWormholeOrManualButton(props: {
           ) : null}
 
           <div className="space-y-1">
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-[var(--muted)]">
               Avalanche 側の着金 txHash（Snowtrace で確認できる tx）
             </div>
             <input
@@ -491,7 +491,7 @@ export function BridgeWithWormholeOrManualButton(props: {
       ) : null}
 
       {status ? (
-        <div className="text-xs text-gray-600 break-all">{status}</div>
+        <div className="text-xs text-[var(--text-subtle)] break-all">{status}</div>
       ) : null}
     </div>
   );

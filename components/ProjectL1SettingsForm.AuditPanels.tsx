@@ -241,7 +241,7 @@ export function AuditCard(props: {
   const a = props.audit;
 
   return (
-    <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4 space-y-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -375,7 +375,7 @@ export function ProgressHintPanel(props: {
   const hint = props.progressHint;
 
   return (
-    <details className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4">
+    <details className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <summary className="cursor-pointer select-none">
         <div className="text-base font-semibold">検算情報（progressHint）</div>
         <div className="text-sm text-gray-600 mt-1">
@@ -409,7 +409,7 @@ export function BridgeDebugPanel(props: {
   const b = props.bridgeRaw;
 
   return (
-    <details className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4">
+    <details className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <summary className="cursor-pointer select-none">
         <div className="text-base font-semibold">
           /bridge 生レスポンス（デバッグ）
@@ -560,7 +560,7 @@ export function L1Actions(props: {
   return (
     <div className="space-y-4">
       {/* Button A: Save */}
-      <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4 space-y-2">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-2">
         <button
           type="button"
           onClick={props.onSave}
@@ -579,7 +579,7 @@ export function L1Actions(props: {
       </div>
 
       {/* Button B: Refresh audit card */}
-      <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4 space-y-2">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-2">
         <button
           type="button"
           onClick={props.onRefreshAudit}

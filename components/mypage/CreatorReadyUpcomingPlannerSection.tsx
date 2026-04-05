@@ -46,27 +46,27 @@ function statusLabel(status: PlannerTimelineItem["status"]): string {
 }
 
 function ownerLabel(owner: PlannerTimelineItem["owner"]): string {
-  if (owner === "CREATOR") return "Creator";
-  if (owner === "MANAGER") return "Manager";
-  return "Shared";
+  if (owner === "CREATOR") return "自分";
+  if (owner === "MANAGER") return "マネージャー";
+  return "共同";
 }
 
 function sourceLabel(source: PlannerTimelineItem["sourceType"]): string {
   switch (source) {
     case "MEETING":
-      return "Meeting";
+      return "ミーティング";
     case "MANAGER_NOTE_FOLLOW_UP":
-      return "Follow-up";
+      return "フォローアップ";
     case "EXTERNAL_CONTACT_NEXT_ACTION":
-      return "Contact";
+      return "連絡先";
     case "PROJECT_DEADLINE":
-      return "Goal deadline";
+      return "Goal 期限";
   }
 }
 
 function SummaryChip(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2">
       <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
         {props.label}
       </div>
@@ -84,7 +84,7 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
     <section className="card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-[var(--text)]">Upcoming / Planner</div>
+          <div className="text-sm font-semibold text-[var(--text)]">予定・プランナー</div>
           <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             会議、goal 期限、共有フォローアップを時間軸で見て、次の準備へつなげます。
           </p>
@@ -92,19 +92,19 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
         {props.data ? (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <SummaryChip
-              label="overdue"
+              label="期限超過"
               value={String(props.data.summary.overdueCount)}
             />
             <SummaryChip
-              label="due soon"
+              label="近日中"
               value={String(props.data.summary.dueSoonCount)}
             />
             <SummaryChip
-              label="meetings"
+              label="会議"
               value={String(props.data.summary.meetingCount)}
             />
             <SummaryChip
-              label="next"
+              label="直近"
               value={formatDateTime(props.data.summary.nextDueAt)}
             />
           </div>
@@ -114,8 +114,8 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
       <div className="mt-4">
         {props.loading ? (
           <WorkspaceLoadingCard
-            title="今週の予定と follow-up を整理しています"
-            description="Meeting と goal deadline をまとめています。"
+            title="今週の予定とフォローアップを整理しています"
+            description="ミーティングと Goal 期限をまとめています。"
           />
         ) : null}
 
@@ -132,7 +132,7 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
             {props.data.items.map((item) => (
               <article
                 key={item.id}
-                className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4"
+                className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={statusBadgeClass(item.status)}>
@@ -172,7 +172,7 @@ export function CreatorReadyUpcomingPlannerSection(props: Props) {
         {!props.loading && !errorNotice && (!props.data || props.data.items.length === 0) ? (
           <WorkspaceEmptyState
             title="直近の予定はまだありません"
-            description="Meeting や共有 follow-up が記録されると、この面に時系列で並びます。"
+            description="ミーティングや共有フォローアップが記録されると、この面に時系列で並びます。"
           />
         ) : null}
       </div>

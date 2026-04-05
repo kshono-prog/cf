@@ -102,7 +102,7 @@ export function AiProfileDraftCard(props: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+    <section className="rounded-xl border border-sky-200 bg-sky-50/70 p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700">
@@ -144,7 +144,7 @@ export function AiProfileDraftCard(props: Props) {
       ) : null}
 
       {draft ? (
-        <div className="mt-4 space-y-3 rounded-2xl border border-white/80 bg-[var(--surface)] p-4">
+        <div className="mt-4 space-y-3 rounded-xl border border-white/80 bg-[var(--surface)] p-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="surface-subtle px-3 py-3">
               <div className="text-xs font-medium text-[var(--text-subtle)]">

@@ -103,7 +103,7 @@ export function ShareExecutionLogCard(props: Props) {
               チャンネル
             </span>
             <select
-              className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
+              className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
               value={channel}
               onChange={(event) => {
                 const nextChannel = event.target.value;
@@ -125,7 +125,7 @@ export function ShareExecutionLogCard(props: Props) {
             </span>
             <input
               type="url"
-              className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
+              className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
               placeholder="https://..."
               value={postedUrl}
               onChange={(event) => {
@@ -141,7 +141,7 @@ export function ShareExecutionLogCard(props: Props) {
           </span>
           <textarea
             rows={3}
-            className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
+            className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
             placeholder="公開直後の投稿、ストーリーのみ、英語版も同時投稿 など"
             value={memo}
             onChange={(event) => {

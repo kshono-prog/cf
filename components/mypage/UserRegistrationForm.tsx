@@ -33,13 +33,13 @@ export function UserRegistrationForm({
         <label className="block text-xs font-medium mb-1">
           ページURL（ユーザーID） <span className="text-red-500">*</span>
         </label>
-        <p className="text-[11px] text-gray-500 mb-1">
+        <p className="text-[11px] text-[var(--muted)] mb-1">
           あなたのページURLは：
           <span className="font-mono">
             {withBaseUrl(usernameInput || "your-id")}
           </span>
         </p>
-        <p className="text-[11px] text-gray-500 mb-2">
+        <p className="text-[11px] text-[var(--muted)] mb-2">
           公開ページのURLになります。あとから変更しにくい前提で決めるのが安全です。
         </p>
         <input
@@ -57,7 +57,7 @@ export function UserRegistrationForm({
         <label className="block text-xs font-medium mb-1">
           表示名 <span className="text-red-500">*</span>
         </label>
-        <p className="text-[11px] text-gray-500 mb-2">
+        <p className="text-[11px] text-[var(--muted)] mb-2">
           公開ページやマイページで最初に見える名前です。
         </p>
         <input
@@ -73,7 +73,7 @@ export function UserRegistrationForm({
 
       <div>
         <label className="block text-xs font-medium mb-1">プロフィール</label>
-        <p className="text-[11px] text-gray-500 mb-2">
+        <p className="text-[11px] text-[var(--muted)] mb-2">
           活動内容を一言でも入れておくと、次の申請や公開準備が進めやすくなります。
         </p>
         <textarea

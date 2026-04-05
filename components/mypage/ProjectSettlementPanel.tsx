@@ -56,7 +56,7 @@ function statusBadgeClass(
   if (status === "BRIDGING") {
     return "bg-amber-100 text-amber-800 border-amber-200";
   }
-  return "bg-gray-100 text-gray-700 border-gray-200";
+  return "bg-[var(--surface-muted)] text-[var(--text-subtle)] border-[var(--line)]";
 }
 
 type SettlementFlowStepId =
@@ -463,7 +463,7 @@ export function ProjectSettlementPanel(props: Props) {
           <div className="font-semibold">
             精算と配分の進行 [{projectCurrency}]
           </div>
-          <div className="mt-1 text-[11px] leading-5 text-gray-500 sm:text-xs">
+          <div className="mt-1 text-[11px] leading-5 text-[var(--muted)] sm:text-xs">
             本UIは資金を保管しません。送金・ブリッジは必ずユーザー自身のウォレットで実行されます。
           </div>
         </div>
@@ -486,7 +486,7 @@ export function ProjectSettlementPanel(props: Props) {
         </div>
       </div>
 
-      <div className="-mt-1 text-[11px] leading-5 text-gray-500 sm:-mt-2 sm:text-xs">
+      <div className="-mt-1 text-[11px] leading-5 text-[var(--muted)] sm:-mt-2 sm:text-xs">
         {panel.settlement ? settlementStatusCopy.helper : emptyStatusCopy.helper}
       </div>
 

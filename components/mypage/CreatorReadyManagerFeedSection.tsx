@@ -29,77 +29,101 @@ function formatDateTime(value: string | null): string {
   });
 }
 
-function toneClass(tone: CreatorManagerFeedItem["tone"]): string {
+function toneStyle(tone: CreatorManagerFeedItem["tone"]): {
+  border: string;
+  background: string;
+  labelBg: string;
+  labelColor: string;
+  label: string;
+} {
   switch (tone) {
     case "attention":
-      return "border-amber-200 bg-amber-50/80";
+      return {
+        border: "border-amber-200",
+        background: "bg-amber-50/70",
+        labelBg: "bg-amber-100",
+        labelColor: "text-amber-800",
+        label: "優先",
+      };
     case "recommended":
-      return "border-emerald-200 bg-emerald-50/80";
+      return {
+        border: "border-emerald-200",
+        background: "bg-emerald-50/70",
+        labelBg: "bg-emerald-100",
+        labelColor: "text-emerald-800",
+        label: "確認",
+      };
     default:
-      return "border-[var(--line)] bg-[var(--surface-subtle)]";
+      return {
+        border: "border-[var(--line)]",
+        background: "bg-[var(--surface-subtle)]",
+        labelBg: "bg-[var(--surface-muted)]",
+        labelColor: "text-[var(--text-subtle)]",
+        label: "共有",
+      };
   }
 }
 
-function toneLabel(tone: CreatorManagerFeedItem["tone"]): string {
-  switch (tone) {
-    case "attention":
-      return "優先";
-    case "recommended":
-      return "確認";
-    default:
-      return "共有";
-  }
-}
-
-function SummaryChip(props: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
-        {props.label}
-      </div>
-      <div className="mt-1 text-sm font-semibold text-[var(--text)]">{props.value}</div>
-    </div>
-  );
+function noteTypeLabel(noteType: string): string {
+  const map: Record<string, string> = {
+    progress: "進捗",
+    meeting: "ミーティング",
+    decision: "決定事項",
+    task: "タスク",
+    memo: "メモ",
+  };
+  return map[noteType] ?? noteType;
 }
 
 export function CreatorReadyManagerFeedSection(props: Props) {
   const errorNotice = props.error
-    ? mapWorkspaceActionError(props.error, "Manager Feed の取得に失敗しました。")
+    ? mapWorkspaceActionError(props.error, "マネージャー共有情報の取得に失敗しました。")
     : null;
 
   return (
-    <section className="card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="card p-0 overflow-hidden">
+      {/* ヘッダー */}
+      <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-4 border-b border-[var(--line)]">
         <div>
-          <div className="text-sm font-semibold text-[var(--text)]">Manager Feed</div>
-          <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
-            Manager が共有可能として残した現場メモや進行メモを、Creator 視点で短く確認できます。
+          <p className="text-sm font-bold text-[var(--text)]">マネージャーからの共有</p>
+          <p className="mt-0.5 text-xs leading-5 text-[var(--text-subtle)]">
+            Manager が共有可能として残したメモや進行状況を確認できます。
           </p>
         </div>
         {props.data ? (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <SummaryChip label="updates" value={String(props.data.summary.itemCount)} />
-            <SummaryChip
-              label="follow-up"
-              value={String(props.data.summary.followUpCount)}
-            />
-            <SummaryChip
-              label="due soon"
-              value={String(props.data.summary.dueSoonCount)}
-            />
-            <SummaryChip
-              label="latest"
-              value={formatDateTime(props.data.summary.latestUpdateAt)}
-            />
+          <div className="flex flex-wrap gap-3 text-xs text-[var(--text-subtle)]">
+            <span>
+              <span className="font-semibold text-[var(--text)]">{props.data.summary.itemCount}</span>
+              {" "}件の共有
+            </span>
+            {props.data.summary.followUpCount > 0 ? (
+              <span>
+                要フォロー{" "}
+                <span className="font-semibold text-[var(--warning)]">
+                  {props.data.summary.followUpCount}
+                </span>
+                件
+              </span>
+            ) : null}
+            {props.data.summary.dueSoonCount > 0 ? (
+              <span>
+                期限近{" "}
+                <span className="font-semibold text-[var(--danger)]">
+                  {props.data.summary.dueSoonCount}
+                </span>
+                件
+              </span>
+            ) : null}
           </div>
         ) : null}
       </div>
 
-      <div className="mt-4">
+      {/* コンテンツ */}
+      <div className="p-4">
         {props.loading ? (
           <WorkspaceLoadingCard
-            title="Manager からの共有を整理しています"
-            description="shareable note だけを集めて、いま見てほしい順に並べています。"
+            title="マネージャーからの共有を整理しています"
+            description="共有可能なメモだけを集めて、優先度順に並べています。"
           />
         ) : null}
 
@@ -113,48 +137,58 @@ export function CreatorReadyManagerFeedSection(props: Props) {
 
         {!props.loading && !errorNotice && props.data?.items.length ? (
           <div className="grid gap-3 lg:grid-cols-2">
-            {props.data.items.map((item) => (
-              <article
-                key={item.id}
-                className={`rounded-2xl border p-4 ${toneClass(item.tone)}`}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="status-badge status-badge-neutral">
-                    {toneLabel(item.tone)}
-                  </span>
-                  <span className="status-badge status-badge-neutral">
-                    {item.managerLabel}
-                  </span>
-                  <span className="status-badge status-badge-neutral">
-                    {item.noteType}
-                  </span>
-                </div>
-                <div className="mt-3 text-sm font-semibold text-[var(--text)]">
-                  {item.title}
-                </div>
-                <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
-                  {item.summary}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--text-subtle)]">
-                  {item.projectTitle ? <span>Project: {item.projectTitle}</span> : null}
-                  {item.contactLabel ? <span>Contact: {item.contactLabel}</span> : null}
-                  {item.meetingLabel ? <span>Meeting: {item.meetingLabel}</span> : null}
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-                  <span>更新 {formatDateTime(item.updatedAt)}</span>
-                  {item.followUpNeeded ? (
-                    <span>確認期限 {formatDateTime(item.followUpDueAt)}</span>
+            {props.data.items.map((item) => {
+              const style = toneStyle(item.tone);
+              return (
+                <article
+                  key={item.id}
+                  className={`rounded-xl border p-4 ${style.border} ${style.background}`}
+                >
+                  {/* バッジ行 */}
+                  <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${style.labelBg} ${style.labelColor}`}
+                    >
+                      {style.label}
+                    </span>
+                    <span className="rounded-full bg-[var(--surface)] border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--text-subtle)]">
+                      {item.managerLabel}
+                    </span>
+                    <span className="rounded-full bg-[var(--surface)] border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--text-subtle)]">
+                      {noteTypeLabel(item.noteType)}
+                    </span>
+                  </div>
+
+                  <p className="text-sm font-semibold text-[var(--text)]">{item.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">{item.summary}</p>
+
+                  {/* メタ情報 */}
+                  {(item.projectTitle || item.contactLabel || item.meetingLabel) ? (
+                    <div className="mt-2.5 flex flex-wrap gap-2 text-[11px] text-[var(--muted)]">
+                      {item.projectTitle ? <span>プロジェクト: {item.projectTitle}</span> : null}
+                      {item.contactLabel ? <span>担当: {item.contactLabel}</span> : null}
+                      {item.meetingLabel ? <span>MTG: {item.meetingLabel}</span> : null}
+                    </div>
                   ) : null}
-                </div>
-              </article>
-            ))}
+
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+                    <span>更新 {formatDateTime(item.updatedAt)}</span>
+                    {item.followUpNeeded ? (
+                      <span className="text-[var(--warning)]">
+                        期限 {formatDateTime(item.followUpDueAt)}
+                      </span>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : null}
 
         {!props.loading && !errorNotice && (!props.data || props.data.items.length === 0) ? (
           <WorkspaceEmptyState
-            title="共有可能な Manager update はまだありません"
-            description="Manager が Creator に見せられる note を残すと、この面に共同運営の進捗が並びます。"
+            title="共有可能な情報はまだありません"
+            description="Manager が Creator に見せられるメモを残すと、共同運営の進捗がここに表示されます。"
           />
         ) : null}
       </div>

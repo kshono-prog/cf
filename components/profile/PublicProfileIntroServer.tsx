@@ -533,7 +533,7 @@ export function PublicProfileIntroServer({
               return (
                 <div key={`${video.url}-${index}`} className="space-y-2.5">
                   {videoId ? (
-                    <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-black">
+                    <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-black">
                       <div className="aspect-video w-full">
                         <iframe
                           src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}

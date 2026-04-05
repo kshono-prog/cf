@@ -87,13 +87,13 @@ export function ManualCheckPanel({ context }: Props) {
   return (
     <div className="rounded-lg border p-3 space-y-3">
       <div className="text-sm font-medium">Manual Check Log</div>
-      <div className="text-[11px] leading-5 text-gray-500 sm:text-xs">
+      <div className="text-[11px] leading-5 text-[var(--muted)] sm:text-xs">
         各操作の確認記録を残します。Markdown 形式で notes.md / status.md に貼り付けられます。
       </div>
 
       <div className="space-y-2 rounded border bg-slate-50 p-3">
         <div>
-          <label className="block text-[11px] font-medium text-gray-700 sm:text-xs">
+          <label className="block text-[11px] font-medium text-[var(--text-subtle)] sm:text-xs">
             lastAction
           </label>
           <input
@@ -104,7 +104,7 @@ export function ManualCheckPanel({ context }: Props) {
           />
         </div>
         <div>
-          <label className="block text-[11px] font-medium text-gray-700 sm:text-xs">
+          <label className="block text-[11px] font-medium text-[var(--text-subtle)] sm:text-xs">
             expectedState
           </label>
           <input
@@ -115,7 +115,7 @@ export function ManualCheckPanel({ context }: Props) {
           />
         </div>
         <div>
-          <label className="block text-[11px] font-medium text-gray-700 sm:text-xs">
+          <label className="block text-[11px] font-medium text-[var(--text-subtle)] sm:text-xs">
             notes（任意）
           </label>
           <textarea
@@ -147,19 +147,19 @@ export function ManualCheckPanel({ context }: Props) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 flex-1">
                     <div className="font-medium">{entry.lastAction}</div>
-                    <div className="text-gray-600">
+                    <div className="text-[var(--text-subtle)]">
                       expectedState: {entry.expectedState}
                     </div>
-                    <div className="text-gray-500">
+                    <div className="text-[var(--muted)]">
                       verifiedAt: {entry.verifiedAt}
                     </div>
                     {entry.notes ? (
-                      <div className="text-gray-500">notes: {entry.notes}</div>
+                      <div className="text-[var(--muted)]">notes: {entry.notes}</div>
                     ) : null}
                   </div>
                   <button
                     type="button"
-                    className="shrink-0 rounded border px-2 py-1 text-[10px] text-gray-500"
+                    className="shrink-0 rounded border px-2 py-1 text-[10px] text-[var(--muted)]"
                     onClick={() => removeEntry(index)}
                   >
                     削除

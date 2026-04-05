@@ -293,7 +293,7 @@ export function FeedPostCard(props: Props) {
         post.mediaType === "LINK" ? (
           <LinkPreviewCard url={post.mediaUrl} />
         ) : (
-          <div className="mt-2.5 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)]">
+          <div className="mt-2.5 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)]">
             {post.mediaType === "IMAGE" ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -86,7 +86,7 @@ export function AiManagerPendingTimelineCard({
 
   return (
     <div
-      className={`rounded-2xl border px-3 py-3 text-xs leading-5 ${CARD_BORDER[item.deliveryStatus]}`}
+      className={`rounded-xl border px-3 py-3 text-xs leading-5 ${CARD_BORDER[item.deliveryStatus]}`}
     >
       {/* ヘッダー: タスク名 + delivery status */}
       <div className="flex items-start justify-between gap-2">

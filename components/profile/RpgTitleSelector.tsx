@@ -51,8 +51,8 @@ export function RpgTitleSelector({ currentTitleCode, currentLevel, onChanged }: 
   );
 
   return (
-    <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">称号選択</h3>
+    <div className="rounded-xl border border-[var(--line)] dark:border-gray-800 p-4 space-y-3">
+      <h3 className="text-sm font-semibold text-[var(--text-subtle)] dark:text-gray-300">称号選択</h3>
       <div className="space-y-2">
         {unlocked.map((t) => (
           <button
@@ -62,7 +62,7 @@ export function RpgTitleSelector({ currentTitleCode, currentLevel, onChanged }: 
             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
               selected === t.titleCode
                 ? "bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-semibold"
-                : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+                : "bg-[var(--surface-subtle)] dark:bg-gray-800 text-[var(--text-subtle)] dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-950"
             }`}
           >
             <span className="font-medium">{t.nameJa}</span>
@@ -75,7 +75,7 @@ export function RpgTitleSelector({ currentTitleCode, currentLevel, onChanged }: 
         {locked.map((t) => (
           <div
             key={t.titleCode}
-            className="w-full px-3 py-2 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-[var(--muted)] opacity-50"
+            className="w-full px-3 py-2 rounded-lg text-sm bg-[var(--surface-subtle)] dark:bg-gray-800 text-[var(--muted)] opacity-50"
           >
             <span>{t.nameJa}</span>
             <span className="ml-2 text-xs">Lv.{t.unlockLevel ?? "?"}で解放されます</span>

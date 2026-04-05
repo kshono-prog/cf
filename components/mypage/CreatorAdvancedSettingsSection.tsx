@@ -127,15 +127,15 @@ function SettlementWorkspaceCard(props: {
   };
 
   return (
-    <div className="space-y-3 rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
+    <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
           {props.currency}
         </div>
-        <div className="mt-1 text-sm font-semibold text-gray-900">
+        <div className="mt-1 text-sm font-semibold text-[var(--text)]">
           配分と精算
         </div>
-        <div className="mt-1 text-xs leading-5 text-gray-600">
+        <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
           目標達成後の資金移動、配分、実行結果の確認を行います。
         </div>
       </div>
@@ -174,8 +174,8 @@ export function CreatorAdvancedSettingsSection(props: Props) {
 
       <div className="space-y-3">
         <div>
-          <div className="text-sm font-semibold text-gray-900">配分と精算</div>
-          <div className="mt-1 text-xs leading-5 text-gray-600">
+          <div className="text-sm font-semibold text-[var(--text)]">配分と精算</div>
+          <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             通貨ごとの配分フローと実行ログを確認します。
           </div>
         </div>
@@ -201,10 +201,10 @@ export function CreatorAdvancedSettingsSection(props: Props) {
         )}
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
+      <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
         <div>
-          <div className="text-sm font-semibold text-gray-900">ガス代支援</div>
-          <div className="mt-1 text-xs leading-5 text-gray-600">
+          <div className="text-sm font-semibold text-[var(--text)]">ガス代支援</div>
+          <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             必要なときだけ申請や確認を行います。通常の運営画面とは分けて置いています。
           </div>
         </div>

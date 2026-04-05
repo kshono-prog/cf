@@ -122,7 +122,7 @@ export function WalletOverviewCard(props: WalletOverviewCardProps) {
       </div>
 
       {props.address ? (
-        <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
+        <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
           <div className="text-sm text-[var(--text-subtle)]">接続中アドレス</div>
           <div className="mt-2 break-all font-mono text-sm text-[var(--text)]">
             {props.address}

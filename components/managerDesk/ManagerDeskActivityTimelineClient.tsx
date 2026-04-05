@@ -28,15 +28,15 @@ const ACTIVITY_TIMELINE_SOURCE_LABELS: Record<
   ManagerDeskActivityTimelineSourceType,
   string
 > = {
-  ACTION_LOG: "Action Log",
-  MEETING: "Meeting",
-  SHAREABLE_NOTE: "Shareable Note",
+  ACTION_LOG: "アクションログ",
+  MEETING: "ミーティング",
+  SHAREABLE_NOTE: "共有ノート",
 };
 
 const secondaryActionClassName = "btn-secondary justify-center text-sm";
 const compactSecondaryActionClassName = "btn-secondary justify-center text-xs";
 const fieldClassName =
-  "w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
+  "w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
 
 function formatDateTime(value: string): string {
   const date = new Date(value);
@@ -51,7 +51,7 @@ function formatDateTime(value: string): string {
 
 function SummaryMetric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -210,22 +210,22 @@ export function ManagerDeskActivityTimelineClient() {
           {data ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <SummaryMetric label="Items" value={String(data.summary.totalCount)} />
+                <SummaryMetric label="件数" value={String(data.summary.totalCount)} />
                 <SummaryMetric
-                  label="Action Logs"
+                  label="アクションログ"
                   value={String(data.summary.actionLogCount)}
                 />
                 <SummaryMetric
-                  label="Meetings"
+                  label="ミーティング"
                   value={String(data.summary.meetingCount)}
                 />
                 <SummaryMetric
-                  label="Shareable Notes"
+                  label="共有ノート"
                   value={String(data.summary.shareableNoteCount)}
                 />
               </div>
 
-              <div className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 md:grid-cols-[1fr,1fr]">
+              <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 md:grid-cols-[1fr,1fr]">
                 <label className="space-y-2 text-sm text-[var(--text-subtle)]">
                   <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
                     Creator
@@ -285,7 +285,7 @@ export function ManagerDeskActivityTimelineClient() {
                   {data.items.map((item) => (
                     <article
                       key={item.id}
-                      className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">

@@ -182,7 +182,7 @@ export function ShareDraftCard(props: Props) {
         </button>
       </div>
 
-      <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--text-subtle)]">
+      <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--text-subtle)]">
         公開ページ URL:{" "}
         <a
           href={props.publicPageUrl}
@@ -209,7 +209,7 @@ export function ShareDraftCard(props: Props) {
           {DRAFT_FIELDS.map((field) => (
             <div
               key={field.key}
-              className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+              className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="text-base font-semibold text-[var(--text)]">

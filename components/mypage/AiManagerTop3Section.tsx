@@ -56,28 +56,43 @@ export function AiManagerTop3Section({ tasks, loading, onOpenSettings, inlineCon
 
   return (
     <>
-      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
-        {/* CTA ボタン行 */}
+      {/* AI 提案カード — accent-subtle 背景 + 左ボーダー */}
+      <div
+        className="rounded-xl px-4 py-4"
+        style={{
+          background: "var(--accent-subtle)",
+          borderLeft: "3px solid var(--accent)",
+          border: "1px solid var(--accent-muted)",
+        }}
+      >
+        {/* ヘッダー行 */}
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-[var(--text)]">
-              AIマネージャーを呼ぶ
+          <div className="flex items-center gap-2.5">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              style={{ background: "var(--accent)" }}
+            >
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 16, height: 16, color: "#fff" }}>
+                <path d="M10 3a7 7 0 1 1 0 14A7 7 0 0 1 10 3z" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M7.5 10.5c.5 1.2 1.5 2 2.5 2s2-.8 2.5-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="7.5" cy="8.5" r="0.75" fill="currentColor" />
+                <circle cx="12.5" cy="8.5" r="0.75" fill="currentColor" />
+              </svg>
             </div>
-            <div className="mt-0.5 text-xs text-[var(--text-subtle)]">
-              今すぐ動ける優先タスク Top3 を表示します
+            <div>
+              <p className="text-sm font-bold text-[var(--text)]">AIマネージャー</p>
+              <p className="text-[11px] text-[var(--accent)] font-semibold">今日の優先タスク</p>
             </div>
           </div>
           <button
             type="button"
             disabled={loading}
             onClick={() => setOpen((v) => !v)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-              open
-                ? "btn-secondary rounded-full"
-                : "btn rounded-full"
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              open ? "btn-secondary" : "btn"
             }`}
           >
-            {loading ? "読み込み中..." : open ? "閉じる" : "呼ぶ ✦"}
+            {loading ? "読み込み中…" : open ? "閉じる" : "確認する ✦"}
           </button>
         </div>
 
@@ -94,16 +109,14 @@ export function AiManagerTop3Section({ tasks, loading, onOpenSettings, inlineCon
 
         {/* 展開: Top3 タスクカード */}
         {open && (
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-2.5">
             {tasks.length === 0 ? (
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--text-subtle)]">
+              <div className="rounded-xl bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-subtle)]">
                 今すぐ対応が必要なタスクはありません。引き続き活動を続けてください。
               </div>
             ) : (
               <>
-                <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
-                  今日の優先タスク
-                </div>
+                <p className="section-kicker mb-2">今日の優先タスク</p>
                 {tasks.map((task, i) => (
                   <AiManagerTop3TaskCard
                     key={task.id}

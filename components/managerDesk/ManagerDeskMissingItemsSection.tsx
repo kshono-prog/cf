@@ -63,11 +63,11 @@ function categoryLabel(category: MissingItem["category"]): string {
 function entityTypeLabel(entityType: MissingItem["entityType"]): string {
   switch (entityType) {
     case "MANAGER_NOTE":
-      return "Note";
+      return "ノート";
     case "EXTERNAL_CONTACT":
-      return "Contact";
+      return "連絡先";
     case "MEETING":
-      return "Meeting";
+      return "ミーティング";
   }
 }
 
@@ -89,7 +89,7 @@ function SummaryChip(props: { label: string; value: string; tone?: "high" | "war
         ? "border-amber-200 bg-amber-50 text-amber-900"
         : "border-slate-200 bg-slate-50 text-slate-800";
   return (
-    <div className={`rounded-2xl border p-3 ${toneClass}`}>
+    <div className={`rounded-xl border p-3 ${toneClass}`}>
       <div className="text-[10px] uppercase tracking-[0.14em] text-current opacity-60">
         {props.label}
       </div>

@@ -41,7 +41,7 @@ export function FanThankActionCard({ thankNeededCount, projectId, workspaceBaseP
   const composeHref = buildComposeHref(workspaceBasePath);
 
   return (
-    <div className="accent-surface-amber rounded-2xl px-4 py-4 shadow-sm">
+    <div className="accent-surface-amber rounded-xl px-4 py-4">
       <div className="mb-1 text-sm font-semibold text-[var(--text)]">
         未返礼の応援があります
       </div>

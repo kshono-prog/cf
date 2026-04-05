@@ -25,7 +25,7 @@ function relativeTime(isoString: string): string {
 export function FanEngagementTimelineCard({ loading, error, data }: Props) {
   if (loading) {
     return (
-      <div className="animate-pulse rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+      <div className="animate-pulse rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
         <div className="mb-3 h-4 w-32 rounded bg-[var(--surface-muted)]" />
         <div className="space-y-2">
           {[0, 1, 2].map((i) => (
@@ -42,7 +42,7 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
       "応援タイムラインの取得に失敗しました。"
     );
     return (
-      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
         <div className="mb-2 text-sm font-semibold text-[var(--text)]">応援タイムライン</div>
         <WorkspaceStatusNotice
           tone={notice.tone}
@@ -55,7 +55,7 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
 
   if (!data || data.recentContributions.length === 0) {
     return (
-      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
         <div className="mb-2 text-sm font-semibold text-[var(--text)]">応援タイムライン</div>
         <div className="text-xs text-[var(--text-subtle)]">
           まだ応援者がいません。公開ページへの誘導を続けましょう。
@@ -65,7 +65,7 @@ export function FanEngagementTimelineCard({ loading, error, data }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-sm font-semibold text-[var(--text)]">応援タイムライン</div>
         <div className="text-[11px] text-[var(--text-subtle)]">

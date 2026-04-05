@@ -46,19 +46,19 @@ export function RpgPrivacySettings({ initial, onSaved }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">公開設定</h3>
+    <div className="rounded-xl border border-[var(--line)] dark:border-gray-800 p-4 space-y-4">
+      <h3 className="text-sm font-semibold text-[var(--text-subtle)] dark:text-gray-300">公開設定</h3>
       <div className="space-y-2">
         {ITEMS.map(({ key, label }) => (
           <label key={key} className="flex items-center justify-between gap-3 cursor-pointer">
-            <span className="text-sm text-gray-600 dark:text-[var(--muted)]">{label}</span>
+            <span className="text-sm text-[var(--text-subtle)] dark:text-[var(--muted)]">{label}</span>
             <button
               type="button"
               role="switch"
               aria-checked={privacy[key]}
               onClick={() => toggle(key)}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                privacy[key] ? "bg-indigo-500" : "bg-gray-300 dark:bg-gray-600"
+                privacy[key] ? "bg-indigo-500" : "bg-[var(--line)] dark:bg-gray-600"
               }`}
             >
               <span

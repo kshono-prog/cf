@@ -157,11 +157,11 @@ export function GasSupportCard(props: {
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">{title}</h2>
         {gasLoading && (
-          <span className="text-[11px] text-gray-500">判定中...</span>
+          <span className="text-[11px] text-[var(--muted)]">判定中...</span>
         )}
       </div>
 
-      <p className="text-xs text-gray-600">{description}</p>
+      <p className="text-xs text-[var(--text-subtle)]">{description}</p>
 
       {eligible && !gasClaiming && !gasTxHash ? (
         <WorkspaceStatusNotice
@@ -172,7 +172,7 @@ export function GasSupportCard(props: {
       ) : null}
 
       {gas && (
-        <div className="text-[11px] text-gray-700 space-y-1">
+        <div className="text-[11px] text-[var(--text-subtle)] space-y-1">
           <div>JPYC残高：{gas.jpycBalance ?? "-"}</div>
           <div>
             {tokenSymbol}残高：{gas.nativeBalance ?? "-"}
@@ -229,19 +229,19 @@ export function GasSupportCard(props: {
       </button>
 
       {eligible && !gasClaiming && !gasTxHash ? (
-        <p className="text-[11px] text-gray-500">
+        <p className="text-[11px] text-[var(--muted)]">
           署名が表示されるのは受け取る操作を実行したときだけです。
         </p>
       ) : null}
 
       {faucetAddress && (
-        <div className="pt-2 border-t border-gray-200 space-y-1">
-          <p className="text-xs text-gray-600">
+        <div className="pt-2 border-t border-[var(--line)] space-y-1">
+          <p className="text-xs text-[var(--text-subtle)]">
             この機能を支援する（寄付 / Faucet原資）
           </p>
           <p className="text-xs font-mono break-all">{faucetAddress}</p>
           {gas?.faucetBalance && (
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[11px] text-[var(--muted)]">
               Faucet残高：{gas.faucetBalance} {tokenSymbol}
             </p>
           )}

@@ -35,7 +35,7 @@ export function PublicProfileImpactNumbers({ credibility }: Props) {
   if (totalPostCount === 0 && totalContributorCount === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5">
       <div className="grid grid-cols-3 divide-x divide-[var(--line)]">
         <Metric value={String(totalPostCount)} label="投稿" />
         <Metric value={String(totalContributorCount)} label="支援者" />

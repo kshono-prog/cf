@@ -596,7 +596,7 @@ export function CreatorSettingsAiManagerAccountSection() {
       {workspace.isConnected && !aiManager.loading && !account ? (
         <div className="mt-4 space-y-4">
           <div className="grid gap-3 lg:grid-cols-3">
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                 無料範囲
               </div>
@@ -607,7 +607,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                 残高ゼロでも、低負荷の提案と内部メモは継続します。
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                 有料範囲
               </div>
@@ -618,7 +618,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                 `x402` 優先、だめな場合は internal ledger fallback を前提にします。
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                 安全性
               </div>
@@ -631,7 +631,7 @@ export function CreatorSettingsAiManagerAccountSection() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-5">
+          <div className="rounded-xl border border-dashed border-[var(--line)] px-4 py-5">
             <div className="text-sm font-semibold text-[var(--text)]">
               AIマネージャーを作ると、creator 専属の運営人格を 1 体だけ持てます。
             </div>
@@ -657,7 +657,7 @@ export function CreatorSettingsAiManagerAccountSection() {
       {account && form ? (
         <form className="mt-4 space-y-4" onSubmit={(event) => void handleSubmit(event)}>
           <div className="grid gap-3 lg:grid-cols-4">
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                 status
               </div>
@@ -665,7 +665,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                 {STATUS_LABELS[account.status]}
               </div>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                 visibility
               </div>
@@ -673,7 +673,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                 {VISIBILITY_LABELS[account.publicVisibility]}
               </div>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                 available
               </div>
@@ -681,7 +681,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                 {balance ? formatJpycAmount(balance.availableAmount) : "0 JPYC"}
               </div>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                 updated
               </div>
@@ -709,7 +709,7 @@ export function CreatorSettingsAiManagerAccountSection() {
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
               <div className="text-sm font-semibold text-[var(--text)]">
                 キャラクター設定
               </div>
@@ -866,7 +866,7 @@ export function CreatorSettingsAiManagerAccountSection() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
               <div className="text-sm font-semibold text-[var(--text)]">
                 ウォレットと運用境界
               </div>
@@ -908,7 +908,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     disabled={aiManager.saving}
                   />
                 </label>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-xs leading-6 text-[var(--text-subtle)]">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-xs leading-6 text-[var(--text-subtle)]">
                   <div>公開時の表示ルール: 常に AI 明記</div>
                   <div>
                     公開ショーケース: /{workspace.meCreatorUsername}/manager/
@@ -922,7 +922,7 @@ export function CreatorSettingsAiManagerAccountSection() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <label className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 text-xs text-[var(--text)]">
+            <label className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 text-xs text-[var(--text)]">
               <span className="text-sm font-semibold text-[var(--text)]">
                 得意分野
               </span>
@@ -939,7 +939,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                 1行に1つ。AIマネージャーが優先して担う領域です。
               </span>
             </label>
-            <label className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 text-xs text-[var(--text)]">
+            <label className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 text-xs text-[var(--text)]">
               <span className="text-sm font-semibold text-[var(--text)]">
                 禁止トピック
               </span>
@@ -956,7 +956,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                 発信や提案で避ける話題を固定します。
               </span>
             </label>
-            <label className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 text-xs text-[var(--text)]">
+            <label className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 text-xs text-[var(--text)]">
               <span className="text-sm font-semibold text-[var(--text)]">
                 ブランドガードレール
               </span>
@@ -976,7 +976,7 @@ export function CreatorSettingsAiManagerAccountSection() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.25fr,0.75fr]">
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-[var(--text)]">
@@ -1063,7 +1063,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                 {AI_MANAGER_BILLABLE_CAPABILITIES.map((capability) => (
                   <label
                     key={capability}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--text)]"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--text)]"
                   >
                     <input
                       type="checkbox"
@@ -1079,12 +1079,12 @@ export function CreatorSettingsAiManagerAccountSection() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
               <div className="text-sm font-semibold text-[var(--text)]">
                 予算サマリー
               </div>
               <div className="mt-3 space-y-3">
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     available
                   </div>
@@ -1092,7 +1092,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     {balance ? formatJpycAmount(balance.availableAmount) : "0 JPYC"}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     reserved
                   </div>
@@ -1100,12 +1100,12 @@ export function CreatorSettingsAiManagerAccountSection() {
                     {balance ? formatJpycAmount(balance.reservedAmount) : "0 JPYC"}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-xs leading-6 text-[var(--text-subtle)]">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-xs leading-6 text-[var(--text-subtle)]">
                   <div>無料範囲: 内部ブリーフィング + 軽い下書き</div>
                   <div>Web収集: 手動トリガーのみ</div>
                   <div>失敗時: billable capability を一時停止</div>
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     real wallet top-up / x402 readiness
                   </div>
@@ -1135,7 +1135,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                           placeholder="server env で payee wallet を設定してください"
                         />
                       </label>
-                      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-6 text-[var(--text-subtle)]">
+                      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-6 text-[var(--text-subtle)]">
                         <div>
                           chain: {funding.chainName} ({funding.chainId})
                         </div>
@@ -1172,7 +1172,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                           <div>x402 endpoint: {funding.x402EndpointUrl}</div>
                         ) : null}
                       </div>
-                      <div className="space-y-2 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                      <div className="space-y-2 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                         {funding.steps.map((step, index) => (
                           <div key={`${funding.referenceCode}-step-${index + 1}`}>
                             {index + 1}. {step}
@@ -1180,7 +1180,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                         ))}
                       </div>
                       {funding.warnings.length > 0 ? (
-                        <div className="space-y-2 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                        <div className="space-y-2 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                           {funding.warnings.map((warning, index) => (
                             <div key={`${funding.referenceCode}-warning-${index + 1}`}>
                               注意 {index + 1}: {warning}
@@ -1195,7 +1195,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   )}
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     budget operation
                   </div>
@@ -1265,7 +1265,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     top-up evidence
                   </div>
@@ -1351,7 +1351,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                         {account.recentFundingEvidences.slice(0, 4).map((entry) => (
                           <div
                             key={entry.id}
-                            className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+                            className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
                           >
                             <div className="font-semibold text-[var(--text)]">
                               {formatJpycAmount(entry.amount)} /{" "}
@@ -1373,7 +1373,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     )}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     x402 settlement confirmation
                   </div>
@@ -1409,7 +1409,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                         </select>
                       </label>
                       {selectedPendingX402Usage?.latestPaymentAttempt ? (
-                        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                           <div>
                             rail:{" "}
                             {
@@ -1502,20 +1502,20 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   )}
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
-                    owner follow-up
+                    オーナーフォローアップ
                   </div>
                   {x402FollowUps.length === 0 ? (
                     <div className="mt-2 text-xs leading-5 text-[var(--text-subtle)]">
-                      いま処理が必要な x402 / top-up follow-up はありません。
+                      いま処理が必要な x402 / top-up フォローアップはありません。
                     </div>
                   ) : (
                     <div className="mt-2 space-y-2">
                       {x402FollowUps.map((entry) => (
                         <div
                           key={entry.id}
-                          className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+                          className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="font-semibold text-[var(--text)]">
@@ -1551,7 +1551,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                   )}
                 </div>
                 <AiManagerConnectorHealthDigest digest={connectorHealthDigest} />
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     delivery events
                   </div>
@@ -1564,7 +1564,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                       {recentX402DeliveryEvents.slice(0, 4).map((entry) => (
                         <div
                           key={entry.id}
-                          className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+                          className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="font-semibold text-[var(--text)]">
@@ -1589,14 +1589,14 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   )}
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <AiManagerRecoveryTrendChart summary={x402RecoverySummary} />
                   {x402RecoveryItems.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {x402RecoveryItems.map((entry) => (
                         <div
                           key={entry.id}
-                          className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+                          className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="font-semibold text-[var(--text)]">
@@ -1616,7 +1616,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   )}
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     reconciliation summary
                   </div>
@@ -1624,7 +1624,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     x402 settlement と top-up evidence の未処理件数をまとめています。
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                       <div className="font-semibold text-[var(--text)]">
                         pending x402
                       </div>
@@ -1672,7 +1672,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                         <div>{account.reconciliation.pendingX402DeliveryHint}</div>
                       ) : null}
                     </div>
-                    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
+                    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]">
                       <div className="font-semibold text-[var(--text)]">
                         unmatched top-up evidence
                       </div>
@@ -1704,13 +1704,13 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   </div>
                   {account.reconciliation.failedX402Count > 0 ? (
-                    <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs leading-5 text-amber-900">
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs leading-5 text-amber-900">
                       failed x402: {account.reconciliation.failedX402Count}件 /{" "}
                       {formatJpycAmount(account.reconciliation.failedX402Amount)}
                     </div>
                   ) : null}
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     recent x402 activity
                   </div>
@@ -1723,7 +1723,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                       {recentX402Activity.slice(0, 4).map((entry) => (
                         <div
                           key={entry.paymentAttemptId}
-                          className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+                          className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
                         >
                           <div className="font-semibold text-[var(--text)]">
                             {entry.taskLabel ?? entry.capabilityLabel}
@@ -1740,7 +1740,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   )}
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     recent ledger
                   </div>
@@ -1753,7 +1753,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                       {account.recentUsageRecords.slice(0, 3).map((usage) => (
                         <div
                           key={usage.id}
-                          className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+                          className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
                         >
                           <div className="font-semibold text-[var(--text)]">
                             {CAPABILITY_LABELS[usage.capability]}
@@ -1782,7 +1782,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                     </div>
                   )}
                 </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     recent budget ops
                   </div>
@@ -1795,7 +1795,7 @@ export function CreatorSettingsAiManagerAccountSection() {
                       {account.recentBudgetTransactions.slice(0, 4).map((entry) => (
                         <div
                           key={entry.id}
-                          className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
+                          className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 text-xs leading-5 text-[var(--text-subtle)]"
                         >
                           <div className="font-semibold text-[var(--text)]">
                             {entry.direction === "CREDIT" ? "+" : "-"}

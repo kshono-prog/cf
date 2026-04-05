@@ -38,7 +38,7 @@ export function PublicProfileSupporterTrustCard(props: Props) {
   if (data.items.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 space-y-3">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">

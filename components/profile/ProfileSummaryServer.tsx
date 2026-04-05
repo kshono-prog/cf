@@ -49,7 +49,7 @@ export function ProfileSummaryServer({
                 alt={`${displayName} のアイコン / Avatar`}
                 width={96}
                 height={96}
-                className="rounded-full object-cover ring-2 ring-indigo-500/30 bg-gray-100 dark:bg-gray-800"
+                className="rounded-full object-cover ring-2 ring-indigo-500/30 bg-[var(--surface-muted)] dark:bg-gray-800"
               />
             ) : (
               <div
@@ -63,12 +63,12 @@ export function ProfileSummaryServer({
           </div>
         </div>
 
-        <h2 className="mt-3 text-lg sm:text-xl font-semibold text-gray-900">
+        <h2 className="mt-3 text-lg sm:text-xl font-semibold text-[var(--text)]">
           {displayName}
         </h2>
 
         {creator.profile && (
-          <p className="mt-1 text-sm text-gray-600 leading-snug max-w-[28rem]">
+          <p className="mt-1 text-sm text-[var(--text-subtle)] leading-snug max-w-[28rem]">
             {creator.profile}
           </p>
         )}
@@ -87,7 +87,7 @@ export function ProfileSummaryServer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="text-gray-600 hover:text-gray-900 transition"
+                  className="text-[var(--text-subtle)] hover:text-[var(--text)] transition"
                 >
                   <Image src={icon} alt={label} width={22} height={22} />
                 </a>

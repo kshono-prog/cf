@@ -367,31 +367,27 @@ export function CreatorReadyHomeRoute(props: Props) {
       />
 
       {/* ── 他タブへのナビゲーション ── */}
-      <div className="grid grid-cols-3 gap-3 pt-2">
-        <button
-          type="button"
-          className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-4 text-xs font-medium text-[var(--text-subtle)] hover:border-[var(--accent-muted)] hover:text-[var(--accent)] transition-colors"
-          onClick={() => navigateToTab("project")}
-        >
-          <span className="text-lg">📊</span>
-          プロジェクト
-        </button>
-        <button
-          type="button"
-          className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-4 text-xs font-medium text-[var(--text-subtle)] hover:border-[var(--accent-muted)] hover:text-[var(--accent)] transition-colors"
-          onClick={() => navigateToTab("ai-office")}
-        >
-          <span className="text-lg">🤖</span>
-          AIオフィス
-        </button>
-        <button
-          type="button"
-          className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-4 text-xs font-medium text-[var(--text-subtle)] hover:border-[var(--accent-muted)] hover:text-[var(--accent)] transition-colors"
-          onClick={() => navigateToTab("fans")}
-        >
-          <span className="text-lg">💜</span>
-          ファン
-        </button>
+      <div className="border-t border-[var(--line)] pt-4">
+        <p className="section-kicker mb-3">機能を開く</p>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              { view: "project",   icon: "📊", label: "プロジェクト" },
+              { view: "ai-office", icon: "🤖", label: "AIオフィス" },
+              { view: "fans",      icon: "💙", label: "ファン" },
+            ] as const
+          ).map(({ view, icon, label }) => (
+            <button
+              key={view}
+              type="button"
+              className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3.5 text-xs font-medium text-[var(--text-subtle)] hover:border-[var(--accent-muted)] hover:bg-[var(--accent-subtle)] hover:text-[var(--accent)] transition-colors"
+              onClick={() => navigateToTab(view)}
+            >
+              <span className="text-base">{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

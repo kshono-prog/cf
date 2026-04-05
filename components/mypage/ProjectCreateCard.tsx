@@ -79,16 +79,16 @@ export function ProjectCreateCard({
         <h2 className="text-sm font-semibold">最初の Project</h2>
 
         {shownProjectId ? (
-          <span className="text-[11px] text-gray-500">
+          <span className="text-[11px] text-[var(--muted)]">
             現在の projectId:{" "}
             <span className="font-mono">{shownProjectId}</span>
           </span>
         ) : (
-          <span className="text-[11px] text-gray-500">Project 未作成</span>
+          <span className="text-[11px] text-[var(--muted)]">Project 未作成</span>
         )}
       </div>
 
-      <p className="text-xs text-gray-600">
+      <p className="text-xs text-[var(--text-subtle)]">
         公開ページで最初に支援してもらう単位です。何を前に進めたいのかが一言で伝わるタイトルがおすすめです。
       </p>
 
@@ -98,7 +98,7 @@ export function ProjectCreateCard({
 
       <div className="space-y-2">
         <div>
-          <label className="block text-[11px] text-gray-600 mb-1">
+          <label className="block text-[11px] text-[var(--text-subtle)] mb-1">
             タイトル <span className="text-red-500">*</span>
           </label>
           <input
@@ -112,7 +112,7 @@ export function ProjectCreateCard({
         </div>
 
         <div>
-          <label className="block text-[11px] text-gray-600 mb-1">説明</label>
+          <label className="block text-[11px] text-[var(--text-subtle)] mb-1">説明</label>
           <textarea
             className="input min-h-[70px]"
             placeholder="例）このプロジェクトの目的、背景、使い方など"
@@ -123,7 +123,7 @@ export function ProjectCreateCard({
         </div>
 
         <div>
-          <label className="block text-[11px] text-gray-600 mb-1">
+          <label className="block text-[11px] text-[var(--text-subtle)] mb-1">
             purposeMode
           </label>
           <select
@@ -137,7 +137,7 @@ export function ProjectCreateCard({
             <option value="NONE">NONE（内訳なし）</option>
           </select>
 
-          <p className="text-[10px] text-gray-500 mt-1">
+          <p className="text-[10px] text-[var(--muted)] mt-1">
             現状は schema が string 運用のため、値は文字列として保存されます。
           </p>
         </div>
@@ -153,7 +153,7 @@ export function ProjectCreateCard({
       </button>
 
       {shownProjectId ? (
-        <div className="text-[10px] text-gray-500">
+        <div className="text-[10px] text-[var(--muted)]">
           作成直後に projectId
           をこのページに即時反映しています（リロード不要）。
         </div>

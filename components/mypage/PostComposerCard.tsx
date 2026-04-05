@@ -176,11 +176,11 @@ export function PostComposerCard(props: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-gray-900">投稿を作成</div>
-          <div className="mt-1 text-xs leading-5 text-gray-600">
+          <div className="text-sm font-semibold text-[var(--text)]">投稿を作成</div>
+          <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             活動報告、進捗共有、次の支援導線をここから追加します。
           </div>
         </div>
@@ -191,7 +191,7 @@ export function PostComposerCard(props: Props) {
 
       <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-xs font-medium text-gray-700">本文</label>
+          <label className="block text-xs font-medium text-[var(--text-subtle)]">本文</label>
           <textarea
             className="input mt-1 min-h-[144px]"
             value={body}
@@ -199,14 +199,14 @@ export function PostComposerCard(props: Props) {
             placeholder="今日の進捗、次に進めたいこと、支援のお礼などを書けます。"
             disabled={saving}
           />
-          <div className="mt-1 text-[11px] text-gray-500">
+          <div className="mt-1 text-[11px] text-[var(--muted)]">
             {body.trim().length}/2000
           </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="block text-xs font-medium text-gray-700">
+            <label className="block text-xs font-medium text-[var(--text-subtle)]">
               project 紐づけ
             </label>
             <select
@@ -222,13 +222,13 @@ export function PostComposerCard(props: Props) {
                 </option>
               ))}
             </select>
-            <div className="mt-1 text-[11px] text-gray-500">
+            <div className="mt-1 text-[11px] text-[var(--muted)]">
               紐づけると公開ページの支援導線が分かりやすくなります。
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700">
+            <label className="block text-xs font-medium text-[var(--text-subtle)]">
               メディア種別
             </label>
             <select
@@ -250,7 +250,7 @@ export function PostComposerCard(props: Props) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-700">
+          <label className="block text-xs font-medium text-[var(--text-subtle)]">
             メディア URL
           </label>
           <input
@@ -275,7 +275,7 @@ export function PostComposerCard(props: Props) {
         ) : null}
 
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[11px] leading-5 text-gray-500">
+          <div className="text-[11px] leading-5 text-[var(--muted)]">
             このフェーズでは作成した投稿は公開状態で保存されます。
           </div>
           <button type="submit" className="btn" disabled={saving || !props.address}>

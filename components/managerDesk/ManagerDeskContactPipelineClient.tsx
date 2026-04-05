@@ -47,7 +47,7 @@ const TEMPERATURE_VALUES = ["UNKNOWN", "COLD", "NEUTRAL", "WARM", "HOT"] as cons
 
 const secondaryActionClassName = "btn-secondary justify-center text-sm";
 const fieldClassName =
-  "w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
+  "w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "未設定";
@@ -75,7 +75,7 @@ function dueStateLabel(value: "OVERDUE" | "DUE_SOON" | "NONE"): string {
 
 function SummaryMetric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -328,7 +328,7 @@ export function ManagerDeskContactPipelineClient() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <SummaryMetric
-                  label="Contacts"
+                  label="連絡先"
                   value={String(data.summary.totalCount)}
                 />
                 <SummaryMetric
@@ -345,7 +345,7 @@ export function ManagerDeskContactPipelineClient() {
                 />
               </div>
 
-              <div className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 md:grid-cols-[1fr,1fr,auto]">
+              <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 md:grid-cols-[1fr,1fr,auto]">
                 <label className="space-y-2 text-sm text-[var(--text-subtle)]">
                   <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
                     Creator
@@ -392,7 +392,7 @@ export function ManagerDeskContactPipelineClient() {
                   </select>
                 </label>
 
-                <label className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]">
+                <label className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]">
                   <input
                     type="checkbox"
                     checked={overdueOnly}
@@ -418,7 +418,7 @@ export function ManagerDeskContactPipelineClient() {
               </div>
 
               {data.items.length > 0 && selectedIds.size > 0 ? (
-                <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-3">
                   <span className="text-sm font-semibold text-[var(--text)]">
                     {selectedIds.size} 件選択中
                   </span>
@@ -426,7 +426,7 @@ export function ManagerDeskContactPipelineClient() {
                     value={bulkStatus}
                     disabled={bulkUpdating}
                     onChange={(e) => setBulkStatus(e.target.value as (typeof EXTERNAL_CONTACT_STATUSES)[number])}
-                    className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text)] disabled:opacity-50"
+                    className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text)] disabled:opacity-50"
                   >
                     {EXTERNAL_CONTACT_STATUSES.map((s) => (
                       <option key={s} value={s}>{CONTACT_STATUS_LABELS[s]}</option>
@@ -535,7 +535,7 @@ export function ManagerDeskContactPipelineClient() {
                       </div>
 
                       <div className="grid gap-3 md:grid-cols-[1.2fr,0.8fr]">
-                        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+                        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
                           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                             Next Action
                           </div>
@@ -550,7 +550,7 @@ export function ManagerDeskContactPipelineClient() {
                           ) : null}
                         </div>
 
-                        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
                           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                             Contact Snapshot
                           </div>
@@ -609,7 +609,7 @@ export function ManagerDeskContactPipelineClient() {
                       </div>
 
                       {item.latestNote ? (
-                        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+                        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                               最新ノート

@@ -79,7 +79,7 @@ export function ProjectSettlementDistributionDraftSection(
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="text-sm font-medium">配分の下書き</div>
-          <div className="mt-1 text-[11px] leading-5 text-gray-500 sm:text-xs">
+          <div className="mt-1 text-[11px] leading-5 text-[var(--muted)] sm:text-xs">
             送金先と金額を先に整えてから、送信前確認へ進みます。
           </div>
         </div>
@@ -115,7 +115,7 @@ export function ProjectSettlementDistributionDraftSection(
         />
       ) : null}
 
-      <div className="space-y-1 text-[11px] leading-5 text-gray-600 sm:text-xs">
+      <div className="space-y-1 text-[11px] leading-5 text-[var(--text-subtle)] sm:text-xs">
         合計: {formatBigIntGrouped(props.totals.planned)} / ブリッジ済み:{" "}
         {formatBigIntGrouped(props.totals.bridged)}
         {props.totals.exceeds ? (
@@ -152,7 +152,7 @@ export function ProjectSettlementDistributionDraftSection(
                 inputMode="numeric"
               />
               <select
-                className="rounded border bg-gray-50 px-3 py-2 text-sm md:col-span-2 md:px-2 md:py-1.5 md:text-xs"
+                className="rounded border bg-[var(--surface-subtle)] px-3 py-2 text-sm md:col-span-2 md:px-2 md:py-1.5 md:text-xs"
                 value={row.token}
                 disabled
                 aria-label="token"

@@ -109,7 +109,7 @@ export function ManagerDeskAiManagerReadOnlySection({
   return (
     <section
       id="ai-manager-governance"
-      className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
@@ -123,7 +123,7 @@ export function ManagerDeskAiManagerReadOnlySection({
         <span className="status-badge status-badge-neutral">read only</span>
       </div>
 
-      <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+      <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-3">
         <div className="text-sm font-semibold text-[var(--text)]">{viewerNotice.title}</div>
         <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
           {viewerNotice.description}
@@ -132,7 +132,7 @@ export function ManagerDeskAiManagerReadOnlySection({
 
       {aiManager ? (
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="status-badge status-badge-neutral">
                 {STATUS_LABELS[aiManager.status]}
@@ -169,7 +169,7 @@ export function ManagerDeskAiManagerReadOnlySection({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
             <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
               Allowed Scope
             </div>
@@ -209,13 +209,13 @@ export function ManagerDeskAiManagerReadOnlySection({
           </div>
         </div>
       ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface-muted)] p-4 text-sm text-[var(--text-subtle)]">
+        <div className="mt-4 rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-muted)] p-4 text-sm text-[var(--text-subtle)]">
           AI Manager はまだ作成されていません。作成後はこの面で人格、公開状態、稼働モードを read-only で確認できます。
         </div>
       )}
 
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
-        <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+        <article className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
             Creator Owner
           </div>
@@ -226,7 +226,7 @@ export function ManagerDeskAiManagerReadOnlySection({
             公開するか、出演するか、表現をどうするかの最終判断は creator owner が持ちます。
           </p>
         </article>
-        <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+        <article className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
             Human Manager
           </div>
@@ -237,7 +237,7 @@ export function ManagerDeskAiManagerReadOnlySection({
             対外調整、会場確認、営業、進行管理、トラブル時の現実判断は human manager が担います。
           </p>
         </article>
-        <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+        <article className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
             AI Manager
           </div>

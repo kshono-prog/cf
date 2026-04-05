@@ -27,14 +27,14 @@ function formatDate(value: string): string {
 
 function OngoingCard(props: { item: GrowthOngoingItem }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-      <div className="text-[11px] uppercase tracking-[0.12em] text-slate-500">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+      <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
         {props.item.label}
       </div>
-      <div className="mt-1 text-xl font-semibold tabular-nums text-slate-950">
+      <div className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">
         {props.item.value}
       </div>
-      <div className="mt-0.5 text-[11px] leading-4 text-slate-500">
+      <div className="mt-0.5 text-[11px] leading-4 text-[var(--muted)]">
         {props.item.note}
       </div>
     </div>
@@ -49,17 +49,17 @@ function CompletedRow(props: { item: GrowthCompletedItem }) {
       </span>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-slate-950">
+          <span className="text-xs font-semibold text-[var(--text)]">
             {props.item.label}
           </span>
           {props.item.occurredAt ? (
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-[var(--muted)]">
               {formatDate(props.item.occurredAt)}
             </span>
           ) : null}
         </div>
         {props.item.summary ? (
-          <p className="mt-0.5 text-xs leading-5 text-slate-600">
+          <p className="mt-0.5 text-xs leading-5 text-[var(--text-subtle)]">
             {props.item.summary}
           </p>
         ) : null}
@@ -75,10 +75,10 @@ function ImprovementRow(props: { item: GrowthImprovementItem }) {
         →
       </span>
       <div className="min-w-0">
-        <div className="text-xs font-semibold text-slate-950">
+        <div className="text-xs font-semibold text-[var(--text)]">
           {props.item.label}
         </div>
-        <p className="mt-0.5 text-xs leading-5 text-slate-600">
+        <p className="mt-0.5 text-xs leading-5 text-[var(--text-subtle)]">
           {props.item.reason}
         </p>
       </div>
@@ -101,17 +101,17 @@ export function CreatorReadyGrowthReflectionSection(props: Props) {
     : null;
 
   return (
-    <section className="rounded-2xl border border-white/80 bg-[var(--surface)] p-4 shadow-sm">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="mb-4">
-        <div className="text-sm font-semibold text-slate-950">
-          Growth / Reflection
+        <div className="text-sm font-semibold text-[var(--text)]">
+          成長・振り返り
           {monthLabel ? (
-            <span className="ml-2 text-xs font-normal text-slate-400">
+            <span className="ml-2 text-xs font-normal text-[var(--muted)]">
               {monthLabel}
             </span>
           ) : null}
         </div>
-        <p className="mt-1 text-xs leading-5 text-slate-600">
+        <p className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
           今月の活動を継続・完了・次の改善点の 3 軸で振り返ります。
         </p>
       </div>
@@ -136,7 +136,7 @@ export function CreatorReadyGrowthReflectionSection(props: Props) {
           {/* ongoing */}
           {props.data.ongoing.length > 0 ? (
             <div>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
                 継続中
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -150,10 +150,10 @@ export function CreatorReadyGrowthReflectionSection(props: Props) {
           {/* completed */}
           {props.data.completed.length > 0 ? (
             <div>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
                 今月の完了
               </div>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-[var(--line)]">
                 {props.data.completed.map((item, i) => (
                   <CompletedRow key={`${item.label}-${i}`} item={item} />
                 ))}
@@ -164,10 +164,10 @@ export function CreatorReadyGrowthReflectionSection(props: Props) {
           {/* improvements */}
           {props.data.improvements.length > 0 ? (
             <div>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
                 次の改善点
               </div>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-[var(--line)]">
                 {props.data.improvements.map((item, i) => (
                   <ImprovementRow key={`${item.label}-${i}`} item={item} />
                 ))}

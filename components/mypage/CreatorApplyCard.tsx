@@ -15,10 +15,10 @@ export function CreatorApplyCard({ saving, onApply }: Props) {
         <div className="text-xs font-semibold tracking-[0.12em] text-emerald-700">
           公開ページの準備
         </div>
-        <p className="mt-1 text-xs leading-relaxed text-gray-700">
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-subtle)]">
           申請すると、公開用のクリエイターページ作成フローに進めるようになります。名前と紹介文を確認してから進めてください。
         </p>
-        <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
           あとでプロフィールや目標は編集できます。
         </p>
       </div>

@@ -145,7 +145,7 @@ function BridgeCard(props: BridgeCardProps) {
       >
         推奨ブリッジを開く（Wormhole）
       </a>
-      <div className="text-[11px] text-gray-600 sm:text-xs">
+      <div className="text-[11px] text-[var(--text-subtle)] sm:text-xs">
         状態: {getBridgeStepStatusLabel(props.done ? "COMPLETED" : "PENDING")}
       </div>
       {bridgeProgressNotice ? (

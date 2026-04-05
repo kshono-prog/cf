@@ -22,7 +22,7 @@ const AXES: AxisConfig[] = [
 
 export function GrowthMeterDisplay({ scores }: Props) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
       <div className="mb-3 text-sm font-semibold text-[var(--text)]">成長メーター</div>
       <div className="space-y-2.5">
         {AXES.map(({ key, label, barVar }) => {

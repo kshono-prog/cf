@@ -70,7 +70,7 @@ export function PublicProfileNextGoalReveal({ data }: Props) {
   const forecastText = buildForecastText(data);
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5 space-y-4">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5 space-y-4">
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         Next Goal
       </div>
@@ -84,7 +84,7 @@ export function PublicProfileNextGoalReveal({ data }: Props) {
         </div>
 
         <div className="space-y-3 sm:min-w-[11rem]">
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-right">
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-right">
             <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--text-subtle)]">
               Remaining
             </div>
@@ -103,7 +103,7 @@ export function PublicProfileNextGoalReveal({ data }: Props) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
           <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             現在地
           </div>
@@ -115,7 +115,7 @@ export function PublicProfileNextGoalReveal({ data }: Props) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
           <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             直近30日
           </div>
@@ -127,7 +127,7 @@ export function PublicProfileNextGoalReveal({ data }: Props) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
           <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             見込み
           </div>

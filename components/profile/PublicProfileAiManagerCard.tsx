@@ -164,19 +164,19 @@ export function PublicProfileAiManagerCard({
           ) : null}
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-[11px] font-medium text-[var(--text-subtle)]">役割</div>
               <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                 公開案内と活動紹介
               </div>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-[11px] font-medium text-[var(--text-subtle)]">言語</div>
               <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                 {aiManager.primaryLanguage.toUpperCase()}
               </div>
             </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
               <div className="text-[11px] font-medium text-[var(--text-subtle)]">
                 最終更新
               </div>

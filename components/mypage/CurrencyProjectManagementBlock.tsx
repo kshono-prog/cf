@@ -20,7 +20,7 @@ type Props = {
 export function CurrencyProjectManagementBlock(props: Props) {
   return (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-gray-500">
+      <div className="text-xs font-semibold text-[var(--muted)]">
         {props.currency} 用
       </div>
       <ProjectSection

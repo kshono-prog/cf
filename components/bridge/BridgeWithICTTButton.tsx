@@ -505,7 +505,7 @@ export function BridgeWithICTTButton(props: {
       </button>
 
       {status && (
-        <div className="text-xs text-gray-600 break-all">{status}</div>
+        <div className="text-xs text-[var(--text-subtle)] break-all">{status}</div>
       )}
     </div>
   );

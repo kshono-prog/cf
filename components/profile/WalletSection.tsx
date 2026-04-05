@@ -141,7 +141,7 @@ export function WalletSection(props: WalletSectionProps) {
         ) : null}
 
         {props.inApp && !props.connected ? (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             アプリ内ブラウザではウォレットが開かないことがあります。
             <div className="mt-2">
               <button
@@ -175,7 +175,7 @@ export function WalletSection(props: WalletSectionProps) {
       {props.showSendUI ? (
         <div className="surface-card p-4 sm:p-5">
           {props.selectedProjectTitle ? (
-            <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
+            <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
               <div className="text-sm font-semibold text-sky-900">
                 このプロジェクトを応援します
               </div>
@@ -189,7 +189,7 @@ export function WalletSection(props: WalletSectionProps) {
           ) : null}
 
           {props.selectedPostSummary ? (
-            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-emerald-900">

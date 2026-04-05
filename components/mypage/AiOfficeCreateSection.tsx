@@ -170,7 +170,7 @@ export function AiOfficeCreateSection(props: Props) {
               <button
                 key={choice.taskType}
                 type="button"
-                className={`rounded-2xl border p-3.5 text-left transition ${
+                className={`rounded-xl border p-3.5 text-left transition ${
                   isActive
                     ? "border-[var(--accent)] bg-[var(--surface-subtle)] ring-2 ring-[var(--line)]"
                     : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--accent)] hover:bg-[var(--surface-subtle)]"

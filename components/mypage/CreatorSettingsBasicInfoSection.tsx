@@ -45,7 +45,7 @@ export function CreatorSettingsBasicInfoSection(props: Props) {
       </div>
 
       {props.missingSetupHints && props.missingSetupHints.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">
             先に整えるとよい項目
           </div>

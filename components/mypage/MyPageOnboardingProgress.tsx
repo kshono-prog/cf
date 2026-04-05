@@ -55,7 +55,7 @@ function badgeClass(state: "done" | "current" | "upcoming"): string {
   if (state === "current") {
     return "border-sky-200 bg-sky-50 text-sky-700";
   }
-  return "border-gray-200 bg-[var(--surface)] text-[var(--muted)]";
+  return "border-[var(--line)] bg-[var(--surface)] text-[var(--muted)]";
 }
 
 type Props = {
@@ -70,18 +70,18 @@ export function MyPageOnboardingProgress(props: Props) {
   const currentIndex = getStepIndex(props.currentStep);
 
   return (
-    <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-white p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent-subtle)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700">
-            Onboarding
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+            オンボーディング
           </div>
-          <h2 className="text-base font-semibold text-gray-900">{props.title}</h2>
-          <p className="text-sm leading-relaxed text-gray-600">
+          <h2 className="text-base font-semibold text-[var(--text)]">{props.title}</h2>
+          <p className="text-sm leading-relaxed text-[var(--text-subtle)]">
             {props.description}
           </p>
         </div>
-        <div className="rounded-full border border-sky-200 bg-[var(--surface)] px-3 py-1 text-xs font-medium text-sky-700">
+        <div className="rounded-full border border-[var(--accent)]/20 bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--accent)]">
           Step {currentIndex + 1} / {STEP_ITEMS.length}
         </div>
       </div>
@@ -112,12 +112,12 @@ export function MyPageOnboardingProgress(props: Props) {
 
       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
         <div className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">
-          Next Action
+          次のアクション
         </div>
-        <div className="mt-1 text-sm font-medium text-gray-900">
+        <div className="mt-1 text-sm font-medium text-[var(--text)]">
           {props.nextActionTitle}
         </div>
-        <div className="mt-1 text-xs leading-relaxed text-gray-700">
+        <div className="mt-1 text-xs leading-relaxed text-[var(--text-subtle)]">
           {props.nextActionBody}
         </div>
       </div>

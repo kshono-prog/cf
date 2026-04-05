@@ -26,7 +26,7 @@ export function ProjectSettlementDistributionExecutionSection(
     <div className="rounded-lg border p-3 space-y-3">
       <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
         <div className="text-sm font-medium">配分の実行</div>
-        <div className="text-[11px] leading-5 text-gray-500 sm:text-xs">
+        <div className="text-[11px] leading-5 text-[var(--muted)] sm:text-xs">
           送金は接続ウォレットの署名で1件ずつ実行されます
         </div>
       </div>
@@ -69,7 +69,7 @@ export function ProjectSettlementDistributionExecutionSection(
           失敗分のみ再送
         </button>
       </div>
-      <div className="text-[11px] leading-5 text-gray-500 sm:text-xs">
+      <div className="text-[11px] leading-5 text-[var(--muted)] sm:text-xs">
         {props.hasCheckedPreflight
           ? "送信前確認完了後に、接続ウォレットの署名で1件ずつ送金します。"
           : "先に手順3の送信前確認を実行してから配分を開始します。"}

@@ -22,7 +22,7 @@ export function PublicTrustProfileSection({
   const creatorName = displayName || username;
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 space-y-4">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 space-y-4">
       <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         Trust Profile
       </div>

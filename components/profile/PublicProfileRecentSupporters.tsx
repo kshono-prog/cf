@@ -42,7 +42,7 @@ export function PublicProfileRecentSupporters({ data }: Props) {
   const restCount = totalContributorCount - recentContributors.length;
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 space-y-3">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 space-y-3">
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         Living Funding Pulse
       </div>

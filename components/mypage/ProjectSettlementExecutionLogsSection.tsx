@@ -79,10 +79,10 @@ export function ProjectSettlementExecutionLogsSection(
                   <span className="block font-mono">
                     {execution.id.slice(0, 10)}...
                   </span>
-                  <span className="inline-flex rounded bg-gray-100 px-2 py-0.5">
+                  <span className="inline-flex rounded bg-[var(--surface-muted)] px-2 py-0.5">
                     {getDistributionExecutionResultLabel(execution.result)}
                   </span>
-                  <span className="block text-gray-600">
+                  <span className="block text-[var(--text-subtle)]">
                     開始: {execution.startedAt}
                   </span>
                 </summary>
@@ -103,7 +103,7 @@ export function ProjectSettlementExecutionLogsSection(
                       <span className="font-mono">
                         {item.distributionEntryId.slice(0, 8)}...
                       </span>
-                      <span className="w-fit rounded bg-gray-100 px-2 py-0.5">
+                      <span className="w-fit rounded bg-[var(--surface-muted)] px-2 py-0.5">
                         {getDistributionEntryStatusLabel(item.status)}
                       </span>
                       {item.txHash ? (

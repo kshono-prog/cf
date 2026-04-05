@@ -158,7 +158,7 @@ export function MetricsInputCard(props: Props) {
   const labelCls = "block text-xs font-medium text-[var(--muted)] mb-0.5";
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-4">
       <div className="text-sm font-semibold text-[var(--text)]">指標を記録する</div>
 
       <form

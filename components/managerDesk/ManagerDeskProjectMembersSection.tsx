@@ -229,7 +229,7 @@ export function ManagerDeskProjectMembersSection(props: {
   );
 
   return (
-    <div className="space-y-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-sm font-semibold text-[var(--text)]">

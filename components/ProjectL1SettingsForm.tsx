@@ -524,7 +524,7 @@ function AuditCard(props: {
   const a = props.audit;
 
   return (
-    <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4 space-y-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-xs text-gray-500">プロジェクト</div>
@@ -637,7 +637,7 @@ function ProgressHintPanel(props: { progressHint: ProgressHintView | null }) {
   const hint = props.progressHint;
 
   return (
-    <details className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4">
+    <details className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <summary className="cursor-pointer select-none">
         <div className="text-base font-semibold">検算情報（progressHint）</div>
         <div className="text-sm text-gray-600 mt-1">
@@ -671,7 +671,7 @@ function BridgeDebugPanel(props: {
   const b = props.bridgeRaw;
 
   return (
-    <details className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4">
+    <details className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <summary className="cursor-pointer select-none">
         <div className="text-base font-semibold">
           /bridge 生レスポンス（デバッグ）
@@ -816,7 +816,7 @@ function L1Actions(props: {
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4 space-y-2">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-2">
         <button
           type="button"
           onClick={props.onSave}
@@ -834,7 +834,7 @@ function L1Actions(props: {
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4 space-y-2">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-2">
         <button
           type="button"
           onClick={props.onRefreshAudit}
@@ -1191,7 +1191,7 @@ export default function ProjectL1SettingsForm(
   // ---------------------------
   if (loading) {
     return (
-      <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
         <div className="text-sm text-gray-600">読み込み中...</div>
       </div>
     );
@@ -1199,7 +1199,7 @@ export default function ProjectL1SettingsForm(
 
   if (!project) {
     return (
-      <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4 space-y-2">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-2">
         <div className="text-base font-semibold">L1 設定</div>
         <div className="text-sm text-gray-600">
           Project を取得できませんでした。
@@ -1225,14 +1225,14 @@ export default function ProjectL1SettingsForm(
       />
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
           <div className="text-sm font-semibold text-red-700">エラー</div>
           <div className="text-xs text-red-700 break-all mt-1">{error}</div>
         </div>
       ) : null}
 
       {/* Form */}
-      <div className="rounded-2xl border bg-[var(--surface)] shadow-sm p-4 space-y-6">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-6">
         <div className="text-base font-semibold">L1 設定を編集</div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -43,7 +43,7 @@ export function CreatorReadySupporterOverviewSection(props: Props) {
   if (!props.loading && !props.data && !errorNotice) return null;
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-[var(--text)]">ファンとの関係</div>
         <a

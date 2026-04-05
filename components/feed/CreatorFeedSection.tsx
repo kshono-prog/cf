@@ -1018,10 +1018,10 @@ export function CreatorFeedSection(props: Props) {
     <section className="mt-3">
       <div className="flex items-center justify-between gap-3 px-1">
         <div>
-          <h3 className="text-[15px] font-semibold text-gray-900 sm:text-base">
+          <h3 className="text-[15px] font-semibold text-[var(--text)] sm:text-base">
             {creatorUsername ? "投稿" : "最新の投稿"}
           </h3>
-          <p className="mt-0.5 text-[11px] leading-5 text-gray-500">
+          <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">
             {creatorUsername
               ? "近況への返信やいいね、そのまま投稿への応援まで自然に続けられます。"
               : "いま公開されている最新の投稿を一覧で見られます。応援は各プロフィールから続けられます。"}
@@ -1031,31 +1031,31 @@ export function CreatorFeedSection(props: Props) {
       </div>
 
       {notice ? (
-        <div className="mt-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+        <div className="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
           {notice}
         </div>
       ) : null}
 
       {!notice && publicActionAuthHint ? (
-        <div className="mt-2.5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+        <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
           {publicActionAuthHint}
         </div>
       ) : null}
 
       {loading ? (
-        <div className="mt-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-500">
+        <div className="mt-2.5 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--muted)]">
           投稿を読み込み中です…
         </div>
       ) : error ? (
-        <div className="mt-2.5 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+        <div className="mt-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
           投稿の読み込みに失敗しました: {error}
         </div>
       ) : posts.length === 0 ? (
-        <div className="mt-2.5 rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-500">
+        <div className="mt-2.5 rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--muted)]">
           まだ公開されている投稿はありません。
         </div>
       ) : (
-        <div className="mt-2.5 divide-y divide-gray-200 bg-[var(--surface)]">
+        <div className="mt-2.5 divide-y divide-[var(--line)] bg-[var(--surface)]">
           {posts.map((post) => {
             const detail = detailByPostId[post.id] ?? createEmptyDetailState();
             const cardPost = detail.post ?? post;
@@ -1122,19 +1122,19 @@ export function CreatorFeedSection(props: Props) {
               >
                 {editingPostId === post.id && editDraft ? (
                   <div className="space-y-3">
-                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3">
                       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <div className="text-sm font-semibold text-gray-900">
+                          <div className="text-sm font-semibold text-[var(--text)]">
                             投稿を編集
                           </div>
-                          <p className="mt-1 text-xs leading-6 text-gray-500">
+                          <p className="mt-1 text-xs leading-6 text-[var(--muted)]">
                             本文や添付、応援のひもづけをここで直せます。
                           </p>
                         </div>
                         <button
                           type="button"
-                          className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)] transition hover:bg-gray-50"
+                          className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-subtle)]"
                           onClick={cancelEdit}
                           disabled={savingEdit}
                         >
@@ -1144,7 +1144,7 @@ export function CreatorFeedSection(props: Props) {
 
                       <div className="mt-2.5 space-y-2.5">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700">
+                          <label className="block text-xs font-medium text-[var(--text-subtle)]">
                             本文
                           </label>
                           <textarea
@@ -1159,14 +1159,14 @@ export function CreatorFeedSection(props: Props) {
                             }}
                             disabled={savingEdit}
                           />
-                          <div className="mt-1 text-[10px] text-gray-500">
+                          <div className="mt-1 text-[10px] text-[var(--muted)]">
                             {editDraft.body.trim().length}/2000
                           </div>
                         </div>
 
                         <div className="grid gap-2 md:grid-cols-3">
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">
+                            <label className="block text-xs font-medium text-[var(--text-subtle)]">
                               応援のひもづけ
                             </label>
                             <select
@@ -1190,7 +1190,7 @@ export function CreatorFeedSection(props: Props) {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">
+                            <label className="block text-xs font-medium text-[var(--text-subtle)]">
                               メディア種別
                             </label>
                             <select
@@ -1221,7 +1221,7 @@ export function CreatorFeedSection(props: Props) {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">
+                            <label className="block text-xs font-medium text-[var(--text-subtle)]">
                               メディア URL
                             </label>
                             <input
@@ -1242,7 +1242,7 @@ export function CreatorFeedSection(props: Props) {
                         </div>
 
                         {editError ? (
-                          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
+                          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
                             {editError}
                           </div>
                         ) : null}
@@ -1267,11 +1267,11 @@ export function CreatorFeedSection(props: Props) {
                 {isOpen ? (
                   <div className="space-y-3">
                     {detail.loading ? (
-                      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-sm text-gray-500">
+                      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3.5 text-sm text-[var(--muted)]">
                         返信を読み込み中です…
                       </div>
                     ) : detail.error ? (
-                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-700">
+                      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-700">
                         返信の読み込みに失敗しました: {detail.error}
                       </div>
                     ) : (
@@ -1324,7 +1324,7 @@ export function CreatorFeedSection(props: Props) {
         <div className="mt-2.5 flex justify-center">
           <button
             type="button"
-            className="rounded-full border border-gray-200 bg-[var(--surface)] px-3.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1.5 text-xs font-medium text-[var(--text-subtle)] transition hover:bg-[var(--surface-subtle)] disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => {
               void fetchFeedPage({ cursor: nextCursor, append: true });
             }}

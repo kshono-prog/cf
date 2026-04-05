@@ -81,7 +81,7 @@ export function AiOfficeTaskInputFields(props: Props) {
           </button>
         </div>
         {props.translationResult ? (
-          <pre className="whitespace-pre-wrap rounded-xl bg-gray-50 p-3 text-xs text-[var(--text)]">
+          <pre className="whitespace-pre-wrap rounded-xl bg-[var(--surface-subtle)] p-3 text-xs text-[var(--text)]">
             {props.translationResult}
           </pre>
         ) : (

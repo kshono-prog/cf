@@ -111,13 +111,13 @@ export function PublicOwnerComposerCard(props: Props) {
       <div className="space-y-3.5 p-4 sm:p-5">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="text-[11px] font-semibold tracking-[0.18em] text-gray-500">
+            <div className="text-[11px] font-semibold tracking-[0.18em] text-[var(--muted)]">
               自分の操作
             </div>
-            <h3 className="mt-1.5 text-[17px] font-semibold text-gray-900 sm:text-lg">
+            <h3 className="mt-1.5 text-[17px] font-semibold text-[var(--text)] sm:text-lg">
               今の進捗をここから投稿
             </h3>
-            <p className="mt-1.5 text-[13px] leading-6 text-gray-600">
+            <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-subtle)]">
               公開ページを見ながら、そのまま近況や支援のお礼を投稿できます。
             </p>
           </div>
@@ -131,7 +131,7 @@ export function PublicOwnerComposerCard(props: Props) {
 
         <form className="space-y-2.5" onSubmit={handleSubmit}>
           <div>
-            <label className="block text-xs font-medium text-gray-700">本文</label>
+            <label className="block text-xs font-medium text-[var(--text-subtle)]">本文</label>
             <textarea
               className="input mt-1 min-h-[120px]"
               value={body}
@@ -139,14 +139,14 @@ export function PublicOwnerComposerCard(props: Props) {
               placeholder="今日の進捗、次に進めたいこと、支援へのお礼を書けます。"
               disabled={saving}
             />
-            <div className="mt-1 text-[10px] text-gray-500">
+            <div className="mt-1 text-[10px] text-[var(--muted)]">
               {trimmedLength}/2000
             </div>
           </div>
 
           <div className="grid gap-2.5 md:grid-cols-[minmax(0,1fr),auto]">
             <div>
-              <label className="block text-xs font-medium text-gray-700">
+              <label className="block text-xs font-medium text-[var(--text-subtle)]">
                 応援のひもづけ
               </label>
               <select
@@ -179,7 +179,7 @@ export function PublicOwnerComposerCard(props: Props) {
           {showMediaFields ? (
             <div className="grid gap-2.5 md:grid-cols-2">
               <div>
-                <label className="block text-xs font-medium text-gray-700">
+                <label className="block text-xs font-medium text-[var(--text-subtle)]">
                   メディア種別
                 </label>
                 <select
@@ -199,7 +199,7 @@ export function PublicOwnerComposerCard(props: Props) {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700">
+                <label className="block text-xs font-medium text-[var(--text-subtle)]">
                   メディア URL
                 </label>
                 <input
@@ -215,18 +215,18 @@ export function PublicOwnerComposerCard(props: Props) {
           ) : null}
 
           {error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
               {error}
             </div>
           ) : null}
           {success ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">
               {success}
             </div>
           ) : null}
 
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-[10px] leading-5 text-gray-500">
+            <div className="text-[10px] leading-5 text-[var(--muted)]">
               投稿は公開状態で作成され、プロフィールと投稿一覧に反映されます。
             </div>
             <button type="submit" className="btn" disabled={saving}>

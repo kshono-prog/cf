@@ -48,7 +48,7 @@ export function CreatorPublicLinkSection({ username, localProjectId }: Props) {
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
           <div className="text-xs font-medium text-[var(--text-subtle)]">
             公開ページ URL
           </div>
@@ -56,7 +56,7 @@ export function CreatorPublicLinkSection({ username, localProjectId }: Props) {
             {publicProfileUrl}
           </div>
         </div>
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
           <div className="text-xs font-medium text-[var(--text-subtle)]">
             イベントページ URL
           </div>

@@ -191,7 +191,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
   return (
     <div
-      className={`overflow-hidden rounded-3xl border border-gray-200/80 bg-[var(--surface)] shadow-sm ${
+      className={`overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] ${
         embedded ? "" : "mt-4"
       }`}
     >
@@ -199,22 +199,22 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
-              Goal progress
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+              Goal 進捗
             </div>
 
-            <div className="mt-1 text-sm font-semibold text-gray-900 break-words">
+            <div className="mt-1 text-sm font-semibold text-[var(--text)] break-words">
               {projectTitle ?? "プロジェクト"}
             </div>
 
-            <div className="mt-1 text-xs text-gray-600">
+            <div className="mt-1 text-xs text-[var(--text-subtle)]">
               {projectStatus ? `状態: ${projectStatus}` : "状態: -"}
             </div>
           </div>
 
           <div className="shrink-0 text-right">
-            <div className="text-xs text-gray-500">{currencyLabel}</div>
-            <div className="text-sm font-mono font-semibold text-gray-900">
+            <div className="text-xs text-[var(--muted)]">{currencyLabel}</div>
+            <div className="text-sm font-mono font-semibold text-[var(--text)]">
               {progressLoading
                 ? "Loading…"
                 : `${formatAmount(currentYen)} / ${formatAmount(targetYen)}`}
@@ -224,7 +224,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
         {/* Explorer */}
         {profileAddressUrl ? (
-          <div className="mt-2 text-[11px] text-gray-500">
+          <div className="mt-2 text-[11px] text-[var(--muted)]">
             <a
               className="underline hover:no-underline break-all"
               href={profileAddressUrl}
@@ -239,7 +239,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
         {/* Stacked progress bar (by chain) */}
         {canShowBar ? (
           <div className="mt-3">
-            <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+            <div className="h-2 w-full rounded-full bg-[var(--surface-muted)] overflow-hidden">
               <div className="flex h-full w-full">
                 {segments.length > 0 ? (
                   segments.map((seg) => (
@@ -263,10 +263,10 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
             </div>
 
             {/* row: total % + legend */}
-            <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-gray-600">
+            <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[var(--text-subtle)]">
               <div>
                 進捗:{" "}
-                <span className="font-mono font-semibold text-gray-900">
+                <span className="font-mono font-semibold text-[var(--text)]">
                   {Math.floor(totalPct)}%
                 </span>
               </div>
@@ -290,11 +290,11 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
         {/* Meta + actions */}
         <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="text-[11px] text-gray-600 space-y-1">
+          <div className="text-[11px] text-[var(--text-subtle)] space-y-1">
             <div className="flex items-center gap-2">
               <span>
                 確認済み tx:{" "}
-                <span className="font-mono text-gray-900">
+                <span className="font-mono text-[var(--text)]">
                   {progressConfirmedCount != null
                     ? progressConfirmedCount
                     : "-"}
@@ -302,7 +302,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
               </span>
               <span className="text-[var(--muted)]">|</span>
               <span>
-                状態: <span className="text-gray-900">{reachedText}</span>
+                状態: <span className="text-[var(--text)]">{reachedText}</span>
               </span>
             </div>
           </div>
@@ -320,14 +320,14 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
         </div>
 
         {/* Details (optional) */}
-        <details className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3">
-          <summary className="cursor-pointer text-[11px] font-semibold text-gray-700 select-none">
+        <details className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3">
+          <summary className="cursor-pointer text-[11px] font-semibold text-[var(--text-subtle)] select-none">
             チェーン別内訳（{currencyLabel} / CONFIRMED）
           </summary>
 
           <div className="mt-2">
             {byChainJpyc.length > 0 ? (
-              <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-[var(--surface)]">
+              <div className="divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--surface)]">
                 {byChainJpyc.map((r) => (
                   <div
                     key={String(r.chainId)}
@@ -343,14 +343,14 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
                       </span>
                     </div>
 
-                    <div className="text-[12px] font-mono font-semibold text-gray-900">
+                    <div className="text-[12px] font-mono font-semibold text-[var(--text)]">
                       {formatAmount(rowAmount(r))} {currencyLabel}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-[11px] text-gray-500">内訳はありません</div>
+              <div className="text-[11px] text-[var(--muted)]">内訳はありません</div>
             )}
           </div>
         </details>
@@ -457,26 +457,26 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //   } = props;
 
 //   return (
-//     <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 dark:border-[var(--line)] bg-white/95 dark:bg-white/95 shadow-sm">
+//     <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--line)]/80 dark:border-[var(--line)] bg-white/95 dark:bg-white/95 shadow-sm">
 //       <div className="p-4">
 //         <div className="flex justify-between items-start mb-2 gap-3">
 //           <div className="min-w-0">
-//             <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
+//             <p className="text-xs font-semibold text-[var(--muted)] dark:text-[var(--muted)]">
 //               Project progress (DB / CONFIRMED)
 //             </p>
 
 //             {projectTitle ? (
-//               <p className="text-sm font-semibold text-gray-900 dark:text-gray-900 leading-snug break-words">
+//               <p className="text-sm font-semibold text-[var(--text)] dark:text-[var(--text)] leading-snug break-words">
 //                 {projectTitle}
 //               </p>
 //             ) : null}
 
-//             <p className="text-sm font-medium text-[var(--text)] dark:text-gray-900">
+//             <p className="text-sm font-medium text-[var(--text)] dark:text-[var(--text)]">
 //               {projectStatus ? `Status: ${projectStatus}` : "Status: -"}
 //             </p>
 
 //             {profileAddressUrl ? (
-//               <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-600">
+//               <p className="mt-1 text-[11px] text-[var(--muted)] dark:text-[var(--text-subtle)]">
 //                 Explorer:&nbsp;
 //                 <a
 //                   className="underline hover:no-underline break-all"
@@ -490,7 +490,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //             ) : null}
 //           </div>
 
-//           <div className="shrink-0 text-right text-xs text-gray-600 dark:text-gray-700">
+//           <div className="shrink-0 text-right text-xs text-[var(--text-subtle)] dark:text-[var(--text-subtle)]">
 //             {progressLoading ? (
 //               <span>読み込み中… / Loading…</span>
 //             ) : (
@@ -509,7 +509,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //         </div>
 
 //         {progressPercent != null && (
-//           <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden mb-2">
+//           <div className="w-full h-2 rounded-full bg-[var(--surface-muted)] overflow-hidden mb-2">
 //             <div
 //               className="h-full transition-all duration-500"
 //               style={{
@@ -521,27 +521,27 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //         )}
 
 //         {/* 合算 + 対象チェーン表示 */}
-//         <div className="mt-2 rounded-2xl border border-gray-200/70 bg-gray-50/60 px-3 py-2">
+//         <div className="mt-2 rounded-xl border border-[var(--line)]/70 bg-[var(--surface-subtle)]/60 px-3 py-2">
 //           <div className="flex items-start justify-between gap-3">
-//             <div className="text-[11px] text-gray-600">
-//               <div className="font-semibold text-gray-700">
+//             <div className="text-[11px] text-[var(--text-subtle)]">
+//               <div className="font-semibold text-[var(--text-subtle)]">
 //                 合算（JPYC / CONFIRMED）
 //               </div>
 //               <div className="mt-0.5">
-//                 <span className="font-mono font-semibold text-gray-900">
+//                 <span className="font-mono font-semibold text-[var(--text)]">
 //                   {(progressTotalYen ?? 0).toLocaleString()}
 //                 </span>{" "}
 //                 JPYC
 //               </div>
-//               <div className="mt-1 text-[10px] text-gray-500">
+//               <div className="mt-1 text-[10px] text-[var(--muted)]">
 //                 ※ 合算対象: JPYC が設定されている対応チェーン（confirmed のみ）
 //               </div>
 //             </div>
 
-//             <div className="text-[10px] text-gray-500 text-right">
+//             <div className="text-[10px] text-[var(--muted)] text-right">
 //               {supportedJpycChainIds.length > 0 ? (
 //                 <>
-//                   <div className="font-semibold text-gray-600">
+//                   <div className="font-semibold text-[var(--text-subtle)]">
 //                     対象チェーン
 //                   </div>
 //                   <div className="mt-0.5">
@@ -562,7 +562,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
 //         {/* Refresh / Achieve */}
 //         <div className="mt-2 flex items-center justify-between gap-3">
-//           <div className="text-[11px] text-gray-500 dark:text-gray-600">
+//           <div className="text-[11px] text-[var(--muted)] dark:text-[var(--text-subtle)]">
 //             {progressConfirmedCount != null ? (
 //               <span>
 //                 CONFIRMED tx:{" "}
@@ -607,12 +607,12 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //         </div>
 
 //         {/* チェーン別内訳 */}
-//         <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50/60 p-3">
-//           <div className="text-[11px] font-semibold text-gray-700">
+//         <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)]/60 p-3">
+//           <div className="text-[11px] font-semibold text-[var(--text-subtle)]">
 //             合算対象（JPYC / CONFIRMED）
 //           </div>
 
-//           <div className="mt-1 text-[10px] text-gray-500 leading-relaxed">
+//           <div className="mt-1 text-[10px] text-[var(--muted)] leading-relaxed">
 //             本アプリが対応するチェーンのうち、JPYC
 //             が登録されているチェーンのみを合算します（CONFIRMED のみ）。
 //             対象チェーンは API の{" "}
@@ -620,15 +620,15 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //             と一致します。
 //           </div>
 
-//           <div className="mt-2 text-[11px] text-gray-600">
+//           <div className="mt-2 text-[11px] text-[var(--text-subtle)]">
 //             合算（JPYC / CONFIRMED）:{" "}
-//             <span className="font-mono font-semibold text-gray-900">
+//             <span className="font-mono font-semibold text-[var(--text)]">
 //               {(progressTotalYen ?? 0).toLocaleString()}
 //             </span>{" "}
 //             JPYC
 //           </div>
 
-//           <div className="mt-2 text-[10px] text-gray-500">
+//           <div className="mt-2 text-[10px] text-[var(--muted)]">
 //             対象チェーン:{" "}
 //             {supportedJpycChainIds.length > 0
 //               ? supportedJpycChainIds
@@ -642,9 +642,9 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 
 //           {byChainJpyc.length > 0 ? (
 //             <div className="mt-2 space-y-1">
-//               <div className="text-[11px] text-gray-500">チェーン別内訳</div>
+//               <div className="text-[11px] text-[var(--muted)]">チェーン別内訳</div>
 
-//               <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-[var(--surface)]">
+//               <div className="divide-y divide-[var(--line)] rounded-xl border border-[var(--line)] bg-[var(--surface)]">
 //                 {byChainJpyc.map((r) => {
 //                   const cfg = getChainConfig(r.chainId as SupportedChainId);
 //                   const label = cfg?.shortName ?? `Chain(${r.chainId})`;
@@ -654,7 +654,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //                       className="flex items-center justify-between px-3 py-2"
 //                     >
 //                       <div className="text-[12px] text-[var(--text)]">{label}</div>
-//                       <div className="text-[12px] font-mono font-semibold text-gray-900">
+//                       <div className="text-[12px] font-mono font-semibold text-[var(--text)]">
 //                         {Number(r.confirmedAmountJpyc).toLocaleString()} JPYC
 //                       </div>
 //                     </div>
@@ -663,7 +663,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //               </div>
 
 //               {totalsAllChains ? (
-//                 <div className="mt-2 text-[11px] text-gray-500">
+//                 <div className="mt-2 text-[11px] text-[var(--muted)]">
 //                   参考（全チェーン合算 / CONFIRMED）:{" "}
 //                   <span className="font-mono">
 //                     JPYC {totalsAllChains.JPYC ?? "0"} / USDC{" "}
@@ -673,7 +673,7 @@ export function ProjectProgressCard(props: ProjectProgressCardProps) {
 //               ) : null}
 //             </div>
 //           ) : (
-//             <div className="mt-2 text-[11px] text-gray-500">
+//             <div className="mt-2 text-[11px] text-[var(--muted)]">
 //               チェーン別内訳はありません（CONFIRMED
 //               が無い、または集計対象外の可能性があります）
 //             </div>

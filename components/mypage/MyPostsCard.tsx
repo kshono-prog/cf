@@ -148,11 +148,11 @@ export function MyPostsCard(props: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="text-sm font-semibold text-gray-900">自分の投稿</div>
-          <div className="mt-1 text-xs leading-5 text-gray-600">
+          <div className="text-sm font-semibold text-[var(--text)]">自分の投稿</div>
+          <div className="mt-1 text-xs leading-5 text-[var(--text-subtle)]">
             直近の投稿状況、反応、投稿ごとの支援を確認します。
           </div>
         </div>
@@ -176,7 +176,7 @@ export function MyPostsCard(props: Props) {
         </div>
       </div>
 
-      <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600">
+      <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 text-xs text-[var(--text-subtle)]">
         合計 {totalCount} 件の投稿があります。公開中のものは公開ページの feed に表示されます。
       </div>
 
@@ -191,7 +191,7 @@ export function MyPostsCard(props: Props) {
       ) : null}
 
       {loading ? (
-        <div className="mt-4 text-sm text-gray-500">投稿を読み込み中です...</div>
+        <div className="mt-4 text-sm text-[var(--muted)]">投稿を読み込み中です...</div>
       ) : posts.length === 0 ? (
         <div className="mt-4">
           <WorkspaceEmptyState
@@ -204,17 +204,17 @@ export function MyPostsCard(props: Props) {
           {posts.map((post) => (
             <article
               key={post.id}
-              className="rounded-2xl border border-gray-200 bg-[var(--surface)] p-4"
+              className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] text-gray-700">
+                <span className="rounded-full border border-[var(--line)] bg-[var(--surface-subtle)] px-2.5 py-1 text-[11px] text-[var(--text-subtle)]">
                   {getStatusLabel(post.status)}
                 </span>
-                <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] text-gray-700">
+                <span className="rounded-full border border-[var(--line)] bg-[var(--surface-subtle)] px-2.5 py-1 text-[11px] text-[var(--text-subtle)]">
                   {post.visibility}
                 </span>
                 {post.project ? (
-                  <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] text-sky-700">
+                  <span className="rounded-full border border-[var(--accent)]/20 bg-[var(--accent-subtle)] px-2.5 py-1 text-[11px] text-[var(--accent)]">
                     {post.project.title} / {post.project.currency}
                   </span>
                 ) : null}
@@ -223,7 +223,7 @@ export function MyPostsCard(props: Props) {
                     AI生成
                   </span>
                 ) : null}
-                <span className="text-[11px] text-gray-500">
+                <span className="text-[11px] text-[var(--muted)]">
                   {formatDateTime(post.createdAt)}
                 </span>
               </div>
@@ -232,7 +232,7 @@ export function MyPostsCard(props: Props) {
                 {buildPreview(post.body)}
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
+              <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
                 <span>いいね {post.counts.likes}</span>
                 <span>返信 {post.counts.replies}</span>
                 <span>支援 {post.counts.tips}</span>
@@ -244,7 +244,7 @@ export function MyPostsCard(props: Props) {
               </div>
 
               <div className="mt-3 flex items-center justify-between gap-3">
-                <div className="text-[11px] text-gray-500">
+                <div className="text-[11px] text-[var(--muted)]">
                   {post.status === "ARCHIVED"
                     ? "アーカイブすると公開 feed から外れます。"
                     : "必要に応じて公開状態を切り替えられます。"}

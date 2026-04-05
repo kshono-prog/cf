@@ -85,7 +85,7 @@ function NotificationRow({ item, isUnread }: { item: NotificationItem; isUnread:
   return (
     <a
       href={item.href}
-      className={`flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 transition${
+      className={`flex items-start gap-2.5 px-3 py-2.5 hover:bg-[var(--surface-subtle)] transition${
         isUnread ? " bg-sky-50/40" : ""
       }`}
     >
@@ -97,7 +97,7 @@ function NotificationRow({ item, isUnread }: { item: NotificationItem; isUnread:
           size={32}
         />
       ) : (
-        <div className="h-8 w-8 shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">
+        <div className="h-8 w-8 shrink-0 rounded-full bg-[var(--surface-muted)] flex items-center justify-center text-[10px] text-[var(--muted)]">
           CF
         </div>
       )}
@@ -113,9 +113,9 @@ function NotificationRow({ item, isUnread }: { item: NotificationItem; isUnread:
           ) : null}
           <span className="text-[10px] text-[var(--muted)]">{formatRelative(item.createdAt)}</span>
         </div>
-        <div className="mt-0.5 truncate text-[12px] text-gray-700">{item.title}</div>
+        <div className="mt-0.5 truncate text-[12px] text-[var(--text-subtle)]">{item.title}</div>
         {item.body ? (
-          <div className="mt-0.5 truncate text-[11px] text-gray-500">{item.body}</div>
+          <div className="mt-0.5 truncate text-[11px] text-[var(--muted)]">{item.body}</div>
         ) : null}
         {item.meta ? (
           <div className="mt-0.5 text-[11px] text-[var(--muted)]">{item.meta}</div>
@@ -186,7 +186,7 @@ export function NotificationBell() {
     <div ref={panelRef} className="relative">
       <button
         type="button"
-        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-gray-600 transition hover:border-[var(--line)] hover:text-[var(--text)]"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--text-subtle)] transition hover:border-[var(--line)] hover:text-[var(--text)]"
         onClick={handleOpen}
         aria-label="通知"
       >
@@ -211,14 +211,14 @@ export function NotificationBell() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-2xl border border-gray-200 bg-[var(--surface)] shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
-            <span className="text-[12px] font-semibold text-gray-700">通知</span>
+        <div className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-xl border border-[var(--line)] bg-[var(--surface)] shadow-lg overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--line)] px-3 py-2">
+            <span className="text-[12px] font-semibold text-[var(--text-subtle)]">通知</span>
             {loading ? (
               <span className="text-[10px] text-[var(--muted)]">読み込み中…</span>
             ) : null}
           </div>
-          <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+          <div className="max-h-80 overflow-y-auto divide-y divide-[var(--line)]">
             {items.length === 0 && !loading ? (
               <div className="px-3 py-6 text-center text-[12px] text-[var(--muted)]">
                 通知はありません

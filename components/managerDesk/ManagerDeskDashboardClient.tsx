@@ -83,7 +83,7 @@ function SummaryMetric(props: {
       ? "border-rose-200 bg-rose-50 text-rose-900"
       : "border-[var(--line)] bg-[var(--surface)] text-[var(--text)]";
   return (
-    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+    <div className={`rounded-xl border p-4 ${toneClass}`}>
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -133,7 +133,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
       </div>
 
       <div className="grid gap-3 md:grid-cols-[1.3fr,1fr]">
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             進行中 Project
           </div>
@@ -161,7 +161,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             対応シグナル
           </div>
@@ -185,7 +185,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             最新 Manager Note
           </div>
@@ -213,7 +213,7 @@ function DashboardCard(props: { card: ManagerDeskDashboardCard }) {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
             次の外部連絡
           </div>

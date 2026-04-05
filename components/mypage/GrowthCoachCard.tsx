@@ -38,7 +38,7 @@ export function GrowthCoachCard(props: Props) {
   const styles = toneClasses(props.coach.tone);
 
   return (
-    <section className={`rounded-3xl p-5 sm:p-6 ${styles.shell}`}>
+    <section className={`rounded-xl p-5 sm:p-6 ${styles.shell}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div

@@ -17,7 +17,7 @@ export function FanEngagementHeatmapCard({ heatmap, peakWeekday, error = null }:
 
   if (!heatmap) {
     return (
-      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
         <div className="mb-2 text-sm font-semibold text-[var(--text)]">応援パターン</div>
         <div className="text-xs text-[var(--text-subtle)]">
           応援が 7 件以上集まると曜日別パターンが表示されます。
@@ -29,7 +29,7 @@ export function FanEngagementHeatmapCard({ heatmap, peakWeekday, error = null }:
   const maxCount = Math.max(...heatmap.map((c) => c.count), 1);
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-sm font-semibold text-[var(--text)]">応援パターン（曜日別）</div>
         {peakWeekday !== null ? (

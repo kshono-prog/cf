@@ -24,16 +24,16 @@ export function RpgHeader({ level, currentExp, nextLevelExp, expProgressRate, ti
       <div className="flex items-center justify-between">
         <div>
           <span className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">Lv.{level}</span>
-          <span className="ml-2 text-sm text-gray-500 dark:text-[var(--muted)]">{titleName}</span>
+          <span className="ml-2 text-sm text-[var(--muted)] dark:text-[var(--muted)]">{titleName}</span>
         </div>
-        <div className="text-right text-xs text-gray-500 dark:text-[var(--muted)]">
+        <div className="text-right text-xs text-[var(--muted)] dark:text-[var(--muted)]">
           <div>{currentExp.toLocaleString()} EXP</div>
           {nextLevelExp != null && <div>/ {nextLevelExp.toLocaleString()}</div>}
         </div>
       </div>
 
       <div className="space-y-1">
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+        <div className="w-full bg-[var(--surface-muted)] dark:bg-gray-700 rounded-full h-3 overflow-hidden">
           <div
             className="bg-indigo-500 h-3 rounded-full transition-all duration-500"
             style={{ width: `${Math.min(100, expProgressRate)}%` }}

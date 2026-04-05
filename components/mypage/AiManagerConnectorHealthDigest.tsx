@@ -23,7 +23,7 @@ export function AiManagerConnectorHealthDigest({
     digest.pendingObservedTotalCount > 0;
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3">
       <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
         Connector Health
       </div>

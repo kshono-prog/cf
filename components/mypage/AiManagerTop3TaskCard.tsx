@@ -27,10 +27,10 @@ export function AiManagerTop3TaskCard({ task, index, onOpenSettings, onInlineAct
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
       {/* ヘッダー行: 番号 + カテゴリ + 難易度 + 時間 */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--text)] text-[11px] font-bold text-[var(--bg)]">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[11px] font-bold text-[var(--accent)]">
           {index + 1}
         </span>
         <span

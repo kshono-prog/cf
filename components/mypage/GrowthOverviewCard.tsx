@@ -39,7 +39,7 @@ function StatCard(props: {
       : "border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--text)]";
 
   return (
-    <div className={`rounded-2xl border px-3 py-3 ${toneClassName}`}>
+    <div className={`rounded-xl border px-3 py-3 ${toneClassName}`}>
       <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -73,7 +73,7 @@ export function GrowthOverviewCard(props: Props) {
       </div>
 
       {props.loading ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--text-subtle)]">
+        <div className="mt-4 rounded-xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--text-subtle)]">
           成長データを読み込んでいます...
         </div>
       ) : errorNotice ? (
@@ -115,7 +115,7 @@ export function GrowthOverviewCard(props: Props) {
           </div>
 
           <div
-            className={`mt-4 rounded-2xl border px-4 py-4 ${
+            className={`mt-4 rounded-xl border px-4 py-4 ${
               props.data.firstTipReceivedAt
                 ? "border-emerald-200 bg-emerald-50"
                 : "border-amber-200 bg-amber-50"
@@ -140,7 +140,7 @@ export function GrowthOverviewCard(props: Props) {
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
               <div className="text-sm font-semibold text-[var(--text)]">
                 ファネルの現在地
               </div>
@@ -172,7 +172,7 @@ export function GrowthOverviewCard(props: Props) {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
               <div className="text-sm font-semibold text-[var(--text)]">
                 最近の動き
               </div>
@@ -201,7 +201,7 @@ export function GrowthOverviewCard(props: Props) {
           </div>
         </>
       ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--text-subtle)]">
+        <div className="mt-4 rounded-xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--text-subtle)]">
           成長データはまだありません。
         </div>
       )}

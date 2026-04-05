@@ -185,21 +185,21 @@ function plannerStatusLabel(status: PlannerTimelineItem["status"]): string {
 }
 
 function plannerOwnerLabel(owner: PlannerTimelineItem["owner"]): string {
-  if (owner === "CREATOR") return "Creator";
-  if (owner === "MANAGER") return "Manager";
-  return "Shared";
+  if (owner === "CREATOR") return "自分";
+  if (owner === "MANAGER") return "マネージャー";
+  return "共同";
 }
 
 function plannerSourceLabel(source: PlannerTimelineItem["sourceType"]): string {
   switch (source) {
     case "MEETING":
-      return "Meeting";
+      return "ミーティング";
     case "MANAGER_NOTE_FOLLOW_UP":
-      return "Follow-up";
+      return "フォローアップ";
     case "EXTERNAL_CONTACT_NEXT_ACTION":
-      return "Contact";
+      return "連絡先";
     case "PROJECT_DEADLINE":
-      return "Goal deadline";
+      return "Goal 期限";
   }
 }
 
@@ -232,7 +232,7 @@ function CompletedMeetingCard(props: {
   }
 
   return (
-    <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+    <article className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="status-badge status-badge-neutral">完了</span>
         <span className="status-badge status-badge-neutral">
@@ -388,7 +388,7 @@ function MeetingCopilotCard(props: {
   const isBusy = saveState === "saving" || saveState === "completing";
 
   return (
-    <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+    <article className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="status-badge status-badge-warn">予定</span>
         <span className="status-badge status-badge-neutral">{props.meeting.meetingType}</span>
@@ -670,7 +670,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
           {data ? (
             <div className="space-y-4">
               {/* タブバー */}
-              <div className="flex gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-1">
+              <div className="flex gap-1 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-1">
                 {(
                   [
                     { key: "overview", label: "概要" },
@@ -684,7 +684,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     className={[
                       "flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
                       activeDetailTab === key
-                        ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
+                        ? "bg-[var(--surface)] text-[var(--text)] border border-[var(--line)]"
                         : "text-[var(--text-subtle)] hover:text-[var(--text)]",
                     ].join(" ")}
                   >
@@ -706,7 +706,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
               {activeDetailTab === "overview" ? (
               <>
               <div className="grid gap-3 md:grid-cols-[1.2fr,0.8fr]">
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="status-badge status-badge-neutral">
                       {roleLabel(data.assignment?.roleType ?? null)}
@@ -731,7 +731,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Current Summary
                   </div>
@@ -752,7 +752,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
               {/* AI Manager コンパクトサマリー（概要タブ用） */}
               {data.aiManager ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className="font-medium text-[var(--text)]">
                       {data.aiManager.displayName}
@@ -784,7 +784,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
               {data.stage ? (
                 <>
-                <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Creator Stage
                   </div>
@@ -878,7 +878,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
               <div className="grid gap-4 xl:grid-cols-[1.25fr,0.75fr]">
                 <section
                   id="project-goal"
-                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                  className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Project / Goal
@@ -933,7 +933,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                   )}
                 </section>
 
-                <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     Operating Summary
                   </div>
@@ -959,7 +959,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
               <section
                 id="next-actions"
-                className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -974,7 +974,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     {nextActions.map((item) => (
                       <article
                         key={item.key}
-                        className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
+                        className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           <span
@@ -1010,7 +1010,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
               <section
                 id="planner"
-                className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -1033,7 +1033,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     {data.planner.items.map((item) => (
                       <article
                         key={item.id}
-                        className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
+                        className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           <span className={plannerStatusBadgeClass(item.status)}>
@@ -1080,7 +1080,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
               {activeUpcomingMeetings.length > 0 ? (
                 <section
                   id="meeting-copilot"
-                  className="accent-surface-amber rounded-2xl p-4"
+                  className="accent-surface-amber rounded-xl p-4"
                 >
                   <div className="mb-3 flex items-center gap-2">
                     <div className="accent-text-amber-strong text-xs font-semibold uppercase tracking-[0.14em]">
@@ -1109,7 +1109,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
               {data.recentCompletedMeetings.length > 0 ? (
                 <section
                   id="completed-meetings"
-                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                  className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                     直近の完了ミーティング（決定事項 → Note化）
@@ -1129,7 +1129,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
               <div className="grid gap-4 lg:grid-cols-2">
                 <section
                   id="latest-notes"
-                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                  className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -1147,7 +1147,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                       {data.latestManagerNotes.map((note) => (
                         <article
                           key={note.id}
-                          className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
+                          className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="status-badge status-badge-neutral">
@@ -1182,7 +1182,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
                 <section
                   id="key-contacts"
-                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                  className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -1200,7 +1200,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                       {data.keyContacts.map((contact) => (
                         <article
                           key={contact.id}
-                          className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
+                          className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="status-badge status-badge-neutral">
@@ -1235,7 +1235,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
 
               <section
                 id="recent-action-log"
-                className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -1253,7 +1253,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     {data.recentActionLogs.map((log) => (
                       <article
                         key={log.id}
-                        className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
+                        className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-3"
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="status-badge status-badge-neutral">
@@ -1321,7 +1321,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                       return (
                         <div
                           key={`${cat.category}:${cat.currency}`}
-                          className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-2"
+                          className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-2"
                         >
                           <span className="text-sm text-[var(--text)]">{cat.category}</span>
                           <div className="flex items-center gap-2">
@@ -1347,7 +1347,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                       ? data.expenseSummary.totalAmountByCategory.map((cat) => (
                           <div
                             key={`${cat.category}:${cat.currency}`}
-                            className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-2"
+                            className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-2"
                           >
                             <span className="text-sm text-[var(--text)]">{cat.category}</span>
                             <span className="text-sm font-semibold text-[var(--text)]">
@@ -1361,7 +1361,7 @@ export function ManagerDeskCreatorDetailPreviewClient(props: {
                     {data.expenseSummary.recentExpenses.slice(0, 5).map((exp) => (
                       <div
                         key={exp.id}
-                        className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3"
+                        className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="text-sm font-medium text-[var(--text)]">{exp.title}</div>

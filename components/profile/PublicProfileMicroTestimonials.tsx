@@ -21,7 +21,7 @@ export function PublicProfileMicroTestimonials({ data }: Props) {
   if (data.testimonials.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5 space-y-4">
+    <section className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5 space-y-4">
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         応援メッセージ
       </div>
@@ -30,7 +30,7 @@ export function PublicProfileMicroTestimonials({ data }: Props) {
         {data.testimonials.map((t, i) => (
           <div
             key={`${t.address}-${i.toString()}`}
-            className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 space-y-2"
+            className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 space-y-2"
           >
             <p className="text-sm leading-6 text-[var(--text)]">&ldquo;{t.message}&rdquo;</p>
             <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ export function PublicProfileMicroTestimonials({ data }: Props) {
                   className="h-6 w-6 rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-300 text-[10px] font-bold text-gray-600">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-muted)] text-[10px] font-bold text-[var(--text-subtle)]">
                   {avatarFallback(t.displayLabel)}
                 </div>
               )}

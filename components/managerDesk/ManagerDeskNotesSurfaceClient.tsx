@@ -43,7 +43,7 @@ const NOTE_VISIBILITY_LABELS: Record<(typeof NOTE_VISIBILITIES)[number], string>
 
 const secondaryActionClassName = "btn-secondary justify-center text-sm";
 const fieldClassName =
-  "w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
+  "w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "未設定";
@@ -59,7 +59,7 @@ function formatDateTime(value: string | null): string {
 
 function SummaryMetric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--text-subtle)]">
         {props.label}
       </div>
@@ -239,9 +239,9 @@ export function ManagerDeskNotesSurfaceClient() {
           {data ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <SummaryMetric label="Notes" value={String(data.summary.totalCount)} />
+                <SummaryMetric label="ノート" value={String(data.summary.totalCount)} />
                 <SummaryMetric
-                  label="Follow-up"
+                  label="フォローアップ"
                   value={String(data.summary.followUpCount)}
                 />
                 <SummaryMetric
@@ -249,13 +249,13 @@ export function ManagerDeskNotesSurfaceClient() {
                   value={String(data.summary.overdueCount)}
                 />
                 <SummaryMetric
-                  label="Creator 共有可"
+                  label="クリエイター共有可"
                   value={String(data.summary.shareableCount)}
                 />
               </div>
 
               <form
-                className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 lg:grid-cols-[1fr,1fr,1fr,1fr,auto]"
+                className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 lg:grid-cols-[1fr,1fr,1fr,1fr,auto]"
                 onSubmit={(event) => {
                   event.preventDefault();
                   updateFilters({ q: query });
@@ -345,7 +345,7 @@ export function ManagerDeskNotesSurfaceClient() {
                 </label>
 
                 <div className="flex flex-wrap items-end gap-2">
-                  <label className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]">
+                  <label className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]">
                     <input
                       type="checkbox"
                       checked={followUpOnly}
@@ -411,7 +411,7 @@ export function ManagerDeskNotesSurfaceClient() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+                      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
                         <div className="text-sm leading-6 text-[var(--text)]">
                           {item.note.aiSummary ?? item.note.body}
                         </div>

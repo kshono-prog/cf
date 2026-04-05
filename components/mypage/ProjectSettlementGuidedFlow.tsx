@@ -19,7 +19,7 @@ function stepBadgeClass(status: StepStatus): string {
     case "current":
       return "border-amber-200 bg-amber-50 text-amber-800";
     case "blocked":
-      return "border-gray-200 bg-gray-100 text-gray-600";
+      return "border-[var(--line)] bg-[var(--surface-muted)] text-[var(--text-subtle)]";
     default:
       return "border-slate-200 bg-slate-50 text-slate-600";
   }
@@ -49,11 +49,11 @@ export function ProjectSettlementGuidedFlowOverview(props: {
           <button
             key={step.id}
             type="button"
-            className="w-[240px] shrink-0 rounded-2xl border border-gray-200 bg-gray-50 p-3 text-left transition hover:border-slate-300 sm:w-auto sm:p-4"
+            className="w-[240px] shrink-0 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3 text-left transition hover:border-slate-300 sm:w-auto sm:p-4"
             onClick={() => props.onOpenStep(step.id)}
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
                 Step {step.stepNumber}
               </div>
               <span
@@ -64,10 +64,10 @@ export function ProjectSettlementGuidedFlowOverview(props: {
                 {stepLabel(step.status)}
               </span>
             </div>
-            <div className="mt-2 text-sm font-semibold text-gray-900">
+            <div className="mt-2 text-sm font-semibold text-[var(--text)]">
               {step.title}
             </div>
-            <div className="mt-1 text-[11px] leading-5 text-gray-600 sm:mt-2 sm:text-xs">
+            <div className="mt-1 text-[11px] leading-5 text-[var(--text-subtle)] sm:mt-2 sm:text-xs">
               {step.helper}
             </div>
           </button>
@@ -88,13 +88,13 @@ export function ProjectSettlementStepSection(props: {
     <section className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
             Step {props.stepNumber}
           </div>
-          <div className="mt-1 text-base font-semibold text-gray-900">
+          <div className="mt-1 text-base font-semibold text-[var(--text)]">
             {props.title}
           </div>
-          <div className="mt-1 text-[11px] leading-5 text-gray-600 sm:text-xs">
+          <div className="mt-1 text-[11px] leading-5 text-[var(--text-subtle)] sm:text-xs">
             {props.helper}
           </div>
         </div>

@@ -57,7 +57,7 @@ export function LinkPreviewCard({ url }: Props) {
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="mt-2.5 block overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]"
+        className="mt-2.5 block overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)]"
       >
         <div className="animate-pulse space-y-2 px-4 py-3">
           <div className="h-2.5 w-1/4 rounded-full bg-[var(--surface-subtle)]" />
@@ -76,7 +76,7 @@ export function LinkPreviewCard({ url }: Props) {
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="mt-2.5 flex items-center gap-2 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 transition hover:bg-[var(--surface-subtle)]"
+        className="mt-2.5 flex items-center gap-2 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 transition hover:bg-[var(--surface-subtle)]"
       >
         <span className="text-[11px] font-medium text-[var(--text-subtle)]">
           🔗
@@ -95,7 +95,7 @@ export function LinkPreviewCard({ url }: Props) {
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="mt-2.5 block overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] transition hover:border-[var(--muted)]"
+      className="mt-2.5 block overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] transition hover:border-[var(--muted)]"
     >
       {data.image ? (
         // eslint-disable-next-line @next/next/no-img-element

@@ -46,16 +46,16 @@ export function UnconnectedMyPage({
       <div className="border rounded-md overflow-hidden">
         <button
           type="button"
-          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-gray-50"
+          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-[var(--surface-subtle)]"
           onClick={() => setOpen((cur) => ({ ...cur, wallet: !cur.wallet }))}
         >
           <span>1. ウォレットの準備</span>
           <span className="text-[10px]">{open.wallet ? "▲" : "▼"}</span>
         </button>
         {open.wallet && (
-          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-1 bg-[var(--surface)]">
+          <div className="px-3 py-2 text-[11px] text-[var(--text-subtle)] space-y-1 bg-[var(--surface)]">
             <p>1. PCまたはスマートフォンにWeb3ウォレットを準備します。</p>
-            <p className="text-[10px] text-gray-500">
+            <p className="text-[10px] text-[var(--muted)]">
               ※ MetaMask、hashport Walletなど複数のウォレットに対応
             </p>
           </div>
@@ -66,21 +66,21 @@ export function UnconnectedMyPage({
       <div className="border rounded-md overflow-hidden">
         <button
           type="button"
-          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-gray-50"
+          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-[var(--surface-subtle)]"
           onClick={() => setOpen((cur) => ({ ...cur, jpyc: !cur.jpyc }))}
         >
           <span>2. JPYC を入手</span>
           <span className="text-[10px]">{open.jpyc ? "▲" : "▼"}</span>
         </button>
         {open.jpyc && (
-          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-2 bg-[var(--surface)]">
+          <div className="px-3 py-2 text-[11px] text-[var(--text-subtle)] space-y-2 bg-[var(--surface)]">
             <div className="space-y-1">
               <p>1. JPYC EX にアクセスし、アカウントを作成します。</p>
               <p>2. 本人確認（KYC）や必要な登録を完了しJPYCを購入します。</p>
               <p>
                 3. 購入した JPYC を、自分の ウォレットアドレスに送金します。
               </p>
-              <p className="text-[10px] text-gray-500">
+              <p className="text-[10px] text-[var(--muted)]">
                 ※ 実際の手続きや手数料、リスクは必ずご自身でご確認ください。
               </p>
             </div>
@@ -92,14 +92,14 @@ export function UnconnectedMyPage({
       <div className="border rounded-md overflow-hidden">
         <button
           type="button"
-          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-gray-50"
+          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-[var(--surface-subtle)]"
           onClick={() => setOpen((cur) => ({ ...cur, flow: !cur.flow }))}
         >
           <span>3. 応援と公開ページの流れ</span>
           <span className="text-[10px]">{open.flow ? "▲" : "▼"}</span>
         </button>
         {open.flow && (
-          <div className="px-3 py-2 text-[11px] text-gray-700 space-y-1 bg-[var(--surface)]">
+          <div className="px-3 py-2 text-[11px] text-[var(--text-subtle)] space-y-1 bg-[var(--surface)]">
             <p>1. 右上のウォレットから接続します。</p>
             <p>2. 他の人のページを開き、JPYC で応援を送ることができます。</p>
             <p>
@@ -111,7 +111,7 @@ export function UnconnectedMyPage({
       </div>
 
       {/* 利用規約カード */}
-      <div className="card p-4 bg-[var(--surface)] shadow-sm border border-gray-200 text-[11px] leading-relaxed space-y-2">
+      <div className="card p-4 bg-[var(--surface)] border border-[var(--line)] text-[11px] leading-relaxed space-y-2">
         <p className="font-semibold text-xs mb-1">利用規約</p>
         <p>1. 本サービスは個人学習による無償提供のUIツールです。</p>
         <p>
