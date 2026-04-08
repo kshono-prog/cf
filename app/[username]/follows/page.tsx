@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Avatar } from "@/components/shared/Avatar";
 import { getCreatorFollowLists } from "@/lib/creatorFollow";
+import { PublicPageShell } from "@/components/layout/PublicPageShell";
 
 type Params = {
   username: string;
@@ -38,6 +39,7 @@ export default async function FollowsPage({
   const title = activeTab === "following" ? "フォロー中" : "フォロワー";
 
   return (
+    <PublicPageShell username={username}>
     <div className="space-y-4">
       <section className="surface-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -108,5 +110,6 @@ export default async function FollowsPage({
         )}
       </section>
     </div>
+    </PublicPageShell>
   );
 }

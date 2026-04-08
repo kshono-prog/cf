@@ -61,6 +61,7 @@ body {
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 80px;
 }
 
 body {
@@ -1927,6 +1928,41 @@ html[data-theme="dark"] .hover\:bg-slate-100:hover {
   }
 }
 
+/* 公開プロフィールページ専用サイドバー
+   workspace-sidebar と同スタイルだが、固定ヘッダー (60px) 分だけ top をオフセット */
+.profile-sidebar {
+  width: 72px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 60px;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  display: none;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  z-index: 30;
+  transition: width 0.2s ease;
+}
+
+.profile-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .profile-sidebar {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .profile-sidebar {
+    width: 220px;
+  }
+}
+
 /* サイドバーナビアイテム */
 .ws-nav-item {
   display: flex;
@@ -1968,6 +2004,7 @@ html[data-theme="dark"] .hover\:bg-slate-100:hover {
 }
 
 .ws-nav-icon {
+  display: block;
   width: 24px;
   height: 24px;
   flex-shrink: 0;

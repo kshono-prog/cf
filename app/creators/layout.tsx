@@ -20,7 +20,7 @@ export default async function CreatorsLayout({ children }: Props) {
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
           <AppHeader username="" avatarUrl={null} />
           <div className="px-3 pb-[78px] pt-[60px] sm:px-6 sm:pt-[82px] md:pb-24">
-            <div className="mx-auto w-full max-w-[760px]">{children}</div>
+            <div className="mx-auto w-full max-w-[1040px]">{children}</div>
           </div>
         </div>
         <PublicBottomNavLoader />

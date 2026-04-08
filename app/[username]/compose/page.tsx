@@ -1,5 +1,6 @@
 import { ComposePageClient } from "@/components/social/ComposePageClient";
 import { loadPublicPageData } from "@/lib/publicPageData";
+import { PublicPageShell } from "@/components/layout/PublicPageShell";
 
 type Params = {
   username: string;
@@ -14,10 +15,12 @@ export default async function ComposePage({
   const { creator, projectIdsByCurrency } = await loadPublicPageData(username);
 
   return (
-    <ComposePageClient
-      username={username}
-      creator={creator}
-      projectIdsByCurrency={projectIdsByCurrency}
-    />
+    <PublicPageShell username={username}>
+      <ComposePageClient
+        username={username}
+        creator={creator}
+        projectIdsByCurrency={projectIdsByCurrency}
+      />
+    </PublicPageShell>
   );
 }

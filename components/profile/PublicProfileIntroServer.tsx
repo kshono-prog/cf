@@ -266,29 +266,6 @@ export function PublicProfileIntroServer({
     : supportProfileView.mode === "draft"
     ? supportProfileView.draft?.description ?? null
     : "公開ページを準備中です。応援内容が整うと、ここから確認できます。";
-  const profileSummaryItems = [
-    {
-      label: "公開状態",
-      value: supportCardReady
-        ? "応援受付中"
-        : supportProfileView.mode === "draft"
-          ? "準備中"
-          : "閲覧のみ",
-    },
-    {
-      label: "募集中 project",
-      value: `${recruitingProjects.length > 0 ? recruitingProjects.length : activeSupportProject ? 1 : 0}件`,
-    },
-    {
-      label: "外部リンク",
-      value: `${socialEntries.length + (shouldShowExternalUrl ? 1 : 0)}件`,
-    },
-    {
-      label: "紹介動画",
-      value: `${creator.youtubeVideos?.length ?? 0}件`,
-    },
-  ];
-
   return (
     <div className="space-y-4">
       <section className="sheet-section overflow-hidden">
@@ -297,7 +274,7 @@ export function PublicProfileIntroServer({
           style={heroBackgroundStyle}
         />
         <div className="-mt-11 px-4 pb-3.5 sm:-mt-14 sm:px-5 sm:pb-4">
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-6">
+          <div>
             <div className="min-w-0">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0">
@@ -396,26 +373,6 @@ export function PublicProfileIntroServer({
                 </div>
               </div>
             </div>
-            <aside className="data-tile mt-4 hidden p-4 lg:block">
-              <div className="section-kicker">
-                プロフィール要約
-              </div>
-              <div className="mt-3 space-y-3">
-                {profileSummaryItems.map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3 last:border-b-0 last:pb-0"
-                  >
-                    <div className="text-[11px] font-medium text-[var(--text-subtle)]">
-                      {item.label}
-                    </div>
-                    <div className="text-sm font-semibold text-[var(--text)]">
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </aside>
           </div>
         </div>
       </section>

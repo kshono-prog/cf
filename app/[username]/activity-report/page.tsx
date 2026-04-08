@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { PublicPageShell } from "@/components/layout/PublicPageShell";
+
 import { prisma } from "@/lib/prisma";
 import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
 import { deriveCreatorStage } from "@/lib/creatorStage";
@@ -103,7 +105,7 @@ export default async function ActivityReportPage({ params }: Props) {
   const maturity = stageResult.maturity;
 
   return (
-    <div className="min-h-screen bg-white">
+    <PublicPageShell username={username} maxWidth="672px">
       {/* Print styles */}
       <style>{`
         @media print {
@@ -113,7 +115,7 @@ export default async function ActivityReportPage({ params }: Props) {
         }
       `}</style>
 
-      <div className="mx-auto max-w-2xl px-6 py-10 print:py-6">
+      <div className="py-4 print:py-6">
         {/* Header */}
         <div className="mb-8 border-b border-gray-200 pb-6 print:mb-4 print:pb-4">
           <div className="text-[11px] uppercase tracking-[0.16em] text-gray-400">
@@ -250,6 +252,6 @@ export default async function ActivityReportPage({ params }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </PublicPageShell>
   );
 }

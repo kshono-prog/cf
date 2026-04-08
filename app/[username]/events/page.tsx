@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { EventDateTime } from "@/components/EventDateTime";
 import { MyPageFooter } from "@/components/MyPageFooter";
+import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import {
   CREATOR_TYPE_LABELS,
   CREATOR_TYPE_OPTIONS,
@@ -48,8 +49,8 @@ export default async function EventsPage({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <div className="container-narrow space-y-6">
+    <PublicPageShell username={username}>
+    <div className="space-y-6">
         <section className="panel-card space-y-4 p-4 sm:p-5">
           <div className="space-y-2">
             <h1 className="text-lg font-semibold sm:text-xl">
@@ -461,6 +462,6 @@ export default async function EventsPage({
 
         <MyPageFooter />
       </div>
-    </div>
+    </PublicPageShell>
   );
 }

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 import { PublicProfileIntroServer } from "@/components/profile/PublicProfileIntroServer";
 import { PublicProfilePageBodyServer } from "@/components/profile/PublicProfilePageBodyServer";
+import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { loadPublicProfileMetadataSeed } from "@/lib/publicProfileMetadata";
 import { prisma } from "@/lib/prisma";
 import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
@@ -159,12 +160,10 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   const { username } = await params;
 
   return (
-    <Suspense
-      fallback={
-        <PublicProfilePageFallback username={username} />
-      }
-    >
-      <PublicProfilePageBodyServer username={username} />
-    </Suspense>
+    <PublicPageShell username={username} fullBleed>
+      <Suspense fallback={<PublicProfilePageFallback username={username} />}>
+        <PublicProfilePageBodyServer username={username} />
+      </Suspense>
+    </PublicPageShell>
   );
 }

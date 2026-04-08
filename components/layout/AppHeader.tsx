@@ -12,7 +12,7 @@ export function AppHeader({
 }) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--line)] bg-[var(--surface)]">
-      <div className="mx-auto flex h-[60px] w-full max-w-[760px] items-center justify-between px-3 sm:px-6">
+      <div className="mx-auto flex h-[60px] w-full max-w-[1040px] items-center justify-between px-3 sm:px-6">
         <Link href={`/${username}`} className="shrink-0">
           <div className="flex items-center">
             {avatarUrl ? (

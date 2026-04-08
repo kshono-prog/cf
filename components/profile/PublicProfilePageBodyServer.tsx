@@ -10,6 +10,7 @@ import { PublicProfileCreatorVoiceCard } from "@/components/profile/PublicProfil
 import { PublicProfileDeferredSectionsServer } from "@/components/profile/PublicProfileDeferredSectionsServer";
 import { PublicProfileIntroServer } from "@/components/profile/PublicProfileIntroServer";
 import { PublicProfileImpactNumbersInline } from "@/components/profile/PublicProfileImpactNumbers";
+import { PublicProfilePageSidebar } from "@/components/profile/PublicProfilePageSidebar";
 import { loadPublicProfilePageReadModel } from "@/lib/publicProfilePageReadModel";
 import { isPrismaUnavailableError } from "@/lib/prismaRetry";
 import { deriveCreatorStage } from "@/lib/creatorStage";
@@ -53,7 +54,7 @@ function UnavailableBody({ username }: Props) {
   const unavailableSupportProfileView = buildUnavailableSupportProfileView();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-3 sm:px-6">
       <ProfileClientSection
         username={username}
         creator={{
@@ -130,6 +131,12 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
       credibility,
     });
 
+    const activeSupportProject = getActiveSupportProject(supportProfileView);
+    const supportHref = activeSupportProject
+      ? `/${username}?projectId=${encodeURIComponent(activeSupportProject.projectId)}&support=1#support-projects`
+      : null;
+    const displayName = creator.displayName || username;
+
     const anchorTabs = [
       { id: "support", label: "応援へ", anchor: "#support-projects" },
       ...(publicAiManager
@@ -140,74 +147,104 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
       { id: "credibility", label: "実績", anchor: "#credibility-section" },
     ];
 
+    const impactNumbers = <PublicProfileImpactNumbersInline credibility={credibility} />;
+
     return (
-      <div className="space-y-4">
+      <>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: serializeJsonLd(structuredData),
-          }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
         />
-        <ProfileClientSection
-          username={username}
-          creator={creator}
-          projectId={projectId}
-          projectIdsByCurrency={projectIdsByCurrency}
-          supportProfileView={supportProfileView}
-          recruitingProjects={recruitingProjects}
-          initialFeed={initialFeed}
-          introContent={
-            <PublicProfileIntroServer
+
+        {/* X 風 3 カラムレイアウト */}
+        <div className="workspace-layout">
+
+          {/* 左サイドバー — profile-sidebar CSS クラスで md+ 表示 */}
+          <aside className="profile-sidebar">
+            <PublicProfilePageSidebar
               username={username}
-              creator={creator}
-              supportProfileView={supportProfileView}
-              recruitingProjects={recruitingProjects}
-              stageBadge={stageResult?.stageLabel ?? null}
-              impactContent={
-                <PublicProfileImpactNumbersInline credibility={credibility} />
-              }
+              displayName={displayName}
+              avatarUrl={creator.avatarUrl ?? null}
+              creatorWalletAddress={creator.address ?? null}
+              themeColor={creator.themeColor ?? null}
+              supportHref={supportHref}
+              anchorTabs={anchorTabs}
             />
-          }
-        />
+          </aside>
 
-        <PublicProfileAnchorNav tabs={anchorTabs} />
+          {/* 中央フィード */}
+          <main className="workspace-feed">
+            {/* モバイル: ヘッダー分のスペーサー（AppHeader は PublicPageShell が固定表示） */}
+            {/* アンカーナビ — モバイル・タブレット (md 未満) のみ */}
+            <div className="md:hidden">
+              <PublicProfileAnchorNav tabs={anchorTabs} />
+            </div>
 
-        {publicAiManager ? (
-          <PublicProfileAiManagerCard
-            creatorUsername={username}
-            creatorDisplayName={creator.displayName || username}
-            aiManager={publicAiManager}
-          />
-        ) : null}
+            <div className="px-3 py-4 sm:px-6">
+              <ProfileClientSection
+                username={username}
+                creator={creator}
+                projectId={projectId}
+                projectIdsByCurrency={projectIdsByCurrency}
+                supportProfileView={supportProfileView}
+                recruitingProjects={recruitingProjects}
+                initialFeed={initialFeed}
+                introContent={
+                  <PublicProfileIntroServer
+                    username={username}
+                    creator={creator}
+                    supportProfileView={supportProfileView}
+                    recruitingProjects={recruitingProjects}
+                    stageBadge={stageResult?.stageLabel ?? null}
+                    impactContent={impactNumbers}
+                  />
+                }
+              />
+            </div>
+          </main>
 
-        <PublicProfileCreatorVoiceCard
-          displayName={creator.displayName || username}
-          supportProfileView={supportProfileView}
-          ecosystemRole={creator.ecosystemRole ?? null}
-        />
+          {/* 右パネル */}
+          <aside className="workspace-right">
+            <div className="flex flex-col gap-4">
+              {publicAiManager ? (
+                <PublicProfileAiManagerCard
+                  creatorUsername={username}
+                  creatorDisplayName={displayName}
+                  aiManager={publicAiManager}
+                />
+              ) : null}
 
-        <div id="credibility-section" className="space-y-4">
-          <CreatorStageCard credibility={credibility} />
-          {credibility.activeMonths > 0 || credibility.totalPostCount > 0 ? (
-            <CreatorActivityCredibilityBadge credibility={credibility} />
-          ) : null}
-          <PublicTrustProfileSection
-            displayName={creator.displayName || username}
-            username={username}
-            externalUrl={creator.url ?? null}
-            activityMonths={credibility.activeMonths}
-            contributionCount={credibility.totalContributorCount}
-            stageLabel={stageResult?.stageLabel ?? null}
-          />
+              <PublicProfileCreatorVoiceCard
+                displayName={displayName}
+                supportProfileView={supportProfileView}
+                ecosystemRole={creator.ecosystemRole ?? null}
+              />
+
+              <div id="credibility-section" className="flex flex-col gap-4">
+                <CreatorStageCard credibility={credibility} />
+                {credibility.activeMonths > 0 || credibility.totalPostCount > 0 ? (
+                  <CreatorActivityCredibilityBadge credibility={credibility} />
+                ) : null}
+                <PublicTrustProfileSection
+                  displayName={displayName}
+                  username={username}
+                  externalUrl={creator.url ?? null}
+                  activityMonths={credibility.activeMonths}
+                  contributionCount={credibility.totalContributorCount}
+                  stageLabel={stageResult?.stageLabel ?? null}
+                />
+              </div>
+
+              <Suspense fallback={<DeferredSectionsFallback />}>
+                <PublicProfileDeferredSectionsServer
+                  creatorProfileId={profile.id}
+                  activeSupportProject={activeSupportProject}
+                />
+              </Suspense>
+            </div>
+          </aside>
         </div>
-
-        <Suspense fallback={<DeferredSectionsFallback />}>
-          <PublicProfileDeferredSectionsServer
-            creatorProfileId={profile.id}
-            activeSupportProject={getActiveSupportProject(supportProfileView)}
-          />
-        </Suspense>
-      </div>
+      </>
     );
   } catch (error) {
     if (isPrismaUnavailableError(error)) {

@@ -16,7 +16,7 @@ export default async function ManagerDeskLayout({
       <ThemeProvider>
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
           <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--line)] bg-[var(--surface)]">
-            <div className="mx-auto flex h-[60px] w-full max-w-[760px] items-center justify-between px-3 sm:px-6">
+            <div className="mx-auto flex h-[60px] w-full max-w-[1040px] items-center justify-between px-3 sm:px-6">
               <Link href="/" className="text-sm font-semibold text-[var(--text)]">
                 Creator Founding
               </Link>
@@ -27,7 +27,7 @@ export default async function ManagerDeskLayout({
           </header>
 
           <div className="px-3 pb-[78px] pt-[60px] sm:px-6 sm:pb-[96px] md:pb-10">
-            <div className="mx-auto w-full max-w-[760px]">{children}</div>
+            <div className="mx-auto w-full max-w-[1040px]">{children}</div>
           </div>
         </div>
       </ThemeProvider>

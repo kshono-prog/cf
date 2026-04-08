@@ -1,6 +1,7 @@
 import { SearchPageClient } from "@/components/social/SearchPageClient";
 import { getDiscoverCreators } from "@/lib/discoverCreators";
 import { getInitialPublicFeedList } from "@/lib/feedList";
+import { PublicPageShell } from "@/components/layout/PublicPageShell";
 
 type Params = {
   username: string;
@@ -18,10 +19,12 @@ export default async function SearchPage({
   ]);
 
   return (
-    <SearchPageClient
-      username={username}
-      initialCreators={initialCreators}
-      initialPosts={initialFeed.items}
-    />
+    <PublicPageShell username={username}>
+      <SearchPageClient
+        username={username}
+        initialCreators={initialCreators}
+        initialPosts={initialFeed.items}
+      />
+    </PublicPageShell>
   );
 }

@@ -1,6 +1,7 @@
 import { HomeClientSection } from "@/app/[username]/HomeClientSection";
 import { loadPublicPageData } from "@/lib/publicPageData";
 import { getInitialPublicFeedList } from "@/lib/feedList";
+import { PublicPageShell } from "@/components/layout/PublicPageShell";
 
 type Params = {
   username: string;
@@ -19,12 +20,14 @@ export default async function HomePage({
     ]);
 
   return (
-    <HomeClientSection
-      username={username}
-      creator={creator}
-      projectId={projectId}
-      projectIdsByCurrency={projectIdsByCurrency}
-      initialFeed={initialFeed}
-    />
+    <PublicPageShell username={username}>
+      <HomeClientSection
+        username={username}
+        creator={creator}
+        projectId={projectId}
+        projectIdsByCurrency={projectIdsByCurrency}
+        initialFeed={initialFeed}
+      />
+    </PublicPageShell>
   );
 }
