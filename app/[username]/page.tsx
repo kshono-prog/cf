@@ -160,7 +160,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   const { username } = await params;
 
   return (
-    <PublicPageShell username={username} fullBleed>
+    <PublicPageShell username={username} fullBleed hideDesktopHeader>
       <Suspense fallback={<PublicProfilePageFallback username={username} />}>
         <PublicProfilePageBodyServer username={username} />
       </Suspense>

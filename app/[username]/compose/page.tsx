@@ -1,6 +1,6 @@
 import { ComposePageClient } from "@/components/social/ComposePageClient";
 import { loadPublicPageData } from "@/lib/publicPageData";
-import { PublicPageShell } from "@/components/layout/PublicPageShell";
+import { PublicWorkspaceShell } from "@/components/layout/PublicWorkspaceShell";
 
 type Params = {
   username: string;
@@ -12,15 +12,23 @@ export default async function ComposePage({
   params: Promise<Params>;
 }) {
   const { username } = await params;
-  const { creator, projectIdsByCurrency } = await loadPublicPageData(username);
+  const { creator, projectIdsByCurrency, publicAiManager, supportProfileView } =
+    await loadPublicPageData(username);
 
   return (
-    <PublicPageShell username={username}>
+    <PublicWorkspaceShell
+      username={username}
+      currentPage="compose"
+      creator={creator}
+      supportShortcutHref={`/${username}#support-projects`}
+      publicAiManager={publicAiManager}
+      supportProfileView={supportProfileView}
+    >
       <ComposePageClient
         username={username}
         creator={creator}
         projectIdsByCurrency={projectIdsByCurrency}
       />
-    </PublicPageShell>
+    </PublicWorkspaceShell>
   );
 }

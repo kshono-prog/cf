@@ -101,7 +101,40 @@ function ThemeModeSection() {
   );
 }
 
-export function HeaderWalletMenu({ username }: { username: string }) {
+type HeaderWalletMenuProps = {
+  username: string;
+  menuPlacement?: "bottom-end" | "top-start";
+  triggerVariant?: "default" | "sidebar";
+};
+
+function resolveMenuPanelClass(
+  menuPlacement: "bottom-end" | "top-start",
+  triggerVariant: "default" | "sidebar"
+): string {
+  if (menuPlacement === "top-start") {
+    return triggerVariant === "sidebar"
+      ? "menu-panel absolute bottom-[calc(100%+10px)] left-0 right-0 z-[60] p-3"
+      : "menu-panel absolute bottom-[calc(100%+12px)] left-0 z-[60] w-[min(92vw,320px)] p-3";
+  }
+
+  return "menu-panel absolute right-0 top-[calc(100%+12px)] z-[60] w-[min(92vw,320px)] p-3";
+}
+
+function resolveRootClass(triggerVariant: "default" | "sidebar"): string {
+  return triggerVariant === "sidebar" ? "relative w-full" : "relative";
+}
+
+function resolveTriggerClass(triggerVariant: "default" | "sidebar"): string {
+  return triggerVariant === "sidebar"
+    ? "flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[20px] border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2 text-[var(--text)] transition hover:bg-[var(--surface)]"
+    : "menu-trigger";
+}
+
+export function HeaderWalletMenu({
+  username,
+  menuPlacement = "bottom-end",
+  triggerVariant = "default",
+}: HeaderWalletMenuProps) {
   const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
   const { disconnectAsync } = useDisconnect();
@@ -234,31 +267,64 @@ export function HeaderWalletMenu({ username }: { username: string }) {
   const walletBusy = status === "connecting" || status === "reconnecting";
   const authChecking = ownerSession.status === "checking";
   const authReady = ownerSession.status === "authenticated";
+  const walletTriggerLabel = !isConnected
+    ? walletBusy
+      ? "接続中です"
+      : "未接続"
+    : address
+    ? shortAddress(address)
+    : "接続済み";
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={resolveRootClass(triggerVariant)}>
       <button
         type="button"
-        className="menu-trigger"
+        className={resolveTriggerClass(triggerVariant)}
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
-          <path
-            d="M4.5 6.5h11M4.5 10h11M7 13.5h6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-          />
-        </svg>
-        <span className="text-sm font-semibold">ウォレット</span>
+        {triggerVariant === "sidebar" ? (
+          <span className="flex min-w-0 items-center gap-3 text-left">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)]">
+              <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
+                <path
+                  d="M4.5 6.5h11M4.5 10h11M7 13.5h6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-[var(--text)]">
+                ウォレット
+              </span>
+              <span className="block truncate text-xs text-[var(--text-subtle)]">
+                {walletTriggerLabel}
+              </span>
+            </span>
+          </span>
+        ) : (
+          <>
+            <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
+              <path
+                d="M4.5 6.5h11M4.5 10h11M7 13.5h6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="text-sm font-semibold">ウォレット</span>
+          </>
+        )}
         <MenuCaret open={open} />
       </button>
 
       {open ? (
-        <div className="menu-panel absolute right-0 top-[calc(100%+12px)] z-[60] w-[min(92vw,320px)] p-3">
+        <div className={resolveMenuPanelClass(menuPlacement, triggerVariant)}>
           {!isConnected ? (
             <div className="space-y-3">
               <div>
@@ -327,7 +393,7 @@ export function HeaderWalletMenu({ username }: { username: string }) {
                   </span>
                 </div>
                 {balances ? (
-                  <div className="grid grid-cols-2 gap-2 text-xs text-[var(--text-subtle)]">
+                  <div className="grid gap-2 text-xs text-[var(--text-subtle)]">
                     <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
                       JPYC {formatReadableNumber(
                         Number(balances.tokens.JPYC?.formatted ?? "0"),

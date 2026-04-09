@@ -166,6 +166,7 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
               creatorWalletAddress={creator.address ?? null}
               themeColor={creator.themeColor ?? null}
               supportHref={supportHref}
+              currentPage="profile"
               anchorTabs={anchorTabs}
             />
           </aside>

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PublicWorkspaceShell } from "@/components/layout/PublicWorkspaceShell";
 import { Avatar } from "@/components/shared/Avatar";
 import { getCreatorFollowLists } from "@/lib/creatorFollow";
-import { PublicPageShell } from "@/components/layout/PublicPageShell";
+import { loadPublicPageData } from "@/lib/publicPageData";
 
 type Params = {
   username: string;
@@ -32,14 +33,24 @@ export default async function FollowsPage({
   const { username } = await params;
   const { tab: rawTab } = await searchParams;
   const activeTab = resolveTab(rawTab);
-  const data = await getCreatorFollowLists(username);
+  const [data, publicPageData] = await Promise.all([
+    getCreatorFollowLists(username),
+    loadPublicPageData(username),
+  ]);
   if (!data) notFound();
 
   const items = activeTab === "following" ? data.following : data.followers;
   const title = activeTab === "following" ? "フォロー中" : "フォロワー";
 
   return (
-    <PublicPageShell username={username}>
+    <PublicWorkspaceShell
+      username={username}
+      currentPage="follows"
+      creator={publicPageData.creator}
+      supportShortcutHref={`/${username}#support-projects`}
+      publicAiManager={publicPageData.publicAiManager}
+      supportProfileView={publicPageData.supportProfileView}
+    >
     <div className="space-y-4">
       <section className="surface-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -110,6 +121,6 @@ export default async function FollowsPage({
         )}
       </section>
     </div>
-    </PublicPageShell>
+    </PublicWorkspaceShell>
   );
 }

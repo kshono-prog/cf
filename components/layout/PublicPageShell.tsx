@@ -14,6 +14,8 @@ type Props = {
    * WorkspaceXLayout などフルブリードレイアウトに使う。
    */
   fullBleed?: boolean;
+  /** PC では上部ヘッダーを隠して左サイドバーへ導線を集約する */
+  hideDesktopHeader?: boolean;
 };
 
 /**
@@ -26,14 +28,25 @@ export function PublicPageShell({
   children,
   maxWidth = "1040px",
   fullBleed = false,
+  hideDesktopHeader = false,
 }: Props) {
   return (
     <>
-      <AppHeader username={username} avatarUrl={null} />
+      <AppHeader
+        username={username}
+        avatarUrl={null}
+        hideOnDesktop={hideDesktopHeader}
+      />
       {fullBleed ? (
-        <div className="pt-[60px] sm:pt-[66px]">{children}</div>
+        <div className={hideDesktopHeader ? "pt-[60px] sm:pt-[66px] lg:pt-0" : "pt-[60px] sm:pt-[66px]"}>
+          {children}
+        </div>
       ) : (
-        <div className="px-3 pb-20 pt-[60px] sm:px-6 sm:pt-[66px] md:pb-10">
+        <div
+          className={`px-3 pb-20 pt-[60px] sm:px-6 sm:pt-[66px] md:pb-10${
+            hideDesktopHeader ? " lg:pt-6" : ""
+          }`}
+        >
           <div className="mx-auto w-full" style={{ maxWidth }}>{children}</div>
         </div>
       )}

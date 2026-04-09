@@ -36,7 +36,38 @@ function shortAddress(value: string): string {
   return `${value.slice(0, 6)}…${value.slice(-4)}`;
 }
 
-export function HeaderUserMenu() {
+type HeaderUserMenuProps = {
+  menuPlacement?: "bottom-end" | "top-start";
+  triggerVariant?: "default" | "sidebar";
+};
+
+function resolveMenuPanelClass(
+  menuPlacement: "bottom-end" | "top-start",
+  triggerVariant: "default" | "sidebar"
+): string {
+  if (menuPlacement === "top-start") {
+    return triggerVariant === "sidebar"
+      ? "menu-panel absolute bottom-[calc(100%+10px)] left-0 right-0 z-[60] p-3"
+      : "menu-panel absolute bottom-[calc(100%+12px)] left-0 z-[60] w-[min(92vw,320px)] p-3";
+  }
+
+  return "menu-panel absolute right-0 top-[calc(100%+12px)] z-[60] w-[min(92vw,320px)] p-3";
+}
+
+function resolveRootClass(triggerVariant: "default" | "sidebar"): string {
+  return triggerVariant === "sidebar" ? "relative w-full" : "relative";
+}
+
+function resolveTriggerClass(triggerVariant: "default" | "sidebar"): string {
+  return triggerVariant === "sidebar"
+    ? "flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[20px] border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-2 text-[var(--text)] transition hover:bg-[var(--surface)]"
+    : "menu-trigger px-2";
+}
+
+export function HeaderUserMenu({
+  menuPlacement = "bottom-end",
+  triggerVariant = "default",
+}: HeaderUserMenuProps) {
   const { address, isConnected } = useAccount();
   const pathname = usePathname();
   const pageUsername = pathname.split("/")[1] ?? null;
@@ -114,28 +145,55 @@ export function HeaderUserMenu() {
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={resolveRootClass(triggerVariant)}>
       <button
         type="button"
-        className="menu-trigger px-2"
+        className={resolveTriggerClass(triggerVariant)}
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="自分のメニュー"
       >
-        <span className="avatar-circle overflow-hidden rounded-full border border-[var(--line)]">
-          <Avatar
-            src={avatarUrl}
-            alt={`${displayName} のアイコン`}
-            fallbackText={getAvatarInitials(displayName)}
-            size={28}
-          />
-        </span>
+        {triggerVariant === "sidebar" ? (
+          <span className="flex min-w-0 items-center gap-3 text-left">
+            <span className="avatar-circle overflow-hidden rounded-full border border-[var(--line)] bg-[var(--surface)]">
+              <Avatar
+                src={avatarUrl}
+                alt={`${displayName} のアイコン`}
+                fallbackText={getAvatarInitials(displayName)}
+                size={36}
+              />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-[var(--text)]">
+                {loading ? "アカウント" : displayName}
+              </span>
+              <span className="block truncate text-xs text-[var(--text-subtle)]">
+                {loading
+                  ? "情報を確認中"
+                  : viewerUsername
+                  ? `@${viewerUsername}`
+                  : address
+                  ? shortAddress(address)
+                  : "設定を開く"}
+              </span>
+            </span>
+          </span>
+        ) : (
+          <span className="avatar-circle overflow-hidden rounded-full border border-[var(--line)]">
+            <Avatar
+              src={avatarUrl}
+              alt={`${displayName} のアイコン`}
+              fallbackText={getAvatarInitials(displayName)}
+              size={28}
+            />
+          </span>
+        )}
         <MenuCaret open={open} />
       </button>
 
       {open ? (
-        <div className="menu-panel absolute right-0 top-[calc(100%+12px)] z-[60] w-[min(92vw,320px)] p-3">
+        <div className={resolveMenuPanelClass(menuPlacement, triggerVariant)}>
           {loading ? (
             <div className="px-1 py-3 text-sm text-[var(--text-subtle)]">
               接続中の情報を確認しています

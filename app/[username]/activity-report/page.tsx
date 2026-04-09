@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-import { PublicPageShell } from "@/components/layout/PublicPageShell";
+import { PublicWorkspaceShell } from "@/components/layout/PublicWorkspaceShell";
 
 import { prisma } from "@/lib/prisma";
 import { getCreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
 import { deriveCreatorStage } from "@/lib/creatorStage";
+import { loadPublicPageData } from "@/lib/publicPageData";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
 
 export default async function ActivityReportPage({ params }: Props) {
   const { username } = await params;
+  const publicPageData = await loadPublicPageData(username);
 
   const creator = await prisma.creatorProfile.findUnique({
     where: { username: username.toLowerCase() },
@@ -105,7 +107,15 @@ export default async function ActivityReportPage({ params }: Props) {
   const maturity = stageResult.maturity;
 
   return (
-    <PublicPageShell username={username} maxWidth="672px">
+    <PublicWorkspaceShell
+      username={username}
+      currentPage="activity-report"
+      creator={publicPageData.creator}
+      supportShortcutHref={`/${username}#support-projects`}
+      publicAiManager={publicPageData.publicAiManager}
+      supportProfileView={publicPageData.supportProfileView}
+      feedContentClassName="mx-auto w-full max-w-[672px]"
+    >
       {/* Print styles */}
       <style>{`
         @media print {
@@ -252,6 +262,6 @@ export default async function ActivityReportPage({ params }: Props) {
           </button>
         </div>
       </div>
-    </PublicPageShell>
+    </PublicWorkspaceShell>
   );
 }

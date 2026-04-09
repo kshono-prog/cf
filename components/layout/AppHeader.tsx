@@ -6,12 +6,18 @@ import { AppHeaderMenusLoader } from "@/components/layout/AppHeaderMenusLoader";
 export function AppHeader({
   username,
   avatarUrl,
+  hideOnDesktop = false,
 }: {
   username: string;
   avatarUrl?: string | null;
+  hideOnDesktop?: boolean;
 }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--line)] bg-[var(--surface)]">
+    <header
+      className={`fixed inset-x-0 top-0 z-50 border-b border-[var(--line)] bg-[var(--surface)]${
+        hideOnDesktop ? " lg:hidden" : ""
+      }`}
+    >
       <div className="mx-auto flex h-[60px] w-full max-w-[1040px] items-center justify-between px-3 sm:px-6">
         <Link href={`/${username}`} className="shrink-0">
           <div className="flex items-center">

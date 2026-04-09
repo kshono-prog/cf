@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { EventDateTime } from "@/components/EventDateTime";
 import { MyPageFooter } from "@/components/MyPageFooter";
-import { PublicPageShell } from "@/components/layout/PublicPageShell";
+import { PublicWorkspaceShell } from "@/components/layout/PublicWorkspaceShell";
 import {
   CREATOR_TYPE_LABELS,
   CREATOR_TYPE_OPTIONS,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/creatorTaxonomy";
 import { loadEventsPageData } from "@/lib/eventsPageData";
 import { FEATURED_EVENTS_PROMOTION } from "@/lib/eventsFeaturedPromotion";
+import { loadPublicPageData } from "@/lib/publicPageData";
 
 type EventsPageProps = {
   params: Promise<{ username: string }>;
@@ -27,11 +28,15 @@ export default async function EventsPage({
   const activeCreatorType = resolvedSearchParams.creatorType ?? "";
   const activeCategory = resolvedSearchParams.category ?? "";
 
-  const { creator, events, publicEvents, randomCreators } = await loadEventsPageData({
-    username,
-    activeCreatorType,
-    activeCategory,
-  });
+  const [{ creator, events, publicEvents, randomCreators }, publicPageData] =
+    await Promise.all([
+      loadEventsPageData({
+        username,
+        activeCreatorType,
+        activeCategory,
+      }),
+      loadPublicPageData(username),
+    ]);
 
   if (!creator) notFound();
 
@@ -49,7 +54,14 @@ export default async function EventsPage({
   }
 
   return (
-    <PublicPageShell username={username}>
+    <PublicWorkspaceShell
+      username={username}
+      currentPage="events"
+      creator={publicPageData.creator}
+      supportShortcutHref={`/${username}#support-projects`}
+      publicAiManager={publicPageData.publicAiManager}
+      supportProfileView={publicPageData.supportProfileView}
+    >
     <div className="space-y-6">
         <section className="panel-card space-y-4 p-4 sm:p-5">
           <div className="space-y-2">
@@ -462,6 +474,6 @@ export default async function EventsPage({
 
         <MyPageFooter />
       </div>
-    </PublicPageShell>
+    </PublicWorkspaceShell>
   );
 }

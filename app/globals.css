@@ -1138,6 +1138,9 @@ html[data-theme="dark"] .menu-trigger:hover {
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.11);
   backdrop-filter: blur(18px);
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 html[data-theme="dark"] .menu-panel {
@@ -1888,7 +1891,7 @@ html[data-theme="dark"] .hover\:bg-slate-100:hover {
 
 @media (min-width: 1024px) {
   .workspace-sidebar {
-    width: 220px;
+    width: 350px;
   }
 }
 
@@ -1959,7 +1962,9 @@ html[data-theme="dark"] .hover\:bg-slate-100:hover {
 
 @media (min-width: 1024px) {
   .profile-sidebar {
-    width: 220px;
+    top: 0;
+    height: 100vh;
+    width: 350px;
   }
 }
 

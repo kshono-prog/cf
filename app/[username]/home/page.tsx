@@ -1,7 +1,7 @@
 import { HomeClientSection } from "@/app/[username]/HomeClientSection";
 import { loadPublicPageData } from "@/lib/publicPageData";
 import { getInitialPublicFeedList } from "@/lib/feedList";
-import { PublicPageShell } from "@/components/layout/PublicPageShell";
+import { PublicWorkspaceShell } from "@/components/layout/PublicWorkspaceShell";
 
 type Params = {
   username: string;
@@ -13,14 +13,21 @@ export default async function HomePage({
   params: Promise<Params>;
 }) {
   const { username } = await params;
-  const [{ creator, projectId, projectIdsByCurrency }, initialFeed] =
+  const [{ creator, projectId, projectIdsByCurrency, publicAiManager, supportProfileView }, initialFeed] =
     await Promise.all([
       loadPublicPageData(username),
       getInitialPublicFeedList(null),
     ]);
 
   return (
-    <PublicPageShell username={username}>
+    <PublicWorkspaceShell
+      username={username}
+      currentPage="home"
+      creator={creator}
+      supportShortcutHref={`/${username}#support-projects`}
+      publicAiManager={publicAiManager}
+      supportProfileView={supportProfileView}
+    >
       <HomeClientSection
         username={username}
         creator={creator}
@@ -28,6 +35,6 @@ export default async function HomePage({
         projectIdsByCurrency={projectIdsByCurrency}
         initialFeed={initialFeed}
       />
-    </PublicPageShell>
+    </PublicWorkspaceShell>
   );
 }

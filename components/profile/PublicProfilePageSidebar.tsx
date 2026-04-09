@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 
+import { AppHeaderMenusLoader } from "@/components/layout/AppHeaderMenusLoader";
 import { usePublicViewerIdentity } from "@/components/shared/usePublicViewerIdentity";
 import { resolveComposeViewerLinks } from "@/lib/composeViewerLinks";
 import type {
@@ -17,12 +18,24 @@ type AnchorTab = {
   anchor: string;
 };
 
+export type PublicSidebarPage =
+  | "profile"
+  | "home"
+  | "search"
+  | "compose"
+  | "notifications"
+  | "events"
+  | "follows"
+  | "activity-report";
+
 type Props = {
   username: string;
   creatorWalletAddress: string | null;
   themeColor: string | null;
   supportHref: string | null;
   anchorTabs: AnchorTab[];
+  currentPage?: PublicSidebarPage;
+  supportShortcutHref?: string | null;
 };
 
 // ── アイコン ─────────────────────────────────────────────────
@@ -293,33 +306,77 @@ function resolvePrimaryItems(args: {
   username: string;
   viewerState: PublicViewerState;
   selfProfileHref: string;
-  showSupportShortcut: boolean;
+  currentPage: PublicSidebarPage;
+  supportShortcutHref: string | null;
 }): PrimaryNavItem[] {
   if (args.viewerState.isOwner) {
     return [
-      { kind: "link", key: "home", label: "ホーム", href: `/${args.username}/home` },
-      { kind: "link", key: "search", label: "検索", href: `/${args.username}/search` },
-      { kind: "link", key: "compose", label: "投稿", href: `/${args.username}/compose` },
+      {
+        kind: "link",
+        key: "home",
+        label: "ホーム",
+        href: `/${args.username}/home`,
+        active: args.currentPage === "home",
+      },
+      {
+        kind: "link",
+        key: "search",
+        label: "検索",
+        href: `/${args.username}/search`,
+        active: args.currentPage === "search",
+      },
+      {
+        kind: "link",
+        key: "compose",
+        label: "投稿",
+        href: `/${args.username}/compose`,
+        active: args.currentPage === "compose",
+      },
       {
         kind: "link",
         key: "notifications",
         label: "通知",
         href: `/${args.username}/notifications`,
+        active: args.currentPage === "notifications",
       },
-      { kind: "link", key: "profile", label: "プロフィール", href: `/${args.username}`, active: true },
+      {
+        kind: "link",
+        key: "profile",
+        label: "プロフィール",
+        href: `/${args.username}`,
+        active: args.currentPage === "profile",
+      },
     ];
   }
 
   const items: PrimaryNavItem[] = [
-    { kind: "link", key: "discover", label: "発見", href: "/creators" },
+    {
+      kind: "link",
+      key: "discover",
+      label: "発見",
+      href: "/creators",
+      active: args.currentPage === "search",
+    },
   ];
 
-  if (args.showSupportShortcut) {
+  if (args.currentPage === "profile") {
     items.push({ kind: "button", key: "support", label: "応援へ", onClick: scrollToSupport });
+  } else if (args.supportShortcutHref) {
+    items.push({
+      kind: "link",
+      key: "support",
+      label: "応援へ",
+      href: args.supportShortcutHref,
+    });
   }
 
   if (args.viewerState.mode === "registered" && args.viewerState.hasCreator) {
-    items.push({ kind: "link", key: "profile", label: "自分のページ", href: args.selfProfileHref });
+    items.push({
+      kind: "link",
+      key: "profile",
+      label: "自分のページ",
+      href: args.selfProfileHref,
+    });
   }
 
   return items;
@@ -387,6 +444,8 @@ export function PublicProfilePageSidebar({
   themeColor,
   supportHref,
   anchorTabs,
+  currentPage = "profile",
+  supportShortcutHref = null,
 }: Props) {
   const { address, isConnected } = useAccount();
   const { viewerIdentity, viewerState } = usePublicViewerIdentity({
@@ -411,12 +470,13 @@ export function PublicProfilePageSidebar({
     viewerState,
     viewerWorkspaceHref: viewerLinks.viewerWorkspaceHref,
   });
-  const showSupportShortcut = anchorTabs.some((tab) => tab.id === "support");
+  const hasAnchorTabs = anchorTabs.length > 0;
   const primaryItems = resolvePrimaryItems({
     username,
     viewerState,
     selfProfileHref: viewerLinks.ownProfileHref,
-    showSupportShortcut,
+    currentPage,
+    supportShortcutHref,
   });
 
   return (
@@ -469,22 +529,28 @@ export function PublicProfilePageSidebar({
         )}
       </nav>
 
-      {/* 区切り */}
-      <div className="my-1 mx-3 border-t border-[var(--line)]" />
+      {hasAnchorTabs ? (
+        <>
+          {/* 区切り */}
+          <div className="my-1 mx-3 border-t border-[var(--line)]" />
 
-      {/* ページ内アンカーナビ */}
-      <nav className="flex flex-col gap-0.5 flex-1">
-        {anchorTabs.map((tab) => (
-          <a
-            key={tab.id}
-            href={tab.anchor}
-            className="ws-nav-item"
-          >
-            {anchorIcon(tab.id)}
-            <span className="ws-nav-label">{tab.label}</span>
-          </a>
-        ))}
-      </nav>
+          {/* ページ内アンカーナビ */}
+          <nav className="flex flex-col gap-0.5 flex-1">
+            {anchorTabs.map((tab) => (
+              <a
+                key={tab.id}
+                href={tab.anchor}
+                className="ws-nav-item"
+              >
+                {anchorIcon(tab.id)}
+                <span className="ws-nav-label">{tab.label}</span>
+              </a>
+            ))}
+          </nav>
+        </>
+      ) : (
+        <div className="flex-1" />
+      )}
 
       {/* ページアクション */}
       {supportHref && !viewerState.isOwner ? (
@@ -539,6 +605,16 @@ export function PublicProfilePageSidebar({
             </button>
           )
         ) : null}
+
+        <div className="hidden border-t border-[var(--line)] pt-2 lg:block">
+          <div className="flex flex-col gap-2">
+            <AppHeaderMenusLoader
+              username={username}
+              menuPlacement="top-start"
+              triggerVariant="sidebar"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
