@@ -163,8 +163,6 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
           <aside className="profile-sidebar">
             <PublicProfilePageSidebar
               username={username}
-              displayName={displayName}
-              avatarUrl={creator.avatarUrl ?? null}
               creatorWalletAddress={creator.address ?? null}
               themeColor={creator.themeColor ?? null}
               supportHref={supportHref}

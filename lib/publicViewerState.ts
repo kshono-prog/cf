@@ -12,6 +12,8 @@ export type PublicViewerIdentity = {
   hasCreator: boolean;
   user: ViewerUserSummary | null;
   creatorUsername: string | null;
+  creatorDisplayName?: string | null;
+  creatorAvatarUrl?: string | null;
 };
 
 export type PublicViewerMode =
@@ -68,12 +70,28 @@ export function parsePublicViewerMeResponse(
       : isRecord(value.creator)
       ? toStringOrNull(value.creator.username)
       : null;
+  const creatorDisplayName =
+    value.creator === null
+      ? null
+      : isRecord(value.creator)
+      ? toStringOrNull(value.creator.displayName)
+      : null;
+  const creatorAvatarUrl =
+    value.creator === null
+      ? null
+      : isRecord(value.creator)
+      ? value.creator.avatarUrl === null
+        ? null
+        : toStringOrNull(value.creator.avatarUrl)
+      : null;
 
   return {
     hasUser,
     hasCreator,
     user,
     creatorUsername,
+    creatorDisplayName,
+    creatorAvatarUrl,
   };
 }
 

@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useAccount } from "wagmi";
 
 import { usePublicViewerIdentity } from "@/components/shared/usePublicViewerIdentity";
+import { resolveComposeViewerLinks } from "@/lib/composeViewerLinks";
+import type {
+  PublicViewerIdentity,
+  PublicViewerState,
+} from "@/lib/publicViewerState";
 
 type AnchorTab = {
   id: string;
@@ -14,8 +19,6 @@ type AnchorTab = {
 
 type Props = {
   username: string;
-  displayName: string;
-  avatarUrl: string | null;
   creatorWalletAddress: string | null;
   themeColor: string | null;
   supportHref: string | null;
@@ -230,6 +233,132 @@ type PrimaryNavItem =
   | { kind: "link"; key: PrimaryNavKey; label: string; href: string; active?: boolean }
   | { kind: "button"; key: PrimaryNavKey; label: string; onClick: () => void };
 
+type ViewerIdentityPresentation = {
+  label: string;
+  secondaryLabel: string | null;
+  avatarUrl: string | null;
+  avatarAlt: string;
+  initials: string;
+};
+
+type FooterAction =
+  | { kind: "link"; key: PrimaryNavKey; label: string; href: string }
+  | { kind: "button"; key: PrimaryNavKey; label: string; onClick: () => void };
+
+function shortAddress(value: string): string {
+  if (value.length <= 10) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
+function resolveViewerIdentityPresentation(args: {
+  viewerState: PublicViewerState;
+  viewerIdentity: PublicViewerIdentity | null;
+  address: string | null | undefined;
+}): ViewerIdentityPresentation {
+  if (!args.viewerState.isConnected) {
+    return {
+      label: "Creator Founding",
+      secondaryLabel: "公開ページを閲覧中",
+      avatarUrl: "/icon/icon-cf.png",
+      avatarAlt: "Creator Founding のアイコン",
+      initials: "C",
+    };
+  }
+
+  const viewerLabel =
+    args.viewerState.displayName?.trim() ||
+    args.viewerIdentity?.creatorDisplayName?.trim() ||
+    args.viewerIdentity?.user?.displayName?.trim() ||
+    args.viewerIdentity?.user?.username?.trim() ||
+    (args.address ? shortAddress(args.address) : null) ||
+    "接続中ユーザー";
+  const viewerUsername =
+    args.viewerState.creatorUsername ?? args.viewerState.userUsername;
+  const secondaryLabel = viewerUsername
+    ? `@${viewerUsername}`
+    : args.address
+    ? shortAddress(args.address)
+    : null;
+
+  return {
+    label: viewerLabel,
+    secondaryLabel,
+    avatarUrl: args.viewerIdentity?.creatorAvatarUrl ?? null,
+    avatarAlt: `${viewerLabel} のアイコン`,
+    initials: viewerLabel.slice(0, 1).toUpperCase() || "?",
+  };
+}
+
+function resolvePrimaryItems(args: {
+  username: string;
+  viewerState: PublicViewerState;
+  selfProfileHref: string;
+  showSupportShortcut: boolean;
+}): PrimaryNavItem[] {
+  if (args.viewerState.isOwner) {
+    return [
+      { kind: "link", key: "home", label: "ホーム", href: `/${args.username}/home` },
+      { kind: "link", key: "search", label: "検索", href: `/${args.username}/search` },
+      { kind: "link", key: "compose", label: "投稿", href: `/${args.username}/compose` },
+      {
+        kind: "link",
+        key: "notifications",
+        label: "通知",
+        href: `/${args.username}/notifications`,
+      },
+      { kind: "link", key: "profile", label: "プロフィール", href: `/${args.username}`, active: true },
+    ];
+  }
+
+  const items: PrimaryNavItem[] = [
+    { kind: "link", key: "discover", label: "発見", href: "/creators" },
+  ];
+
+  if (args.showSupportShortcut) {
+    items.push({ kind: "button", key: "support", label: "応援へ", onClick: scrollToSupport });
+  }
+
+  if (args.viewerState.mode === "registered" && args.viewerState.hasCreator) {
+    items.push({ kind: "link", key: "profile", label: "自分のページ", href: args.selfProfileHref });
+  }
+
+  return items;
+}
+
+function resolveFooterAction(args: {
+  viewerState: PublicViewerState;
+  viewerWorkspaceHref: string;
+}): FooterAction | null {
+  if (args.viewerState.mode === "unconnected") {
+    return {
+      kind: "button",
+      key: "wallet",
+      label: "ウォレット接続",
+      onClick: () => void openWalletConnect(),
+    };
+  }
+
+  if (args.viewerState.mode === "unregistered") {
+    return {
+      kind: "link",
+      key: "profile",
+      label: "ユーザー登録へ",
+      href: args.viewerWorkspaceHref,
+    };
+  }
+
+  if (args.viewerState.mode === "registered" && !args.viewerState.hasCreator) {
+    return {
+      kind: "link",
+      key: "profile",
+      label: "マイページを準備",
+      href: args.viewerWorkspaceHref,
+    };
+  }
+
+  return null;
+}
+
 function primaryNavIcon(key: PrimaryNavKey) {
   switch (key) {
     case "home":
@@ -254,66 +383,66 @@ function primaryNavIcon(key: PrimaryNavKey) {
 
 export function PublicProfilePageSidebar({
   username,
-  displayName,
-  avatarUrl,
   creatorWalletAddress,
   themeColor,
   supportHref,
   anchorTabs,
 }: Props) {
   const { address, isConnected } = useAccount();
-  const { viewerState } = usePublicViewerIdentity({
+  const { viewerIdentity, viewerState } = usePublicViewerIdentity({
     pageUsername: username,
     pageCreatorAddress: creatorWalletAddress,
     viewerAddress: address ?? null,
     isConnected,
   });
-  const initials = displayName.trim().slice(0, 1).toUpperCase() || "?";
-  const logoStyle = themeColor ? { background: themeColor } : undefined;
   const btnStyle = themeColor
     ? { backgroundColor: themeColor, boxShadow: `0 2px 8px ${themeColor}55` }
     : undefined;
-  const primaryItems: PrimaryNavItem[] = viewerState.isOwner
-    ? [
-        { kind: "link", key: "home", label: "ホーム", href: `/${username}/home` },
-        { kind: "link", key: "search", label: "検索", href: `/${username}/search` },
-        { kind: "link", key: "compose", label: "投稿", href: `/${username}/compose` },
-        {
-          kind: "link",
-          key: "notifications",
-          label: "通知",
-          href: `/${username}/notifications`,
-        },
-        { kind: "link", key: "profile", label: "プロフィール", href: `/${username}`, active: true },
-      ]
-    : viewerState.isConnected
-    ? [
-        { kind: "link", key: "discover", label: "発見", href: "/creators" },
-        { kind: "button", key: "support", label: "応援へ", onClick: scrollToSupport },
-        { kind: "button", key: "wallet", label: "ウォレット", onClick: () => void openWalletConnect() },
-      ]
-    : [
-        { kind: "link", key: "discover", label: "発見", href: "/creators" },
-        {
-          kind: "button",
-          key: "wallet",
-          label: "ウォレット接続",
-          onClick: () => void openWalletConnect(),
-        },
-      ];
+  const viewerLinks = resolveComposeViewerLinks({
+    pageUsername: username,
+    viewerState,
+  });
+  const viewerPresentation = resolveViewerIdentityPresentation({
+    viewerState,
+    viewerIdentity,
+    address,
+  });
+  const footerAction = resolveFooterAction({
+    viewerState,
+    viewerWorkspaceHref: viewerLinks.viewerWorkspaceHref,
+  });
+  const showSupportShortcut = anchorTabs.some((tab) => tab.id === "support");
+  const primaryItems = resolvePrimaryItems({
+    username,
+    viewerState,
+    selfProfileHref: viewerLinks.ownProfileHref,
+    showSupportShortcut,
+  });
 
   return (
     <div className="flex flex-col h-full py-3 px-2 gap-1">
 
-      {/* ロゴ */}
+      {/* パネル表示 */}
       <div className="flex items-center gap-2.5 px-3 py-2 mb-2">
-        <div className="ws-logo-mark" style={logoStyle}>
-          {initials}
-        </div>
-        <span className="ws-logo-text">{displayName}</span>
+        {viewerPresentation.avatarUrl ? (
+          <Image
+            src={viewerPresentation.avatarUrl}
+            alt={viewerPresentation.avatarAlt}
+            width={34}
+            height={34}
+            quality={95}
+            sizes="34px"
+            className="ws-logo-mark object-cover"
+          />
+        ) : (
+          <div className="ws-logo-mark">
+            {viewerPresentation.initials}
+          </div>
+        )}
+        <span className="ws-logo-text">{viewerPresentation.label}</span>
       </div>
 
-      {/* サイトナビ — ボトムメニューと同等の項目 */}
+      {/* 上部ナビ — 移動とページ内ショートカット */}
       <nav className="flex flex-col gap-0.5">
         {primaryItems.map((item) =>
           item.kind === "link" ? (
@@ -357,8 +486,8 @@ export function PublicProfilePageSidebar({
         ))}
       </nav>
 
-      {/* 応援ボタン */}
-      {supportHref ? (
+      {/* ページアクション */}
+      {supportHref && !viewerState.isOwner ? (
         <Link href={supportHref} className="ws-post-btn mt-2" style={btnStyle}>
           <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0" fill="currentColor" aria-hidden="true">
             <path d="M10 15 C8 13 3 10 3 7 C3 5 5 3.5 7 3.5 C8.2 3.5 9.2 4.2 10 5.2 C10.8 4.2 11.8 3.5 13 3.5 C15 3.5 17 5 17 7 C17 10 12 13 10 15 Z" />
@@ -367,31 +496,49 @@ export function PublicProfilePageSidebar({
         </Link>
       ) : null}
 
-      {/* フッタープロフィール */}
-      <div className="flex items-center justify-center lg:justify-start gap-2.5 px-2 py-2 rounded-full hover:bg-[var(--surface-subtle)] transition-colors cursor-default mt-1">
-        {avatarUrl ? (
-          <Image
-            src={avatarUrl}
-            alt={`${displayName} のアイコン`}
-            width={34}
-            height={34}
-            quality={95}
-            sizes="34px"
-            className="rounded-full object-cover flex-shrink-0"
-          />
-        ) : (
-          <div className="w-[34px] h-[34px] rounded-full bg-[var(--surface-muted)] flex items-center justify-center text-sm font-semibold flex-shrink-0">
-            {initials}
+      {/* 下部ステータス */}
+      <div className="mt-1 flex flex-col gap-2 rounded-[26px] border border-[var(--line)] bg-[var(--surface)] px-2 py-2">
+        <div className="flex items-center justify-center lg:justify-start gap-2.5 px-1 py-1 rounded-full cursor-default">
+          {viewerPresentation.avatarUrl ? (
+            <Image
+              src={viewerPresentation.avatarUrl}
+              alt={viewerPresentation.avatarAlt}
+              width={34}
+              height={34}
+              quality={95}
+              sizes="34px"
+              className="rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-[34px] h-[34px] rounded-full bg-[var(--surface-muted)] flex items-center justify-center text-sm font-semibold flex-shrink-0">
+              {viewerPresentation.initials}
+            </div>
+          )}
+          <div className="hidden lg:flex flex-col min-w-0">
+            <span className="block text-sm font-bold truncate leading-tight text-[var(--text)]">
+              {viewerPresentation.label}
+            </span>
+            <span className="block text-xs text-[var(--text-subtle)] truncate leading-tight">
+              {viewerState.mode === "loading"
+                ? "接続状態を確認中"
+                : viewerPresentation.secondaryLabel ?? "表示中"}
+            </span>
           </div>
-        )}
-        <div className="hidden lg:flex flex-col min-w-0">
-          <span className="block text-sm font-bold truncate leading-tight text-[var(--text)]">
-            {displayName}
-          </span>
-          <span className="block text-xs text-[var(--text-subtle)] truncate leading-tight">
-            @{username}
-          </span>
         </div>
+
+        {footerAction ? (
+          footerAction.kind === "link" ? (
+            <Link href={footerAction.href} className="ws-post-btn" style={btnStyle}>
+              {primaryNavIcon(footerAction.key)}
+              <span className="ws-post-label">{footerAction.label}</span>
+            </Link>
+          ) : (
+            <button type="button" className="ws-post-btn" style={btnStyle} onClick={footerAction.onClick}>
+              {primaryNavIcon(footerAction.key)}
+              <span className="ws-post-label">{footerAction.label}</span>
+            </button>
+          )
+        ) : null}
       </div>
     </div>
   );
