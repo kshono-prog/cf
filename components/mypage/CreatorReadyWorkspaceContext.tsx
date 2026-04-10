@@ -32,6 +32,7 @@ export type SetupAiDraftState = {
 
 export type CreatorReadyWorkspaceState = {
   meCreatorUsername: string;
+  qrcodeUrl: string | null;
   eventBaseUrl: string;
   localProjectId: string | null;
   address: Address | undefined;

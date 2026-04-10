@@ -11,9 +11,27 @@ import {
   saveMyPageUser as _saveMyPageUser,
   requestCreatorApply as _requestCreatorApply,
   updateMyPageCreatorProfile,
+  ensureCreatorProfileQrCode as _ensureCreatorProfileQrCode,
 } from "@/lib/mypage/api";
 
 export { updateMyPageCreatorProfile };
+
+export async function ensureCreatorProfileQrCode(args: {
+  address: Address;
+  force?: boolean;
+}): Promise<
+  | {
+      ok: true;
+      qrcodeUrl: string;
+      reused: boolean;
+      targetUrl: string;
+      username: string;
+      address: string;
+    }
+  | { ok: false; error: string; httpStatus: number }
+> {
+  return _ensureCreatorProfileQrCode(args);
+}
 
 export async function fetchMe(
   address: Address

@@ -14,6 +14,7 @@ import type { CreatorProfile } from "@/lib/profileTypes";
 import type { Currency } from "@/components/profile/profileClientHelpers";
 import { DeferredFeedSection } from "@/components/feed/DeferredFeedSection";
 import { CreatorManagementStrip } from "@/components/profile/CreatorManagementStrip";
+import { PublicExternalWalletTipQrCard } from "@/components/profile/PublicExternalWalletTipQrCard";
 import {
   type SupportProjectView,
   type SupportProfileView,
@@ -395,6 +396,13 @@ export default function ProfileClient({
   const profileScreen = (
     <div className="space-y-3">
       {introContent}
+      {creator.address ? (
+        <PublicExternalWalletTipQrCard
+          username={username}
+          displayName={displayName}
+          creatorAddress={creator.address}
+        />
+      ) : null}
       {standaloneCommunityCard}
 
       {viewerState.mode !== "unconnected" ? profileGuideCard : null}

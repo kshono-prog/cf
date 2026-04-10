@@ -12,6 +12,7 @@ import { PublicProfileDeferredSectionsServer } from "@/components/profile/Public
 import { PublicProfileIntroServer } from "@/components/profile/PublicProfileIntroServer";
 import { PublicProfileImpactNumbersInline } from "@/components/profile/PublicProfileImpactNumbers";
 import { PublicProfilePageSidebar } from "@/components/profile/PublicProfilePageSidebar";
+import { PublicProfileQrCard } from "@/components/profile/PublicProfileQrCard";
 import { loadPublicProfilePageReadModel } from "@/lib/publicProfilePageReadModel";
 import { isPrismaUnavailableError } from "@/lib/prismaRetry";
 import { deriveCreatorStage } from "@/lib/creatorStage";
@@ -233,6 +234,12 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
                 displayName={displayName}
                 supportProfileView={supportProfileView}
                 ecosystemRole={creator.ecosystemRole ?? null}
+              />
+
+              <PublicProfileQrCard
+                username={username}
+                displayName={displayName}
+                qrcodeUrl={creator.qrcode ?? null}
               />
 
               <div id="credibility-section" className="flex flex-col gap-4">

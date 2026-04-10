@@ -190,6 +190,8 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
       <CreatorPublicLinkSection
         username={workspace.meCreatorUsername}
         localProjectId={workspace.localProjectId}
+        walletAddress={workspace.address ?? null}
+        initialQrcodeUrl={workspace.qrcodeUrl}
       />
 
       <CreatorSettingsBasicInfoSection

@@ -8,6 +8,7 @@ export {
   saveMyPageUser,
   requestCreatorApply,
   updateMyPageCreatorProfile,
+  ensureCreatorProfileQrCode,
 } from "@/lib/mypage/profileApi";
 
 export type {

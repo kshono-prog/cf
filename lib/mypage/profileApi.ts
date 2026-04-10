@@ -258,3 +258,66 @@ export async function updateMyPageCreatorProfile(args: {
   };
 }
 
+export async function ensureCreatorProfileQrCode(args: {
+  address: Address;
+  force?: boolean;
+}): Promise<
+  | {
+      ok: true;
+      qrcodeUrl: string;
+      reused: boolean;
+      targetUrl: string;
+      username: string;
+      address: string;
+    }
+  | { ok: false; error: string; httpStatus: number }
+> {
+  const { res, json } = await requestJson({
+    url: "/api/creator/qrcode",
+    method: "POST",
+    body: {
+      address: args.address,
+      force: args.force === true,
+    },
+    authAddress: args.address,
+  });
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: toApiError(json, "CREATOR_QRCODE_ENSURE_FAILED"),
+      httpStatus: res.status,
+    };
+  }
+
+  if (!isRecord(json) || json.ok !== true) {
+    return {
+      ok: false,
+      error: "CREATOR_QRCODE_RESPONSE_INVALID",
+      httpStatus: res.status,
+    };
+  }
+
+  const qrcodeUrl = asStringOrNull(json.qrcodeUrl);
+  const targetUrl = asStringOrNull(json.targetUrl);
+  const username = asStringOrNull(json.username);
+  const address = asStringOrNull(json.address);
+  const reused = asBooleanOrNull(json.reused);
+
+  if (!qrcodeUrl || !targetUrl || !username || !address || reused === null) {
+    return {
+      ok: false,
+      error: "CREATOR_QRCODE_RESPONSE_INVALID",
+      httpStatus: res.status,
+    };
+  }
+
+  return {
+    ok: true,
+    qrcodeUrl,
+    reused,
+    targetUrl,
+    username,
+    address,
+  };
+}

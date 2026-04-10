@@ -488,6 +488,7 @@ export default function AccountPageClient({
 
   const workspaceState = {
     meCreatorUsername: creatorUsername,
+    qrcodeUrl: me?.creator?.qrcode ?? null,
     eventBaseUrl,
     localProjectId,
     address: effectiveAddress,
