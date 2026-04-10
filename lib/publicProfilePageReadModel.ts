@@ -16,6 +16,28 @@ export type PublicProfilePageReadModel = {
   credibility: Awaited<ReturnType<typeof getPublicCreatorActivityCredibility>>;
 };
 
+function normalizePublicProfilePageReadModel(
+  value: PublicProfilePageReadModel
+): PublicProfilePageReadModel {
+  return {
+    ...value,
+    pageData: {
+      ...value.pageData,
+      recentSupportActivities: Array.isArray(
+        value.pageData.recentSupportActivities
+      )
+        ? value.pageData.recentSupportActivities
+        : [],
+      supportActionThemes: Array.isArray(value.pageData.supportActionThemes)
+        ? value.pageData.supportActionThemes
+        : [],
+      recruitingProjects: Array.isArray(value.pageData.recruitingProjects)
+        ? value.pageData.recruitingProjects
+        : [],
+    },
+  };
+}
+
 type PublicProfileCredibilitySeed = {
   goalAchievedCount: number;
   totalContributorCount: number;
@@ -146,7 +168,7 @@ async function loadPublicProfilePageReadModelUncached(
 
 const getPublicProfilePageReadModelCached = unstable_cache(
   async (username: string) => loadPublicProfilePageReadModelUncached(username),
-  ["public-profile-page-read-model"],
+  ["public-profile-page-read-model-v2"],
   { revalidate: 120 }
 );
 
@@ -166,14 +188,15 @@ export async function loadPublicProfilePageReadModel(
 
   try {
     const result = await getPublicProfilePageReadModelCached(username);
-    staleMap.set(username, result);
-    hotMap.set(username, { value: result, cachedAt: Date.now() });
-    return result;
+    const normalized = normalizePublicProfilePageReadModel(result);
+    staleMap.set(username, normalized);
+    hotMap.set(username, { value: normalized, cachedAt: Date.now() });
+    return normalized;
   } catch (error) {
     if (isPrismaUnavailableError(error)) {
       const stale = staleMap.get(username);
       if (stale) {
-        return stale;
+        return normalizePublicProfilePageReadModel(stale);
       }
     }
 

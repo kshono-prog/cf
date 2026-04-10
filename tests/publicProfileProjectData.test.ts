@@ -200,3 +200,92 @@ test("derivePublicProfileProjectData returns draft mode when no active projects 
   assert.equal(result.publicSummary, null);
   assert.deepEqual(result.recruitingProjects, []);
 });
+
+test("derivePublicProfileProjectData exposes support action projects only for recruiting projects", () => {
+  const projects: PublicProfileProjectRow[] = [
+    {
+      id: 30n,
+      creatorProfileId: 1n,
+      title: "Open JPYC",
+      description: "open",
+      currency: "JPYC",
+      status: "OPEN",
+      createdAt: new Date("2026-03-20T00:00:00.000Z"),
+      goal: {
+        targetAmount: 200,
+        targetAmountJpyc: 200,
+        achievedAt: null,
+        deadline: null,
+      },
+    },
+    {
+      id: 31n,
+      creatorProfileId: 1n,
+      title: "Achieved USDC",
+      description: "done",
+      currency: "USDC",
+      status: "OPEN",
+      createdAt: new Date("2026-03-19T00:00:00.000Z"),
+      goal: {
+        targetAmount: 40,
+        targetAmountJpyc: 40,
+        achievedAt: new Date("2026-03-20T00:00:00.000Z"),
+        deadline: null,
+      },
+    },
+  ];
+
+  const result = derivePublicProfileProjectData({
+    projects,
+    totals: createTotals([["30", { JPYC: 10, USDC: 0 }]]),
+    purposes: [
+      {
+        id: 701n,
+        projectId: 30n,
+        label: "制作準備",
+        description: "制作を進める準備",
+        orderIndex: 1,
+      },
+      {
+        id: 702n,
+        projectId: 30n,
+        label: "発信強化",
+        description: null,
+        orderIndex: 2,
+      },
+      {
+        id: 703n,
+        projectId: 31n,
+        label: "achieved",
+        description: "not shown",
+        orderIndex: 1,
+      },
+    ],
+    activeProjectIdJpyc: "30",
+    activeProjectIdUsdc: null,
+    creator: {
+      displayName: "Kazu",
+      profile: "creator profile",
+    },
+  });
+
+  assert.deepEqual(result.supportActionProjects, [
+    {
+      projectId: "30",
+      title: "Open JPYC",
+      currency: "JPYC",
+      purposes: [
+        {
+          id: "701",
+          label: "制作準備",
+          description: "制作を進める準備",
+        },
+        {
+          id: "702",
+          label: "発信強化",
+          description: null,
+        },
+      ],
+    },
+  ]);
+});

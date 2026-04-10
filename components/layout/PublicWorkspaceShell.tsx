@@ -35,7 +35,7 @@ export function PublicWorkspaceShell({
 }: Props) {
   return (
     <PublicPageShell username={username} fullBleed hideDesktopHeader>
-      <div className="workspace-layout">
+      <div className="workspace-layout workspace-layout-balanced">
         <aside className="profile-sidebar print:hidden">
           <PublicProfilePageSidebar
             username={username}

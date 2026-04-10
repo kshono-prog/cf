@@ -1,10 +1,20 @@
 import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 
-import { getPublicAiManagerProfileByCreatorProfileId } from "@/lib/aiManager/publicProfile";
+import {
+  getPublicAiManagerProfileByCreatorProfileId,
+  getPublicAiManagerRecentSupportActivitiesByCreatorProfileId,
+} from "@/lib/aiManager/publicProfile";
+import {
+  buildPublicSupportActionThemes,
+  type PublicSupportActionTheme,
+} from "@/lib/aiManager/supportActionThemes";
 import { getCreatorProfileByUsername } from "@/lib/creatorProfile";
 import { isPrismaUnavailableError } from "@/lib/prismaRetry";
-import type { SerializedPublicAiManagerProfile } from "@/lib/serializers/aiManager";
+import type {
+  SerializedPublicAiManagerProfile,
+  SerializedPublicAiManagerSupportActivity,
+} from "@/lib/serializers/aiManager";
 import type { PublicSummaryLite } from "@/lib/publicSummary";
 import type { SupportProfileView, SupportProjectView } from "@/lib/supportProfileView";
 import { loadPublicProfileProjectData } from "@/lib/publicProfileProjectData";
@@ -16,9 +26,26 @@ type PublicPageData = {
   projectIdsByCurrency: { JPYC: string | null; USDC: string | null };
   publicSummary: PublicSummaryLite | null;
   publicAiManager: SerializedPublicAiManagerProfile | null;
+  recentSupportActivities: SerializedPublicAiManagerSupportActivity[];
+  supportActionThemes: PublicSupportActionTheme[];
   supportProfileView: SupportProfileView;
   recruitingProjects: SupportProjectView[];
 };
+
+function normalizePublicPageData(result: PublicPageData): PublicPageData {
+  return {
+    ...result,
+    recentSupportActivities: Array.isArray(result.recentSupportActivities)
+      ? result.recentSupportActivities
+      : [],
+    supportActionThemes: Array.isArray(result.supportActionThemes)
+      ? result.supportActionThemes
+      : [],
+    recruitingProjects: Array.isArray(result.recruitingProjects)
+      ? result.recruitingProjects
+      : [],
+  };
+}
 
 const globalForPublicPageData = globalThis as unknown as {
   publicPageDataStaleByKey?: Map<string, PublicPageData>;
@@ -50,17 +77,28 @@ async function loadPublicPageDataUncached(
     }),
     getPublicAiManagerProfileByCreatorProfileId(creatorProfileId),
   ]);
+  const recentSupportActivities = publicAiManager
+    ? await getPublicAiManagerRecentSupportActivitiesByCreatorProfileId(
+        creatorProfileId
+      )
+    : [];
+  const supportActionThemes = buildPublicSupportActionThemes({
+    username,
+    projects: projectData.supportActionProjects,
+  });
 
-  return {
+  return normalizePublicPageData({
     creator,
     profile,
     projectId: projectData.projectId,
     projectIdsByCurrency: projectData.projectIdsByCurrency,
     publicSummary: includePublicSummary ? projectData.publicSummary : null,
     publicAiManager,
+    recentSupportActivities,
+    supportActionThemes,
     recruitingProjects: projectData.recruitingProjects,
     supportProfileView: projectData.supportProfileView,
-  };
+  });
 }
 
 const getPublicPageDataCached = unstable_cache(
@@ -85,7 +123,7 @@ const getPublicPageDataCached = unstable_cache(
       throw error;
     }
   },
-  ["public-page-data"],
+  ["public-page-data-v2"],
   { revalidate: 120 }
 );
 
@@ -96,5 +134,5 @@ export async function loadPublicPageData(
   const includePublicSummary = options?.includePublicSummary === true;
   const result = await getPublicPageDataCached(username, includePublicSummary);
   if (!result) notFound();
-  return result;
+  return normalizePublicPageData(result);
 }

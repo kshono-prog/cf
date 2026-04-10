@@ -10,11 +10,11 @@ import {
 test("mapFollowActionError returns friendly follow messages", () => {
   assert.equal(
     mapFollowActionError("ADDRESS_REQUIRED"),
-    "フォローするにはウォレット接続が必要です。"
+    "続けるにはウォレット接続が必要です。"
   );
   assert.equal(
     mapFollowActionError("VIEWER_NOT_REGISTERED"),
-    "フォローするには先にユーザー登録をしてください。"
+    "続けるには先にユーザー登録をしてください。"
   );
   assert.equal(
     mapFollowActionError("CANNOT_FOLLOW_SELF"),

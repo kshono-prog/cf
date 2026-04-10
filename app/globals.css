@@ -1867,6 +1867,12 @@ html[data-theme="dark"] .hover\:bg-slate-100:hover {
   margin-inline: auto;
 }
 
+@media (min-width: 1024px) {
+  .workspace-layout-balanced {
+    max-width: 1480px;
+  }
+}
+
 /* 左サイドバー */
 .workspace-sidebar {
   width: 72px;
@@ -1931,6 +1937,12 @@ html[data-theme="dark"] .hover\:bg-slate-100:hover {
   }
 }
 
+@media (min-width: 1024px) {
+  .workspace-layout-balanced .workspace-right {
+    width: 350px;
+  }
+}
+
 /* 公開プロフィールページ専用サイドバー
    workspace-sidebar と同スタイルだが、固定ヘッダー (60px) 分だけ top をオフセット */
 .profile-sidebar {
@@ -1965,6 +1977,12 @@ html[data-theme="dark"] .hover\:bg-slate-100:hover {
     top: 0;
     height: 100vh;
     width: 350px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .workspace-layout-balanced .profile-sidebar {
+    width: 320px;
   }
 }
 

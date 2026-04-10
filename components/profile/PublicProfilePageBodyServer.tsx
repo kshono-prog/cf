@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { AiManagerSupportActionCard } from "@/components/profile/AiManagerSupportActionCard";
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
 import { CreatorActivityCredibilityBadge } from "@/components/profile/CreatorActivityCredibilityBadge";
 import { PublicTrustProfileSection } from "@/components/profile/PublicTrustProfileSection";
@@ -112,8 +113,10 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
         projectId,
         projectIdsByCurrency,
         publicAiManager,
+        recentSupportActivities = [],
+        supportActionThemes = [],
         supportProfileView,
-        recruitingProjects,
+        recruitingProjects = [],
       },
       initialFeed,
       credibility,
@@ -157,7 +160,7 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
         />
 
         {/* X 風 3 カラムレイアウト */}
-        <div className="workspace-layout">
+        <div className="workspace-layout workspace-layout-balanced">
 
           {/* 左サイドバー — profile-sidebar CSS クラスで md+ 表示 */}
           <aside className="profile-sidebar">
@@ -206,11 +209,24 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
           <aside className="workspace-right">
             <div className="flex flex-col gap-4">
               {publicAiManager ? (
-                <PublicProfileAiManagerCard
-                  creatorUsername={username}
-                  creatorDisplayName={displayName}
-                  aiManager={publicAiManager}
-                />
+                <>
+                  <PublicProfileAiManagerCard
+                    creatorUsername={username}
+                    creatorDisplayName={displayName}
+                    aiManager={publicAiManager}
+                  />
+                  <AiManagerSupportActionCard
+                    creatorUsername={username}
+                    aiManagerDisplayName={publicAiManager.displayName}
+                    themes={supportActionThemes}
+                    recentSupportActivities={recentSupportActivities}
+                    fallbackProjectId={
+                      activeSupportProject?.projectId ??
+                      recruitingProjects[0]?.projectId ??
+                      null
+                    }
+                  />
+                </>
               ) : null}
 
               <PublicProfileCreatorVoiceCard

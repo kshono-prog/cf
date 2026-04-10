@@ -28,6 +28,8 @@ test("parsePublicViewerMeResponse accepts valid payloads", () => {
       displayName: "Alice",
     },
     creatorUsername: "alice-creator",
+    creatorDisplayName: null,
+    creatorAvatarUrl: null,
   });
 });
 
@@ -48,6 +50,8 @@ test("parsePublicViewerMeResponse rejects invalid payloads", () => {
     hasCreator: false,
     user: null,
     creatorUsername: null,
+    creatorDisplayName: null,
+    creatorAvatarUrl: null,
   });
 });
 

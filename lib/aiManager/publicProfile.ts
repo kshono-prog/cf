@@ -2,7 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
 import {
   serializePublicAiManagerProfile,
+  serializePublicAiManagerSupportActivities,
   type SerializedPublicAiManagerProfile,
+  type SerializedPublicAiManagerSupportActivity,
 } from "@/lib/serializers/aiManager";
 
 export async function getPublicAiManagerProfileByCreatorProfileId(
@@ -72,6 +74,53 @@ export async function getPublicAiManagerProfileByCreatorAndSlug(args: {
   } catch (error) {
     if (isPrismaUnavailableError(error)) {
       return null;
+    }
+
+    throw error;
+  }
+}
+
+export async function getPublicAiManagerRecentSupportActivitiesByCreatorProfileId(
+  creatorProfileId: bigint
+): Promise<SerializedPublicAiManagerSupportActivity[]> {
+  try {
+    const account = await withPrismaRetry(() =>
+      prisma.aiManagerAccount.findUnique({
+        where: { creatorProfileId },
+        select: {
+          status: true,
+          publicVisibility: true,
+          usageRecords: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 6,
+            select: {
+              billingState: true,
+              createdAt: true,
+              agentTask: {
+                select: {
+                  taskType: true,
+                },
+              },
+            },
+          },
+        },
+      })
+    );
+
+    if (
+      !account ||
+      account.status !== "ACTIVE" ||
+      account.publicVisibility !== "PUBLIC_BADGED"
+    ) {
+      return [];
+    }
+
+    return serializePublicAiManagerSupportActivities(account.usageRecords);
+  } catch (error) {
+    if (isPrismaUnavailableError(error)) {
+      return [];
     }
 
     throw error;

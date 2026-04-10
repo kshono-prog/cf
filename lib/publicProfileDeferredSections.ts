@@ -39,12 +39,12 @@ export async function loadPublicProfileDeferredSections(args: {
   const creatorProfileId = BigInt(args.creatorProfileId);
 
   try {
-    const [enhancements, impacts, reportSummary, nextGoalReveal] = await Promise.all([
-      getPublicProfilePageEnhancements(creatorProfileId),
-      getAllGoalAchievementImpacts(creatorProfileId),
-      getLatestSupporterResultReportSummary(creatorProfileId),
-      getPublicNextGoalReveal(args.activeSupportProject),
-    ]);
+    const enhancements = await getPublicProfilePageEnhancements(creatorProfileId);
+    const impacts = await getAllGoalAchievementImpacts(creatorProfileId);
+    const reportSummary = await getLatestSupporterResultReportSummary(
+      creatorProfileId
+    );
+    const nextGoalReveal = await getPublicNextGoalReveal(args.activeSupportProject);
 
     return {
       enhancements,

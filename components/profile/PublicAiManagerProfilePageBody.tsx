@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { AiManagerSupportActionCard } from "@/components/profile/AiManagerSupportActionCard";
 import { PublicProfileImpactNumbersInline } from "@/components/profile/PublicProfileImpactNumbers";
+import type { PublicSupportActionTheme } from "@/lib/aiManager/supportActionThemes";
 import type { CreatorActivityCredibility } from "@/lib/creatorActivityCredibility";
 import type {
   SerializedPublicAiManagerProfile,
@@ -21,6 +23,7 @@ type Props = {
   recruitingProjects: SupportProjectView[];
   credibility: CreatorActivityCredibility;
   recentSupportActivities: SerializedPublicAiManagerSupportActivity[];
+  supportActionThemes: PublicSupportActionTheme[];
 };
 
 const ARCHETYPE_LABELS: Record<
@@ -99,13 +102,6 @@ function AiManagerAvatar(props: {
   );
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("ja-JP", {
-    month: "numeric",
-    day: "numeric",
-  });
-}
-
 export function PublicAiManagerProfilePageBody({
   creatorUsername,
   creatorDisplayName,
@@ -115,12 +111,22 @@ export function PublicAiManagerProfilePageBody({
   recruitingProjects,
   credibility,
   recentSupportActivities,
+  supportActionThemes,
 }: Props) {
   const intro =
     aiManager.intro?.trim() ||
     `${creatorDisplayName} の活動案内、進捗共有、応援導線づくりを支える公開 AI マネージャーです。`;
+  const safeRecruitingProjects = Array.isArray(recruitingProjects)
+    ? recruitingProjects
+    : [];
+  const safeRecentSupportActivities = Array.isArray(recentSupportActivities)
+    ? recentSupportActivities
+    : [];
+  const safeSupportActionThemes = Array.isArray(supportActionThemes)
+    ? supportActionThemes
+    : [];
 
-  const specialties = aiManager.specialties
+  const specialties = (Array.isArray(aiManager.specialties) ? aiManager.specialties : [])
     .map((item) => item.trim())
     .filter((item) => item.length > 0)
     .slice(0, 6);
@@ -235,53 +241,16 @@ export function PublicAiManagerProfilePageBody({
         </div>
       </section>
 
-      <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-[var(--text)]">
-              最近の支援内容
-            </div>
-            <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              この AIマネージャーが最近 creator 活動のために扱った支援内容です。
-            </p>
-          </div>
-          <Link
-            href={`/${encodeURIComponent(creatorUsername)}#support-projects`}
-            className="btn-secondary"
-          >
-            いま応援できる project を見る
-          </Link>
-        </div>
-
-        {recentSupportActivities.length > 0 ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {recentSupportActivities.map((activity) => (
-              <div
-                key={`${activity.taskType}-${activity.createdAt}`}
-                className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-[var(--text)]">
-                    {activity.label}
-                  </div>
-                  <div className="text-xs font-medium text-[var(--text-subtle)]">
-                    {formatDate(activity.createdAt)}
-                  </div>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-[var(--text-subtle)]">
-                  {activity.helper ??
-                    "creator の活動を前に進めるための支援タスクを最近扱っています。"}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm leading-6 text-[var(--text-subtle)]">
-            直近の公開向け支援内容はまだ少ないですが、この AIマネージャーは creator
-            の活動案内と応援導線づくりを継続して担当しています。
-          </p>
-        )}
-      </section>
+      <AiManagerSupportActionCard
+        creatorUsername={creatorUsername}
+        aiManagerDisplayName={aiManager.displayName}
+        themes={safeSupportActionThemes}
+        recentSupportActivities={safeRecentSupportActivities}
+        fallbackProjectId={
+          activeSupportProject?.projectId ?? safeRecruitingProjects[0]?.projectId ?? null
+        }
+        variant="feature"
+      />
 
       <section className="grid gap-4 lg:grid-cols-[1.2fr,0.8fr]">
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
@@ -346,54 +315,6 @@ export function PublicAiManagerProfilePageBody({
             </p>
           </div>
         </div>
-      </section>
-
-      <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-[var(--text)]">
-              最近の支援内容
-            </div>
-            <p className="mt-1 text-sm leading-6 text-[var(--text-subtle)]">
-              この AIマネージャーが最近 creator 活動のために扱った支援内容です。
-            </p>
-          </div>
-          <Link
-            href={`/${encodeURIComponent(creatorUsername)}#support-projects`}
-            className="btn-secondary"
-          >
-            いま応援できる project を見る
-          </Link>
-        </div>
-
-        {recentSupportActivities.length > 0 ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {recentSupportActivities.map((activity) => (
-              <div
-                key={`${activity.taskType}-${activity.createdAt}`}
-                className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-[var(--text)]">
-                    {activity.label}
-                  </div>
-                  <div className="text-xs font-medium text-[var(--text-subtle)]">
-                    {formatDate(activity.createdAt)}
-                  </div>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-[var(--text-subtle)]">
-                  {activity.helper ??
-                    "creator の活動を前に進めるための支援タスクを最近扱っています。"}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm leading-6 text-[var(--text-subtle)]">
-            直近の公開向け支援内容はまだ少ないですが、この AIマネージャーは creator
-            の活動案内と応援導線づくりを継続して担当しています。
-          </p>
-        )}
       </section>
 
       {activeSupportProject ? (

@@ -104,6 +104,7 @@ export default async function AiManagerPublicProfilePage({
         recruitingProjects={pageData.recruitingProjects}
         credibility={pageData.credibility}
         recentSupportActivities={pageData.recentSupportActivities}
+        supportActionThemes={pageData.supportActionThemes}
       />
     );
   } catch (error) {

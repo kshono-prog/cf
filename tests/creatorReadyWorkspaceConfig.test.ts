@@ -6,16 +6,19 @@ import {
   getCreatorReadyWorkspaceConfig,
 } from "../components/mypage/creatorReadyWorkspaceConfig";
 
-test("creatorReady workspace config has 2 modes in correct order", () => {
+test("creatorReady workspace config has 5 modes in correct order", () => {
   assert.deepEqual(
     CREATOR_READY_WORKSPACE_VIEWS.map((view) => view.id),
-    ["daily-work", "settings"]
+    ["daily-work", "project", "ai-office", "fans", "manage"]
   );
 });
 
 test("creatorReady workspace config lookup returns matching view", () => {
-  assert.equal(getCreatorReadyWorkspaceConfig("daily-work")?.label, "ホーム");
-  assert.equal(getCreatorReadyWorkspaceConfig("settings")?.label, "設定");
+  assert.equal(getCreatorReadyWorkspaceConfig("daily-work")?.label, "今日");
+  assert.equal(getCreatorReadyWorkspaceConfig("project")?.label, "プロジェクト");
+  assert.equal(getCreatorReadyWorkspaceConfig("ai-office")?.label, "AI");
+  assert.equal(getCreatorReadyWorkspaceConfig("fans")?.label, "ファン");
+  assert.equal(getCreatorReadyWorkspaceConfig("manage")?.label, "管理");
 });
 
 test("creatorReady workspace config returns undefined for unknown view", () => {

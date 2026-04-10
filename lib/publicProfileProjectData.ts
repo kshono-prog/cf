@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { decimalToAmountByCurrency } from "@/lib/currencyUtils";
+import type { PublicSupportActionProjectSource } from "@/lib/aiManager/supportActionThemes";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import type { PublicSummaryLite } from "@/lib/publicSummary";
@@ -18,6 +19,7 @@ export type PublicProfileProjectData = {
   publicSummary: PublicSummaryLite | null;
   supportProfileView: SupportProfileView;
   recruitingProjects: SupportProjectView[];
+  supportActionProjects: PublicSupportActionProjectSource[];
 };
 
 export type PublicProfileProjectRow = {
@@ -56,6 +58,14 @@ type ContributionGroupRow = {
   projectId: bigint;
   currency: "JPYC" | "USDC";
   _sum: { amountDecimal: Prisma.Decimal | null };
+};
+
+type PurposeRow = {
+  id: bigint;
+  projectId: bigint;
+  label: string;
+  description: string | null;
+  orderIndex: number;
 };
 
 export type PublicProfileContributionTotals = Map<
@@ -173,6 +183,19 @@ function buildProjectView(
   });
 }
 
+function buildPurposeMap(rows: PurposeRow[]): Map<string, PurposeRow[]> {
+  const byProjectId = new Map<string, PurposeRow[]>();
+
+  for (const row of rows) {
+    const key = row.projectId.toString();
+    const current = byProjectId.get(key) ?? [];
+    current.push(row);
+    byProjectId.set(key, current);
+  }
+
+  return byProjectId;
+}
+
 function buildSupportProfile(args: {
   creator: Pick<CreatorProfile, "displayName" | "profile">;
   primaryProjectId: string | null;
@@ -248,6 +271,7 @@ function buildPublicSummary(project: SupportProjectView | null): PublicSummaryLi
 export function derivePublicProfileProjectData(args: {
   projects: PublicProfileProjectRow[];
   totals: PublicProfileContributionTotals;
+  purposes?: PurposeRow[];
   activeProjectIdJpyc: string | null;
   activeProjectIdUsdc: string | null;
   creator: Pick<CreatorProfile, "displayName" | "profile">;
@@ -287,6 +311,22 @@ export function derivePublicProfileProjectData(args: {
         project.goal?.achievedAt == null
     )
     .map((project) => buildProjectView(project, args.totals));
+  const recruitingProjectIds = new Set(
+    recruitingProjects.map((project) => project.projectId)
+  );
+  const purposeMap = buildPurposeMap(args.purposes ?? []);
+  const supportActionProjects = args.projects
+    .filter((project) => recruitingProjectIds.has(project.id.toString()))
+    .map((project) => ({
+      projectId: project.id.toString(),
+      title: project.title,
+      currency: project.currency,
+      purposes: (purposeMap.get(project.id.toString()) ?? []).map((purpose) => ({
+        id: purpose.id.toString(),
+        label: purpose.label,
+        description: purpose.description,
+      })),
+    }));
 
   return {
     projectId,
@@ -298,6 +338,7 @@ export function derivePublicProfileProjectData(args: {
       projectsByCurrency,
     }),
     recruitingProjects,
+    supportActionProjects,
   };
 }
 
@@ -307,7 +348,7 @@ export async function loadPublicProfileProjectData(args: {
   activeProjectIdUsdc: string | null;
   creator: Pick<CreatorProfile, "displayName" | "profile">;
 }): Promise<PublicProfileProjectData> {
-  const [rawProjects, totals] = await Promise.all([
+  const [rawProjects, totals, purposes] = await Promise.all([
     withPrismaRetry(() =>
       prisma.project.findMany({
         where: {
@@ -335,6 +376,24 @@ export async function loadPublicProfileProjectData(args: {
       })
     ),
     loadContributionTotalsByCreatorProfileId(args.creatorProfileId),
+    withPrismaRetry(() =>
+      prisma.purpose.findMany({
+        where: {
+          project: {
+            creatorProfileId: args.creatorProfileId,
+            currency: { in: ["JPYC", "USDC"] },
+          },
+        },
+        select: {
+          id: true,
+          projectId: true,
+          label: true,
+          description: true,
+          orderIndex: true,
+        },
+        orderBy: [{ projectId: "asc" }, { orderIndex: "asc" }, { id: "asc" }],
+      })
+    ),
   ]);
 
   const projects = normalizeProjectRows(rawProjects);
@@ -342,6 +401,7 @@ export async function loadPublicProfileProjectData(args: {
   return derivePublicProfileProjectData({
     projects,
     totals,
+    purposes,
     activeProjectIdJpyc: args.activeProjectIdJpyc,
     activeProjectIdUsdc: args.activeProjectIdUsdc,
     creator: args.creator,
