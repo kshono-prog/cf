@@ -16,6 +16,7 @@ import {
 } from "@/lib/social";
 import { recordFirstTipReceivedIfNeeded } from "@/lib/growth/firstTip";
 import { awardExpFireAndForget } from "@/lib/rpg/awardExpHelper";
+import { recalcAndPersistRewardTierProduction } from "@/lib/rewardTierService";
 import { getRpcUrl as getRpcUrlFromLib } from "../_lib/chain";
 import {
   createPublicClient,
@@ -64,6 +65,7 @@ type ContributionPostBody = {
   amount?: unknown; // human string
   postId?: unknown; // UUID string|null|undefined
   message?: unknown; // optional supporter message
+  paymentIntentId?: unknown; // optional, links to reward-tier payment request
 };
 
 function toChainId(v: unknown): number | null {
@@ -138,6 +140,7 @@ function parseBody(raw: unknown):
       amountHuman: string;
       postIdStr: string | null | undefined;
       message: string | null;
+      paymentIntentId: string | null;
     }
   | { ok: false; error: string } {
   if (!isRecord(raw)) return { ok: false, error: "INVALID_JSON" };
@@ -208,6 +211,19 @@ function parseBody(raw: unknown):
     message = trimmed.length > 0 ? trimmed.slice(0, 500) : null;
   }
 
+  let paymentIntentId: string | null = null;
+  if (typeof b.paymentIntentId === "string") {
+    const trimmed = b.paymentIntentId.trim();
+    if (trimmed.length > 0) {
+      if (!isUuidString(trimmed)) {
+        return { ok: false, error: "PAYMENT_INTENT_ID_INVALID" };
+      }
+      paymentIntentId = trimmed;
+    }
+  } else if (b.paymentIntentId !== null && typeof b.paymentIntentId !== "undefined") {
+    return { ok: false, error: "PAYMENT_INTENT_ID_INVALID" };
+  }
+
   return {
     ok: true,
     projectIdStr,
@@ -221,6 +237,7 @@ function parseBody(raw: unknown):
     amountHuman,
     postIdStr,
     message,
+    paymentIntentId,
   };
 }
 
@@ -587,8 +604,53 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
       }
 
-      return { row, postTipLinked };
+      let paymentIntentLinked = false;
+      let paymentIntentTierId: bigint | null = null;
+      if (parsed.paymentIntentId) {
+        const intent = await tx.paymentIntent.findUnique({
+          where: { id: parsed.paymentIntentId },
+          select: {
+            id: true,
+            projectId: true,
+            rewardTierId: true,
+            contributionId: true,
+            status: true,
+          },
+        });
+        if (intent && intent.projectId === projectId) {
+          // 既に別の contribution が紐づいている場合は上書きしない
+          if (!intent.contributionId || intent.contributionId === row.id) {
+            await tx.paymentIntent.update({
+              where: { id: intent.id },
+              data: {
+                contributionId: row.id,
+                status:
+                  row.status === "CONFIRMED"
+                    ? "PAID_CONFIRMED"
+                    : "PAID_PENDING",
+                updatedAt: now,
+              },
+            });
+            paymentIntentLinked = true;
+            paymentIntentTierId = intent.rewardTierId;
+          }
+        }
+      }
+
+      return { row, postTipLinked, paymentIntentLinked, paymentIntentTierId };
     });
+
+    // RewardTier readiness 再計算 (contribution が CONFIRMED の場合のみ意味がある)
+    if (result.paymentIntentTierId && result.row.status === "CONFIRMED") {
+      try {
+        await recalcAndPersistRewardTierProduction({
+          db: prisma,
+          tierId: result.paymentIntentTierId,
+        });
+      } catch (e) {
+        console.warn("REWARD_TIER_READINESS_RECALC_FAILED", e);
+      }
+    }
 
     if (!wasConfirmedBefore && result.row.status === "CONFIRMED") {
       try {
@@ -641,6 +703,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         ? {
             postTipLinked: result.postTipLinked,
             postId,
+          }
+        : {}),
+      ...(parsed.paymentIntentId
+        ? {
+            paymentIntentLinked: result.paymentIntentLinked,
+            paymentIntentId: parsed.paymentIntentId,
           }
         : {}),
     });

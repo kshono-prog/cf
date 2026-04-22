@@ -29,7 +29,7 @@ export function CreatorProfileEditBasicInfoSection() {
           基本情報
         </div>
         <p className="mt-1 text-sm text-[var(--text-subtle)]">
-          表示名、ユーザー名、紹介文、アイコン、背景トーンを整えます。
+          表示名、ユーザー名、紹介文、アイコン、アクセントカラーを整えます。
         </p>
       </div>
 
@@ -83,7 +83,7 @@ export function CreatorProfileEditBasicInfoSection() {
 
       <div>
         <label className="mb-2 block text-sm font-medium text-[var(--text)]">
-          背景トーン
+          アクセントカラー
         </label>
         <div className="flex items-center gap-2">
           <input

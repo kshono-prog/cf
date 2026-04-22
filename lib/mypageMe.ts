@@ -6,6 +6,12 @@ import { withPrismaRetry } from "@/lib/prismaRetry";
 import { prisma } from "@/lib/prisma";
 import type { MeStatus } from "@/lib/mypage/types";
 import {
+  PUBLIC_PAGE_CONFIG_SELECT_BASE,
+  PUBLIC_PAGE_CONFIG_SELECT_WITH_INTRO_SECTION_ORDER,
+  hasPublicPageIntroSectionOrderColumn,
+  normalizePublicPageConfigRow,
+} from "@/lib/publicPageConfigSchema";
+import {
   resolveCreatorProjectSelection,
   serializeCreatorProfile,
 } from "@/lib/serializers/creator";
@@ -35,6 +41,8 @@ export async function getMeStatusByAddress(
 const getMeStatusByWalletAddressCached = cache(
   unstable_cache(
     async (walletAddress: string): Promise<MeStatus> => {
+      const canReadIntroSectionOrder =
+        await hasPublicPageIntroSectionOrderColumn();
       const profile = await withPrismaRetry(() =>
         prisma.creatorProfile.findUnique({
           where: { walletAddress },
@@ -48,10 +56,16 @@ const getMeStatusByWalletAddressCached = cache(
             externalUrl: true,
             themeColor: true,
             creatorType: true,
+            ecosystemRole: true,
             walletAddress: true,
             activeProjectIdJpyc: true,
             activeProjectIdUsdc: true,
             status: true,
+            publicPageConfig: {
+              select: canReadIntroSectionOrder
+                ? PUBLIC_PAGE_CONFIG_SELECT_WITH_INTRO_SECTION_ORDER
+                : PUBLIC_PAGE_CONFIG_SELECT_BASE,
+            },
             socialLinks: {
               select: { type: true, url: true },
               orderBy: { createdAt: "asc" },
@@ -67,6 +81,7 @@ const getMeStatusByWalletAddressCached = cache(
       if (!profile) return emptyMeStatus();
 
       const hasCreator = profile.status === "PUBLISHED";
+      const publicPageConfig = normalizePublicPageConfigRow(profile.publicPageConfig);
       const creator = serializeCreatorProfile({
         username: profile.username,
         displayName: profile.displayName,
@@ -76,9 +91,11 @@ const getMeStatusByWalletAddressCached = cache(
         externalUrl: profile.externalUrl,
         themeColor: profile.themeColor,
         creatorType: profile.creatorType,
+        ecosystemRole: profile.ecosystemRole,
         walletAddress: profile.walletAddress,
         socialLinks: profile.socialLinks,
         youtubeVideos: profile.youtubeVideos,
+        publicPageConfig,
       });
       const projectSelection = resolveCreatorProjectSelection({
         activeProjectIdJpyc: profile.activeProjectIdJpyc?.toString() ?? null,

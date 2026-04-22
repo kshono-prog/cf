@@ -26,6 +26,7 @@ import { polygon, polygonAmoy, avalanche, avalancheFuji } from "viem/chains";
 import { isSupportedChainId, type SupportedChainId } from "@/lib/chainConfig";
 import { getTokenOnChain } from "@/lib/tokenRegistry";
 import { tryAutoAchieveGoal } from "@/lib/goalAutoAchieve";
+import { recalcAndPersistRewardTierProduction } from "@/lib/rewardTierService";
 
 export const dynamic = "force-dynamic";
 
@@ -316,8 +317,39 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         });
       }
 
+      // PaymentIntent と紐づく場合は status を PAID_CONFIRMED に更新
+      const linkedIntent = await tx.paymentIntent.findUnique({
+        where: { contributionId: next.id },
+        select: { id: true, rewardTierId: true },
+      });
+      if (linkedIntent) {
+        await tx.paymentIntent.update({
+          where: { id: linkedIntent.id },
+          data: {
+            status: "PAID_CONFIRMED",
+            updatedAt: now,
+          },
+        });
+      }
+
       return next;
     });
+
+    // RewardTier readiness 再計算（contribution と紐づく PaymentIntent 経由）
+    try {
+      const linked = await prisma.paymentIntent.findUnique({
+        where: { contributionId: updated.id },
+        select: { rewardTierId: true },
+      });
+      if (linked?.rewardTierId) {
+        await recalcAndPersistRewardTierProduction({
+          db: prisma,
+          tierId: linked.rewardTierId,
+        });
+      }
+    } catch (e) {
+      console.warn("REWARD_TIER_READINESS_RECALC_FAILED", e);
+    }
 
     // 目標自動達成は “副作用” として試す（失敗してもreverify自体は成功扱い）
     try {

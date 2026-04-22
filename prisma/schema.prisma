@@ -28,6 +28,7 @@ model CreatorProfile {
   activeProjectIdUsdc BigInt?
   socialLinks         CreatorSocialLink[]
   youtubeVideos       CreatorYoutubeVideo[]
+  publicPageConfig    PublicPageConfig?
   events              Event[]
   projects            Project[]
   tips                Tip[]
@@ -99,6 +100,21 @@ model CreatorYoutubeVideo {
   profile     CreatorProfile @relation(fields: [profileId], references: [id])
 
   @@index([profileId])
+}
+
+model PublicPageConfig {
+  id                      BigInt         @id @default(autoincrement())
+  creatorProfileId        BigInt         @unique
+  heroImageUrl            String?
+  backgroundColor         String?
+  introSectionOrder       String[]       @default([])
+  centerSectionOrder      String[]       @default([])
+  hiddenCenterSectionKeys String[]       @default([])
+  rightSectionOrder       String[]       @default([])
+  hiddenRightSectionKeys  String[]       @default([])
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  creatorProfile          CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model Event {
@@ -226,6 +242,7 @@ model Contribution {
   project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   postTips      PostTip[]
   purpose       Purpose?  @relation(fields: [purposeId], references: [id], onUpdate: NoAction)
+  paymentIntent PaymentIntent?
 
   @@index([chainId])
   @@index([createdAt])
@@ -305,6 +322,8 @@ model Project {
   revenueRecords            RevenueRecord[]
   projectMembers            ProjectMember[]
   aiManagerUsageRecords     AiManagerUsageRecord[]
+  rewardTiers               RewardTier[]
+  paymentIntents            PaymentIntent[]
 
   @@index([creatorProfileId])
   @@index([creatorProfileId, currency])
@@ -1173,9 +1192,10 @@ model Purpose {
   orderIndex   Int            @default(0)
   createdAt    DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime       @default(now()) @db.Timestamptz(6)
-  Allocation   Allocation[]
-  Contribution Contribution[]
-  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Allocation     Allocation[]
+  Contribution   Contribution[]
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  paymentIntents PaymentIntent[]
 
   @@unique([projectId, code], map: "Purpose_project_code_unique")
   @@index([projectId, orderIndex], map: "Purpose_order_idx")
@@ -1329,6 +1349,76 @@ model RpgActivityLog {
   creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([creatorProfileId, occurredAt(sort: Desc)], map: "RpgActivityLog_user_occurred_idx")
+}
+
+model RewardTier {
+  id                     BigInt          @id @default(autoincrement())
+  projectId              BigInt
+  title                  String
+  description            String?         @db.Text
+  priceJpyc              Int
+  currency               String          @default("JPYC")
+  quantityLimit          Int?
+  soldCount              Int             @default(0)
+  isPublished            Boolean         @default(false)
+  sortOrder              Int             @default(0)
+  deliveryType           String?
+  imageUrl               String?
+  startThresholdType     String?
+  startThresholdValue    Int?
+  productionStatus       String          @default("NOT_STARTED")
+  productionStartedAt    DateTime?       @db.Timestamptz(6)
+  productionCompletedAt  DateTime?       @db.Timestamptz(6)
+  createdAt              DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime        @default(now()) @db.Timestamptz(6)
+  project                Project         @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  paymentIntents         PaymentIntent[]
+
+  @@index([projectId, isPublished, sortOrder], map: "RewardTier_project_published_sort_idx")
+  @@index([projectId, productionStatus], map: "RewardTier_project_production_idx")
+}
+
+model PaymentIntent {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId          BigInt
+  rewardTierId       BigInt?
+  purposeId          BigInt?
+  expectedAmountJpyc Int
+  currency           String              @default("JPYC")
+  chainId            Int
+  recipientAddress   String
+  quantity           Int                 @default(1)
+  customerLabel      String?
+  note               String?             @db.Text
+  status             String              @default("OPEN")
+  contributionId     String?             @unique @db.Uuid
+  expiresAt          DateTime?           @db.Timestamptz(6)
+  canceledAt         DateTime?           @db.Timestamptz(6)
+  createdAt          DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime            @default(now()) @db.Timestamptz(6)
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rewardTier         RewardTier?         @relation(fields: [rewardTierId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  purpose            Purpose?            @relation(fields: [purposeId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  contribution       Contribution?       @relation(fields: [contributionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  items              PaymentIntentItem[]
+
+  @@index([projectId, status, createdAt], map: "PaymentIntent_project_status_created_idx")
+  @@index([rewardTierId, status], map: "PaymentIntent_tier_status_idx")
+  @@index([purposeId], map: "PaymentIntent_purpose_idx")
+}
+
+model PaymentIntentItem {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentIntentId String        @db.Uuid
+  itemName        String
+  unitPriceJpyc   Int
+  quantity        Int           @default(1)
+  subtotalJpyc    Int
+  metadataJson    Json          @default("{}")
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  paymentIntent   PaymentIntent @relation(fields: [paymentIntentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([paymentIntentId], map: "PaymentIntentItem_intent_idx")
 }
 
 enum ProjectSettlementStatus {

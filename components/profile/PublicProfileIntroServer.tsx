@@ -18,6 +18,11 @@ import {
   type SupportProfileView,
   type SupportProjectView,
 } from "@/lib/supportProfileView";
+import {
+  orderConfiguredPublicPageSections,
+  resolveCreatorPublicPageConfig,
+  type PublicPageIntroSectionKey,
+} from "@/lib/publicPageConfig";
 
 type PublicCreatorIntro = Omit<CreatorProfile, "address"> & {
   creatorType?: CreatorType | null;
@@ -243,11 +248,18 @@ export function PublicProfileIntroServer({
   const shouldShowExternalUrl =
     !!creator.url &&
     !socialEntries.some((entry) => entry.url === creator.url);
-  const heroBackgroundStyle = creator.themeColor
+  const publicPageConfig = resolveCreatorPublicPageConfig(creator.publicPage);
+  const heroBackgroundStyle = publicPageConfig.heroImageUrl
     ? {
-        backgroundImage: `linear-gradient(135deg, ${creator.themeColor}, color-mix(in srgb, ${creator.themeColor} 58%, white) 45%, color-mix(in srgb, ${creator.themeColor} 28%, white))`,
+        backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0.38)), url("${publicPageConfig.heroImageUrl}")`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
       }
-    : undefined;
+    : creator.themeColor
+      ? {
+          backgroundImage: `linear-gradient(135deg, ${creator.themeColor}, color-mix(in srgb, ${creator.themeColor} 58%, white) 45%, color-mix(in srgb, ${creator.themeColor} 28%, white))`,
+        }
+      : undefined;
 
   const activeSupportProject = getActiveSupportProject(supportProfileView);
   const faqEntries = buildPublicProfileFaqEntries({
@@ -266,11 +278,192 @@ export function PublicProfileIntroServer({
     : supportProfileView.mode === "draft"
     ? supportProfileView.draft?.description ?? null
     : "公開ページを準備中です。応援内容が整うと、ここから確認できます。";
+
+  const supportSection = recruitingProjects.length === 0 ? (
+    <section
+      id="support-projects"
+      className="sheet-section px-3.5 py-3 sm:px-4 sm:py-3.5"
+    >
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.88fr)_1.12fr] lg:items-start">
+        <div className="min-w-0 space-y-3">
+          <div className="section-kicker">Support</div>
+          <div className="text-[14px] font-semibold text-[var(--text)] sm:text-[15px]">
+            {supportTitle}
+          </div>
+          {supportDescription ? (
+            <p className="mt-1 whitespace-pre-wrap text-[12px] leading-5 text-[var(--text-subtle)]">
+              {supportDescription}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <span className="surface-chip">
+              公開状態:{" "}
+              {supportProfileView.mode === "ready"
+                ? "公開中"
+                : supportProfileView.mode === "draft"
+                  ? "準備中"
+                  : "閲覧のみ"}
+            </span>
+            <span className="surface-chip">
+              募集 project {activeSupportProject ? "1件" : "0件"}
+            </span>
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          {activeSupportProject ? (
+            <StaticSupportProjectCard
+              creator={creator}
+              displayName={displayName}
+              project={activeSupportProject}
+              compact
+            />
+          ) : (
+            <div className="data-tile px-4 py-3 text-[12px] leading-5 text-[var(--text-subtle)]">
+              {supportProfileView.mode === "draft"
+                ? "公開ページを準備中です。応援内容が整うと、ここに進捗が表示されます。"
+                : "いまは応援内容を読み込めません。時間をおいてもう一度お試しください。"}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  ) : (
+    <section
+      id="support-projects"
+      className="sheet-section px-4 py-4 sm:px-5 sm:py-5"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="section-kicker">Support</div>
+          <div className="text-base font-semibold text-[var(--text)]">
+            募集中のプロジェクト
+          </div>
+          <p className="mt-1 text-sm text-[var(--text-subtle)]">
+            いま応援を受け付けている project をまとめて見られます。
+          </p>
+        </div>
+        <div className="text-sm text-[var(--text-subtle)]">
+          {recruitingProjects.length} 件
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        {recruitingProjects.map((project) => (
+          <StaticSupportProjectCard
+            key={project.projectId}
+            creator={creator}
+            displayName={displayName}
+            project={project}
+            actionHref={buildSupportHref(username, project.projectId)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+
+  const faqSection = (
+    <section className="sheet-section px-4 py-4 sm:px-5 sm:py-5">
+      <div className="section-kicker">FAQ</div>
+      <div className="text-base font-semibold text-[var(--text)]">
+        よくある質問
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+        {faqEntries.map((entry) => (
+          <article key={entry.question} className="data-tile px-4 py-4">
+            <h2 className="text-sm font-semibold text-[var(--text)]">
+              {entry.question}
+            </h2>
+            <p className="mt-2 text-[12px] leading-6 text-[var(--text-subtle)]">
+              {entry.answer}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+
+  const videoSection =
+    creator.youtubeVideos && creator.youtubeVideos.length > 0 ? (
+      <section className="sheet-section px-4 py-4 sm:px-5 sm:py-5">
+        <div className="section-kicker">Video</div>
+        <div className="text-base font-semibold text-[var(--text)]">紹介動画</div>
+        <div className="mt-3 space-y-4">
+          {creator.youtubeVideos.map((video, index) => {
+            const videoId = extractYouTubeId(video.url);
+
+            return (
+              <div key={`${video.url}-${index}`} className="space-y-2.5">
+                {videoId ? (
+                  <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-black">
+                    <div className="aspect-video w-full">
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
+                        title={video.title || "紹介動画"}
+                        className="h-full w-full"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                ) : video.url ? (
+                  <Link
+                    href={video.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary px-3 py-2 text-sm"
+                  >
+                    動画を開く
+                  </Link>
+                ) : null}
+                <div>
+                  <div className="text-[15px] font-semibold text-[var(--text)]">
+                    {video.title || "紹介動画"}
+                  </div>
+                  {video.description ? (
+                    <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-subtle)]">
+                      {video.description}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    ) : null;
+
+  const introSectionItems: Array<{
+    key: PublicPageIntroSectionKey;
+    node: React.ReactNode;
+  }> = [
+    { key: "support", node: supportSection },
+    { key: "faq", node: faqSection },
+  ];
+
+  if (videoSection) {
+    introSectionItems.push({ key: "video", node: videoSection });
+  }
+
+  const orderedIntroKeys = orderConfiguredPublicPageSections({
+    availableKeys: introSectionItems.map((item) => item.key),
+    configuredOrder: publicPageConfig.introSectionOrder,
+    hiddenKeys: [],
+  });
+
+  const introSectionMap = new Map(
+    introSectionItems.map((item) => [item.key, item.node] as const)
+  );
+
   return (
     <div className="space-y-4">
       <section className="sheet-section overflow-hidden">
         <div
-          className="h-32 bg-[var(--surface-subtle)] sm:h-40"
+          className={`bg-[var(--surface-subtle)] ${
+            publicPageConfig.heroImageUrl ? "h-40 sm:h-52" : "h-32 sm:h-40"
+          }`}
           style={heroBackgroundStyle}
         />
         <div className="-mt-11 px-4 pb-3.5 sm:-mt-14 sm:px-5 sm:pb-4">
@@ -377,158 +570,9 @@ export function PublicProfileIntroServer({
         </div>
       </section>
 
-      {recruitingProjects.length === 0 ? (
-        <section
-          id="support-projects"
-          className="sheet-section px-3.5 py-3 sm:px-4 sm:py-3.5"
-        >
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.88fr)_1.12fr] lg:items-start">
-            <div className="min-w-0 space-y-3">
-              <div className="section-kicker">Support</div>
-              <div className="text-[14px] font-semibold text-[var(--text)] sm:text-[15px]">
-                {supportTitle}
-              </div>
-              {supportDescription ? (
-                <p className="mt-1 whitespace-pre-wrap text-[12px] leading-5 text-[var(--text-subtle)]">
-                  {supportDescription}
-                </p>
-              ) : null}
-              <div className="flex flex-wrap gap-2">
-                <span className="surface-chip">
-                  公開状態:{" "}
-                  {supportProfileView.mode === "ready"
-                    ? "公開中"
-                    : supportProfileView.mode === "draft"
-                      ? "準備中"
-                      : "閲覧のみ"}
-                </span>
-                <span className="surface-chip">
-                  募集 project {activeSupportProject ? "1件" : "0件"}
-                </span>
-              </div>
-            </div>
-
-            <div className="min-w-0">
-              {activeSupportProject ? (
-                <StaticSupportProjectCard
-                  creator={creator}
-                  displayName={displayName}
-                  project={activeSupportProject}
-                  compact
-                />
-              ) : (
-                <div className="data-tile px-4 py-3 text-[12px] leading-5 text-[var(--text-subtle)]">
-                  {supportProfileView.mode === "draft"
-                    ? "公開ページを準備中です。応援内容が整うと、ここに進捗が表示されます。"
-                    : "いまは応援内容を読み込めません。時間をおいてもう一度お試しください。"}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section
-          id="support-projects"
-          className="sheet-section px-4 py-4 sm:px-5 sm:py-5"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="section-kicker">Support</div>
-              <div className="text-base font-semibold text-[var(--text)]">
-                募集中のプロジェクト
-              </div>
-              <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                いま応援を受け付けている project をまとめて見られます。
-              </p>
-            </div>
-            <div className="text-sm text-[var(--text-subtle)]">
-              {recruitingProjects.length} 件
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 xl:grid-cols-2">
-            {recruitingProjects.map((project) => (
-              <StaticSupportProjectCard
-                key={project.projectId}
-                creator={creator}
-                displayName={displayName}
-                project={project}
-                actionHref={buildSupportHref(username, project.projectId)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="sheet-section px-4 py-4 sm:px-5 sm:py-5">
-        <div className="section-kicker">FAQ</div>
-        <div className="text-base font-semibold text-[var(--text)]">
-          よくある質問
-        </div>
-        <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
-          {faqEntries.map((entry) => (
-            <article key={entry.question} className="data-tile px-4 py-4">
-              <h2 className="text-sm font-semibold text-[var(--text)]">
-                {entry.question}
-              </h2>
-              <p className="mt-2 text-[12px] leading-6 text-[var(--text-subtle)]">
-                {entry.answer}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {creator.youtubeVideos && creator.youtubeVideos.length > 0 ? (
-        <section className="sheet-section px-4 py-4 sm:px-5 sm:py-5">
-          <div className="section-kicker">Video</div>
-          <div className="text-base font-semibold text-[var(--text)]">紹介動画</div>
-          <div className="mt-3 space-y-4">
-            {creator.youtubeVideos.map((video, index) => {
-              const videoId = extractYouTubeId(video.url);
-
-              return (
-                <div key={`${video.url}-${index}`} className="space-y-2.5">
-                  {videoId ? (
-                    <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-black">
-                      <div className="aspect-video w-full">
-                        <iframe
-                          src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
-                          title={video.title || "紹介動画"}
-                          className="h-full w-full"
-                          loading="lazy"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          referrerPolicy="strict-origin-when-cross-origin"
-                          allowFullScreen
-                        />
-                      </div>
-                    </div>
-                  ) : video.url ? (
-                    <Link
-                      href={video.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-secondary px-3 py-2 text-sm"
-                    >
-                      動画を開く
-                    </Link>
-                  ) : null}
-                  <div>
-                    <div className="text-[15px] font-semibold text-[var(--text)]">
-                      {video.title || "紹介動画"}
-                    </div>
-                    {video.description ? (
-                      <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-subtle)]">
-                        {video.description}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
+      {orderedIntroKeys.map((key) => (
+        <div key={key}>{introSectionMap.get(key) ?? null}</div>
+      ))}
     </div>
   );
 }

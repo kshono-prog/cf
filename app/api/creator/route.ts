@@ -20,6 +20,17 @@ import {
   toOptionalString,
 } from "@/lib/api/guards";
 import { serializeCreatorProfile } from "@/lib/serializers/creator";
+import {
+  DEFAULT_PUBLIC_PAGE_CONFIG,
+  resolveCreatorPublicPageConfig,
+  type CreatorPublicPageConfig,
+} from "@/lib/publicPageConfig";
+import {
+  PUBLIC_PAGE_CONFIG_SELECT_BASE,
+  PUBLIC_PAGE_CONFIG_SELECT_WITH_INTRO_SECTION_ORDER,
+  hasPublicPageIntroSectionOrderColumn,
+  normalizePublicPageConfigRow,
+} from "@/lib/publicPageConfigSchema";
 
 export const dynamic = "force-dynamic";
 
@@ -135,6 +146,105 @@ function parseEcosystemRoleOrThrow(
   return v;
 }
 
+function parseStringArrayOrThrow(
+  value: unknown,
+  errorCode: string
+): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) {
+    throw new Error(errorCode);
+  }
+
+  const output: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") {
+      throw new Error(errorCode);
+    }
+    output.push(item);
+  }
+
+  return output;
+}
+
+function parsePublicPageConfigOrThrow(
+  value: unknown
+): CreatorPublicPageConfig | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return DEFAULT_PUBLIC_PAGE_CONFIG;
+  if (!isRecord(value)) {
+    throw new Error("PUBLIC_PAGE_CONFIG_INVALID");
+  }
+
+  const heroImageUrlRaw =
+    value.heroImageUrl === null ? null : toOptionalString(value.heroImageUrl);
+  if (
+    value.heroImageUrl !== undefined &&
+    value.heroImageUrl !== null &&
+    heroImageUrlRaw === undefined
+  ) {
+    throw new Error("PUBLIC_PAGE_HERO_IMAGE_URL_INVALID");
+  }
+
+  const backgroundColorRaw =
+    value.backgroundColor === null ? null : toOptionalString(value.backgroundColor);
+  if (
+    value.backgroundColor !== undefined &&
+    value.backgroundColor !== null &&
+    backgroundColorRaw === undefined
+  ) {
+    throw new Error("PUBLIC_PAGE_BACKGROUND_COLOR_INVALID");
+  }
+
+  const introSectionOrder = parseStringArrayOrThrow(
+    value.introSectionOrder,
+    "PUBLIC_PAGE_CONFIG_INVALID"
+  );
+  const centerSectionOrder = parseStringArrayOrThrow(
+    value.centerSectionOrder,
+    "PUBLIC_PAGE_CONFIG_INVALID"
+  );
+  const hiddenCenterSectionKeys = parseStringArrayOrThrow(
+    value.hiddenCenterSectionKeys,
+    "PUBLIC_PAGE_CONFIG_INVALID"
+  );
+  const rightSectionOrder = parseStringArrayOrThrow(
+    value.rightSectionOrder,
+    "PUBLIC_PAGE_CONFIG_INVALID"
+  );
+  const hiddenRightSectionKeys = parseStringArrayOrThrow(
+    value.hiddenRightSectionKeys,
+    "PUBLIC_PAGE_CONFIG_INVALID"
+  );
+
+  const config = resolveCreatorPublicPageConfig({
+    heroImageUrl: heroImageUrlRaw ?? null,
+    backgroundColor: backgroundColorRaw ?? null,
+    introSectionOrder,
+    centerSectionOrder,
+    hiddenCenterSectionKeys,
+    rightSectionOrder,
+    hiddenRightSectionKeys,
+  });
+
+  if (
+    typeof heroImageUrlRaw === "string" &&
+    heroImageUrlRaw.trim().length > 0 &&
+    config.heroImageUrl === null
+  ) {
+    throw new Error("PUBLIC_PAGE_HERO_IMAGE_URL_INVALID");
+  }
+
+  if (
+    typeof backgroundColorRaw === "string" &&
+    backgroundColorRaw.trim().length > 0 &&
+    config.backgroundColor === null
+  ) {
+    throw new Error("PUBLIC_PAGE_BACKGROUND_COLOR_INVALID");
+  }
+
+  return config;
+}
+
 /**
  * 旧Goal拒否（UIから外しているのに、APIが受けてしまうと混乱するため）
  */
@@ -182,6 +292,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const themeColor = toOptionalNullableString(json.themeColor);
     const creatorType = parseCreatorTypeOrThrow(json.creatorType);
     const ecosystemRole = parseEcosystemRoleOrThrow(json.ecosystemRole);
+    const publicPage = parsePublicPageConfigOrThrow(json.publicPage);
+    const canReadIntroSectionOrder = await hasPublicPageIntroSectionOrderColumn();
 
     // “指定された場合のみ全入れ替え” を維持するため、
     // socials/youtubeVideos は undefined と “空オブジェクト/空配列” を区別する
@@ -268,9 +380,51 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         }
       }
 
+      if (publicPage !== undefined) {
+        const publicPageCreate = {
+          creatorProfileId: creator.id,
+          heroImageUrl: publicPage.heroImageUrl,
+          backgroundColor: publicPage.backgroundColor,
+          centerSectionOrder: publicPage.centerSectionOrder,
+          hiddenCenterSectionKeys: publicPage.hiddenCenterSectionKeys,
+          rightSectionOrder: publicPage.rightSectionOrder,
+          hiddenRightSectionKeys: publicPage.hiddenRightSectionKeys,
+          ...(canReadIntroSectionOrder
+            ? { introSectionOrder: publicPage.introSectionOrder }
+            : {}),
+        };
+
+        const publicPageUpdate = {
+          heroImageUrl: publicPage.heroImageUrl,
+          backgroundColor: publicPage.backgroundColor,
+          centerSectionOrder: publicPage.centerSectionOrder,
+          hiddenCenterSectionKeys: publicPage.hiddenCenterSectionKeys,
+          rightSectionOrder: publicPage.rightSectionOrder,
+          hiddenRightSectionKeys: publicPage.hiddenRightSectionKeys,
+          ...(canReadIntroSectionOrder
+            ? { introSectionOrder: publicPage.introSectionOrder }
+            : {}),
+        };
+
+        await tx.publicPageConfig.upsert({
+          where: { creatorProfileId: creator.id },
+          create: publicPageCreate,
+          update: publicPageUpdate,
+          select: { id: true },
+        });
+      }
+
       return tx.creatorProfile.findUnique({
         where: { id: creator.id },
-        include: { socialLinks: true, youtubeVideos: true },
+        include: {
+          socialLinks: true,
+          youtubeVideos: true,
+          publicPageConfig: {
+            select: canReadIntroSectionOrder
+              ? PUBLIC_PAGE_CONFIG_SELECT_WITH_INTRO_SECTION_ORDER
+              : PUBLIC_PAGE_CONFIG_SELECT_BASE,
+          },
+        },
       });
     });
 
@@ -291,6 +445,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       walletAddress: result.walletAddress,
       socialLinks: result.socialLinks,
       youtubeVideos: result.youtubeVideos,
+      publicPageConfig: normalizePublicPageConfigRow(result.publicPageConfig),
     });
 
     return okMyPageMutationResponse(walletAddress, { creator: responseCreator });
@@ -301,6 +456,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         return jsonErr("CREATOR_NOT_FOUND", 404);
       }
       if (e.message === "CREATOR_TYPE_INVALID" || e.message === "ECOSYSTEM_ROLE_INVALID") {
+        return jsonErr(e.message, 400, e.message);
+      }
+      if (
+        e.message === "PUBLIC_PAGE_CONFIG_INVALID" ||
+        e.message === "PUBLIC_PAGE_HERO_IMAGE_URL_INVALID" ||
+        e.message === "PUBLIC_PAGE_BACKGROUND_COLOR_INVALID"
+      ) {
         return jsonErr(e.message, 400, e.message);
       }
     }

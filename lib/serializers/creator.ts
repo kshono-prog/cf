@@ -1,6 +1,10 @@
 import { isRecord, toOptionalString } from "@/lib/api/guards";
 import { isCreatorType, isEcosystemRole } from "@/lib/creatorTaxonomy";
 import {
+  parseCreatorPublicPageConfig,
+  serializeCreatorPublicPageConfig,
+} from "@/lib/publicPageConfig";
+import {
   resolveConfirmedAmount,
   resolveGoalTargetAmount,
 } from "@/lib/fundingAmounts";
@@ -54,6 +58,16 @@ type CreatorYoutubeVideoRow = {
   description: string | null;
 };
 
+type CreatorPublicPageConfigRow = {
+  heroImageUrl: string | null;
+  backgroundColor: string | null;
+  introSectionOrder: string[];
+  centerSectionOrder: string[];
+  hiddenCenterSectionKeys: string[];
+  rightSectionOrder: string[];
+  hiddenRightSectionKeys: string[];
+};
+
 type CreatorProfileDbShape = {
   username: string;
   displayName: string | null;
@@ -67,6 +81,7 @@ type CreatorProfileDbShape = {
   walletAddress: string | null;
   socialLinks?: CreatorSocialLinkRow[];
   youtubeVideos?: CreatorYoutubeVideoRow[];
+  publicPageConfig?: CreatorPublicPageConfigRow | null;
 };
 
 function toNullOrString(value: unknown): string | null {
@@ -249,6 +264,7 @@ export function serializeCreatorProfile(
       typeof record.ecosystemRole === "string" && isEcosystemRole(record.ecosystemRole)
         ? record.ecosystemRole
         : null,
+    publicPage: serializeCreatorPublicPageConfig(record.publicPageConfig),
     socials: serializeSocialLinks(record.socialLinks),
     youtubeVideos: serializeYoutubeVideos(record.youtubeVideos),
   };
@@ -267,6 +283,8 @@ export function parseCreatorProfile(raw: unknown): CreatorProfile | null {
     raw.themeColor === null ? null : toNullOrString(raw.themeColor);
   const creatorTypeRaw = toNullOrString(raw.creatorType);
   const ecosystemRoleRaw = toNullOrString(raw.ecosystemRole);
+  const publicPage =
+    raw.publicPage === null ? null : parseCreatorPublicPageConfig(raw.publicPage);
 
   if (!username || !displayName) return null;
 
@@ -283,6 +301,7 @@ export function parseCreatorProfile(raw: unknown): CreatorProfile | null {
       creatorTypeRaw && isCreatorType(creatorTypeRaw) ? creatorTypeRaw : null,
     ecosystemRole:
       ecosystemRoleRaw && isEcosystemRole(ecosystemRoleRaw) ? ecosystemRoleRaw : null,
+    publicPage,
     socials: toSocialLinks(raw.socials),
     youtubeVideos: toYoutubeVideos(raw.youtubeVideos),
   };

@@ -14,6 +14,7 @@ import { CreatorSettingsBasicInfoSection } from "@/components/mypage/CreatorSett
 import { CreatorSettingsHeaderSection } from "@/components/mypage/CreatorSettingsHeaderSection";
 import { CreatorSettingsSupportSection } from "@/components/mypage/CreatorSettingsSupportSection";
 import { CreatorSettingsWalletSection } from "@/components/mypage/CreatorSettingsWalletSection";
+import { PublicPagePreviewPanel } from "@/components/mypage/PublicPagePreviewPanel";
 import { PublicReadinessPanel } from "@/components/mypage/PublicReadinessPanel";
 import { SetupProgressCard } from "@/components/mypage/SetupProgressCard";
 import { ShareDraftCard } from "@/components/mypage/ShareDraftCard";
@@ -50,6 +51,7 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
   });
 
   const publicProfileUrl = withBaseUrl(workspace.meCreatorUsername);
+  const publicProfileHref = `/${encodeURIComponent(workspace.meCreatorUsername)}`;
   const basicProfileState = buildBasicProfileCompletion({
     displayName: workspace.displayName,
     profile: workspace.profile,
@@ -211,6 +213,11 @@ export function SettingsPageClient(props: SettingsPageClientProps) {
             tone: "primary",
           },
         ]}
+      />
+
+      <PublicPagePreviewPanel
+        username={workspace.meCreatorUsername}
+        publicProfileHref={publicProfileHref}
       />
 
       <ShareDraftCard

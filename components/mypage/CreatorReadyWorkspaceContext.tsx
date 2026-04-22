@@ -7,6 +7,7 @@ import type { ProfileDraftResult } from "@/lib/ai/profileDraft";
 import type { AiOfficePanelUrlState } from "@/components/mypage/aiOfficePanelUrlState";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
 import type { EcosystemRole } from "@/lib/creatorTaxonomy";
+import type { CreatorPublicPageConfig } from "@/lib/publicPageConfig";
 import type {
   CurrencyCode,
   ProjectIdsByCurrency,
@@ -48,6 +49,7 @@ export type CreatorReadyWorkspaceState = {
   themeColorValue: string;
   creatorType: CreatorProfile["creatorType"];
   ecosystemRole: EcosystemRole | null;
+  publicPage: CreatorPublicPageConfig;
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   avatarFile: File | null;
@@ -60,6 +62,7 @@ export type CreatorReadyWorkspaceState = {
     React.SetStateAction<CreatorProfile["creatorType"]>
   >;
   setEcosystemRole: React.Dispatch<React.SetStateAction<EcosystemRole | null>>;
+  setPublicPage: React.Dispatch<React.SetStateAction<CreatorPublicPageConfig>>;
   setSocials: React.Dispatch<React.SetStateAction<SocialLinks>>;
   setYoutubeVideos: React.Dispatch<React.SetStateAction<YoutubeVideo[]>>;
   setAvatarFile: React.Dispatch<React.SetStateAction<File | null>>;

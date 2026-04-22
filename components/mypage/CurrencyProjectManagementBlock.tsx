@@ -4,6 +4,7 @@ import React from "react";
 
 import { CurrencyGoalSettlementPanel } from "@/components/mypage/CurrencyGoalSettlementPanel";
 import { ProjectSection } from "@/components/mypage/ProjectSection";
+import { RewardTierManagementSection } from "@/components/mypage/RewardTierManagementSection";
 import type { CurrencyCode } from "@/lib/mypage/accountPageTypes";
 import type { MyPageProjectDashboard } from "@/lib/mypage/dashboardTypes";
 
@@ -40,6 +41,12 @@ export function CurrencyProjectManagementBlock(props: Props) {
           />
         }
       />
+      {props.currency === "JPYC" ? (
+        <RewardTierManagementSection
+          projectId={props.activeProjectId}
+          ownerAddress={props.walletAddress}
+        />
+      ) : null}
     </div>
   );
 }

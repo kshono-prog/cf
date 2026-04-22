@@ -8,6 +8,10 @@ import type {
   YoutubeVideo,
 } from "@/types/creator";
 import type { EcosystemRole } from "@/lib/creatorTaxonomy";
+import {
+  resolveCreatorPublicPageConfig,
+  type CreatorPublicPageConfig,
+} from "@/lib/publicPageConfig";
 
 function createEmptyYoutubeVideos(): YoutubeVideo[] {
   return [{ url: "", title: "", description: "" }];
@@ -27,6 +31,9 @@ export function useMyPageProfileState(defaultUsername: string) {
   const [creatorType, setCreatorType] =
     useState<CreatorProfile["creatorType"]>(null);
   const [ecosystemRole, setEcosystemRole] = useState<EcosystemRole | null>(null);
+  const [publicPage, setPublicPage] = useState<CreatorPublicPageConfig>(
+    resolveCreatorPublicPageConfig()
+  );
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [socials, setSocials] = useState<SocialLinks>({});
@@ -45,6 +52,7 @@ export function useMyPageProfileState(defaultUsername: string) {
       setThemeColor("");
       setCreatorType(null);
       setEcosystemRole(null);
+      setPublicPage(resolveCreatorPublicPageConfig());
       setAvatarFile(null);
       setAvatarPreview(null);
       setSocials({});
@@ -64,6 +72,7 @@ export function useMyPageProfileState(defaultUsername: string) {
       setThemeColor("");
       setCreatorType(null);
       setEcosystemRole(null);
+      setPublicPage(resolveCreatorPublicPageConfig());
       setAvatarFile(null);
       setAvatarPreview(null);
       setSocials({});
@@ -83,6 +92,7 @@ export function useMyPageProfileState(defaultUsername: string) {
       setThemeColor(creator.themeColor ?? "");
       setCreatorType(creator.creatorType ?? null);
       setEcosystemRole(creator.ecosystemRole ?? null);
+      setPublicPage(resolveCreatorPublicPageConfig(creator.publicPage));
       setAvatarFile(null);
       setAvatarPreview(null);
       setSocials(creator.socials ?? {});
@@ -120,6 +130,8 @@ export function useMyPageProfileState(defaultUsername: string) {
     setCreatorType,
     ecosystemRole,
     setEcosystemRole,
+    publicPage,
+    setPublicPage,
     avatarFile,
     setAvatarFile,
     avatarPreview,

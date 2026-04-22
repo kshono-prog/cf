@@ -68,7 +68,7 @@ export function CreatorProfileViewCard({ missingSetupHints = [] }: Props) {
           </div>
         </div>
         <div className="surface-subtle p-3 text-sm text-[var(--text-subtle)]">
-          <div className="font-medium text-[var(--text)]">背景トーン</div>
+          <div className="font-medium text-[var(--text)]">アクセントカラー</div>
           <div className="mt-2 flex items-center gap-2">
             <span
               className="inline-block h-4 w-4 rounded-full border border-[var(--line)]"

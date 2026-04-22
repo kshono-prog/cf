@@ -90,7 +90,7 @@ export function CreatorSettingsBasicInfoSection(props: Props) {
                 backgroundColor: workspace.themeColorValue || "#f0f1f4",
               }}
             />
-            背景トーン
+            アクセントカラー
           </div>
         </div>
       </div>

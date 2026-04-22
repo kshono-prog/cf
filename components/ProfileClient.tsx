@@ -1,7 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useAccount } from "wagmi";
 
 import { trackGrowthEvent } from "@/lib/growth/client";
@@ -15,10 +22,16 @@ import type { Currency } from "@/components/profile/profileClientHelpers";
 import { DeferredFeedSection } from "@/components/feed/DeferredFeedSection";
 import { CreatorManagementStrip } from "@/components/profile/CreatorManagementStrip";
 import { PublicExternalWalletTipQrCard } from "@/components/profile/PublicExternalWalletTipQrCard";
+import { RewardTierPublicSection } from "@/components/profile/RewardTierPublicSection";
 import {
   type SupportProjectView,
   type SupportProfileView,
 } from "@/lib/supportProfileView";
+import {
+  orderConfiguredPublicPageSections,
+  resolveCreatorPublicPageConfig,
+  type PublicPageCenterSectionKey,
+} from "@/lib/publicPageConfig";
 import { useWalletResume } from "@/components/profile/useWalletResume";
 import { useProjectProgress } from "@/components/profile/useProjectProgress";
 import { useContributionFlow } from "@/components/profile/useContributionFlow";
@@ -295,6 +308,10 @@ export default function ProfileClient({
   });
 
   const displayName = creator.displayName || username;
+  const publicPageConfig = useMemo(
+    () => resolveCreatorPublicPageConfig(creator.publicPage),
+    [creator.publicPage]
+  );
   const ownerProjectOptions = useMemo(() => {
     const options: Array<{ id: string; label: string }> = [];
     const seen = new Set<string>();
@@ -361,71 +378,168 @@ export default function ProfileClient({
   // first_tip_received should be emitted from the confirmed contribution path
   // on the server side, not from this owner-view UI.
 
-  const handleConfirmOwnerPageReviewed = () => {
+  const handleConfirmOwnerPageReviewed = useCallback(() => {
     writeSetupLocalMilestone(username, "publicPageViewedByOwner", true);
     setOwnerPageReviewed(true);
-  };
+  }, [username]);
 
-  const profileGuideCard = (
-    <ProfileViewerGuideCard
-      viewerState={viewerState}
-      canOpenSupportSheet={canOpenSupportSheet}
-      pageDisplayName={pageDisplayName}
-      ownerPageReviewed={ownerPageReviewed}
-      ownerShareDraftHref={ownerShareDraftHref}
-      viewerComposeHref={viewerComposeHref}
-      viewerWorkspaceHref={viewerWorkspaceHref}
-      viewerProfileHref={viewerProfileHref}
-      onConfirmOwnerPageReviewed={handleConfirmOwnerPageReviewed}
-      onOpenSupportSheet={openSupportSheet}
-    />
+  const profileGuideCard = useMemo(
+    () => (
+      <ProfileViewerGuideCard
+        viewerState={viewerState}
+        canOpenSupportSheet={canOpenSupportSheet}
+        pageDisplayName={pageDisplayName}
+        ownerPageReviewed={ownerPageReviewed}
+        ownerShareDraftHref={ownerShareDraftHref}
+        viewerComposeHref={viewerComposeHref}
+        viewerWorkspaceHref={viewerWorkspaceHref}
+        viewerProfileHref={viewerProfileHref}
+        onConfirmOwnerPageReviewed={handleConfirmOwnerPageReviewed}
+        onOpenSupportSheet={openSupportSheet}
+      />
+    ),
+    [
+      canOpenSupportSheet,
+      handleConfirmOwnerPageReviewed,
+      openSupportSheet,
+      ownerPageReviewed,
+      ownerShareDraftHref,
+      pageDisplayName,
+      viewerComposeHref,
+      viewerProfileHref,
+      viewerState,
+      viewerWorkspaceHref,
+    ]
   );
 
-  const standaloneCommunityCard = (
-    <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-4">
-      <CreatorCommunityCard
-        username={username}
-        viewerAddress={viewerAddress ?? null}
-        viewerState={viewerState}
-        managementHref={ownerComposerManagementHref}
-        registrationHref={viewerWorkspaceHref}
-      />
-    </section>
+  const standaloneCommunityCard = useMemo(
+    () => (
+      <section className="panel-card px-4 py-3.5 sm:px-5 sm:py-4">
+        <CreatorCommunityCard
+          username={username}
+          viewerAddress={viewerAddress ?? null}
+          viewerState={viewerState}
+          managementHref={ownerComposerManagementHref}
+          registrationHref={viewerWorkspaceHref}
+        />
+      </section>
+    ),
+    [
+      ownerComposerManagementHref,
+      username,
+      viewerAddress,
+      viewerState,
+      viewerWorkspaceHref,
+    ]
+  );
+
+  const centerSectionItems = useMemo<
+    Array<{ key: PublicPageCenterSectionKey; node: ReactNode }>
+  >(() => {
+    const items: Array<{ key: PublicPageCenterSectionKey; node: ReactNode }> = [];
+
+    if (creator.address) {
+      items.push({
+        key: "wallet-tip",
+        node: (
+          <PublicExternalWalletTipQrCard
+            username={username}
+            displayName={displayName}
+            creatorAddress={creator.address}
+          />
+        ),
+      });
+    }
+
+    items.push({ key: "community", node: standaloneCommunityCard });
+    items.push({ key: "guide", node: profileGuideCard });
+    if (activeProjectId) {
+      items.push({
+        key: "reward-tiers",
+        node: (
+          <RewardTierPublicSection
+            projectId={activeProjectId}
+            headerColor={creator.themeColor ?? undefined}
+            onRequestSupport={() => {
+              if (canOpenSupportSheet) {
+                openSupportSheet();
+              }
+            }}
+          />
+        ),
+      });
+    }
+    items.push({
+      key: "posts",
+      node: (
+        <div id="posts" ref={timelineRef}>
+          <DeferredFeedSection
+            creatorUsername={username}
+            viewerAddress={viewerAddress ?? null}
+            managedCreatorUsername={viewerState.creatorUsername}
+            managePostAddress={viewerState.hasCreator ? viewerAddress ?? null : null}
+            manageProjectOptions={ownerProjectOptions}
+            selectedPostId={selectedPostTipContext?.id ?? null}
+            projectIdsByCurrency={resolvedProjectIdsByCurrency}
+            showTipAction={canOpenSupportSheet}
+            refreshToken={feedRefreshToken}
+            initialFeed={initialFeed}
+            headerColor={creator.themeColor || "#2563eb"}
+            goalAchievedAt={goalAchievedAt ?? null}
+            onSelectTipPost={handleSelectPostTip}
+            onFocusWalletSection={openSupportSheet}
+          />
+        </div>
+      ),
+    });
+
+    return items;
+  }, [
+    activeProjectId,
+    canOpenSupportSheet,
+    creator.address,
+    creator.themeColor,
+    displayName,
+    feedRefreshToken,
+    goalAchievedAt,
+    handleSelectPostTip,
+    initialFeed,
+    openSupportSheet,
+    ownerProjectOptions,
+    profileGuideCard,
+    resolvedProjectIdsByCurrency,
+    selectedPostTipContext?.id,
+    standaloneCommunityCard,
+    username,
+    viewerAddress,
+    viewerState.creatorUsername,
+    viewerState.hasCreator,
+  ]);
+
+  const orderedCenterKeys = useMemo(
+    () =>
+      orderConfiguredPublicPageSections({
+        availableKeys: centerSectionItems.map((item) => item.key),
+        configuredOrder: publicPageConfig.centerSectionOrder,
+        hiddenKeys: publicPageConfig.hiddenCenterSectionKeys,
+      }),
+    [centerSectionItems, publicPageConfig.centerSectionOrder, publicPageConfig.hiddenCenterSectionKeys]
+  );
+
+  const centerSectionMap = useMemo(
+    () =>
+      new Map(
+        centerSectionItems.map((item) => [item.key, item.node] as const)
+      ),
+    [centerSectionItems]
   );
 
   const profileScreen = (
     <div className="space-y-3">
       {introContent}
-      {creator.address ? (
-        <PublicExternalWalletTipQrCard
-          username={username}
-          displayName={displayName}
-          creatorAddress={creator.address}
-        />
-      ) : null}
-      {standaloneCommunityCard}
-
-      {viewerState.mode !== "unconnected" ? profileGuideCard : null}
-      <div id="posts" ref={timelineRef}>
-        <DeferredFeedSection
-          creatorUsername={username}
-          viewerAddress={viewerAddress ?? null}
-          managedCreatorUsername={viewerState.creatorUsername}
-          managePostAddress={viewerState.hasCreator ? viewerAddress ?? null : null}
-          manageProjectOptions={ownerProjectOptions}
-          selectedPostId={selectedPostTipContext?.id ?? null}
-          projectIdsByCurrency={resolvedProjectIdsByCurrency}
-          showTipAction={canOpenSupportSheet}
-          refreshToken={feedRefreshToken}
-          initialFeed={initialFeed}
-          headerColor={creator.themeColor || "#2563eb"}
-          goalAchievedAt={goalAchievedAt ?? null}
-          onSelectTipPost={handleSelectPostTip}
-          onFocusWalletSection={openSupportSheet}
-        />
-      </div>
-
-      {viewerState.mode === "unconnected" ? profileGuideCard : null}
+      {orderedCenterKeys.map((key) => (
+        <div key={key}>{centerSectionMap.get(key) ?? null}</div>
+      ))}
     </div>
   );
 

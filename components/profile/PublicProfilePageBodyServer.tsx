@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { AiManagerSupportActionCard } from "@/components/profile/AiManagerSupportActionCard";
 import { ProfileClientSection } from "@/app/[username]/ProfileClientSection";
@@ -16,6 +16,11 @@ import { PublicProfileQrCard } from "@/components/profile/PublicProfileQrCard";
 import { loadPublicProfilePageReadModel } from "@/lib/publicProfilePageReadModel";
 import { isPrismaUnavailableError } from "@/lib/prismaRetry";
 import { deriveCreatorStage } from "@/lib/creatorStage";
+import {
+  orderConfiguredPublicPageSections,
+  resolveCreatorPublicPageConfig,
+  type PublicPageRightSectionKey,
+} from "@/lib/publicPageConfig";
 import { serializeJsonLd } from "@/lib/seo/jsonLd";
 import { buildPublicProfileStructuredData } from "@/lib/seo/publicProfileStructuredData";
 import { getActiveSupportProject } from "@/lib/supportProfileView";
@@ -140,15 +145,120 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
       ? `/${username}?projectId=${encodeURIComponent(activeSupportProject.projectId)}&support=1#support-projects`
       : null;
     const displayName = creator.displayName || username;
+    const publicPageConfig = resolveCreatorPublicPageConfig(creator.publicPage);
+
+    const rightSectionItems: Array<{
+      key: PublicPageRightSectionKey;
+      node: ReactNode;
+    }> = [];
+
+    if (publicAiManager) {
+      rightSectionItems.push({
+        key: "ai-manager",
+        node: (
+          <>
+            <PublicProfileAiManagerCard
+              creatorUsername={username}
+              creatorDisplayName={displayName}
+              aiManager={publicAiManager}
+            />
+            <AiManagerSupportActionCard
+              creatorUsername={username}
+              aiManagerDisplayName={publicAiManager.displayName}
+              themes={supportActionThemes}
+              recentSupportActivities={recentSupportActivities}
+              fallbackProjectId={
+                activeSupportProject?.projectId ?? recruitingProjects[0]?.projectId ?? null
+              }
+            />
+          </>
+        ),
+      });
+    }
+
+    rightSectionItems.push(
+      {
+        key: "creator-voice",
+        node: (
+          <PublicProfileCreatorVoiceCard
+            displayName={displayName}
+            supportProfileView={supportProfileView}
+            ecosystemRole={creator.ecosystemRole ?? null}
+          />
+        ),
+      },
+      {
+        key: "profile-qr",
+        node: (
+          <PublicProfileQrCard
+            username={username}
+            displayName={displayName}
+            qrcodeUrl={creator.qrcode ?? null}
+          />
+        ),
+      },
+      {
+        key: "creator-stage",
+        node: <CreatorStageCard credibility={credibility} />,
+      },
+      {
+        key: "trust-profile",
+        node: (
+          <PublicTrustProfileSection
+            displayName={displayName}
+            username={username}
+            externalUrl={creator.url ?? null}
+            activityMonths={credibility.activeMonths}
+            contributionCount={credibility.totalContributorCount}
+            stageLabel={stageResult?.stageLabel ?? null}
+          />
+        ),
+      }
+    );
+
+    if (credibility.activeMonths > 0 || credibility.totalPostCount > 0) {
+      rightSectionItems.push({
+        key: "credibility",
+        node: <CreatorActivityCredibilityBadge credibility={credibility} />,
+      });
+    }
+
+    const orderedRightKeys = orderConfiguredPublicPageSections({
+      availableKeys: rightSectionItems.map((item) => item.key),
+      configuredOrder: publicPageConfig.rightSectionOrder,
+      hiddenKeys: publicPageConfig.hiddenRightSectionKeys,
+    });
+    const rightSectionMap = new Map(
+      rightSectionItems.map((item) => [item.key, item.node] as const)
+    );
+    const credibilityAnchorKey =
+      orderedRightKeys.find(
+        (key) =>
+          key === "creator-stage" ||
+          key === "trust-profile" ||
+          key === "credibility"
+      ) ?? null;
+    const postsVisible = !publicPageConfig.hiddenCenterSectionKeys.includes("posts");
+    const aiManagerVisible =
+      publicAiManager !== null && orderedRightKeys.includes("ai-manager");
+    const credibilityVisible = credibilityAnchorKey !== null;
+    const pageBackgroundStyle = publicPageConfig.backgroundColor
+      ? {
+          backgroundImage: `linear-gradient(180deg, color-mix(in srgb, ${publicPageConfig.backgroundColor} 16%, white), var(--bg) 28%, var(--bg) 58%)`,
+          backgroundColor: "var(--bg)",
+        }
+      : undefined;
 
     const anchorTabs = [
       { id: "support", label: "応援へ", anchor: "#support-projects" },
-      ...(publicAiManager
+      ...(aiManagerVisible
         ? [{ id: "ai-manager", label: "運営AI", anchor: "#ai-manager-section" }]
         : []),
-      { id: "posts", label: "投稿", anchor: "#posts" },
+      ...(postsVisible ? [{ id: "posts", label: "投稿", anchor: "#posts" }] : []),
       { id: "supporters", label: "支援者", anchor: "#supporters-section" },
-      { id: "credibility", label: "実績", anchor: "#credibility-section" },
+      ...(credibilityVisible
+        ? [{ id: "credibility", label: "実績", anchor: "#credibility-section" }]
+        : []),
     ];
 
     const impactNumbers = <PublicProfileImpactNumbersInline credibility={credibility} />;
@@ -161,7 +271,10 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
         />
 
         {/* X 風 3 カラムレイアウト */}
-        <div className="workspace-layout workspace-layout-balanced">
+        <div
+          className="workspace-layout workspace-layout-balanced"
+          style={pageBackgroundStyle}
+        >
 
           {/* 左サイドバー — profile-sidebar CSS クラスで md+ 表示 */}
           <aside className="profile-sidebar">
@@ -209,53 +322,15 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
           {/* 右パネル */}
           <aside className="workspace-right">
             <div className="flex flex-col gap-4">
-              {publicAiManager ? (
-                <>
-                  <PublicProfileAiManagerCard
-                    creatorUsername={username}
-                    creatorDisplayName={displayName}
-                    aiManager={publicAiManager}
-                  />
-                  <AiManagerSupportActionCard
-                    creatorUsername={username}
-                    aiManagerDisplayName={publicAiManager.displayName}
-                    themes={supportActionThemes}
-                    recentSupportActivities={recentSupportActivities}
-                    fallbackProjectId={
-                      activeSupportProject?.projectId ??
-                      recruitingProjects[0]?.projectId ??
-                      null
-                    }
-                  />
-                </>
-              ) : null}
-
-              <PublicProfileCreatorVoiceCard
-                displayName={displayName}
-                supportProfileView={supportProfileView}
-                ecosystemRole={creator.ecosystemRole ?? null}
-              />
-
-              <PublicProfileQrCard
-                username={username}
-                displayName={displayName}
-                qrcodeUrl={creator.qrcode ?? null}
-              />
-
-              <div id="credibility-section" className="flex flex-col gap-4">
-                <CreatorStageCard credibility={credibility} />
-                {credibility.activeMonths > 0 || credibility.totalPostCount > 0 ? (
-                  <CreatorActivityCredibilityBadge credibility={credibility} />
-                ) : null}
-                <PublicTrustProfileSection
-                  displayName={displayName}
-                  username={username}
-                  externalUrl={creator.url ?? null}
-                  activityMonths={credibility.activeMonths}
-                  contributionCount={credibility.totalContributorCount}
-                  stageLabel={stageResult?.stageLabel ?? null}
-                />
-              </div>
+              {orderedRightKeys.map((key) =>
+                key === credibilityAnchorKey ? (
+                  <div key={key} id="credibility-section">
+                    {rightSectionMap.get(key) ?? null}
+                  </div>
+                ) : (
+                  <div key={key}>{rightSectionMap.get(key) ?? null}</div>
+                )
+              )}
 
               <Suspense fallback={<DeferredSectionsFallback />}>
                 <PublicProfileDeferredSectionsServer

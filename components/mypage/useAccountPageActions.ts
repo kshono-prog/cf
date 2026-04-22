@@ -5,6 +5,7 @@ import type { Address } from "viem";
 import type { CreatorProfile, SocialLinks, YoutubeVideo } from "@/types/creator";
 import type { EcosystemRole } from "@/lib/creatorTaxonomy";
 import type { MeStatus } from "@/lib/mypage/types";
+import type { CreatorPublicPageConfig } from "@/lib/publicPageConfig";
 import {
   saveMyPageUser,
   requestCreatorApply,
@@ -28,6 +29,7 @@ type Args = {
   themeColor: string;
   creatorType: CreatorProfile["creatorType"];
   ecosystemRole: EcosystemRole | null;
+  publicPage: CreatorPublicPageConfig;
   socials: SocialLinks;
   youtubeVideos: YoutubeVideo[];
   // callbacks after successful mutation
@@ -53,6 +55,7 @@ export function useAccountPageActions(args: Args) {
     themeColor,
     creatorType,
     ecosystemRole,
+    publicPage,
     socials,
     youtubeVideos,
     onSaved,
@@ -152,6 +155,7 @@ export function useAccountPageActions(args: Args) {
         themeColor,
         creatorType,
         ecosystemRole,
+        publicPage,
         socials,
         youtubeVideos,
       });

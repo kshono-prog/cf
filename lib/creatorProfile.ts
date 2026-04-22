@@ -3,6 +3,12 @@ import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
 import { isPrismaUnavailableError, withPrismaRetry } from "@/lib/prismaRetry";
+import {
+  PUBLIC_PAGE_CONFIG_SELECT_BASE,
+  PUBLIC_PAGE_CONFIG_SELECT_WITH_INTRO_SECTION_ORDER,
+  hasPublicPageIntroSectionOrderColumn,
+  normalizePublicPageConfigRow,
+} from "@/lib/publicPageConfigSchema";
 import { serializeCreatorProfile } from "@/lib/serializers/creator";
 
 type CreatorProfileRecord = {
@@ -35,12 +41,19 @@ const getCreatorProfileByUsernameCached = unstable_cache(
     const staleMap = getCreatorProfileStaleMap();
 
     try {
+      const canReadIntroSectionOrder =
+        await hasPublicPageIntroSectionOrderColumn();
       const profile = await withPrismaRetry(() =>
         prisma.creatorProfile.findUnique({
           where: { username },
           include: {
             socialLinks: true,
             youtubeVideos: true,
+            publicPageConfig: {
+              select: canReadIntroSectionOrder
+                ? PUBLIC_PAGE_CONFIG_SELECT_WITH_INTRO_SECTION_ORDER
+                : PUBLIC_PAGE_CONFIG_SELECT_BASE,
+            },
           },
         })
       );
@@ -66,9 +79,11 @@ const getCreatorProfileByUsernameCached = unstable_cache(
           externalUrl: profile.externalUrl,
           themeColor: profile.themeColor,
           creatorType: profile.creatorType,
+          ecosystemRole: profile.ecosystemRole,
           walletAddress: profile.walletAddress,
           socialLinks: profile.socialLinks,
           youtubeVideos: profile.youtubeVideos,
+          publicPageConfig: normalizePublicPageConfigRow(profile.publicPageConfig),
         }),
       };
 
