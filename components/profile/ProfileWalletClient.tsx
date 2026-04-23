@@ -57,6 +57,15 @@ type ContributionArgs = {
   fromAddress: string;
   toAddress: string;
   amount: string;
+  paymentIntentId?: string;
+};
+
+export type RewardTierPrefill = {
+  tierId: string;
+  title: string;
+  priceJpyc: number;
+  paymentIntentId: string;
+  quantity: number;
 };
 
 type ContributionPreflightArgs = {
@@ -97,6 +106,10 @@ type Props = {
     args: ContributionArgs
   ) => Promise<{ ok: true } | { ok: false; reason: string }>;
   onAfterSend: (txHash: string, postId?: string | null) => Promise<void>;
+  rewardTierPrefill?: RewardTierPrefill | null;
+  onClearRewardTierPrefill?: () => void;
+  onChangeTierQuantity?: (nextQuantity: number) => void | Promise<void>;
+  tierQuantityUpdating?: boolean;
 };
 
 export function ProfileWalletClient({
@@ -116,6 +129,10 @@ export function ProfileWalletClient({
   onClearSelectedPost,
   onPostContribution,
   onAfterSend,
+  rewardTierPrefill,
+  onClearRewardTierPrefill,
+  onChangeTierQuantity,
+  tierQuantityUpdating,
 }: Props) {
   const account = useAccount();
   const { connector } = account;
@@ -137,6 +154,13 @@ export function ProfileWalletClient({
   const [currency, setCurrency] = useState<Currency>("JPYC");
   const [amount, setAmount] = useState<string>(TOKENS["JPYC"].presets[0]);
   const [message, setMessage] = useState<string>("");
+
+  const tierLocked = Boolean(rewardTierPrefill);
+  useEffect(() => {
+    if (!rewardTierPrefill) return;
+    setCurrency("JPYC");
+    setAmount(String(rewardTierPrefill.priceJpyc * rewardTierPrefill.quantity));
+  }, [rewardTierPrefill]);
   const [resolvedProjectIdsByCurrency, setResolvedProjectIdsByCurrency] =
     useState<{
       JPYC: string | null;
@@ -718,6 +742,7 @@ export function ProfileWalletClient({
       toAddress: lastTx.toAddress,
       amount: lastTx.amount,
       message: lastTx.message ?? undefined,
+      paymentIntentId: rewardTierPrefill?.paymentIntentId,
     });
 
     if (!contributionResult.ok) {
@@ -896,6 +921,7 @@ export function ProfileWalletClient({
   }
 
   const incrementButtons = useMemo(() => {
+    if (tierLocked) return [];
     return INCREMENTS[currency].map((delta) => {
       const label = currency === "JPYC" ? `+${delta} JPYC` : `+${delta} USD`;
       return {
@@ -907,10 +933,71 @@ export function ProfileWalletClient({
         },
       };
     });
-  }, [currency, sending]);
+  }, [currency, sending, tierLocked]);
 
   return (
     <>
+      {rewardTierPrefill ? (
+        <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <div className="flex-1">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-800">
+              選択中の支援メニュー
+            </div>
+            <div className="mt-0.5 text-sm font-semibold text-amber-900">
+              {rewardTierPrefill.title}
+            </div>
+            <div className="mt-0.5 text-[11px] text-amber-800">
+              {(rewardTierPrefill.priceJpyc * rewardTierPrefill.quantity).toLocaleString(
+                "en-US"
+              )}{" "}
+              JPYC × {rewardTierPrefill.quantity} 件 で固定
+            </div>
+            {onChangeTierQuantity ? (
+              <div className="mt-1.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChangeTierQuantity(rewardTierPrefill.quantity - 1)
+                  }
+                  disabled={
+                    tierQuantityUpdating ||
+                    sending ||
+                    rewardTierPrefill.quantity <= 1
+                  }
+                  className="h-6 w-6 rounded-full border border-amber-300 bg-white text-[12px] font-bold text-amber-900 disabled:opacity-40"
+                  aria-label="数量を減らす"
+                >
+                  −
+                </button>
+                <span className="min-w-[22px] text-center text-[12px] font-semibold text-amber-900">
+                  {tierQuantityUpdating ? "…" : rewardTierPrefill.quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChangeTierQuantity(rewardTierPrefill.quantity + 1)
+                  }
+                  disabled={tierQuantityUpdating || sending}
+                  className="h-6 w-6 rounded-full border border-amber-300 bg-white text-[12px] font-bold text-amber-900 disabled:opacity-40"
+                  aria-label="数量を増やす"
+                >
+                  ＋
+                </button>
+              </div>
+            ) : null}
+          </div>
+          {onClearRewardTierPrefill ? (
+            <button
+              type="button"
+              onClick={onClearRewardTierPrefill}
+              disabled={sending || tierQuantityUpdating}
+              className="text-[11px] text-amber-900 underline disabled:opacity-50"
+            >
+              解除
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <WalletSection
         connected={connected}
         isWalletConnecting={
@@ -934,7 +1021,7 @@ export function ProfileWalletClient({
         creatorDisplayName={creator.displayName || username}
         selectedProjectTitle={selectedProjectTitle}
         selectedProjectCurrency={selectedProjectCurrency}
-        currencyLocked={selectedProjectCurrency !== null}
+        currencyLocked={tierLocked || selectedProjectCurrency !== null}
         selectedPostSummary={selectedPostSummary}
         selectableChainIds={selectableChainIds}
         currency={currency}
@@ -948,11 +1035,13 @@ export function ProfileWalletClient({
           setSelectedChainId(next as SupportedChainId);
         }}
         onChangeCurrency={(next) => {
+          if (tierLocked) return;
           if (selectedProjectCurrency) return;
           setCurrency(next);
           setAmount(TOKENS[next].presets[0]);
         }}
         onChangeAmount={(next) => {
+          if (tierLocked) return;
           setAmount(normalizeAmountInput(next, currency));
         }}
         onClearSelectedPost={onClearSelectedPost}

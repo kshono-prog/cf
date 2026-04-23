@@ -63,7 +63,7 @@ export function WalletSection(props: WalletSectionProps) {
     `Chain ${props.selectedChainId}`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="wallet-section">
       <div className="surface-card p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -264,6 +264,7 @@ export function WalletSection(props: WalletSectionProps) {
               <input
                 type="text"
                 className="input"
+                data-testid="send-amount-input"
                 value={props.amount}
                 onChange={(event) => props.onChangeAmount(event.target.value)}
                 onKeyDown={(event) => {
@@ -335,6 +336,7 @@ export function WalletSection(props: WalletSectionProps) {
             <button
               type="button"
               className="btn"
+              data-testid="send-button"
               onClick={props.onSend}
               disabled={props.sending || !props.amount}
               style={{ backgroundColor: props.headerColor || undefined }}

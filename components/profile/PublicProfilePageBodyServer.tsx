@@ -25,9 +25,14 @@ import { serializeJsonLd } from "@/lib/seo/jsonLd";
 import { buildPublicProfileStructuredData } from "@/lib/seo/publicProfileStructuredData";
 import { getActiveSupportProject } from "@/lib/supportProfileView";
 import type { SupportProfileView } from "@/lib/supportProfileView";
+import {
+  buildPublicProfileReadModel,
+  parseE2EMockScenario,
+} from "@/lib/testing/e2eMocks";
 
 type Props = {
   username: string;
+  e2eMockScenario?: Record<string, string | string[] | undefined>;
 };
 
 const PUBLIC_SITE_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "";
@@ -110,8 +115,15 @@ function UnavailableBody({ username }: Props) {
   );
 }
 
-export async function PublicProfilePageBodyServer({ username }: Props) {
+export async function PublicProfilePageBodyServer({
+  username,
+  e2eMockScenario,
+}: Props) {
   try {
+    const mockScenario = parseE2EMockScenario(
+      e2eMockScenario?.e2eMock
+    );
+    const usingMockData = mockScenario === "publicProfile";
     const {
       pageData: {
         creator,
@@ -126,7 +138,9 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
       },
       initialFeed,
       credibility,
-    } = await loadPublicProfilePageReadModel(username);
+    } = usingMockData
+      ? buildPublicProfileReadModel(username)
+      : await loadPublicProfilePageReadModel(username);
     const stageResult =
       credibility.totalPostCount > 0 || credibility.activeMonths > 0
         ? deriveCreatorStage(credibility)
@@ -332,12 +346,14 @@ export async function PublicProfilePageBodyServer({ username }: Props) {
                 )
               )}
 
-              <Suspense fallback={<DeferredSectionsFallback />}>
-                <PublicProfileDeferredSectionsServer
-                  creatorProfileId={profile.id}
-                  activeSupportProject={activeSupportProject}
-                />
-              </Suspense>
+              {usingMockData ? null : (
+                <Suspense fallback={<DeferredSectionsFallback />}>
+                  <PublicProfileDeferredSectionsServer
+                    creatorProfileId={profile.id}
+                    activeSupportProject={activeSupportProject}
+                  />
+                </Suspense>
+              )}
             </div>
           </aside>
         </div>

@@ -119,7 +119,10 @@ function StaticSupportProjectCard(props: {
   const progressPct = Math.floor(clampProgress(props.project.progressPct));
 
   return (
-    <article className="sheet-section px-4 py-4 sm:px-5">
+    <article
+      className="sheet-section px-4 py-4 sm:px-5"
+      data-testid="project-progress-card"
+    >
       <div className="flex min-w-0 items-center gap-3">
         <StaticAvatar
           src={props.creator.avatarUrl}
@@ -283,6 +286,7 @@ export function PublicProfileIntroServer({
     <section
       id="support-projects"
       className="sheet-section px-3.5 py-3 sm:px-4 sm:py-3.5"
+      data-testid="support-projects"
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.88fr)_1.12fr] lg:items-start">
         <div className="min-w-0 space-y-3">
@@ -332,6 +336,7 @@ export function PublicProfileIntroServer({
     <section
       id="support-projects"
       className="sheet-section px-4 py-4 sm:px-5 sm:py-5"
+      data-testid="support-projects"
     >
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -385,7 +390,10 @@ export function PublicProfileIntroServer({
 
   const videoSection =
     creator.youtubeVideos && creator.youtubeVideos.length > 0 ? (
-      <section className="sheet-section px-4 py-4 sm:px-5 sm:py-5">
+      <section
+        className="sheet-section px-4 py-4 sm:px-5 sm:py-5"
+        data-testid="featured-videos"
+      >
         <div className="section-kicker">Video</div>
         <div className="text-base font-semibold text-[var(--text)]">紹介動画</div>
         <div className="mt-3 space-y-4">

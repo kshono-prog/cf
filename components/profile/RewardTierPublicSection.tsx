@@ -12,7 +12,7 @@ import { SelectedTierSummaryCard } from "./SelectedTierSummaryCard";
 type Props = {
   projectId: string | null;
   headerColor?: string;
-  onRequestSupport?: (tier: RewardTierView) => void;
+  onRequestSupport?: (tier: RewardTierView) => void | Promise<void>;
 };
 
 export function RewardTierPublicSection({

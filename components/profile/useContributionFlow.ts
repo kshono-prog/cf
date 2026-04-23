@@ -29,6 +29,7 @@ type PostContributionArgs = {
   fromAddress: string;
   toAddress: string;
   amount: string;
+  paymentIntentId?: string;
 };
 
 type Args = {
@@ -97,6 +98,9 @@ export function useContributionFlow({
             : { purposeId: args.purposeId === null ? null : String(args.purposeId) }),
           ...(args.postId ? { postId: args.postId } : {}),
           ...(args.message ? { message: args.message } : {}),
+          ...(args.paymentIntentId
+            ? { paymentIntentId: args.paymentIntentId }
+            : {}),
           chainId: args.chainId,
           currency: args.currency,
           txHash: args.txHash,

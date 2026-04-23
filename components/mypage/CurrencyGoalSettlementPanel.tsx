@@ -255,7 +255,7 @@ export function CurrencyGoalSettlementPanel(props: {
   }, [msg]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="goal-section">
       <div className="font-semibold">公開ページに載せる Goal（{currency}）</div>
 
       {!projectId ? (
@@ -344,7 +344,10 @@ export function CurrencyGoalSettlementPanel(props: {
             />
           ) : null}
 
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 space-y-2">
+          <div
+            className="rounded-lg border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3 space-y-2"
+            data-testid="summary-actions-section"
+          >
             <div
               ref={summarySectionRef}
               id={summaryAnchorId}

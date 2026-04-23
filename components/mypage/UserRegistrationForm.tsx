@@ -28,7 +28,11 @@ export function UserRegistrationForm({
   onSubmit,
 }: Props) {
   return (
-    <form className="space-y-3" onSubmit={onSubmit}>
+    <form
+      className="space-y-3"
+      data-testid="user-registration-form"
+      onSubmit={onSubmit}
+    >
       <div>
         <label className="block text-xs font-medium mb-1">
           ページURL（ユーザーID） <span className="text-red-500">*</span>

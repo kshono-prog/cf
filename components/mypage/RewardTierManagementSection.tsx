@@ -82,6 +82,7 @@ export function RewardTierManagementSection({
     useState<PaymentIntentDetailView | null>(null);
   const [paymentIntentMsg, setPaymentIntentMsg] = useState<string | null>(null);
   const [reverifying, setReverifying] = useState(false);
+  const [canceling, setCanceling] = useState(false);
 
   const canMutate = Boolean(projectId && ownerAddress);
 
@@ -273,6 +274,45 @@ export function RewardTierManagementSection({
     [projectId, ownerAddress, fetchTiers]
   );
 
+  const cancelTier = useCallback(
+    async (tier: RewardTierView) => {
+      if (!projectId || !ownerAddress) return;
+      const confirmed =
+        typeof window !== "undefined"
+          ? window.confirm(
+              `「${tier.title}」の受付を終了します。よろしいですか?`
+            )
+          : true;
+      if (!confirmed) return;
+      setBusyTierId(tier.id);
+      try {
+        const res = await ownerAuthFetch({
+          address: ownerAddress,
+          url: `/api/projects/${encodeURIComponent(projectId)}/reward-tiers/${encodeURIComponent(tier.id)}`,
+          init: {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              address: ownerAddress,
+              productionStatus: "CANCELED",
+              isPublished: false,
+            }),
+            cache: "no-store",
+          },
+        });
+        if (!res.ok) {
+          setTierMsg(`受付終了に失敗しました (${res.status})`);
+        } else {
+          setTierMsg("受付を終了しました");
+        }
+      } finally {
+        setBusyTierId(null);
+        await fetchTiers();
+      }
+    },
+    [projectId, ownerAddress, fetchTiers]
+  );
+
   const callProductionAction = useCallback(
     async (tier: RewardTierView, action: "start" | "complete") => {
       if (!projectId || !ownerAddress) return;
@@ -308,6 +348,34 @@ export function RewardTierManagementSection({
     },
     [projectId, ownerAddress, fetchTiers]
   );
+
+  const cancelPaymentIntent = useCallback(async () => {
+    if (!projectId || !paymentIntentDetail || !ownerAddress) return;
+    setCanceling(true);
+    setPaymentIntentMsg(null);
+    try {
+      const res = await ownerAuthFetch({
+        address: ownerAddress,
+        url: `/api/projects/${encodeURIComponent(projectId)}/payment-intents/${encodeURIComponent(paymentIntentDetail.id)}/cancel`,
+        init: {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: ownerAddress }),
+          cache: "no-store",
+        },
+      });
+      if (!res.ok) {
+        setPaymentIntentMsg(`中止に失敗しました (${res.status})`);
+        return;
+      }
+      setPaymentIntentMsg("受付を中止しました");
+      setSelectedPaymentIntentId(null);
+      setPaymentIntentDetail(null);
+      await fetchPaymentIntents();
+    } finally {
+      setCanceling(false);
+    }
+  }, [projectId, paymentIntentDetail, ownerAddress, fetchPaymentIntents]);
 
   const reverifyPaymentIntent = useCallback(async () => {
     if (!projectId || !paymentIntentDetail) return;
@@ -389,6 +457,7 @@ export function RewardTierManagementSection({
         onTogglePublish={togglePublish}
         onStartProduction={(tier) => callProductionAction(tier, "start")}
         onCompleteProduction={(tier) => callProductionAction(tier, "complete")}
+        onCancelTier={ownerAddress ? cancelTier : undefined}
       />
 
       {canMutate ? (
@@ -420,7 +489,9 @@ export function RewardTierManagementSection({
           <PaymentIntentDetailCard
             intent={paymentIntentDetail}
             reverifying={reverifying}
+            canceling={canceling}
             onReverify={reverifyPaymentIntent}
+            onCancel={ownerAddress ? cancelPaymentIntent : undefined}
             onClose={() => {
               setSelectedPaymentIntentId(null);
               setPaymentIntentDetail(null);

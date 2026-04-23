@@ -160,7 +160,10 @@ export function PublicExternalWalletTipQrCard({
   };
 
   return (
-    <section className="panel-card px-4 py-4 sm:px-5 sm:py-5">
+    <section
+      className="panel-card px-4 py-4 sm:px-5 sm:py-5"
+      data-testid="wallet-section"
+    >
       <div className="flex flex-col gap-4">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-subtle)]">
@@ -236,6 +239,7 @@ export function PublicExternalWalletTipQrCard({
               </span>
               <input
                 className="input mt-2"
+                data-testid="send-amount-input"
                 inputMode="decimal"
                 placeholder={`例: ${
                   selectedAsset.key === "JPYC"
@@ -285,7 +289,12 @@ export function PublicExternalWalletTipQrCard({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <button type="button" className="btn" onClick={handleGenerate}>
+              <button
+                type="button"
+                className="btn"
+                data-testid="send-button"
+                onClick={handleGenerate}
+              >
                 QRコードを生成
               </button>
               {generatedDeepLinkHref ? (

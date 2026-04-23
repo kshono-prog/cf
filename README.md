@@ -119,6 +119,20 @@ Creator Founding は、単なる投げ銭アプリでも、単なるAIチャッ�
 - `npm run typecheck`
 - `npm run build`
 
+## Testing
+
+Playwright + Vitest を使って、公開ページと `mypage` の最小スモークを安全に保護しています。方針は mock 中心で、外部ウォレット実接続や本物 RPC への依存はテストに持ち込みません。
+
+- Unit: `npm run test:unit`
+- Unit watch: `npm run test:unit:watch`
+- E2E: `npm run test:e2e`
+- E2E UI: `npm run test:e2e:ui`
+- Combined CI-like run: `npm run test:ci`
+
+CI では `pull_request` と `push` でテスト workflow が自動実行され、失敗時は `playwright-report/`, `test-results/`, `coverage/` を artifact として保存します。Playwright の調査は HTML report を開き、必要なら trace・screenshot・video の順で確認すると原因を追いやすい構成です。
+
+詳細な運用ルールは [docs/testing.md](/Users/shounokazuaki/cf/docs/testing.md) を参照してください。
+
 Prisma schema を変更する場合は、migration impact と rollback concern を必ず説明します。
 
 ## ライセンス

@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 import { CREATOR_TYPE_LABELS } from "@/lib/creatorTaxonomy";
 import { useCreatorReadyWorkspace } from "@/components/mypage/CreatorReadyWorkspaceContext";
 

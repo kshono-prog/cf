@@ -18,6 +18,13 @@ import {
 import { normalizeMyPageMePayload } from "@/lib/mypageApiResponses";
 import type { WorkspaceView } from "@/lib/mypage/workspaceView";
 import { resolveCreatorProjectSelection } from "@/lib/serializers/creator";
+import {
+  buildCreatorReadyMeStatus,
+  buildUserOnlyMeStatus,
+  E2E_MOCK_SEARCH_PARAM,
+  getE2EMockOwnerAddress,
+  parseE2EMockScenario,
+} from "@/lib/testing/e2eMocks";
 
 function buildSearchParams(
   value: Record<string, string | string[] | undefined> | undefined
@@ -58,24 +65,59 @@ export async function renderMyPageWorkspace(params: {
   initialWorkspaceView: WorkspaceView;
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const creator = await getCreatorProfileByUsername(params.username);
-  if (!creator) notFound();
-  const initialProjects = resolveCreatorProjectSelection({
-    activeProjectIdJpyc: creator.profile.activeProjectIdJpyc ?? null,
-    activeProjectIdUsdc: creator.profile.activeProjectIdUsdc ?? null,
-  });
   const requestHeaders = await headers();
   const host = requestHeaders.get("host");
+  const e2eMockScenario = parseE2EMockScenario(
+    params.searchParams?.[E2E_MOCK_SEARCH_PARAM]
+  );
+  const creator = await getCreatorProfileByUsername(params.username);
+  const e2eMockMe =
+    isDevRuntime() && e2eMockScenario === "userOnly"
+      ? buildUserOnlyMeStatus(params.username)
+      : isDevRuntime() && e2eMockScenario === "creatorReady"
+        ? buildCreatorReadyMeStatus(params.username)
+        : null;
+  const syntheticCreatorProfile =
+    isDevRuntime() &&
+    isLocalDevHost(host) &&
+    !creator &&
+    (e2eMockScenario !== null || params.username.startsWith("e2e-"))
+      ? {
+          id: `e2e-${params.username}`,
+          username: params.username,
+          walletAddress:
+            e2eMockMe?.creator?.address ?? getE2EMockOwnerAddress(),
+          activeProjectIdJpyc: null,
+          activeProjectIdUsdc: null,
+        }
+      : null;
+  const creatorProfile = creator?.profile ?? syntheticCreatorProfile;
+  if (!creatorProfile) notFound();
+  const initialProjects = resolveCreatorProjectSelection({
+    activeProjectIdJpyc:
+      e2eMockMe?.projectIdsByCurrency?.JPYC ??
+      creatorProfile.activeProjectIdJpyc ??
+      null,
+    activeProjectIdUsdc:
+      e2eMockMe?.projectIdsByCurrency?.USDC ??
+      creatorProfile.activeProjectIdUsdc ??
+      null,
+  });
   const manualCheckAddress =
     isDevRuntime() &&
     isLocalDevHost(host) &&
     isDevManualCheckEnabled(
       params.searchParams?.[DEV_MANUAL_CHECK_SEARCH_PARAM]
     )
-      ? resolveDevManualCheckAddress(creator.profile.walletAddress)
+      ? resolveDevManualCheckAddress(
+          e2eMockMe?.creator?.address ?? getE2EMockOwnerAddress()
+        ) ??
+        resolveDevManualCheckAddress(creatorProfile.walletAddress)
       : null;
   const initialManualCheckMe = manualCheckAddress
-    ? normalizeMyPageMePayload(await getMeStatusByAddress(manualCheckAddress))
+    ? normalizeMyPageMePayload(
+        e2eMockMe ?? (await getMeStatusByAddress(manualCheckAddress))
+      )
     : null;
   const parsedAiOfficeUrlState = parseAiOfficePanelUrlState(
     buildSearchParams(params.searchParams)
@@ -90,8 +132,10 @@ export async function renderMyPageWorkspace(params: {
     <AccountPageClient
       username={params.username}
       initialWorkspaceView={params.initialWorkspaceView}
-      initialProjectId={initialProjects.projectId}
-      initialProjectIdsByCurrency={initialProjects.projectIdsByCurrency}
+      initialProjectId={e2eMockMe?.projectId ?? initialProjects.projectId}
+      initialProjectIdsByCurrency={
+        e2eMockMe?.projectIdsByCurrency ?? initialProjects.projectIdsByCurrency
+      }
       manualCheckAddress={manualCheckAddress}
       initialMeStatus={initialManualCheckMe}
       initialAiOfficeUrlState={initialAiOfficeUrlState}

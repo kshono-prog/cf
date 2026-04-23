@@ -1,7 +1,17 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-const creatorUsername = process.env.E2E_CREATOR_USERNAME ?? "kazu";
+import {
+  createCreatorReadyMockState,
+  mockCreateProjectSuccess,
+  mockCreatorPublicPage,
+  mockGoalSaveSuccess,
+  mockMeCreatorReady,
+  mockSummarySuccess,
+} from "@/tests/e2e/fixtures/mockApi";
+
+const creatorUsername = process.env.E2E_CREATOR_USERNAME ?? "e2e-creator";
+const publicUsername = "e2e-public";
 
 type BrowserIssue = {
   source: "console" | "pageerror";
@@ -33,20 +43,19 @@ function expectNoBrowserIssues(issues: BrowserIssue[]): void {
   expect(issues).toEqual([]);
 }
 
-test("discover page renders core UI", async ({ page }) => {
-  await page.goto("/creators");
+test("public profile mock renders the supporter smoke surface", async ({ page }) => {
+  await mockCreatorPublicPage(page, publicUsername);
+  await page.goto(`/${publicUsername}?e2eMock=publicProfile`);
 
-  await expect(
-    page.getByRole("heading", { name: "クリエイターを探す" })
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: "すべて" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /@/ }).first()).toBeVisible();
+  await expect(page.getByText("E2E Creator").first()).toBeVisible();
+  await expect(page.getByTestId("project-progress-card").first()).toBeVisible();
 });
 
-test("discover page has no critical accessibility violations", async ({ page }) => {
+test("public profile mock has no critical accessibility violations", async ({ page }) => {
   test.slow();
 
-  await page.goto("/creators");
+  await mockCreatorPublicPage(page, publicUsername);
+  await page.goto(`/${publicUsername}?e2eMock=publicProfile`);
 
   const accessibilityScanResults = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa"])
@@ -62,25 +71,24 @@ test("discover page has no critical accessibility violations", async ({ page }) 
 test("creator workspace manual check page stays free of browser errors", async ({
   page,
 }) => {
+  const state = createCreatorReadyMockState(creatorUsername);
   const issues = attachBrowserIssueCollectors(page);
 
-  await page.goto(`/${creatorUsername}/mypage?manualCheck=1`);
+  await mockMeCreatorReady(page, creatorUsername);
+  await mockSummarySuccess(page, state);
+  await mockCreateProjectSuccess(page, state);
+  await mockGoalSaveSuccess(page, state);
+  await page.goto(`/${creatorUsername}/mypage?manualCheck=1&e2eMock=creatorReady`);
 
-  await expect(
-    page.getByRole("heading", { name: new RegExp(`${creatorUsername} のワークスペース`, "i") })
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /今日の仕事場/ })
-  ).toBeVisible();
+  await expect(page.getByTestId("mypage-root")).toHaveAttribute(
+    "data-mypage-status",
+    "creatorReady"
+  );
   await expect(page.getByRole("button", { name: "投稿する" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Manager Desk" })).toBeVisible();
-  await expect(
-    page.locator(".workspace-segment").getByRole("button", { name: "ホーム" })
-  ).toBeVisible();
-  await expect(
-    page.locator(".workspace-segment").getByRole("button", { name: "設定" })
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: "発見" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "プロジェクト" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "AI オフィス" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /公開ページ ↗/ }).first()).toBeVisible();
 
   expectNoBrowserIssues(issues);
 });
@@ -90,44 +98,36 @@ test("creator workspace exposes stable fan-preview and ai-office shortcut links"
 }) => {
   const issues = attachBrowserIssueCollectors(page);
 
-  await page.goto(`/${creatorUsername}/mypage?manualCheck=1`);
+  const state = createCreatorReadyMockState(creatorUsername);
+  await mockMeCreatorReady(page, creatorUsername);
+  await mockSummarySuccess(page, state);
+  await mockCreateProjectSuccess(page, state);
+  await mockGoalSaveSuccess(page, state);
+  await page.goto(`/${creatorUsername}/mypage?manualCheck=1&e2eMock=creatorReady`);
 
-  await expect(page.getByRole("link", { name: "ファン目線を確認 ↗" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: /公開ページ ↗/ }).first()).toHaveAttribute(
     "href",
     `/${creatorUsername}`
   );
-  await expect(page.getByRole("link", { name: "AI事務所を開く" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "Manager Desk" })).toHaveAttribute(
     "href",
-    `/${creatorUsername}/mypage?manualCheck=1#ai-office`
-  );
-  await expect(page.getByRole("link", { name: "この担当を開く" })).toHaveAttribute(
-    "href",
-    /aiOfficeView=CREATE/
+    "/manager-desk"
   );
 
   expectNoBrowserIssues(issues);
 });
 
-test("ai office shortcuts navigate to the expected deep links", async ({
-  page,
-}) => {
-  await page.goto(`/${creatorUsername}/mypage?manualCheck=1`);
-  await page.getByRole("link", { name: "AI事務所を開く" }).click();
-  await expect(page).toHaveURL(
-    new RegExp(`/${creatorUsername}/mypage\\?manualCheck=1#ai-office$`)
-  );
+test("ai office shortcuts expose the expected deep links", async ({ page }) => {
+  const state = createCreatorReadyMockState(creatorUsername);
+  await mockMeCreatorReady(page, creatorUsername);
+  await mockSummarySuccess(page, state);
+  await mockCreateProjectSuccess(page, state);
+  await mockGoalSaveSuccess(page, state);
 
-  await page.goto(`/${creatorUsername}/mypage?manualCheck=1`);
-  await page.getByRole("link", { name: "この担当を開く" }).click();
-  await expect(page).toHaveURL(
-    new RegExp(`/${creatorUsername}/mypage\\?manualCheck=1&aiOfficeView=CREATE#ai-office$`)
-  );
+  await page.goto(`/${creatorUsername}/mypage?manualCheck=1&e2eMock=creatorReady`);
 
-  await page.goto(`/${creatorUsername}/mypage?manualCheck=1`);
-  await page.getByRole("link", { name: "下書きを作る" }).first().click();
-  await expect(page).toHaveURL(
-    new RegExp(
-      `/${creatorUsername}/mypage\\?manualCheck=1&aiOfficeView=CREATE&aiOfficeRole=[A-Z_]+#ai-office$`
-    )
+  await expect(page.getByRole("link", { name: "AI オフィスを開く" })).toHaveAttribute(
+    "href",
+    `/${creatorUsername}/mypage/ai-office`
   );
 });

@@ -13,7 +13,10 @@ import {
   buildRewardTierProgressDto,
   serializeRewardTierWithProgress,
 } from "@/lib/rewardTierService";
-import { isRewardTierThresholdType } from "@/lib/rewardTierProgress";
+import {
+  isRewardTierThresholdType,
+  isRewardTierProductionStatus,
+} from "@/lib/rewardTierProgress";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +143,25 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<Params> }) 
       return errJson("THRESHOLD_VALUE_REQUIRED", 400);
     }
 
+    // productionStatus の更新は CANCELED への明示的な遷移のみ受け付ける。
+    // 他の状態遷移は専用エンドポイント (start/complete) を使うこと。
+    let productionStatusUpdate: "CANCELED" | undefined;
+    if (typeof body.productionStatus === "string") {
+      if (!isRewardTierProductionStatus(body.productionStatus)) {
+        return errJson("PRODUCTION_STATUS_INVALID", 400);
+      }
+      if (body.productionStatus !== "CANCELED") {
+        return errJson("PRODUCTION_STATUS_TRANSITION_NOT_ALLOWED", 400);
+      }
+      if (
+        current.productionStatus === "IN_PROGRESS" ||
+        current.productionStatus === "COMPLETED"
+      ) {
+        return errJson("PRODUCTION_STATUS_TRANSITION_NOT_ALLOWED", 400);
+      }
+      productionStatusUpdate = "CANCELED";
+    }
+
     const updated = await prisma.rewardTier.update({
       where: { id: tid },
       data: {
@@ -153,6 +175,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<Params> }) 
         ...(imageUrl !== undefined ? { imageUrl } : {}),
         ...(startThresholdType !== undefined ? { startThresholdType } : {}),
         ...(startThresholdValue !== undefined ? { startThresholdValue } : {}),
+        ...(productionStatusUpdate
+          ? { productionStatus: productionStatusUpdate }
+          : {}),
         updatedAt: new Date(),
       },
     });

@@ -394,93 +394,105 @@ export default function AccountPageClient({
   const promoHeaderColor = themeColor || "#005bbb";
 
   if (status === "loading") {
-    return <LoadingMyPageView headerColor={promoHeaderColor} />;
+    return (
+      <div data-testid="mypage-root" data-mypage-status="loading">
+        <LoadingMyPageView headerColor={promoHeaderColor} />
+      </div>
+    );
   }
 
   if (status === "unconnected") {
     return (
-      <UnconnectedMyPageView
-        headerColor={promoHeaderColor}
-        error={error}
-        openSections={openSections}
-        setOpenSections={setOpenSections}
-      />
+      <div data-testid="mypage-root" data-mypage-status="unconnected">
+        <UnconnectedMyPageView
+          headerColor={promoHeaderColor}
+          error={error}
+          openSections={openSections}
+          setOpenSections={setOpenSections}
+        />
+      </div>
     );
   }
 
   if (status === "authRequired") {
     return (
-      <AuthRequiredMyPageView
-        headerColor={promoHeaderColor}
-        authenticating={ownerSession.status === "checking"}
-        onAuthenticate={() => {
-          void ownerSession.authenticate();
-        }}
-      />
+      <div data-testid="mypage-root" data-mypage-status="authRequired">
+        <AuthRequiredMyPageView
+          headerColor={promoHeaderColor}
+          authenticating={ownerSession.status === "checking"}
+          onAuthenticate={() => {
+            void ownerSession.authenticate();
+          }}
+        />
+      </div>
     );
   }
 
   if (status === "noUser") {
     return (
-      <NoUserMyPageView
-        headerColor={promoHeaderColor}
-        error={error}
-        errorDescription={errorDescription}
-        notice={notice}
-        assistantSection={
-          <AiProfileDraftCard
-            username={usernameInput || null}
-            existingDisplayName={displayName}
-            existingProfile={profile}
-            existingGoalTitle={aiSetupDraft.goalTitle}
-            existingSocials={socials}
-            existingYoutubeVideos={youtubeVideos}
-            onApply={(draft) => {
-              applyAiProfileDraft(draft);
-            }}
-            onGenerated={(draft) => {
-              reportGrowthEvent({
-                event: "profile_ai_generated",
-                username: usernameInput.trim() || null,
-                metadata: {
-                  sourceStatus: "noUser",
-                  suggestedGoalTargetJpyc: draft.suggestedGoalTargetJpyc,
-                },
-              });
-            }}
-          />
-        }
-        usernameInput={usernameInput}
-        displayName={displayName}
-        profile={profile}
-        setUsernameInput={setUsernameInput}
-        setDisplayName={setDisplayName}
-        setProfile={setProfile}
-        saving={saving}
-        onSubmit={handleSaveUser}
-      />
+      <div data-testid="mypage-root" data-mypage-status="noUser">
+        <NoUserMyPageView
+          headerColor={promoHeaderColor}
+          error={error}
+          errorDescription={errorDescription}
+          notice={notice}
+          assistantSection={
+            <AiProfileDraftCard
+              username={usernameInput || null}
+              existingDisplayName={displayName}
+              existingProfile={profile}
+              existingGoalTitle={aiSetupDraft.goalTitle}
+              existingSocials={socials}
+              existingYoutubeVideos={youtubeVideos}
+              onApply={(draft) => {
+                applyAiProfileDraft(draft);
+              }}
+              onGenerated={(draft) => {
+                reportGrowthEvent({
+                  event: "profile_ai_generated",
+                  username: usernameInput.trim() || null,
+                  metadata: {
+                    sourceStatus: "noUser",
+                    suggestedGoalTargetJpyc: draft.suggestedGoalTargetJpyc,
+                  },
+                });
+              }}
+            />
+          }
+          usernameInput={usernameInput}
+          displayName={displayName}
+          profile={profile}
+          setUsernameInput={setUsernameInput}
+          setDisplayName={setDisplayName}
+          setProfile={setProfile}
+          saving={saving}
+          onSubmit={handleSaveUser}
+        />
+      </div>
     );
   }
 
   if (status === "userOnly") {
     return (
-      <UserOnlyMyPageView
-        headerColor={promoHeaderColor}
-        error={error}
-        errorDescription={errorDescription}
-        notice={notice}
-        openSections={openSections}
-        onToggleSection={toggleSection}
-        userDisplayName={me?.user?.displayName}
-        userProfile={me?.user?.profile}
-        displayName={displayName}
-        profile={profile}
-        setDisplayName={setDisplayName}
-        setProfile={setProfile}
-        saving={saving}
-        onSubmit={handleSaveUser}
-        onApply={() => void handleApplyCreator()}
-      />
+      <div data-testid="mypage-root" data-mypage-status="userOnly">
+        <UserOnlyMyPageView
+          headerColor={promoHeaderColor}
+          error={error}
+          errorDescription={errorDescription}
+          notice={notice}
+          openSections={openSections}
+          onToggleSection={toggleSection}
+          userDisplayName={me?.user?.displayName}
+          userProfile={me?.user?.profile}
+          displayName={displayName}
+          profile={profile}
+          setDisplayName={setDisplayName}
+          setProfile={setProfile}
+          saving={saving}
+          onSubmit={handleSaveUser}
+          onApply={() => void handleApplyCreator()}
+        />
+      </div>
     );
   }
 
@@ -539,15 +551,17 @@ export default function AccountPageClient({
   };
 
   return (
-    <CreatorReadyWorkspaceProvider value={workspaceState}>
-      <CreatorReadyAccountView
-        initialWorkspaceView={initialWorkspaceView}
-        workspaceBasePath={workspaceBasePath}
-        themeColor={themeColor}
-        error={error}
-        errorDescription={errorDescription}
-        notice={notice}
-      />
-    </CreatorReadyWorkspaceProvider>
+    <div data-testid="mypage-root" data-mypage-status="creatorReady">
+      <CreatorReadyWorkspaceProvider value={workspaceState}>
+        <CreatorReadyAccountView
+          initialWorkspaceView={initialWorkspaceView}
+          workspaceBasePath={workspaceBasePath}
+          themeColor={themeColor}
+          error={error}
+          errorDescription={errorDescription}
+          notice={notice}
+        />
+      </CreatorReadyWorkspaceProvider>
+    </div>
   );
 }

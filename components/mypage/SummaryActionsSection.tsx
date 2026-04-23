@@ -53,7 +53,7 @@ export function SummaryActionsSection(props: SummaryActionsSectionProps) {
   }
 
   return (
-    <div className="card p-4 space-y-3">
+    <div className="card p-4 space-y-3" data-testid="summary-actions-section">
       <div className="flex items-center justify-between gap-2">
         <div className="section-title">Summary / Actions</div>
         <div className="flex items-center gap-2">

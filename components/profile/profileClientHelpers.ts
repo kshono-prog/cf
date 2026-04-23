@@ -4,10 +4,11 @@ import { createPublicClient, http, parseAbiItem } from "viem";
 import { isRecord } from "@/lib/api/guards";
 import { getChainConfig } from "@/lib/chainConfig";
 import { getClientRpcUrl } from "@/lib/clientRpc";
+import type { Currency } from "@/lib/profile/amount";
+export type { Currency } from "@/lib/profile/amount";
+export { addAmount, normalizeAmountInput } from "@/lib/profile/amount";
 
 const LAST_TX_KEY = "cf:lastTx:v1";
-
-export type Currency = "JPYC" | "USDC";
 
 export type LastTx = {
   contributionId: string | null;
@@ -201,34 +202,4 @@ export function clampPct(p: number): number {
   if (p < 0) return 0;
   if (p > 100) return 100;
   return p;
-}
-
-export function normalizeAmountInput(raw: string, cur: Currency): string {
-  const s = raw.replace(/[^\d.]/g, "");
-  if (cur === "JPYC") return s.split(".")[0] || "";
-  const [head, ...rest] = s.split(".");
-  return head + (rest.length ? "." + rest.join("").replace(/\./g, "") : "");
-}
-
-export function addAmount(
-  current: string,
-  delta: string,
-  cur: Currency
-): string {
-  const curNorm = normalizeAmountInput(current || "0", cur);
-  const deltaNorm = normalizeAmountInput(delta, cur);
-
-  const curNum = Number(curNorm || "0");
-  const deltaNum = Number(deltaNorm || "0");
-
-  const sum = curNum + deltaNum;
-  if (!Number.isFinite(sum) || sum < 0) {
-    return curNorm || "0";
-  }
-
-  if (cur === "JPYC") {
-    return String(Math.floor(sum));
-  }
-
-  return sum.toFixed(2);
 }

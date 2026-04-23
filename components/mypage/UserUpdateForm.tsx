@@ -22,7 +22,11 @@ export function UserUpdateForm({
   onSubmit,
 }: Props) {
   return (
-    <form className="space-y-3" onSubmit={onSubmit}>
+    <form
+      className="space-y-3"
+      data-testid="user-registration-form"
+      onSubmit={onSubmit}
+    >
       <p className="text-[11px] leading-relaxed text-[var(--muted)]">
         申請前に、公開してもよい表示名と自己紹介になっているかを確認します。
       </p>

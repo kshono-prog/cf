@@ -5,7 +5,9 @@ import type { PaymentIntentDetailView } from "@/lib/apiGuards/paymentIntents";
 type Props = {
   intent: PaymentIntentDetailView;
   reverifying: boolean;
+  canceling?: boolean;
   onReverify: () => void;
+  onCancel?: () => void;
   onClose: () => void;
   message?: string | null;
 };
@@ -18,10 +20,15 @@ function formatJpyc(value: number): string {
 export function PaymentIntentDetailCard({
   intent,
   reverifying,
+  canceling,
   onReverify,
+  onCancel,
   onClose,
   message,
 }: Props) {
+  const cancelable =
+    !intent.contribution &&
+    (intent.status === "OPEN" || intent.status === "EXPIRED");
   return (
     <div className="space-y-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
       <header className="flex items-start justify-between gap-2">
@@ -148,6 +155,21 @@ export function PaymentIntentDetailCard({
       <div className="flex items-center justify-end gap-2">
         {message ? (
           <span className="text-[11px] text-[var(--text-subtle)]">{message}</span>
+        ) : null}
+        {onCancel ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={!cancelable || canceling}
+            className="rounded-md border border-[var(--line)] bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            title={
+              cancelable
+                ? "入金が紐づく前の受付を中止します"
+                : "入金済みの受付は中止できません"
+            }
+          >
+            {canceling ? "中止処理中…" : "受付を中止"}
+          </button>
         ) : null}
         <button
           type="button"

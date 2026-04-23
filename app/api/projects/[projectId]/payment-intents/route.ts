@@ -15,6 +15,8 @@ import { isAddress, getAddress } from "viem";
 
 export const dynamic = "force-dynamic";
 
+const DEFAULT_PAYMENT_INTENT_TTL_MS = 30 * 60_000; // 30 分
+
 type Params = { projectId: string };
 
 function toOptionalString(v: unknown): string | null {
@@ -181,6 +183,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<Params> }) {
       }
     }
 
+    const expiresAt = new Date(Date.now() + DEFAULT_PAYMENT_INTENT_TTL_MS);
     const draft = createPaymentIntentDraft({
       rewardTier: {
         id: tier.id,
@@ -195,6 +198,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<Params> }) {
       customerLabel,
       note,
       purposeId,
+      expiresAt,
     });
 
     const created = await prisma.paymentIntent.create({
@@ -210,6 +214,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<Params> }) {
         customerLabel: draft.customerLabel,
         note: draft.note,
         status: "OPEN",
+        expiresAt: draft.expiresAt,
         items: {
           create: {
             itemName: draft.itemName,

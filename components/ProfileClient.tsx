@@ -23,6 +23,9 @@ import { DeferredFeedSection } from "@/components/feed/DeferredFeedSection";
 import { CreatorManagementStrip } from "@/components/profile/CreatorManagementStrip";
 import { PublicExternalWalletTipQrCard } from "@/components/profile/PublicExternalWalletTipQrCard";
 import { RewardTierPublicSection } from "@/components/profile/RewardTierPublicSection";
+import type { RewardTierPrefill } from "@/components/profile/ProfileWalletClient";
+import type { RewardTierView } from "@/lib/apiGuards/rewardTiers";
+import { getDefaultChainId } from "@/lib/chainConfig";
 import {
   type SupportProjectView,
   type SupportProfileView,
@@ -153,6 +156,9 @@ export default function ProfileClient({
   const [stickyVisible, setStickyVisible] = useState(false);
   const [supportSectionInView, setSupportSectionInView] = useState(true);
   const [ownerPageReviewed, setOwnerPageReviewed] = useState(false);
+  const [rewardTierPrefill, setRewardTierPrefill] =
+    useState<RewardTierPrefill | null>(null);
+  const [tierQuantityUpdating, setTierQuantityUpdating] = useState(false);
   const ownerViewTrackedRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -383,6 +389,108 @@ export default function ProfileClient({
     setOwnerPageReviewed(true);
   }, [username]);
 
+  const handleClearRewardTierPrefill = useCallback(() => {
+    setRewardTierPrefill(null);
+  }, []);
+
+  const handleSelectRewardTier = useCallback(
+    async (tier: RewardTierView) => {
+      if (!activeProjectId || !creator.address) return;
+      const chainId = getDefaultChainId();
+      try {
+        const res = await fetch(
+          `/api/projects/${encodeURIComponent(activeProjectId)}/payment-intents`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rewardTierId: tier.id,
+              quantity: 1,
+              chainId,
+              recipientAddress: creator.address,
+              currency: tier.currency,
+            }),
+            cache: "no-store",
+          }
+        );
+        if (!res.ok) return;
+        const json = (await res.json().catch(() => null)) as
+          | { paymentIntent?: { id?: string } }
+          | null;
+        const intentId = json?.paymentIntent?.id;
+        if (typeof intentId !== "string" || !intentId) return;
+        setRewardTierPrefill({
+          tierId: tier.id,
+          title: tier.title,
+          priceJpyc: tier.priceJpyc,
+          paymentIntentId: intentId,
+          quantity: 1,
+        });
+        if (canOpenSupportSheet) {
+          openSupportSheet();
+        }
+      } catch {
+        // noop: UI 側は何もせず、ユーザーは通常フローに戻れる
+      }
+    },
+    [activeProjectId, creator.address, canOpenSupportSheet, openSupportSheet]
+  );
+
+  const handleAfterSendWithTierClear = useCallback(
+    async (txHash: string, postId?: string | null) => {
+      try {
+        await afterSendPipeline(txHash, postId);
+      } finally {
+        setRewardTierPrefill(null);
+      }
+    },
+    [afterSendPipeline]
+  );
+
+  const handleChangeTierQuantity = useCallback(
+    async (nextQuantityRaw: number) => {
+      if (!rewardTierPrefill || !activeProjectId || !creator.address) return;
+      const nextQuantity = Math.max(
+        1,
+        Math.floor(Number.isFinite(nextQuantityRaw) ? nextQuantityRaw : 1)
+      );
+      if (nextQuantity === rewardTierPrefill.quantity) return;
+      setTierQuantityUpdating(true);
+      try {
+        const chainId = getDefaultChainId();
+        const res = await fetch(
+          `/api/projects/${encodeURIComponent(activeProjectId)}/payment-intents`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rewardTierId: rewardTierPrefill.tierId,
+              quantity: nextQuantity,
+              chainId,
+              recipientAddress: creator.address,
+              currency: "JPYC",
+            }),
+            cache: "no-store",
+          }
+        );
+        if (!res.ok) return;
+        const json = (await res.json().catch(() => null)) as
+          | { paymentIntent?: { id?: string } }
+          | null;
+        const intentId = json?.paymentIntent?.id;
+        if (typeof intentId !== "string" || !intentId) return;
+        setRewardTierPrefill({
+          ...rewardTierPrefill,
+          quantity: nextQuantity,
+          paymentIntentId: intentId,
+        });
+      } finally {
+        setTierQuantityUpdating(false);
+      }
+    },
+    [rewardTierPrefill, activeProjectId, creator.address]
+  );
+
   const profileGuideCard = useMemo(
     () => (
       <ProfileViewerGuideCard
@@ -460,11 +568,7 @@ export default function ProfileClient({
           <RewardTierPublicSection
             projectId={activeProjectId}
             headerColor={creator.themeColor ?? undefined}
-            onRequestSupport={() => {
-              if (canOpenSupportSheet) {
-                openSupportSheet();
-              }
-            }}
+            onRequestSupport={handleSelectRewardTier}
           />
         ),
       });
@@ -503,6 +607,7 @@ export default function ProfileClient({
     feedRefreshToken,
     goalAchievedAt,
     handleSelectPostTip,
+    handleSelectRewardTier,
     initialFeed,
     openSupportSheet,
     ownerProjectOptions,
@@ -584,7 +689,11 @@ export default function ProfileClient({
               selectedPostCurrency={selectedPostTipContext?.preferredCurrency ?? null}
               onClearSelectedPost={() => setSelectedPostTipContext(null)}
               onPostContribution={postContribution}
-              onAfterSend={afterSendPipeline}
+              onAfterSend={handleAfterSendWithTierClear}
+              rewardTierPrefill={rewardTierPrefill}
+              onClearRewardTierPrefill={handleClearRewardTierPrefill}
+              onChangeTierQuantity={handleChangeTierQuantity}
+              tierQuantityUpdating={tierQuantityUpdating}
             />
           ) : null}
         </SupportSheet>

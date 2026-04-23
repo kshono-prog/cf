@@ -11,6 +11,7 @@ type Props = {
   onTogglePublish: (tier: RewardTierView) => void;
   onStartProduction: (tier: RewardTierView) => void;
   onCompleteProduction: (tier: RewardTierView) => void;
+  onCancelTier?: (tier: RewardTierView) => void;
 };
 
 function formatJpyc(value: number): string {
@@ -26,6 +27,7 @@ export function RewardTierList({
   onTogglePublish,
   onStartProduction,
   onCompleteProduction,
+  onCancelTier,
 }: Props) {
   if (loading) {
     return (
@@ -107,6 +109,27 @@ export function RewardTierList({
                 >
                   完了
                 </button>
+                {onCancelTier ? (
+                  <button
+                    type="button"
+                    onClick={() => onCancelTier(tier)}
+                    disabled={
+                      busy ||
+                      tier.productionStatus === "IN_PROGRESS" ||
+                      tier.productionStatus === "COMPLETED" ||
+                      tier.productionStatus === "CANCELED"
+                    }
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    title={
+                      tier.productionStatus === "IN_PROGRESS" ||
+                      tier.productionStatus === "COMPLETED"
+                        ? "進行中/完了のメニューは受付終了できません"
+                        : "この支援メニューの受付を終了します"
+                    }
+                  >
+                    受付終了
+                  </button>
+                ) : null}
               </div>
             </header>
 

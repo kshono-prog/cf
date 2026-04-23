@@ -84,13 +84,23 @@ export async function generateMetadata({
   };
 }
 
-export default async function Page({ params }: { params: Promise<Params> }) {
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<Params>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { username } = await params;
+  const resolvedSearchParams = await searchParams;
 
   return (
     <PublicPageShell username={username} fullBleed hideDesktopHeader>
       <Suspense fallback={<PublicProfilePageLoadingShell username={username} />}>
-        <PublicProfilePageBodyServer username={username} />
+        <PublicProfilePageBodyServer
+          username={username}
+          e2eMockScenario={resolvedSearchParams}
+        />
       </Suspense>
     </PublicPageShell>
   );
